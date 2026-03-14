@@ -153,7 +153,7 @@ function makeStyles(colors: ThemeColors) {
     header: { alignItems: 'center', marginBottom: spacing['10'] },
     emoji: { fontSize: 56 },
     titulo: { fontSize: typography.size['2xl'], fontFamily: typography.family.bold, marginTop: spacing['3'] },
-    subtitulo: { fontSize: typography.size.md, marginTop: spacing['2'], textAlign: 'center', lineHeight: 22 },
+    subtitulo: { fontSize: typography.size.md, marginTop: spacing['2'], textAlign: 'center', lineHeight: typography.lineHeight.md },
     form: { width: '100%' },
     label: { fontSize: typography.size.sm, fontFamily: typography.family.semibold, marginBottom: spacing['1'], marginTop: spacing['4'] },
     input: { borderWidth: 1, borderRadius: radii.md, paddingHorizontal: spacing['4'], paddingVertical: spacing['3'], fontSize: typography.size.md },

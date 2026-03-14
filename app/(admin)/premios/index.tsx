@@ -55,6 +55,8 @@ export default function AdminPremiosScreen() {
       <StatusBar style={colors.statusBar} />
       <ScreenHeader
         title="Prêmios"
+        onBack={() => router.back()}
+        backLabel="Início"
         rightAction={
           <Pressable
             onPress={() => router.push('/(admin)/premios/novo' as never)}
@@ -123,7 +125,7 @@ export default function AdminPremiosScreen() {
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
-    lista: { padding: spacing['4'], gap: spacing['3'], paddingBottom: 96 },
+    lista: { padding: spacing['4'], gap: spacing['3'], paddingBottom: spacing['12'] },
     resumo: { fontSize: typography.size.xs, color: colors.text.muted, marginBottom: spacing['1'] },
     card: {
       backgroundColor: colors.bg.surface,
@@ -146,7 +148,7 @@ function makeStyles(colors: ThemeColors) {
       paddingVertical: 2,
     },
     badgeInativoTexto: { fontSize: typography.size.xs, color: colors.text.muted, fontFamily: typography.family.semibold },
-    botaoNova: { borderRadius: radii.sm, paddingVertical: spacing['1'] + 2, paddingHorizontal: spacing['3'] },
+    botaoNova: { borderRadius: radii.sm, paddingVertical: spacing['2'], paddingHorizontal: spacing['3'], minHeight: 36 },
     botaoNovaTexto: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
     botaoNovoTexto: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
   });

@@ -114,7 +114,7 @@ export default function TarefaDetalheAdminScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader title="Detalhes" onBack={() => router.back()} backLabel="← Tarefas" />
+      <ScreenHeader title="Detalhes" onBack={() => router.back()} backLabel="Tarefas" />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Dados da tarefa */}
@@ -316,7 +316,7 @@ function makeStyles(colors: ThemeColors) {
     },
     botoesRejeitar: { flexDirection: 'row', gap: spacing['2'] },
     botoesValidar: { flexDirection: 'row', gap: spacing['2'] },
-    botaoAcao: { flex: 1, borderRadius: radii.md, paddingVertical: spacing['2'], alignItems: 'center' },
+    botaoAcao: { flex: 1, borderRadius: radii.md, paddingVertical: spacing['2'], alignItems: 'center', minHeight: 44, justifyContent: 'center' },
     botaoCancelar: { borderWidth: 1, borderColor: colors.border.default },
     botaoCancelarTexto: { color: colors.text.secondary, fontFamily: typography.family.semibold, fontSize: typography.size.sm },
     botaoRejeitar: { backgroundColor: colors.semantic.error },

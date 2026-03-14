@@ -180,7 +180,7 @@ function makeStyles(colors: ThemeColors) {
     avisoInativo: { backgroundColor: colors.semantic.warningBg, borderRadius: radii.lg, borderCurve: 'continuous', padding: spacing['3'] },
     avisoInativoTexto: { fontSize: typography.size.xs, color: colors.semantic.warning, textAlign: 'center' },
     campo: { gap: spacing['2'] },
-    label: { fontSize: typography.size.xs, fontFamily: typography.family.semibold, color: colors.text.secondary },
+    label: { fontSize: typography.size.sm, fontFamily: typography.family.semibold, color: colors.text.secondary },
     input: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.lg,

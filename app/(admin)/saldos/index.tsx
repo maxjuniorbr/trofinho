@@ -29,7 +29,7 @@ export default function SaldosAdminScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader title="Saldos dos Filhos" onBack={() => router.back()} backLabel="← Início" />
+      <ScreenHeader title="Saldos dos Filhos" onBack={() => router.back()} backLabel="Início" />
 
       {carregando ? (
         <EmptyState loading />
@@ -67,7 +67,7 @@ function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
     lista: { padding: spacing['5'], paddingBottom: spacing['12'] },
-    card: { flexDirection: 'row', alignItems: 'center', borderRadius: radii.lg, borderWidth: 1, padding: spacing['4'], marginBottom: spacing['3'] },
+    card: { flexDirection: 'row', alignItems: 'center', borderRadius: radii.xl, borderWidth: 1, padding: spacing['4'], marginBottom: spacing['3'] },
     info: { flex: 1, marginLeft: spacing['3'] },
     nome: { fontSize: typography.size.md, fontFamily: typography.family.bold },
     detalhe: { fontSize: typography.size.sm, marginTop: spacing['1'] },
