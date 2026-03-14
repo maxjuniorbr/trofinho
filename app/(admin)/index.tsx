@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, Pressable, ActivityIndicator, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -92,19 +92,18 @@ export default function AdminHomeScreen() {
   async function handleSair() {
     setSaindo(true);
     await signOut();
-    // _layout.tsx detecta a mudança de sessão e redireciona automaticamente
   }
 
   if (carregando) {
     return (
-      <View style={styles.loading}>
+      <View style={styles.loading} accessibilityRole="progressbar">
         <ActivityIndicator size="large" color="#4F46E5" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <StatusBar style="auto" />
 
       <View style={styles.header}>
@@ -113,9 +112,11 @@ export default function AdminHomeScreen() {
         <Text style={styles.boas_vindas}>Olá, {profile?.nome ?? 'Admin'}!</Text>
       </View>
 
-      <TouchableOpacity
-        style={styles.card}
+      <Pressable
+        style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}
         onPress={() => router.push('/(admin)/tarefas')}
+        accessibilityRole="button"
+        accessibilityLabel={`Tarefas. ${tarefasPendentesTexto}`}
       >
         <View style={styles.cardTopo}>
           <Text style={styles.cardTitulo}>📋 Tarefas</Text>
@@ -129,11 +130,13 @@ export default function AdminHomeScreen() {
           {tarefasPendentesTexto}
         </Text>
         <Text style={styles.cardLink}>Ver tarefas →</Text>
-      </TouchableOpacity>
+      </Pressable>
 
-      <TouchableOpacity
-        style={styles.card}
+      <Pressable
+        style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}
         onPress={() => router.push('/(admin)/filhos')}
+        accessibilityRole="button"
+        accessibilityLabel={`Filhos. ${filhosTexto}`}
       >
         <View style={styles.cardTopo}>
           <Text style={styles.cardTitulo}>👨‍👧 Filhos</Text>
@@ -147,11 +150,13 @@ export default function AdminHomeScreen() {
           {filhosTexto}
         </Text>
         <Text style={styles.cardLink}>Gerenciar filhos →</Text>
-      </TouchableOpacity>
+      </Pressable>
 
-      <TouchableOpacity
-        style={styles.card}
+      <Pressable
+        style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}
         onPress={() => router.push('/(admin)/saldos')}
+        accessibilityRole="button"
+        accessibilityLabel="Pontos e Cofrinho"
       >
         <View style={styles.cardTopo}>
           <Text style={styles.cardTitulo}>💰 Pontos & Cofrinho</Text>
@@ -162,23 +167,30 @@ export default function AdminHomeScreen() {
             : 'Gerencie valorização e penalizações dos filhos.'}
         </Text>
         <Text style={styles.cardLink}>Ver saldos →</Text>
-      </TouchableOpacity>
+      </Pressable>
 
-      <TouchableOpacity
-        style={[styles.botaoSair, saindo && styles.botaoDesabilitado]}
+      <Pressable
+        style={({ pressed }) => [
+          styles.botaoSair,
+          saindo && styles.botaoDesabilitado,
+          pressed && !saindo && { opacity: 0.7 },
+        ]}
         onPress={handleSair}
         disabled={saindo}
+        accessibilityRole="button"
+        accessibilityLabel={saindo ? 'Saindo' : 'Sair'}
+        accessibilityState={{ disabled: saindo, busy: saindo }}
       >
         <Text style={styles.botaoSairTexto}>{saindo ? 'Saindo…' : 'Sair'}</Text>
-      </TouchableOpacity>
-    </View>
+      </Pressable>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5F3FF' },
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: '#F5F3FF',
     alignItems: 'center',
     justifyContent: 'center',
@@ -203,12 +215,10 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
     borderRadius: 16,
+    borderCurve: 'continuous',
     padding: 24,
     width: '100%',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
     marginBottom: 32,
   },
   cardTopo: {
@@ -225,12 +235,13 @@ const styles = StyleSheet.create({
   badge: {
     backgroundColor: '#EF4444',
     borderRadius: 12,
+    borderCurve: 'continuous',
     paddingHorizontal: 8,
     paddingVertical: 2,
     minWidth: 24,
     alignItems: 'center',
   },
-  badgeTexto: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  badgeTexto: { color: '#fff', fontSize: 12, fontWeight: '700', fontVariant: ['tabular-nums'] },
   cardTexto: {
     fontSize: 15,
     color: '#374151',
@@ -246,8 +257,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
     borderRadius: 12,
+    borderCurve: 'continuous',
     paddingVertical: 14,
     paddingHorizontal: 32,
+    minHeight: 44,
   },
   botaoDesabilitado: { opacity: 0.5 },
   botaoSairTexto: {

@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import Constants from 'expo-constants';
 import { supabase } from './supabase';
 import type { Filho } from './tarefas';
 
@@ -12,8 +11,8 @@ export type FilhoComSaldo = Filho & {
 // ─── Cliente temporário (não substitui a sessão do admin) ─
 
 function criarClienteTemp() {
-  const url = Constants.expoConfig?.extra?.supabaseUrl as string;
-  const anonKey = Constants.expoConfig?.extra?.supabaseAnonKey as string;
+  const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
   return createClient(url, anonKey, {
     auth: {
       persistSession: false,

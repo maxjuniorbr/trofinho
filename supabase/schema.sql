@@ -4,12 +4,15 @@
 
 -- ─── TABELAS ─────────────────────────────────────────────────
 
+-- UUIDs preferidos para chaves primárias para evitar enumeração e permitir geração offline
+-- TIMESTAMPTZ usado para rastrear corretamente o fuso horário
 CREATE TABLE IF NOT EXISTS public.familias (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nome       TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Uso de ON DELETE CASCADE em chaves estrangeiras para evitar registros órfãos
 CREATE TABLE IF NOT EXISTS public.usuarios (
   id         UUID PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
   familia_id UUID NOT NULL REFERENCES public.familias (id) ON DELETE CASCADE,
@@ -28,6 +31,7 @@ CREATE TABLE IF NOT EXISTS public.filhos (
 
 -- ─── ÍNDICES ────────────────────────────────────────────────
 
+-- Índices em chaves estrangeiras são críticos para performance de JOINs e validações RLS
 CREATE INDEX IF NOT EXISTS idx_usuarios_familia ON public.usuarios (familia_id);
 CREATE INDEX IF NOT EXISTS idx_filhos_familia   ON public.filhos   (familia_id);
 

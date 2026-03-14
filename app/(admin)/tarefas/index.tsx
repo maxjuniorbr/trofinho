@@ -2,13 +2,13 @@ import {
   StyleSheet,
   Text,
   View,
-  TouchableOpacity,
+  Pressable,
   FlatList,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { AsyncListState } from '@/components/AsyncListState';
+import AsyncListState from '@/components/AsyncListState';
 import {
   listarTarefasAdmin,
   type TarefaListItem,
@@ -56,11 +56,10 @@ export default function AdminTarefasScreen() {
     if (carregando || erro || tarefas.length === 0) {
       return (
         <AsyncListState
-          isLoading={carregando}
+          loading={carregando}
           error={erro}
-          isEmpty={tarefas.length === 0}
-          emptyTitle="Nenhuma tarefa criada."
-          emptySubtitle='Toque em "+ Nova" para criar a primeira tarefa.'
+          empty={tarefas.length === 0}
+          emptyMessage={'Nenhuma tarefa criada.\nToque em "+ Nova" para criar a primeira tarefa.'}
           onRetry={carregar}
         />
       );
@@ -75,7 +74,7 @@ export default function AdminTarefasScreen() {
           const { pendentes, aguardando, aprovadas, total } =
             resumoAtribuicoes(item.atribuicoes);
           return (
-            <TouchableOpacity
+            <Pressable
               style={styles.card}
               onPress={() =>
                 router.push(`/(admin)/tarefas/${item.id}` as never)
@@ -123,7 +122,7 @@ export default function AdminTarefasScreen() {
                   </>
                 )}
               </View>
-            </TouchableOpacity>
+            </Pressable>
           );
         }}
       />
@@ -135,16 +134,16 @@ export default function AdminTarefasScreen() {
       <StatusBar style="auto" />
 
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.voltar}>
+        <Pressable onPress={() => router.back()} style={styles.voltar}>
           <Text style={styles.voltarTexto}>← Início</Text>
-        </TouchableOpacity>
+        </Pressable>
         <Text style={styles.titulo}>Tarefas</Text>
-        <TouchableOpacity
+        <Pressable
           style={styles.botaoNova}
           onPress={() => router.push('/(admin)/tarefas/nova')}
         >
           <Text style={styles.botaoNovaTexto}>+ Nova</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       {renderConteudo()}
@@ -183,10 +182,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.06)',
   },
   cardTopo: {
     flexDirection: 'row',

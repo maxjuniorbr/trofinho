@@ -2,7 +2,7 @@ import {
   StyleSheet,
   Text,
   View,
-  TouchableOpacity,
+  Pressable,
   FlatList,
   ActivityIndicator,
 } from 'react-native';
@@ -88,9 +88,9 @@ export default function FilhoTarefasScreen() {
       return (
         <View style={styles.centro}>
           <Text style={styles.erroTexto}>{erro}</Text>
-          <TouchableOpacity style={styles.botaoRetentar} onPress={carregar}>
+          <Pressable style={styles.botaoRetentar} onPress={carregar}>
             <Text style={styles.botaoRetentarTexto}>Tentar novamente</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       );
     }
@@ -109,7 +109,7 @@ export default function FilhoTarefasScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.lista}
         renderItem={({ item }) => (
-          <TouchableOpacity
+          <Pressable
             style={styles.card}
             onPress={() =>
               router.push(`/(filho)/tarefas/${item.id}` as never)
@@ -141,7 +141,7 @@ export default function FilhoTarefasScreen() {
                 {labelStatus(item.status)}
               </Text>
             </View>
-          </TouchableOpacity>
+          </Pressable>
         )}
       />
     );
@@ -152,9 +152,9 @@ export default function FilhoTarefasScreen() {
       <StatusBar style="auto" />
 
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.voltarBtn}>
+        <Pressable onPress={() => router.back()} style={styles.voltarBtn}>
           <Text style={styles.voltarTexto}>← Início</Text>
-        </TouchableOpacity>
+        </Pressable>
         <Text style={styles.titulo}>Minhas Tarefas</Text>
         <View style={{ minWidth: 60 }} />
       </View>
@@ -162,7 +162,7 @@ export default function FilhoTarefasScreen() {
       {/* Filtros */}
       <View style={styles.filtrosRow}>
         {FILTROS.map((f) => (
-          <TouchableOpacity
+          <Pressable
             key={f.key}
             style={[styles.filtroBtn, filtro === f.key && styles.filtroBtnAtivo]}
             onPress={() => setFiltro(f.key)}
@@ -175,7 +175,7 @@ export default function FilhoTarefasScreen() {
             >
               {f.label}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         ))}
       </View>
 
@@ -237,10 +237,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.06)',
   },
   cardTopo: {
     flexDirection: 'row',

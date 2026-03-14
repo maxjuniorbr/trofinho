@@ -2,7 +2,7 @@ import {
   StyleSheet,
   Text,
   View,
-  TouchableOpacity,
+  Pressable,
   ScrollView,
   ActivityIndicator,
   Image,
@@ -110,9 +110,9 @@ export default function FilhoTarefaDetalheScreen() {
     return (
       <View style={styles.loading}>
         <Text style={styles.erroTexto}>{erro ?? 'Tarefa não encontrada.'}</Text>
-        <TouchableOpacity style={styles.botaoVoltar} onPress={() => router.back()}>
+        <Pressable style={styles.botaoVoltar} onPress={() => router.back()}>
           <Text style={styles.botaoVoltarTexto}>← Voltar</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     );
   }
@@ -124,9 +124,9 @@ export default function FilhoTarefaDetalheScreen() {
     <View style={styles.container}>
       <StatusBar style="auto" />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <Pressable onPress={() => router.back()}>
           <Text style={styles.voltarTexto}>← Tarefas</Text>
-        </TouchableOpacity>
+        </Pressable>
         <Text style={styles.headerTitulo}>Detalhe</Text>
         <View style={{ minWidth: 60 }} />
       </View>
@@ -196,7 +196,7 @@ export default function FilhoTarefaDetalheScreen() {
             {erroConclusao ? (
               <Text style={styles.erroTexto}>{erroConclusao}</Text>
             ) : null}
-            <TouchableOpacity
+            <Pressable
               style={[styles.botaoConcluir, concluindo && styles.botaoDesabilitado]}
               onPress={handleConcluir}
               disabled={concluindo}
@@ -210,7 +210,7 @@ export default function FilhoTarefaDetalheScreen() {
                     : '✓ Concluir tarefa'}
                 </Text>
               )}
-            </TouchableOpacity>
+            </Pressable>
           </>
         )}
 
@@ -293,10 +293,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.06)',
   },
   cardTopo: {
     flexDirection: 'row',
