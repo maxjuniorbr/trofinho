@@ -3,7 +3,14 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 
-type BadgeVariant = 'success' | 'error' | 'warning' | 'info' | 'neutral' | 'brand';
+/**
+ * Variants aligned with design-studio StatusBadge:
+ * pending=warning  approved=success  rejected=error
+ * active=brand     inactive=neutral
+ */
+type BadgeVariant =
+  | 'success' | 'error' | 'warning' | 'info' | 'neutral' | 'brand'
+  | 'pending' | 'approved' | 'rejected' | 'active' | 'inactive';
 
 interface BadgeProps {
   label: string;
@@ -11,11 +18,26 @@ interface BadgeProps {
   size?: 'sm' | 'md';
 }
 
-export function Badge({ label, variant = 'neutral', size = 'sm' }: BadgeProps) {
+type ReadonlyBadgeProps = Readonly<BadgeProps>;
+
+// Map status aliases to semantic variants
+function resolveVariant(v: BadgeVariant): 'success' | 'error' | 'warning' | 'info' | 'neutral' | 'brand' {
+  switch (v) {
+    case 'pending':  return 'warning';
+    case 'approved': return 'success';
+    case 'rejected': return 'error';
+    case 'active':   return 'brand';
+    case 'inactive': return 'neutral';
+    default:         return v;
+  }
+}
+
+export function Badge({ label, variant = 'neutral', size = 'sm' }: ReadonlyBadgeProps) {
   const { colors } = useTheme();
+  const resolved = resolveVariant(variant);
 
   function bg() {
-    switch (variant) {
+    switch (resolved) {
       case 'success': return colors.semantic.successBg;
       case 'error':   return colors.semantic.errorBg;
       case 'warning': return colors.semantic.warningBg;
@@ -26,17 +48,17 @@ export function Badge({ label, variant = 'neutral', size = 'sm' }: BadgeProps) {
   }
 
   function fg() {
-    switch (variant) {
+    switch (resolved) {
       case 'success': return colors.semantic.success;
       case 'error':   return colors.semantic.error;
       case 'warning': return colors.semantic.warning;
       case 'info':    return colors.semantic.info;
-      case 'brand':   return colors.brand.dim;
+      case 'brand':   return colors.brand.vivid;
       default:        return colors.text.secondary;
     }
   }
 
-  const paddingV = size === 'md' ? spacing['2'] : spacing['1'];
+  const paddingV = size === 'md' ? spacing['2'] : 3;
   const paddingH = size === 'md' ? spacing['3'] : spacing['2'];
   const fontSize  = size === 'md' ? typography.size.sm : typography.size.xs;
 
@@ -53,6 +75,9 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   label: {
-    fontWeight: typography.weight.semibold,
+    fontWeight: typography.weight.black,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    fontFamily: typography.family.black,
   },
 });
