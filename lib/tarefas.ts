@@ -96,52 +96,17 @@ export type NovaTarefaInput = {
 export async function criarTarefa(
   input: NovaTarefaInput
 ): Promise<{ error: string | null }> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: 'Usuário não autenticado' };
+  const { error } = await supabase.rpc('criar_tarefa_com_atribuicoes', {
+    p_titulo: input.titulo,
+    p_descricao: input.descricao,
+    p_pontos: input.pontos,
+    p_timebox_inicio: input.timebox_inicio,
+    p_timebox_fim: input.timebox_fim,
+    p_exige_evidencia: input.exige_evidencia,
+    p_filho_ids: input.filhoIds,
+  });
 
-  const { data: perfil } = await supabase
-    .from('usuarios')
-    .select('familia_id')
-    .eq('id', user.id)
-    .single();
-
-  if (!perfil) return { error: 'Perfil não encontrado' };
-
-  const { data: tarefa, error: tarefaError } = await supabase
-    .from('tarefas')
-    .insert({
-      titulo: input.titulo,
-      descricao: input.descricao,
-      pontos: input.pontos,
-      timebox_inicio: input.timebox_inicio,
-      timebox_fim: input.timebox_fim,
-      exige_evidencia: input.exige_evidencia,
-      familia_id: perfil.familia_id,
-      criado_por: user.id,
-    })
-    .select('id')
-    .single();
-
-  if (tarefaError || !tarefa) {
-    return { error: tarefaError?.message ?? 'Erro ao criar tarefa' };
-  }
-
-  if (input.filhoIds.length > 0) {
-    const atribuicoes = input.filhoIds.map((filhoId) => ({
-      tarefa_id: tarefa.id,
-      filho_id: filhoId,
-      status: 'pendente' as const,
-    }));
-
-    const { error: atribError } = await supabase
-      .from('atribuicoes')
-      .insert(atribuicoes);
-
-    if (atribError) return { error: atribError.message };
-  }
-
+  if (error) return { error: error.message };
   return { error: null };
 }
 
@@ -168,7 +133,8 @@ export async function buscarTarefaComAtribuicoes(
     .single();
 
   if (error) return { data: null, error: error.message };
-  return { data: data as unknown as TarefaDetalhe, error: null };
+  const tarefa = await assinarEvidenciasTarefa(data as unknown as TarefaDetalhe);
+  return { data: tarefa, error: null };
 }
 
 // ─── Admin: Validação ─────────────────────────────────────
@@ -233,7 +199,11 @@ export async function buscarAtribuicaoFilho(
     .single();
 
   if (error) return { data: null, error: error.message };
-  return { data: data as unknown as AtribuicaoFilho, error: null };
+  const atribuicao = await assinarEvidencia(
+    data as unknown as AtribuicaoFilho
+  );
+
+  return { data: atribuicao, error: null };
 }
 
 export async function concluirAtribuicao(
@@ -266,6 +236,36 @@ async function uploadEvidencia(
   imagemUri: string
 ): Promise<{ url: string | null; error: string | null }> {
   try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { url: null, error: 'Usuário não autenticado' };
+    }
+
+    const [{ data: perfil, error: perfilError }, { data: filho, error: filhoError }] =
+      await Promise.all([
+        supabase
+          .from('usuarios')
+          .select('familia_id')
+          .eq('id', user.id)
+          .single(),
+        supabase
+          .from('filhos')
+          .select('id')
+          .eq('usuario_id', user.id)
+          .single(),
+      ]);
+
+    if (perfilError || !perfil?.familia_id) {
+      return { url: null, error: perfilError?.message ?? 'Perfil não encontrado' };
+    }
+
+    if (filhoError || !filho?.id) {
+      return { url: null, error: filhoError?.message ?? 'Filho não encontrado' };
+    }
+
     const arraybuffer = await fetch(imagemUri).then((res) =>
       res.arrayBuffer()
     );
@@ -274,7 +274,7 @@ async function uploadEvidencia(
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
     const fileName = `evidencia_${Date.now()}_${hex}.jpg`;
-    const filePath = `public/${fileName}`;
+    const filePath = `${perfil.familia_id}/${filho.id}/${fileName}`;
 
     const { data, error } = await supabase.storage
       .from('evidencias')
@@ -284,14 +284,85 @@ async function uploadEvidencia(
       });
 
     if (error) return { url: null, error: error.message };
-
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from('evidencias').getPublicUrl(data.path);
-
-    return { url: publicUrl, error: null };
+    return { url: data.path, error: null };
   } catch {
     return { url: null, error: 'Erro ao fazer upload da imagem' };
+  }
+}
+
+const EVIDENCIA_URL_TTL_SECONDS = 60 * 60;
+
+async function assinarEvidenciasTarefa(
+  tarefa: TarefaDetalhe
+): Promise<TarefaDetalhe> {
+  const atribuicoes = await Promise.all(
+    tarefa.atribuicoes.map((atrib) => assinarEvidencia(atrib))
+  );
+
+  return {
+    ...tarefa,
+    atribuicoes,
+  };
+}
+
+async function assinarEvidencia<T extends { evidencia_url: string | null }>(
+  item: T
+): Promise<T> {
+  const urlAssinada = await resolverUrlEvidencia(item.evidencia_url);
+
+  return {
+    ...item,
+    evidencia_url: urlAssinada,
+  };
+}
+
+async function resolverUrlEvidencia(
+  evidencia: string | null
+): Promise<string | null> {
+  if (!evidencia) return null;
+
+  const caminho = normalizarCaminhoEvidencia(evidencia);
+  if (!caminho) return evidencia;
+
+  const { data, error } = await supabase.storage
+    .from('evidencias')
+    .createSignedUrl(caminho, EVIDENCIA_URL_TTL_SECONDS);
+
+  if (error) return null;
+  return data.signedUrl;
+}
+
+function normalizarCaminhoEvidencia(evidencia: string): string | null {
+  if (!evidencia.includes('://')) {
+    return evidencia;
+  }
+
+  const marcadoresConhecidos = [
+    '/storage/v1/object/public/evidencias/',
+    '/storage/v1/object/sign/evidencias/',
+    '/object/public/evidencias/',
+    '/object/sign/evidencias/',
+  ];
+
+  for (const marcador of marcadoresConhecidos) {
+    if (evidencia.includes(marcador)) {
+      const caminho = evidencia.split(marcador)[1]?.split('?')[0] ?? '';
+      return caminho ? decodeURIComponent(caminho) : null;
+    }
+  }
+
+  try {
+    const url = new URL(evidencia);
+    const indiceBucket = url.pathname.indexOf('/evidencias/');
+
+    if (indiceBucket === -1) {
+      return null;
+    }
+
+    const caminho = url.pathname.slice(indiceBucket + '/evidencias/'.length);
+    return caminho ? decodeURIComponent(caminho) : null;
+  } catch {
+    return null;
   }
 }
 
