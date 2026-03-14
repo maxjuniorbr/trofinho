@@ -2,7 +2,7 @@ import {
   StyleSheet,
   Text,
   View,
-  TouchableOpacity,
+  Pressable,
   ScrollView,
   TextInput,
   ActivityIndicator,
@@ -113,9 +113,9 @@ export default function TarefaDetalheAdminScreen() {
     return (
       <View style={styles.loading}>
         <Text style={styles.erroTexto}>{erro ?? 'Tarefa não encontrada.'}</Text>
-        <TouchableOpacity style={styles.botaoVoltar} onPress={() => router.back()}>
+        <Pressable style={styles.botaoVoltar} onPress={() => router.back()}>
           <Text style={styles.botaoVoltarTexto}>← Voltar</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     );
   }
@@ -124,9 +124,9 @@ export default function TarefaDetalheAdminScreen() {
     <View style={styles.container}>
       <StatusBar style="auto" />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <Pressable onPress={() => router.back()}>
           <Text style={styles.voltarTexto}>← Tarefas</Text>
-        </TouchableOpacity>
+        </Pressable>
         <Text style={styles.headerTitulo} numberOfLines={1}>
           Detalhes
         </Text>
@@ -226,7 +226,7 @@ export default function TarefaDetalheAdminScreen() {
                           multiline
                         />
                         <View style={styles.botoesRejeitar}>
-                          <TouchableOpacity
+                          <Pressable
                             style={[styles.botaoAcao, styles.botaoCancelar]}
                             onPress={() =>
                               setAcoesAtrib((prev) => ({
@@ -239,8 +239,8 @@ export default function TarefaDetalheAdminScreen() {
                             <Text style={styles.botaoCancelarTexto}>
                               Cancelar
                             </Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity
+                          </Pressable>
+                          <Pressable
                             style={[
                               styles.botaoAcao,
                               styles.botaoRejeitar,
@@ -256,12 +256,12 @@ export default function TarefaDetalheAdminScreen() {
                                 Confirmar rejeição
                               </Text>
                             )}
-                          </TouchableOpacity>
+                          </Pressable>
                         </View>
                       </>
                     ) : (
                       <View style={styles.botoesValidar}>
-                        <TouchableOpacity
+                        <Pressable
                           style={[
                             styles.botaoAcao,
                             styles.botaoRejeitar,
@@ -278,8 +278,8 @@ export default function TarefaDetalheAdminScreen() {
                           <Text style={styles.botaoRejeitarTexto}>
                             Rejeitar
                           </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
+                        </Pressable>
+                        <Pressable
                           style={[
                             styles.botaoAcao,
                             styles.botaoAprovar,
@@ -295,7 +295,7 @@ export default function TarefaDetalheAdminScreen() {
                               Aprovar ✓
                             </Text>
                           )}
-                        </TouchableOpacity>
+                        </Pressable>
                       </View>
                     )}
                     {erroAtrib ? (
@@ -347,10 +347,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.06)',
   },
   cardTopo: {
     flexDirection: 'row',
@@ -397,10 +394,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)',
   },
   atribTopo: {
     flexDirection: 'row',

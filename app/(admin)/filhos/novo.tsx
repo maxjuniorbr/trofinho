@@ -2,11 +2,10 @@ import {
   StyleSheet,
   Text,
   View,
-  TouchableOpacity,
+  Pressable,
   TextInput,
   ScrollView,
   KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -59,12 +58,12 @@ export default function NovoFilhoScreen() {
           {'\n'}
           <Text style={styles.credencial}>Senha: {senha}</Text>
         </Text>
-        <TouchableOpacity
+        <Pressable
           style={styles.botaoConcluir}
           onPress={() => router.back()}
         >
           <Text style={styles.botaoConcluirTexto}>Concluir</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     );
   }
@@ -72,13 +71,13 @@ export default function NovoFilhoScreen() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
     >
       <StatusBar style="auto" />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <Pressable onPress={() => router.back()}>
           <Text style={styles.voltar}>← Voltar</Text>
-        </TouchableOpacity>
+        </Pressable>
         <Text style={styles.titulo}>Novo Filho</Text>
         <View style={{ minWidth: 60 }} />
       </View>
@@ -139,7 +138,7 @@ export default function NovoFilhoScreen() {
 
         {erro && <Text style={styles.erroTexto}>{erro}</Text>}
 
-        <TouchableOpacity
+        <Pressable
           style={[styles.botaoCadastrar, enviando && styles.botaoDesabilitado]}
           onPress={handleCadastrar}
           disabled={enviando}
@@ -149,7 +148,7 @@ export default function NovoFilhoScreen() {
           ) : (
             <Text style={styles.botaoCadastrarTexto}>Cadastrar filho</Text>
           )}
-        </TouchableOpacity>
+        </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );

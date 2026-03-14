@@ -3,9 +3,8 @@ import {
   Text,
   View,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -53,7 +52,6 @@ export default function RegisterScreen() {
       return;
     }
 
-    // Navega para onboarding passando o nome para pré-preencher
     router.replace({
       pathname: '/(auth)/onboarding',
       params: { nome: nome.trim() },
@@ -67,7 +65,7 @@ export default function RegisterScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={process.env.EXPO_OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <StatusBar style="auto" />
@@ -87,6 +85,7 @@ export default function RegisterScreen() {
             onChangeText={(t) => { setNome(t); limparErro(); }}
             autoCapitalize="words"
             editable={!carregando}
+            accessibilityLabel="Campo de nome"
           />
 
           <Text style={styles.label}>E-mail</Text>
@@ -101,6 +100,7 @@ export default function RegisterScreen() {
             autoCorrect={false}
             maxLength={MAX_EMAIL_LENGTH}
             editable={!carregando}
+            accessibilityLabel="Campo de e-mail"
           />
 
           <Text style={styles.label}>Senha</Text>
@@ -113,6 +113,7 @@ export default function RegisterScreen() {
             secureTextEntry
             maxLength={128}
             editable={!carregando}
+            accessibilityLabel="Campo de senha"
           />
 
           <Text style={styles.label}>Confirmar senha</Text>
@@ -125,27 +126,41 @@ export default function RegisterScreen() {
             secureTextEntry
             maxLength={128}
             editable={!carregando}
+            accessibilityLabel="Campo de confirmar senha"
           />
 
-          {erro ? <Text style={styles.erro}>{erro}</Text> : null}
+          {erro ? <Text style={styles.erro} accessibilityRole="alert">{erro}</Text> : null}
 
-          <TouchableOpacity
-            style={[styles.botao, carregando && styles.botaoDesabilitado]}
+          <Pressable
+            style={({ pressed }) => [
+              styles.botao,
+              carregando && styles.botaoDesabilitado,
+              pressed && !carregando && { opacity: 0.85 },
+            ]}
             onPress={handleCriarConta}
             disabled={carregando}
+            accessibilityRole="button"
+            accessibilityLabel={carregando ? 'Criando conta' : 'Criar conta'}
+            accessibilityState={{ disabled: carregando, busy: carregando }}
           >
             <Text style={styles.botaoTexto}>
               {carregando ? 'Criando conta…' : 'Criar conta'}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
 
-          <TouchableOpacity
-            style={styles.botaoSecundario}
+          <Pressable
+            style={({ pressed }) => [
+              styles.botaoSecundario,
+              pressed && { opacity: 0.7 },
+            ]}
             onPress={() => router.back()}
             disabled={carregando}
+            accessibilityRole="button"
+            accessibilityLabel="Voltar ao login"
+            accessibilityState={{ disabled: carregando }}
           >
             <Text style={styles.botaoSecundarioTexto}>← Voltar ao login</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -187,6 +202,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
     borderRadius: 12,
+    borderCurve: 'continuous',
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
@@ -201,9 +217,11 @@ const styles = StyleSheet.create({
   botao: {
     backgroundColor: '#4F46E5',
     borderRadius: 12,
+    borderCurve: 'continuous',
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 24,
+    minHeight: 44,
   },
   botaoDesabilitado: { opacity: 0.6 },
   botaoTexto: {
@@ -215,6 +233,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
+    minHeight: 44,
   },
   botaoSecundarioTexto: {
     color: '#6B7280',

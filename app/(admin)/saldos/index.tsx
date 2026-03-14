@@ -2,7 +2,7 @@ import {
   StyleSheet,
   Text,
   View,
-  TouchableOpacity,
+  Pressable,
   FlatList,
   ActivityIndicator,
 } from 'react-native';
@@ -42,9 +42,9 @@ export default function SaldosAdminScreen() {
       <StatusBar style="auto" />
 
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <Pressable onPress={() => router.back()}>
           <Text style={styles.voltar}>← Voltar</Text>
-        </TouchableOpacity>
+        </Pressable>
         <Text style={styles.titulo}>Saldos dos Filhos</Text>
         <View style={{ minWidth: 60 }} />
       </View>
@@ -59,7 +59,7 @@ export default function SaldosAdminScreen() {
           </Text>
         }
         renderItem={({ item }) => (
-          <TouchableOpacity
+          <Pressable
             style={styles.card}
             onPress={() => router.push({ pathname: '/(admin)/saldos/[filho_id]', params: { filho_id: item.filho_id, nome: item.filhos.nome } })}
           >
@@ -80,7 +80,7 @@ export default function SaldosAdminScreen() {
               )}
             </View>
             <Text style={styles.seta}>›</Text>
-          </TouchableOpacity>
+          </Pressable>
         )}
       />
     </View>
@@ -115,10 +115,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 16,
     marginBottom: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 1,
+    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)',
   },
   avatar: {
     width: 44,

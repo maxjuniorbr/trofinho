@@ -2,13 +2,12 @@ import {
   StyleSheet,
   Text,
   View,
-  TouchableOpacity,
+  Pressable,
   FlatList,
   Modal,
   TextInput,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback } from 'react';
@@ -149,9 +148,9 @@ export default function SaldoFilhoAdminScreen() {
       <StatusBar style="auto" />
 
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <Pressable onPress={() => router.back()}>
           <Text style={styles.voltar}>← Voltar</Text>
-        </TouchableOpacity>
+        </Pressable>
         <Text style={styles.titulo}>{nome ?? 'Filho'}</Text>
         <View style={{ minWidth: 60 }} />
       </View>
@@ -188,31 +187,31 @@ export default function SaldoFilhoAdminScreen() {
                 <Text style={styles.boxConfigTexto}>Não configurada</Text>
               )}
               <View style={styles.acoesBtns}>
-                <TouchableOpacity
+                <Pressable
                   style={styles.btnAcao}
                   onPress={() => abrirModal('valorizacao_config')}
                 >
                   <Text style={styles.btnAcaoTexto}>Configurar</Text>
-                </TouchableOpacity>
+                </Pressable>
                 {(saldo?.indice_valorizacao ?? 0) > 0 && (
-                  <TouchableOpacity
+                  <Pressable
                     style={[styles.btnAcao, { backgroundColor: '#ECFDF5' }]}
                     onPress={handleValorizacao}
                   >
                     <Text style={[styles.btnAcaoTexto, { color: '#065F46' }]}>Aplicar agora</Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 )}
               </View>
               {sucModal && <Text style={styles.sucTexto}>{sucModal}</Text>}
             </View>
 
             {/* Botão penalizar */}
-            <TouchableOpacity
+            <Pressable
               style={styles.btnPenalizar}
               onPress={() => abrirModal('penalizar')}
             >
               <Text style={styles.btnPenalizarTexto}>⚠️ Aplicar penalização</Text>
-            </TouchableOpacity>
+            </Pressable>
 
             <Text style={styles.secaoTitulo}>Histórico</Text>
             {movs.length === 0 && (
@@ -243,7 +242,7 @@ export default function SaldoFilhoAdminScreen() {
       <Modal visible={modalTipo === 'penalizar'} transparent animationType="slide">
         <KeyboardAvoidingView
           style={styles.modalOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
         >
           <View style={styles.modalBox}>
             <Text style={styles.modalTitulo}>⚠️ Penalização — {nome}</Text>
@@ -267,13 +266,13 @@ export default function SaldoFilhoAdminScreen() {
             />
             {errModal && <Text style={styles.errModal}>{errModal}</Text>}
             <View style={styles.modalBtns}>
-              <TouchableOpacity
+              <Pressable
                 style={styles.btnCancelar}
                 onPress={() => setModalTipo(null)}
               >
                 <Text style={styles.btnCancelarTexto}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+              </Pressable>
+              <Pressable
                 style={[styles.btnConfirmar, { backgroundColor: '#EF4444' }, enviando && styles.btnDesabilitado]}
                 onPress={handlePenalizar}
                 disabled={enviando}
@@ -282,7 +281,7 @@ export default function SaldoFilhoAdminScreen() {
                   ? <ActivityIndicator color="#fff" />
                   : <Text style={styles.btnConfirmarTexto}>Penalizar</Text>
                 }
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -292,7 +291,7 @@ export default function SaldoFilhoAdminScreen() {
       <Modal visible={modalTipo === 'valorizacao_config'} transparent animationType="slide">
         <KeyboardAvoidingView
           style={styles.modalOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
         >
           <View style={styles.modalBox}>
             <Text style={styles.modalTitulo}>📈 Configurar valorização</Text>
@@ -308,7 +307,7 @@ export default function SaldoFilhoAdminScreen() {
             <Text style={styles.label}>Período</Text>
             <View style={styles.periodoRow}>
               {PERIODOS.map((p) => (
-                <TouchableOpacity
+                <Pressable
                   key={p.value}
                   style={[styles.periodoBotao, cfgPeriodo === p.value && styles.periodoAtivo]}
                   onPress={() => setCfgPeriodo(p.value)}
@@ -316,18 +315,18 @@ export default function SaldoFilhoAdminScreen() {
                   <Text style={[styles.periodoTexto, cfgPeriodo === p.value && styles.periodoTextoAtivo]}>
                     {p.label}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               ))}
             </View>
             {errModal && <Text style={styles.errModal}>{errModal}</Text>}
             <View style={styles.modalBtns}>
-              <TouchableOpacity
+              <Pressable
                 style={styles.btnCancelar}
                 onPress={() => setModalTipo(null)}
               >
                 <Text style={styles.btnCancelarTexto}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+              </Pressable>
+              <Pressable
                 style={[styles.btnConfirmar, enviando && styles.btnDesabilitado]}
                 onPress={handleSalvarConfig}
                 disabled={enviando}
@@ -336,7 +335,7 @@ export default function SaldoFilhoAdminScreen() {
                   ? <ActivityIndicator color="#fff" />
                   : <Text style={styles.btnConfirmarTexto}>Salvar</Text>
                 }
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -365,14 +364,14 @@ const styles = StyleSheet.create({
   cardsRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   saldoCard: {
     flex: 1, borderRadius: 16, padding: 18, alignItems: 'center',
-    shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, elevation: 3,
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
   },
   saldoLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '600', marginBottom: 4 },
   saldoValor: { color: '#fff', fontSize: 36, fontWeight: '800' },
   saldoPts: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 2 },
   boxConfig: {
     backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 12,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
+    boxShadow: '0 1px 6px rgba(0, 0, 0, 0.04)',
   },
   boxConfigTitulo: { fontSize: 14, fontWeight: '700', color: '#111827', marginBottom: 4 },
   boxConfigTexto: { fontSize: 13, color: '#6B7280', marginBottom: 12 },

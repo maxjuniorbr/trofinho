@@ -1,34 +1,29 @@
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { StyleSheet, View, Text, ActivityIndicator, Pressable } from 'react-native';
 
-type AsyncListStateProps = Readonly<{
-  isLoading: boolean;
-  error: string | null;
-  isEmpty: boolean;
-  emptyTitle: string;
-  emptySubtitle?: string;
+type Props = {
+  loading?: boolean;
+  error?: string | null;
+  empty?: boolean;
+  emptyMessage?: string;
   onRetry?: () => void;
-  retryLabel?: string;
-}>;
+};
 
-export function AsyncListState({
-  isLoading,
+/**
+ * Estado visual para listas assíncronas.
+ * Exibe loading, erro com retry, ou mensagem de lista vazia.
+ */
+export default function AsyncListState({
+  loading,
   error,
-  isEmpty,
-  emptyTitle,
-  emptySubtitle,
+  empty,
+  emptyMessage = 'Nada encontrado.',
   onRetry,
-  retryLabel = 'Tentar novamente',
-}: AsyncListStateProps) {
-  if (isLoading) {
+}: Props) {
+  if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={styles.container} accessibilityRole="progressbar">
         <ActivityIndicator size="large" color="#4F46E5" />
+        <Text style={styles.texto}>Carregando…</Text>
       </View>
     );
   }
@@ -36,23 +31,30 @@ export function AsyncListState({
   if (error) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>{error}</Text>
-        {onRetry ? (
-          <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
-            <Text style={styles.retryButtonText}>{retryLabel}</Text>
-          </TouchableOpacity>
-        ) : null}
+        <Text style={styles.emoji}>⚠️</Text>
+        <Text style={styles.texto} accessibilityRole="alert">{error}</Text>
+        {onRetry && (
+          <Pressable
+            style={({ pressed }) => [
+              styles.botao,
+              pressed && { opacity: 0.85 },
+            ]}
+            onPress={onRetry}
+            accessibilityRole="button"
+            accessibilityLabel="Tentar novamente"
+          >
+            <Text style={styles.botaoTexto}>Tentar novamente</Text>
+          </Pressable>
+        )}
       </View>
     );
   }
 
-  if (isEmpty) {
+  if (empty) {
     return (
       <View style={styles.container}>
-        <Text style={styles.emptyTitle}>{emptyTitle}</Text>
-        {emptySubtitle ? (
-          <Text style={styles.emptySubtitle}>{emptySubtitle}</Text>
-        ) : null}
+        <Text style={styles.emoji}>📭</Text>
+        <Text style={styles.texto}>{emptyMessage}</Text>
       </View>
     );
   }
@@ -65,35 +67,32 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
+    paddingHorizontal: 32,
+    paddingVertical: 48,
+    gap: 12,
   },
-  errorText: {
-    color: '#EF4444',
+  emoji: {
+    fontSize: 40,
+  },
+  texto: {
     fontSize: 15,
+    color: '#6B7280',
     textAlign: 'center',
-    marginBottom: 12,
+    lineHeight: 22,
   },
-  retryButton: {
-    borderWidth: 1,
-    borderColor: '#4F46E5',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+  botao: {
+    backgroundColor: '#4F46E5',
+    borderRadius: 10,
+    borderCurve: 'continuous',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginTop: 4,
+    minHeight: 44,
+    justifyContent: 'center',
   },
-  retryButtonText: {
-    color: '#4F46E5',
+  botaoTexto: {
+    color: '#fff',
     fontSize: 14,
-    fontWeight: '500',
-  },
-  emptyTitle: {
-    fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: '#9CA3AF',
-    textAlign: 'center',
   },
 });
