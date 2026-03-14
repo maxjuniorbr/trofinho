@@ -6,6 +6,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Avatar } from '@/components/ui/avatar';
 import { listarFilhos } from '@lib/filhos';
+import { listarSaldosAdmin, type SaldoComFilho } from '@lib/saldos';
 import type { Filho } from '@lib/tarefas';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
@@ -17,14 +18,23 @@ export default function AdminFilhosScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [filhos, setFilhos] = useState<Filho[]>([]);
+  const [saldosMap, setSaldosMap] = useState<Map<string, SaldoComFilho>>(new Map());
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     setCarregando(true); setErro(null);
     try {
-      const { data, error } = await listarFilhos();
-      if (error) setErro(error); else setFilhos(data);
+      const [{ data: filhosData, error: erroFilhos }, { data: saldosData, error: erroSaldos }] =
+        await Promise.all([listarFilhos(), listarSaldosAdmin()]);
+      if (erroFilhos) {
+        setErro(erroFilhos);
+      } else {
+        setFilhos(filhosData);
+        if (!erroSaldos) {
+          setSaldosMap(new Map(saldosData.map((s) => [s.filho_id, s])));
+        }
+      }
     } catch { setErro('Não foi possível carregar os filhos agora.'); setFilhos([]); }
     finally { setCarregando(false); }
   }, []);
@@ -52,17 +62,25 @@ export default function AdminFilhosScreen() {
           data={filhos}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
-          renderItem={({ item }) => (
-            <View style={[styles.card, shadows.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
-              <Avatar name={item.nome} size={44} />
-              <View style={styles.cardInfo}>
-                <Text style={[styles.cardNome, { color: colors.text.primary }]}>{item.nome}</Text>
-                <Text style={[styles.cardStatus, { color: item.usuario_id ? colors.semantic.success : colors.semantic.warning }]}>
-                  {item.usuario_id ? '✓ Conta vinculada' : '⚠ Sem conta'}
-                </Text>
+          renderItem={({ item }) => {
+            const saldo = saldosMap.get(item.id);
+            return (
+              <View style={[styles.card, shadows.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
+                <Avatar name={item.nome} size={44} />
+                <View style={styles.cardInfo}>
+                  <Text style={[styles.cardNome, { color: colors.text.primary }]}>{item.nome}</Text>
+                  <Text style={[styles.cardStatus, { color: item.usuario_id ? colors.semantic.success : colors.semantic.warning }]}>
+                    {item.usuario_id ? '✓ Conta vinculada' : '⚠ Sem conta'}
+                  </Text>
+                  {saldo ? (
+                    <Text style={[styles.cardSaldo, { color: colors.text.secondary }]}>
+                      💰 {saldo.saldo_livre} livre · 🐷 {saldo.cofrinho} cofrinho
+                    </Text>
+                  ) : null}
+                </View>
               </View>
-            </View>
-          )}
+            );
+          }}
         />
       )}
     </View>
@@ -79,5 +97,6 @@ function makeStyles(colors: ThemeColors) {
     cardInfo: { flex: 1, marginLeft: spacing['3'] },
     cardNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
     cardStatus: { fontSize: typography.size.xs, marginTop: spacing['1'] },
+    cardSaldo: { fontSize: typography.size.xs, marginTop: 2 },
   });
 }
