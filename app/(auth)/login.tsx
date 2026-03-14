@@ -263,7 +263,7 @@ function makeStyles(colors: ThemeColors) {
     titulo: {
       fontFamily: typography.family.black,
       fontSize: typography.size['4xl'],
-      lineHeight: typography.size['4xl'] * 1.15,
+      lineHeight: typography.lineHeight['4xl'],
       textAlign: 'center',
     },
     subtitulo: {
@@ -271,13 +271,13 @@ function makeStyles(colors: ThemeColors) {
       fontSize: typography.size.md,
       textAlign: 'center',
       marginTop: spacing['2'],
-      lineHeight: typography.size.md * 1.5,
+      lineHeight: typography.lineHeight.md,
     },
     card: {
       width: '100%',
       borderRadius: radii.outer,
       borderWidth: 1,
-      padding: spacing.card,
+      padding: spacing['6'],
     },
     label: {
       fontFamily: typography.family.semibold,
@@ -292,6 +292,7 @@ function makeStyles(colors: ThemeColors) {
       paddingVertical: spacing['3'],
       fontSize: typography.size.md,
       fontFamily: typography.family.medium,
+      minHeight: 48,
     },
     erro: {
       fontFamily: typography.family.medium,
@@ -303,11 +304,14 @@ function makeStyles(colors: ThemeColors) {
       borderRadius: radii.inner,
       overflow: 'hidden',
       marginTop: spacing['6'],
+      minHeight: 56,
     },
     primaryBtnGradient: {
       paddingVertical: spacing['4'],
       alignItems: 'center',
+      justifyContent: 'center',
       borderRadius: radii.inner,
+      flex: 1,
     },
     primaryBtnText: {
       fontFamily: typography.family.bold,

@@ -16,6 +16,7 @@ import { signOut, buscarPerfil, type UserProfile } from '@lib/auth';
 import { supabase } from '@lib/supabase';
 import { listarTarefasAdmin } from '@lib/tarefas';
 import { listarSaldosAdmin, type SaldoComFilho } from '@lib/saldos';
+import { saudacao } from '@lib/utils';
 import { listarFilhos } from '@lib/filhos';
 import type { Filho } from '@lib/tarefas';
 import { contarResgatesPendentes } from '@lib/premios';
@@ -115,7 +116,7 @@ export default function AdminHomeScreen() {
         style={[styles.hero, { opacity: headerOpacity, transform: [{ translateY: headerY }] }]}
       >
         <View style={styles.heroText}>
-          <Text style={[styles.heroSub, { color: colors.text.secondary }]}>Bom dia 👋</Text>
+          <Text style={[styles.heroSub, { color: colors.text.secondary }]}>{saudacao()} 👋</Text>
           <Text style={[styles.heroTitle, { color: colors.text.primary }]}>
             Olá, {profile?.nome ?? 'Admin'}
           </Text>
@@ -296,7 +297,7 @@ function makeStyles(colors: ThemeColors) {
     sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing['3'] },
     sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
     sectionTitle:  { fontFamily: typography.family.bold, fontSize: typography.size.md },
-    sectionLink:   { fontFamily: typography.family.bold, fontSize: typography.size.sm },
+    sectionLink:   { fontFamily: typography.family.bold, fontSize: typography.size.sm, minHeight: 44, textAlignVertical: 'center' },
     countBadge:    { width: 24, height: 24, borderRadius: radii.full, alignItems: 'center', justifyContent: 'center' },
     countBadgeText:{ color: '#fff', fontFamily: typography.family.black, fontSize: typography.size.xs },
 
