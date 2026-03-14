@@ -33,6 +33,9 @@ export default function AdminResgatesScreen() {
   const [erro, setErro] = useState<string | null>(null);
   const [processando, setProcessando] = useState<string | null>(null);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
+  const hasErro = Boolean(erro);
+  const hasErroAcao = Boolean(erroAcao);
+  const shouldShowEmptyState = carregando || hasErro || resgates.length === 0;
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -102,14 +105,14 @@ export default function AdminResgatesScreen() {
     <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
       <StatusBar style={colors.statusBar} />
 
-      {carregando || erro || resgates.length === 0 ? (
+      {shouldShowEmptyState ? (
         <EmptyState
           loading={carregando}
-          error={erro ? erro ?? 'Nenhum resgate registrado ainda.' : null}
+          error={erro}
           empty={!carregando && !erro}
-          emptyMessage={erro ?? 'Nenhum resgate registrado ainda.'}
+          emptyMessage="Nenhum resgate registrado ainda."
           onRetry={carregar}
-          />
+        />
       ) : (
         <FlatList
           data={resgates}
@@ -118,7 +121,7 @@ export default function AdminResgatesScreen() {
           contentContainerStyle={styles.lista}
           ListHeaderComponent={
             <>
-              {erroAcao ? <Text style={styles.erroAcao}>{erroAcao}</Text> : null}
+              {hasErroAcao ? <Text style={styles.erroAcao}>{erroAcao}</Text> : null}
               {pendentes.length > 0 && (
                 <View style={styles.secaoHeader}>
                   <Text style={styles.secaoTitulo}>⏳ Pendentes ({pendentes.length})</Text>
@@ -134,11 +137,11 @@ export default function AdminResgatesScreen() {
 
             return (
               <>
-                {mostrarSeparadorHistorico && (
+                {mostrarSeparadorHistorico ? (
                   <View style={styles.secaoHeader}>
                     <Text style={styles.secaoTitulo}>Histórico</Text>
                   </View>
-                )}
+                ) : null}
                 <View style={[styles.card, isPendente && styles.cardPendente]}>
                   <View style={styles.cardTopo}>
                     <View style={{ flex: 1, gap: 2 }}>
@@ -157,7 +160,7 @@ export default function AdminResgatesScreen() {
 
                   <Text style={styles.cardPontos}>🏆 {item.pontos_debitados} pts</Text>
 
-                  {isPendente && (
+                  {isPendente ? (
                     <View style={styles.acoesRow}>
                       <Pressable
                         style={({ pressed }) => [styles.botaoConfirmar, isProcessando && styles.botaoDesabilitado, pressed && !isProcessando && { opacity: 0.85 }]}
@@ -174,7 +177,7 @@ export default function AdminResgatesScreen() {
                         <Text style={styles.botaoCancelarTexto}>{isProcessando ? '…' : '✕ Cancelar'}</Text>
                       </Pressable>
                     </View>
-                  )}
+                  ) : null}
                 </View>
               </>
             );

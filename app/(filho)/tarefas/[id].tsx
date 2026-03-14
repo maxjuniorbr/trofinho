@@ -65,7 +65,7 @@ export default function FilhoTarefaDetalheScreen() {
         return;
       }
       const resultado = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         quality: 0.7,
         allowsEditing: true,
         aspect: [4, 3],
@@ -128,7 +128,11 @@ export default function FilhoTarefaDetalheScreen() {
             </View>
           </View>
           {tarefa.descricao ? <Text style={styles.descricao}>{tarefa.descricao}</Text> : null}
-          <Text style={styles.meta}>{tarefa.timebox_inicio} → {tarefa.timebox_fim}</Text>
+          <Text style={styles.meta}>
+            {tarefa.timebox_inicio}
+            {' \u2192 '}
+            {tarefa.timebox_fim}
+          </Text>
           {tarefa.exige_evidencia && (
             <View style={styles.tagEvidencia}>
               <Text style={styles.tagEvidenciaTexto}>📷 Enviar foto como prova</Text>

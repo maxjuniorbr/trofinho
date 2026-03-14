@@ -28,6 +28,7 @@ export default function NovaTarefaScreen() {
   const [carregandoFilhos, setCarregandoFilhos] = useState(true);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const shouldShowError = Boolean(erro);
 
   useEffect(() => {
     listarFilhosDaFamilia().then(({ data }) => { setFilhos(data); setCarregandoFilhos(false); });
@@ -129,7 +130,9 @@ export default function NovaTarefaScreen() {
         <Text style={[styles.secaoTitulo, { color: colors.text.primary }]}>Atribuir para *</Text>
         <View style={styles.filhosList}>{renderListaFilhos()}</View>
 
-        {erro && <Text style={[styles.erroTexto, { color: colors.semantic.error }]}>{erro}</Text>}
+        {shouldShowError ? (
+          <Text style={[styles.erroTexto, { color: colors.semantic.error }]}>{erro}</Text>
+        ) : null}
 
         <Pressable
           style={[styles.botaoCriar, { backgroundColor: colors.accent.admin, opacity: enviando ? 0.55 : 1 }]}

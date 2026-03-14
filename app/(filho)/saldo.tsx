@@ -90,6 +90,8 @@ export default function SaldoFilhoScreen() {
   const saldoLivre = saldo?.saldo_livre ?? 0;
   const cofrinho = saldo?.cofrinho ?? 0;
   const periodoValorizacao = saldo ? labelPeriodoValorizacao(saldo.periodo_valorizacao) : null;
+  const hasMovimentacoes = movs.length > 0;
+  const hasModalError = Boolean(errModal);
   const ultimaValorizacaoTexto = saldo?.data_ultima_valorizacao
     ? ` · última em ${new Date(saldo.data_ultima_valorizacao).toLocaleDateString('pt-BR')}`
     : '';
@@ -136,7 +138,7 @@ export default function SaldoFilhoScreen() {
             </Pressable>
 
             <Text style={styles.secaoTitulo}>Histórico</Text>
-            {movs.length === 0 && <Text style={styles.vazio}>Nenhuma movimentação ainda.</Text>}
+            {!hasMovimentacoes ? <Text style={styles.vazio}>Nenhuma movimentação ainda.</Text> : null}
           </>
         }
         renderItem={({ item }) => (
@@ -176,7 +178,7 @@ export default function SaldoFilhoScreen() {
               maxLength={6}
               autoFocus
             />
-            {errModal && <Text style={styles.errModal}>{errModal}</Text>}
+            {hasModalError ? <Text style={styles.errModal}>{errModal}</Text> : null}
             <View style={styles.modalBtns}>
               <Pressable style={styles.btnCancelar} onPress={() => setModalAberto(false)}>
                 <Text style={styles.btnCancelarTexto}>Cancelar</Text>

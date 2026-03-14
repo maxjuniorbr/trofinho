@@ -19,6 +19,10 @@ import { radii, spacing, typography } from '@/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Familia = { nome: string };
+const TASKS_LINK_LABEL = 'Ver tarefas →';
+const SALDO_LINK_LABEL = 'Ver detalhes →';
+const PREMIOS_LINK_LABEL = 'Ver prêmios →';
+const RESGATES_LINK_LABEL = 'Ver resgates →';
 
 export default function FilhoHomeScreen() {
   const router = useRouter();
@@ -33,6 +37,8 @@ export default function FilhoHomeScreen() {
   const [pendentes, setPendentes] = useState(0);
   const [saldoLivre, setSaldoLivre] = useState(0);
   const [cofrinho, setCofrinho] = useState(0);
+  const hasPendentes = pendentes > 0;
+  const hasSaldoLivre = saldoLivre > 0;
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -62,9 +68,14 @@ export default function FilhoHomeScreen() {
 
   useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
 
-  const tarefasPendentesTexto = pendentes === 0
-    ? 'Nenhuma tarefa pendente no momento.'
-    : `${pendentes} ${pendentes === 1 ? 'tarefa pendente' : 'tarefas pendentes'} esperando por você!`;
+  const tarefaPendenteLabel = pendentes === 1 ? 'tarefa pendente' : 'tarefas pendentes';
+  const tarefasPendentesTexto = hasPendentes
+    ? `${pendentes} ${tarefaPendenteLabel} esperando por você!`
+    : 'Nenhuma tarefa pendente no momento.';
+  const saldoTexto = `💰 ${saldoLivre} pts livre · 🐷 ${cofrinho} pts cofrinho`;
+  const premiosTexto = hasSaldoLivre
+    ? `Você tem ${saldoLivre} pts disponíveis para resgatar!`
+    : 'Veja os prêmios disponíveis e acumule pontos.';
 
   async function handleSair() {
     setSaindo(true);
@@ -98,14 +109,14 @@ export default function FilhoHomeScreen() {
       >
         <View style={styles.cardTopo}>
           <Text style={styles.cardTitulo}>📋 Minhas Tarefas</Text>
-          {pendentes > 0 && (
+          {hasPendentes ? (
             <View style={styles.badge}>
               <Text style={styles.badgeTexto}>{pendentes}</Text>
             </View>
-          )}
+          ) : null}
         </View>
         <Text style={styles.cardTexto}>{tarefasPendentesTexto}</Text>
-        <Text style={styles.cardLink}>Ver tarefas →</Text>
+        <Text style={styles.cardLink}>{TASKS_LINK_LABEL}</Text>
       </Pressable>
 
       <Pressable
@@ -117,10 +128,8 @@ export default function FilhoHomeScreen() {
         <View style={styles.cardTopo}>
           <Text style={styles.cardTitulo}>💰 Meu Saldo</Text>
         </View>
-        <Text style={styles.cardTexto}>
-          💰 {saldoLivre} pts livre{' · '}🐷 {cofrinho} pts cofrinho
-        </Text>
-        <Text style={styles.cardLink}>Ver detalhes →</Text>
+        <Text style={styles.cardTexto}>{saldoTexto}</Text>
+        <Text style={styles.cardLink}>{SALDO_LINK_LABEL}</Text>
       </Pressable>
 
       <Pressable
@@ -132,12 +141,8 @@ export default function FilhoHomeScreen() {
         <View style={styles.cardTopo}>
           <Text style={styles.cardTitulo}>🎁 Catálogo de Prêmios</Text>
         </View>
-        <Text style={styles.cardTexto}>
-          {saldoLivre > 0
-            ? `Você tem ${saldoLivre} pts disponíveis para resgatar!`
-            : 'Veja os prêmios disponíveis e acumule pontos.'}
-        </Text>
-        <Text style={styles.cardLink}>Ver prêmios →</Text>
+        <Text style={styles.cardTexto}>{premiosTexto}</Text>
+        <Text style={styles.cardLink}>{PREMIOS_LINK_LABEL}</Text>
       </Pressable>
 
       <Pressable
@@ -150,7 +155,7 @@ export default function FilhoHomeScreen() {
           <Text style={styles.cardTitulo}>🛍️ Meus Resgates</Text>
         </View>
         <Text style={styles.cardTexto}>Acompanhe o status dos seus resgates.</Text>
-        <Text style={styles.cardLink}>Ver resgates →</Text>
+        <Text style={styles.cardLink}>{RESGATES_LINK_LABEL}</Text>
       </Pressable>
 
       <Pressable

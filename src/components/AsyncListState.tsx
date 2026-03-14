@@ -1,12 +1,12 @@
 import { StyleSheet, View, Text, ActivityIndicator, Pressable } from 'react-native';
 
-type Props = {
+type Props = Readonly<{
   loading?: boolean;
   error?: string | null;
   empty?: boolean;
   emptyMessage?: string;
   onRetry?: () => void;
-};
+}>;
 
 /**
  * Estado visual para listas assíncronas.
@@ -19,6 +19,8 @@ export default function AsyncListState({
   emptyMessage = 'Nada encontrado.',
   onRetry,
 }: Props) {
+  const hasRetry = typeof onRetry === 'function';
+
   if (loading) {
     return (
       <View style={styles.container} accessibilityRole="progressbar">
@@ -33,7 +35,7 @@ export default function AsyncListState({
       <View style={styles.container}>
         <Text style={styles.emoji}>⚠️</Text>
         <Text style={styles.texto} accessibilityRole="alert">{error}</Text>
-        {onRetry && (
+        {hasRetry ? (
           <Pressable
             style={({ pressed }) => [
               styles.botao,
@@ -45,7 +47,7 @@ export default function AsyncListState({
           >
             <Text style={styles.botaoTexto}>Tentar novamente</Text>
           </Pressable>
-        )}
+        ) : null}
       </View>
     );
   }
