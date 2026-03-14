@@ -127,6 +127,38 @@ export default function FilhoHomeScreen() {
       </Pressable>
 
       <Pressable
+        style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}
+        onPress={() => router.push('/(filho)/premios' as never)}
+        accessibilityRole="button"
+        accessibilityLabel="Catálogo de Prêmios"
+      >
+        <View style={styles.cardTopo}>
+          <Text style={styles.cardTitulo}>🎁 Catálogo de Prêmios</Text>
+        </View>
+        <Text style={styles.cardTexto}>
+          {saldoLivre > 0
+            ? `Você tem ${saldoLivre} pts disponíveis para resgatar!`
+            : 'Veja os prêmios disponíveis e acumule pontos.'}
+        </Text>
+        <Text style={styles.cardLink}>Ver prêmios →</Text>
+      </Pressable>
+
+      <Pressable
+        style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}
+        onPress={() => router.push('/(filho)/resgates' as never)}
+        accessibilityRole="button"
+        accessibilityLabel="Meus Resgates"
+      >
+        <View style={styles.cardTopo}>
+          <Text style={styles.cardTitulo}>🛍️ Meus Resgates</Text>
+        </View>
+        <Text style={styles.cardTexto}>
+          Acompanhe o status dos seus resgates.
+        </Text>
+        <Text style={styles.cardLink}>Ver resgates →</Text>
+      </Pressable>
+
+      <Pressable
         style={({ pressed }) => [
           styles.botaoSair,
           saindo && styles.botaoDesabilitado,
