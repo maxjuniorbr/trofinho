@@ -75,7 +75,7 @@ export default function FilhoTarefasScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader title="Minhas Tarefas" onBack={() => router.back()} backLabel="← Início" />
+      <ScreenHeader title="Minhas Tarefas" onBack={() => router.back()} backLabel="Início" role="filho" />
 
       <View style={styles.filtrosRow}>
         {FILTROS.map((f) => (

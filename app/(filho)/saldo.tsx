@@ -100,7 +100,7 @@ export default function SaldoFilhoScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader title="Meu Saldo" onBack={() => router.back()} />
+      <ScreenHeader title="Meu Saldo" onBack={() => router.back()} backLabel="Início" role="filho" />
 
       <FlatList
         data={movs}
@@ -253,7 +253,7 @@ function makeStyles(colors: ThemeColors) {
       backgroundColor: colors.bg.surface,
       borderTopLeftRadius: radii.xl,
       borderTopRightRadius: radii.xl,
-      padding: 28,
+      padding: spacing['6'],
       paddingBottom: spacing['12'],
       gap: spacing['4'],
     },

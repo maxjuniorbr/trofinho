@@ -122,7 +122,7 @@ function makeStyles(colors: ThemeColors) {
     label: { fontSize: typography.size.sm, fontFamily: typography.family.semibold, marginBottom: spacing['1'], marginTop: spacing['4'] },
     input: { borderWidth: 1, borderRadius: radii.md, paddingHorizontal: spacing['4'], paddingVertical: spacing['3'], fontSize: typography.size.md },
     erroTexto: { fontSize: typography.size.sm, marginTop: spacing['3'], textAlign: 'center' },
-    botaoCadastrar: { borderRadius: radii.md, paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['6'], minHeight: 52 },
+    botaoCadastrar: { borderRadius: radii.md, paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['6'], minHeight: 48 },
     botaoCadastrarTexto: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
     sucessoContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing['8'] },
     sucessoEmoji: { fontSize: 56, marginBottom: spacing['4'] },
