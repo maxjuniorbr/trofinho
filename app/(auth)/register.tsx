@@ -14,7 +14,6 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import { signUp } from '@lib/auth';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
 import { useTheme } from '@/context/theme-context';
-import type { ThemeColors } from '@/constants/theme';
 import { gradients, radii, shadows, spacing, typography } from '@/constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -24,7 +23,7 @@ const mascotImage = require('../../assets/trofinho-mascot.png') as number;
 export default function RegisterScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const styles = useMemo(() => makeStyles(), []);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -267,7 +266,7 @@ export default function RegisterScreen() {
   );
 }
 
-function makeStyles(colors: ThemeColors) {
+function makeStyles() {
   return StyleSheet.create({
     flex:      { flex: 1 },
     container: {

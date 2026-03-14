@@ -7,13 +7,12 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { createTask, listFamilyChildren, type Child } from '@lib/tasks';
 import { formatDate, toDateString } from '@lib/utils';
 import { useTheme } from '@/context/theme-context';
-import type { ThemeColors } from '@/constants/theme';
 import { radii, spacing, typography } from '@/constants/theme';
 
 export default function NewTaskScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const styles = useMemo(() => makeStyles(), []);
 
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
@@ -146,7 +145,7 @@ export default function NewTaskScreen() {
   );
 }
 
-function makeStyles(colors: ThemeColors) {
+function makeStyles() {
   return StyleSheet.create({
     scrollContent: { padding: spacing['5'], paddingBottom: spacing['10'] },
     label: { fontSize: typography.size.sm, fontFamily: typography.family.semibold, marginBottom: spacing['1'], marginTop: spacing['4'] },

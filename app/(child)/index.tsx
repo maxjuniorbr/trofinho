@@ -17,7 +17,6 @@ import { listChildAssignments } from '@lib/tasks';
 import { getBalance } from '@lib/balances';
 import { getGreeting } from '@lib/utils';
 import { useTheme } from '@/context/theme-context';
-import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PointsDisplay } from '@/components/ui/points-display';
@@ -30,7 +29,7 @@ type Family = { nome: string };
 export default function FilhoHomeScreen() {
   const router  = useRouter();
   const { colors } = useTheme();
-  const styles  = useMemo(() => makeStyles(colors), [colors]);
+  const styles  = useMemo(() => makeStyles(), []);
   const insets  = useSafeAreaInsets();
 
   const [profile,      setProfile]      = useState<UserProfile | null>(null);
@@ -231,7 +230,7 @@ export default function FilhoHomeScreen() {
   );
 }
 
-function makeStyles(colors: ThemeColors) {
+function makeStyles() {
   return StyleSheet.create({
     loading:         { flex: 1, alignItems: 'center', justifyContent: 'center' },
     container:       { flexGrow: 1, alignItems: 'center', paddingHorizontal: spacing.screen, paddingBottom: spacing['12'] },

@@ -7,13 +7,12 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Avatar } from '@/components/ui/avatar';
 import { listAdminBalances, type BalanceWithChild } from '@lib/balances';
 import { useTheme } from '@/context/theme-context';
-import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 
 export default function BalancesAdminScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const styles = useMemo(() => makeStyles(), []);
 
   const [balances, setBalances] = useState<BalanceWithChild[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +62,7 @@ export default function BalancesAdminScreen() {
   );
 }
 
-function makeStyles(colors: ThemeColors) {
+function makeStyles() {
   return StyleSheet.create({
     container: { flex: 1 },
     lista: { padding: spacing['5'], paddingBottom: spacing['12'] },

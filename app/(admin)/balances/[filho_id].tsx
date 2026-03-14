@@ -30,7 +30,6 @@ import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
-import { EmptyState } from '@/components/ui/empty-state';
 
 type ModalType = 'penalizar' | 'valorizacao_config' | null;
 
