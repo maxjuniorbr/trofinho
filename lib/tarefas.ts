@@ -1,3 +1,4 @@
+import { File } from 'expo-file-system';
 import { supabase } from './supabase';
 
 // ─── Tipos ────────────────────────────────────────────────
@@ -266,28 +267,113 @@ async function uploadEvidencia(
       return { url: null, error: filhoError?.message ?? 'Filho não encontrado' };
     }
 
-    const arraybuffer = await fetch(imagemUri).then((res) =>
-      res.arrayBuffer()
-    );
-
-    const hex = Array.from(crypto.getRandomValues(new Uint8Array(8)))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
-    const fileName = `evidencia_${Date.now()}_${hex}.jpg`;
+    const extensao = inferirExtensaoImagem(imagemUri);
+    const arraybuffer = await lerImagemComoArrayBuffer(imagemUri);
+    const fileName = `evidencia_${Date.now()}_${gerarSufixoAleatorio()}.${extensao}`;
     const filePath = `${perfil.familia_id}/${filho.id}/${fileName}`;
 
     const { data, error } = await supabase.storage
       .from('evidencias')
       .upload(filePath, arraybuffer, {
-        contentType: 'image/jpeg',
+        contentType: inferirContentTypeImagem(extensao),
         upsert: false,
       });
 
     if (error) return { url: null, error: error.message };
     return { url: data.path, error: null };
-  } catch {
-    return { url: null, error: 'Erro ao fazer upload da imagem' };
+  } catch (error) {
+    return {
+      url: null,
+      error: extrairMensagemErro(error, 'Erro ao fazer upload da imagem'),
+    };
   }
+}
+
+async function lerImagemComoArrayBuffer(imagemUri: string): Promise<ArrayBuffer> {
+  const uriNormalizada = imagemUri.split('?')[0] ?? imagemUri;
+
+  if (
+    !uriNormalizada.startsWith('http://') &&
+    !uriNormalizada.startsWith('https://') &&
+    !uriNormalizada.startsWith('blob:')
+  ) {
+    try {
+      return await new File(uriNormalizada).arrayBuffer();
+    } catch {
+      // Fallback para ambientes/URIs onde o expo-file-system não consiga abrir o arquivo.
+    }
+  }
+
+  const resposta = await fetch(imagemUri);
+
+  if (!resposta.ok) {
+    throw new Error('Não foi possível ler a imagem selecionada');
+  }
+
+  return resposta.arrayBuffer();
+}
+
+function gerarSufixoAleatorio(): string {
+  const cryptoApi = globalThis.crypto;
+
+  if (cryptoApi?.getRandomValues) {
+    return Array.from(cryptoApi.getRandomValues(new Uint8Array(8)))
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('');
+  }
+
+  return `${Date.now().toString(16)}${Math.random().toString(16).slice(2, 10)}`;
+}
+
+function inferirExtensaoImagem(imagemUri: string): string {
+  const extensao = imagemUri.split('?')[0]?.split('.').pop()?.toLowerCase();
+
+  switch (extensao) {
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'webp':
+    case 'heic':
+    case 'heif':
+      return extensao;
+    default:
+      return 'jpg';
+  }
+}
+
+function inferirContentTypeImagem(extensao: string): string {
+  switch (extensao) {
+    case 'png':
+      return 'image/png';
+    case 'webp':
+      return 'image/webp';
+    case 'heic':
+      return 'image/heic';
+    case 'heif':
+      return 'image/heif';
+    case 'jpg':
+    case 'jpeg':
+    default:
+      return 'image/jpeg';
+  }
+}
+
+function extrairMensagemErro(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof error.message === 'string' &&
+    error.message.trim()
+  ) {
+    return error.message;
+  }
+
+  return fallback;
 }
 
 const EVIDENCIA_URL_TTL_SECONDS = 60 * 60;
