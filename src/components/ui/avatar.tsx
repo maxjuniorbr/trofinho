@@ -1,32 +1,54 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { useTheme } from '@/context/theme-context';
-import { typography } from '@/constants/theme';
+import { StyleSheet, Text } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { gradients, typography } from '@/constants/theme';
 
 interface AvatarProps {
-  /** The full name — first character is used as initial */
+  /** Full name — up to 2 initials extracted */
   name: string;
   size?: number;
-  /** Optional override background color (e.g. per-role accent) */
-  color?: string;
+  /**
+   * Override gradient with a solid color instead.
+   * When set, the gold gradient is replaced by this solid background.
+   */
+  solidColor?: string;
 }
 
-export function Avatar({ name, size = 44, color }: AvatarProps) {
-  const { colors } = useTheme();
-  const bg = color ?? colors.brand.subtle;
-  const fg = color ? colors.text.inverse : colors.brand.dim;
-  const initial = name.trim().charAt(0).toUpperCase() || '?';
-  const fontSize = Math.round(size * 0.42);
+type ReadonlyAvatarProps = Readonly<AvatarProps>;
+
+export function Avatar({ name, size = 44, solidColor }: ReadonlyAvatarProps) {
+  const initials = name
+    .trim()
+    .split(' ')
+    .map((w) => w.charAt(0).toUpperCase())
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('') || '?';
+
+  const fontSize = Math.round(size * 0.4);
+  const borderRadius = size / 2;
+
+  if (solidColor) {
+    // Solid color fallback (e.g. per-role accent)
+    return (
+      <LinearGradient
+        colors={[solidColor, solidColor]}
+        style={[styles.base, { width: size, height: size, borderRadius }]}
+      >
+        <Text style={[styles.initial, { fontSize }]}>{initials}</Text>
+      </LinearGradient>
+    );
+  }
 
   return (
-    <View
-      style={[
-        styles.base,
-        { width: size, height: size, borderRadius: size / 2, backgroundColor: bg },
-      ]}
+    <LinearGradient
+      colors={gradients.gold.colors}
+      start={gradients.gold.start}
+      end={gradients.gold.end}
+      style={[styles.base, { width: size, height: size, borderRadius }]}
     >
-      <Text style={[styles.initial, { color: fg, fontSize }]}>{initial}</Text>
-    </View>
+      <Text style={[styles.initial, { fontSize }]}>{initials}</Text>
+    </LinearGradient>
   );
 }
 
@@ -36,6 +58,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   initial: {
-    fontWeight: typography.weight.bold,
+    color: '#2a2410',  // onBrand — dark amber text on gold gradient
+    fontFamily: typography.family.black,
+    fontWeight: typography.weight.black,
   },
 });
