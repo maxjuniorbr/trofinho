@@ -10,98 +10,98 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
-  listarResgates,
-  confirmarResgate,
-  cancelarResgate,
-  labelStatusResgate,
-  emojiStatusResgate,
-  corStatusResgate,
-  type ResgateComFilhoEPremio,
-} from '@lib/premios';
+  listRedemptions,
+  confirmRedemption,
+  cancelRedemption,
+  getRedemptionStatusLabel,
+  getRedemptionStatusEmoji,
+  getRedemptionStatusColor,
+  type RedemptionWithChildAndPrize,
+} from '@lib/prizes';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ScreenHeader } from '@/components/ui/screen-header';
-import { formatarData } from '@lib/utils';
+import { formatDate } from '@lib/utils';
 
-export default function AdminResgatesScreen() {
+export default function AdminRedemptionsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [resgates, setResgates] = useState<ResgateComFilhoEPremio[]>([]);
-  const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
-  const [processando, setProcessando] = useState<string | null>(null);
-  const [erroAcao, setErroAcao] = useState<string | null>(null);
-  const hasErro = Boolean(erro);
-  const hasErroAcao = Boolean(erroAcao);
-  const shouldShowEmptyState = carregando || hasErro || resgates.length === 0;
+  const [redemptions, setRedemptions] = useState<RedemptionWithChildAndPrize[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [processing, setProcessing] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const hasError = Boolean(error);
+  const hasActionError = Boolean(actionError);
+  const shouldShowEmptyState = loading || hasError || redemptions.length === 0;
 
-  const carregar = useCallback(async () => {
-    setCarregando(true);
-    setErro(null);
-    setErroAcao(null);
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    setActionError(null);
     try {
-      const { data, error } = await listarResgates();
-      if (error) setErro(error);
-      else setResgates(data);
+      const { data, error } = await listRedemptions();
+      if (error) setError(error);
+      else setRedemptions(data);
     } catch {
-      setErro('Não foi possível carregar os resgates agora.');
-      setResgates([]);
+      setError('Não foi possível carregar os resgates agora.');
+      setRedemptions([]);
     } finally {
-      setCarregando(false);
+      setLoading(false);
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
-  async function handleConfirmar(resgateId: string, nomeFilho: string, nomePremio: string) {
-    setErroAcao(null);
+  async function handleConfirm(redemptionId: string, childName: string, prizeName: string) {
+    setActionError(null);
     Alert.alert(
       'Confirmar entrega',
-      `Confirmar entrega do prêmio "${nomePremio}" para ${nomeFilho}?`,
+      `Confirmar entrega do prêmio "${prizeName}" para ${childName}?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Confirmar',
           style: 'default',
           onPress: async () => {
-            setProcessando(resgateId);
-            const { error } = await confirmarResgate(resgateId);
-            setProcessando(null);
-            if (error) setErroAcao(error);
-            else carregar();
+            setProcessing(redemptionId);
+            const { error } = await confirmRedemption(redemptionId);
+            setProcessing(null);
+            if (error) setActionError(error);
+            else loadData();
           },
         },
       ]
     );
   }
 
-  async function handleCancelar(resgateId: string, nomeFilho: string, nomePremio: string, pontos: number) {
-    setErroAcao(null);
+  async function handleCancel(redemptionId: string, childName: string, prizeName: string, points: number) {
+    setActionError(null);
     Alert.alert(
       'Cancelar resgate',
-      `Cancelar o resgate de "${nomePremio}" de ${nomeFilho}? Os ${pontos} pts serão estornados.`,
+      `Cancelar o resgate de "${prizeName}" de ${childName}? Os ${points} pts serão estornados.`,
       [
         { text: 'Voltar', style: 'cancel' },
         {
           text: 'Cancelar resgate',
           style: 'destructive',
           onPress: async () => {
-            setProcessando(resgateId);
-            const { error } = await cancelarResgate(resgateId);
-            setProcessando(null);
-            if (error) setErroAcao(error);
-            else carregar();
+            setProcessing(redemptionId);
+            const { error } = await cancelRedemption(redemptionId);
+            setProcessing(null);
+            if (error) setActionError(error);
+            else loadData();
           },
         },
       ]
     );
   }
 
-  const pendentes = resgates.filter((r) => r.status === 'pendente');
+  const pending = redemptions.filter((r) => r.status === 'pendente');
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
@@ -110,74 +110,74 @@ export default function AdminResgatesScreen() {
 
       {shouldShowEmptyState ? (
         <EmptyState
-          loading={carregando}
-          error={erro}
-          empty={!carregando && !erro}
+          loading={loading}
+          error={error}
+          empty={!loading && !error}
           emptyMessage="Nenhum resgate registrado ainda."
-          onRetry={carregar}
+          onRetry={loadData}
         />
       ) : (
         <FlatList
-          data={resgates}
+          data={redemptions}
           keyExtractor={(item) => item.id}
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={styles.lista}
           ListHeaderComponent={
             <>
-              {hasErroAcao ? <Text style={styles.erroAcao}>{erroAcao}</Text> : null}
-              {pendentes.length > 0 && (
+              {hasActionError ? <Text style={styles.erroAcao}>{actionError}</Text> : null}
+              {pending.length > 0 && (
                 <View style={styles.secaoHeader}>
-                  <Text style={styles.secaoTitulo}>⏳ Pendentes ({pendentes.length})</Text>
+                  <Text style={styles.secaoTitulo}>⏳ Pendentes ({pending.length})</Text>
                 </View>
               )}
             </>
           }
           renderItem={({ item, index }) => {
-            const isPendente = item.status === 'pendente';
-            const isProcessando = processando === item.id;
-            const anteriorPendente = index > 0 && resgates[index - 1]?.status === 'pendente';
-            const mostrarSeparadorHistorico = !isPendente && (index === 0 || anteriorPendente);
+            const isPending = item.status === 'pendente';
+            const isProcessing = processing === item.id;
+            const previousPending = index > 0 && redemptions[index - 1]?.status === 'pendente';
+            const showHistorySeparator = !isPending && (index === 0 || previousPending);
 
             return (
               <>
-                {mostrarSeparadorHistorico ? (
+                {showHistorySeparator ? (
                   <View style={styles.secaoHeader}>
                     <Text style={styles.secaoTitulo}>Histórico</Text>
                   </View>
                 ) : null}
-                <View style={[styles.card, isPendente && styles.cardPendente]}>
+                <View style={[styles.card, isPending && styles.cardPendente]}>
                   <View style={styles.cardTopo}>
                     <View style={{ flex: 1, gap: spacing['1'] }}>
                     <Text style={[styles.premioNome, { color: colors.text.primary }]}>{item.premios.nome}</Text>
                       <Text style={styles.cardFilho}>👤 {item.filhos.nome}</Text>
                     </View>
                     <View>
-                      <View style={[styles.statusBadge, { backgroundColor: corStatusResgate(item.status) + '22' }]}>
-                        <Text style={[styles.statusTexto, { color: corStatusResgate(item.status) }]}>
-                          {emojiStatusResgate(item.status)} {labelStatusResgate(item.status)}
+                      <View style={[styles.statusBadge, { backgroundColor: getRedemptionStatusColor(item.status) + '22' }]}>
+                        <Text style={[styles.statusTexto, { color: getRedemptionStatusColor(item.status) }]}>
+                          {getRedemptionStatusEmoji(item.status)} {getRedemptionStatusLabel(item.status)}
                         </Text>
                       </View>
-                      <Text style={styles.cardData}>{formatarData(new Date(item.created_at))}</Text>
+                      <Text style={styles.cardData}>{formatDate(new Date(item.created_at))}</Text>
                     </View>
                   </View>
 
                   <Text style={styles.cardPontos}>🏆 {item.pontos_debitados} pts</Text>
 
-                  {isPendente ? (
+                  {isPending ? (
                     <View style={styles.acoesRow}>
                       <Pressable
-                        style={({ pressed }) => [styles.botaoConfirmar, isProcessando && styles.botaoDesabilitado, pressed && !isProcessando && { opacity: 0.85 }]}
-                        onPress={() => handleConfirmar(item.id, item.filhos.nome, item.premios.nome)}
-                        disabled={isProcessando}
+                        style={({ pressed }) => [styles.botaoConfirmar, isProcessing && styles.botaoDesabilitado, pressed && !isProcessing && { opacity: 0.85 }]}
+                        onPress={() => handleConfirm(item.id, item.filhos.nome, item.premios.nome)}
+                        disabled={isProcessing}
                       >
-                        <Text style={styles.botaoConfirmarTexto}>{isProcessando ? '…' : '✓ Confirmar'}</Text>
+                        <Text style={styles.botaoConfirmarTexto}>{isProcessing ? '…' : '✓ Confirmar'}</Text>
                       </Pressable>
                       <Pressable
-                        style={({ pressed }) => [styles.botaoCancelar, isProcessando && styles.botaoDesabilitado, pressed && !isProcessando && { opacity: 0.85 }]}
-                        onPress={() => handleCancelar(item.id, item.filhos.nome, item.premios.nome, item.pontos_debitados)}
-                        disabled={isProcessando}
+                        style={({ pressed }) => [styles.botaoCancelar, isProcessing && styles.botaoDesabilitado, pressed && !isProcessing && { opacity: 0.85 }]}
+                        onPress={() => handleCancel(item.id, item.filhos.nome, item.premios.nome, item.pontos_debitados)}
+                        disabled={isProcessing}
                       >
-                        <Text style={styles.botaoCancelarTexto}>{isProcessando ? '…' : '✕ Cancelar'}</Text>
+                        <Text style={styles.botaoCancelarTexto}>{isProcessing ? '…' : '✕ Cancelar'}</Text>
                       </Pressable>
                     </View>
                   ) : null}

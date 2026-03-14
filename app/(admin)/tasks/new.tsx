@@ -4,13 +4,13 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { ScreenHeader } from '@/components/ui/screen-header';
-import { criarTarefa, listarFilhosDaFamilia, type Filho } from '@lib/tarefas';
-import { formatarData, toDateString } from '@lib/utils';
+import { createTask, listFamilyChildren, type Child } from '@lib/tasks';
+import { formatDate, toDateString } from '@lib/utils';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, spacing, typography } from '@/constants/theme';
 
-export default function NovaTarefaScreen() {
+export default function NewTaskScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -23,63 +23,63 @@ export default function NovaTarefaScreen() {
   const [showPickerInicio, setShowPickerInicio] = useState(false);
   const [showPickerFim, setShowPickerFim] = useState(false);
   const [exigeEvidencia, setExigeEvidencia] = useState(false);
-  const [filhos, setFilhos] = useState<Filho[]>([]);
-  const [filhosSelecionados, setFilhosSelecionados] = useState<Set<string>>(new Set());
-  const [carregandoFilhos, setCarregandoFilhos] = useState(true);
-  const [enviando, setEnviando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
-  const shouldShowError = Boolean(erro);
+  const [children, setChildren] = useState<Child[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [loadingChildren, setLoadingChildren] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const shouldShowError = Boolean(error);
 
   useEffect(() => {
-    listarFilhosDaFamilia().then(({ data }) => { setFilhos(data); setCarregandoFilhos(false); });
+    listFamilyChildren().then(({ data }) => { setChildren(data); setLoadingChildren(false); });
   }, []);
 
-  function toggleFilho(id: string) {
-    setFilhosSelecionados((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+  function toggleChild(id: string) {
+    setSelected((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   }
 
-  function abrirPickerInicio() {
+  function openPickerInicio() {
     if (process.env.EXPO_OS === 'android') {
       DateTimePickerAndroid.open({ value: inicio, mode: 'date', onChange: (_, date) => { if (date) setInicio(date); } });
     } else { setShowPickerInicio(true); }
   }
 
-  function abrirPickerFim() {
+  function openPickerFim() {
     if (process.env.EXPO_OS === 'android') {
       DateTimePickerAndroid.open({ value: fim, mode: 'date', minimumDate: inicio, onChange: (_, date) => { if (date) setFim(date); } });
     } else { setShowPickerFim(true); }
   }
 
-  async function handleCriar() {
-    setErro(null);
-    if (!titulo.trim()) return setErro('Informe o título da tarefa.');
+  async function handleCreate() {
+    setError(null);
+    if (!titulo.trim()) return setError('Informe o título da tarefa.');
     const pontosNum = Number.parseInt(pontos, 10);
-    if (Number.isNaN(pontosNum) || pontosNum <= 0) return setErro('Pontos deve ser um número maior que zero.');
-    if (fim < inicio) return setErro('Data fim deve ser igual ou posterior ao início.');
-    if (filhosSelecionados.size === 0) return setErro('Selecione ao menos um filho para atribuir a tarefa.');
-    setEnviando(true);
-    const { error } = await criarTarefa({
+    if (Number.isNaN(pontosNum) || pontosNum <= 0) return setError('Pontos deve ser um número maior que zero.');
+    if (fim < inicio) return setError('Data fim deve ser igual ou posterior ao início.');
+    if (selected.size === 0) return setError('Selecione ao menos um filho para atribuir a tarefa.');
+    setSubmitting(true);
+    const { error } = await createTask({
       titulo: titulo.trim(), descricao: descricao.trim() || null, pontos: pontosNum,
       timebox_inicio: toDateString(inicio), timebox_fim: toDateString(fim),
-      exige_evidencia: exigeEvidencia, filhoIds: Array.from(filhosSelecionados),
+      exige_evidencia: exigeEvidencia, filhoIds: Array.from(selected),
     });
-    setEnviando(false);
-    if (error) return setErro(error);
+    setSubmitting(false);
+    if (error) return setError(error);
     router.back();
   }
 
-  function renderListaFilhos() {
-    if (carregandoFilhos) return <ActivityIndicator color={colors.accent.admin} style={{ marginVertical: spacing['3'] }} />;
-    if (filhos.length === 0) return <Text style={[styles.semFilhos, { color: colors.text.muted }]}>Nenhum filho cadastrado.</Text>;
-    return filhos.map((f) => {
-      const sel = filhosSelecionados.has(f.id);
+  function renderChildrenList() {
+    if (loadingChildren) return <ActivityIndicator color={colors.accent.admin} style={{ marginVertical: spacing['3'] }} />;
+    if (children.length === 0) return <Text style={[styles.semFilhos, { color: colors.text.muted }]}>Nenhum filho cadastrado.</Text>;
+    return children.map((child) => {
+      const sel = selected.has(child.id);
       return (
         <Pressable
-          key={f.id}
+          key={child.id}
           style={[styles.filhoItem, { borderColor: sel ? colors.accent.admin : colors.border.default, backgroundColor: sel ? colors.accent.adminBg : colors.bg.surface }]}
-          onPress={() => toggleFilho(f.id)}
+          onPress={() => toggleChild(child.id)}
         >
-          <Text style={[styles.filhoNome, { color: sel ? colors.accent.admin : colors.text.primary }]}>{f.nome}</Text>
+          <Text style={[styles.filhoNome, { color: sel ? colors.accent.admin : colors.text.primary }]}>{child.nome}</Text>
           <Text style={[styles.filhoCheck, { color: sel ? colors.accent.admin : colors.text.muted }]}>{sel ? '✓' : '○'}</Text>
         </Pressable>
       );
@@ -104,8 +104,8 @@ export default function NovaTarefaScreen() {
         <View style={styles.linha}>
           <View style={styles.linhaItem}>
             <Text style={[styles.label, { color: colors.text.secondary }]}>Data início *</Text>
-            <Pressable style={[styles.dateBtn, { backgroundColor: colors.bg.surface, borderColor: colors.border.default }]} onPress={abrirPickerInicio}>
-              <Text style={[styles.dateBtnTexto, { color: colors.text.primary }]}>📅 {formatarData(inicio)}</Text>
+            <Pressable style={[styles.dateBtn, { backgroundColor: colors.bg.surface, borderColor: colors.border.default }]} onPress={openPickerInicio}>
+              <Text style={[styles.dateBtnTexto, { color: colors.text.primary }]}>📅 {formatDate(inicio)}</Text>
             </Pressable>
             {showPickerInicio && process.env.EXPO_OS !== 'android' && (
               <DateTimePicker value={inicio} mode="date" display="spinner" onChange={(_, date) => { setShowPickerInicio(false); if (date) setInicio(date); }} />
@@ -113,8 +113,8 @@ export default function NovaTarefaScreen() {
           </View>
           <View style={styles.linhaItem}>
             <Text style={[styles.label, { color: colors.text.secondary }]}>Data fim *</Text>
-            <Pressable style={[styles.dateBtn, { backgroundColor: colors.bg.surface, borderColor: colors.border.default }]} onPress={abrirPickerFim}>
-              <Text style={[styles.dateBtnTexto, { color: colors.text.primary }]}>📅 {formatarData(fim)}</Text>
+            <Pressable style={[styles.dateBtn, { backgroundColor: colors.bg.surface, borderColor: colors.border.default }]} onPress={openPickerFim}>
+              <Text style={[styles.dateBtnTexto, { color: colors.text.primary }]}>📅 {formatDate(fim)}</Text>
             </Pressable>
             {showPickerFim && process.env.EXPO_OS !== 'android' && (
               <DateTimePicker value={fim} mode="date" minimumDate={inicio} display="spinner" onChange={(_, date) => { setShowPickerFim(false); if (date) setFim(date); }} />
@@ -128,18 +128,18 @@ export default function NovaTarefaScreen() {
         </View>
 
         <Text style={[styles.secaoTitulo, { color: colors.text.primary }]}>Atribuir para *</Text>
-        <View style={styles.filhosList}>{renderListaFilhos()}</View>
+        <View style={styles.filhosList}>{renderChildrenList()}</View>
 
         {shouldShowError ? (
-          <Text style={[styles.erroTexto, { color: colors.semantic.error }]}>{erro}</Text>
+          <Text style={[styles.erroTexto, { color: colors.semantic.error }]}>{error}</Text>
         ) : null}
 
         <Pressable
-          style={[styles.botaoCriar, { backgroundColor: colors.accent.admin, opacity: enviando ? 0.55 : 1 }]}
-          onPress={handleCriar}
-          disabled={enviando}
+          style={[styles.botaoCriar, { backgroundColor: colors.accent.admin, opacity: submitting ? 0.55 : 1 }]}
+          onPress={handleCreate}
+          disabled={submitting}
         >
-          {enviando ? <ActivityIndicator color={colors.text.inverse} /> : <Text style={[styles.botaoCriarTexto, { color: colors.text.inverse }]}>Criar tarefa</Text>}
+          {submitting ? <ActivityIndicator color={colors.text.inverse} /> : <Text style={[styles.botaoCriarTexto, { color: colors.text.inverse }]}>Criar tarefa</Text>}
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>

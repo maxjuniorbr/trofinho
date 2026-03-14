@@ -1,8 +1,6 @@
 import { supabase } from './supabase';
 
-// ─── Tipos ────────────────────────────────────────────────
-
-export type Premio = {
+export type Prize = {
   id: string;
   familia_id: string;
   nome: string;
@@ -12,43 +10,41 @@ export type Premio = {
   created_at: string;
 };
 
-export type StatusResgate = 'pendente' | 'confirmado' | 'cancelado';
+export type RedemptionStatus = 'pendente' | 'confirmado' | 'cancelado';
 
-export type Resgate = {
+export type Redemption = {
   id: string;
   filho_id: string;
   premio_id: string;
-  status: StatusResgate;
+  status: RedemptionStatus;
   pontos_debitados: number;
   created_at: string;
   updated_at: string;
 };
 
-export type ResgateComPremio = Resgate & {
+export type RedemptionWithPrize = Redemption & {
   premios: { nome: string; custo_pontos: number };
 };
 
-export type ResgateComFilhoEPremio = Resgate & {
+export type RedemptionWithChildAndPrize = Redemption & {
   filhos: { nome: string };
   premios: { nome: string };
 };
 
-export type NovoPremioInput = {
+export type NewPrizeInput = {
   nome: string;
   descricao: string | null;
   custo_pontos: number;
 };
 
-export type AtualizarPremioInput = {
+export type UpdatePrizeInput = {
   nome: string;
   descricao: string | null;
   custo_pontos: number;
 };
 
-// ─── Helpers ─────────────────────────────────────────────
-
-export function labelStatusResgate(status: StatusResgate): string {
-  const map: Record<StatusResgate, string> = {
+export function getRedemptionStatusLabel(status: RedemptionStatus): string {
+  const map: Record<RedemptionStatus, string> = {
     pendente:   'Pendente',
     confirmado: 'Confirmado',
     cancelado:  'Cancelado',
@@ -56,8 +52,8 @@ export function labelStatusResgate(status: StatusResgate): string {
   return map[status];
 }
 
-export function emojiStatusResgate(status: StatusResgate): string {
-  const map: Record<StatusResgate, string> = {
+export function getRedemptionStatusEmoji(status: RedemptionStatus): string {
+  const map: Record<RedemptionStatus, string> = {
     pendente:   '⏳',
     confirmado: '✅',
     cancelado:  '❌',
@@ -65,8 +61,8 @@ export function emojiStatusResgate(status: StatusResgate): string {
   return map[status];
 }
 
-export function corStatusResgate(status: StatusResgate): string {
-  const map: Record<StatusResgate, string> = {
+export function getRedemptionStatusColor(status: RedemptionStatus): string {
+  const map: Record<RedemptionStatus, string> = {
     pendente:   '#F59E0B',
     confirmado: '#10B981',
     cancelado:  '#EF4444',
@@ -74,10 +70,8 @@ export function corStatusResgate(status: StatusResgate): string {
   return map[status];
 }
 
-// ─── Admin: Prêmios ───────────────────────────────────────
-
-export async function listarPremios(): Promise<{
-  data: Premio[];
+export async function listPrizes(): Promise<{
+  data: Prize[];
   error: string | null;
 }> {
   const { data, error } = await supabase
@@ -87,11 +81,11 @@ export async function listarPremios(): Promise<{
     .order('nome');
 
   if (error) return { data: [], error: error.message };
-  return { data: (data ?? []) as Premio[], error: null };
+  return { data: (data ?? []) as Prize[], error: null };
 }
 
-export async function buscarPremio(id: string): Promise<{
-  data: Premio | null;
+export async function getPrize(id: string): Promise<{
+  data: Prize | null;
   error: string | null;
 }> {
   const { data, error } = await supabase
@@ -101,28 +95,28 @@ export async function buscarPremio(id: string): Promise<{
     .single();
 
   if (error) return { data: null, error: error.message };
-  return { data: data as Premio, error: null };
+  return { data: data as Prize, error: null };
 }
 
-export async function criarPremio(input: NovoPremioInput): Promise<{
-  data: Premio | null;
+export async function createPrize(input: NewPrizeInput): Promise<{
+  data: Prize | null;
   error: string | null;
 }> {
-  const { data: usuario } = await supabase.auth.getUser();
-  if (!usuario.user) return { data: null, error: 'Usuário não autenticado' };
+  const { data: authUser } = await supabase.auth.getUser();
+  if (!authUser.user) return { data: null, error: 'Usuário não autenticado' };
 
-  const { data: perfil } = await supabase
+  const { data: profile } = await supabase
     .from('usuarios')
     .select('familia_id')
-    .eq('id', usuario.user.id)
+    .eq('id', authUser.user.id)
     .single();
 
-  if (!perfil) return { data: null, error: 'Perfil não encontrado' };
+  if (!profile) return { data: null, error: 'Perfil não encontrado' };
 
   const { data, error } = await supabase
     .from('premios')
     .insert({
-      familia_id:   perfil.familia_id,
+      familia_id:   profile.familia_id,
       nome:         input.nome,
       descricao:    input.descricao,
       custo_pontos: input.custo_pontos,
@@ -131,12 +125,12 @@ export async function criarPremio(input: NovoPremioInput): Promise<{
     .single();
 
   if (error) return { data: null, error: error.message };
-  return { data: data as Premio, error: null };
+  return { data: data as Prize, error: null };
 }
 
-export async function atualizarPremio(
+export async function updatePrize(
   id: string,
-  input: AtualizarPremioInput
+  input: UpdatePrizeInput
 ): Promise<{ error: string | null }> {
   const { error } = await supabase
     .from('premios')
@@ -151,7 +145,7 @@ export async function atualizarPremio(
   return { error: null };
 }
 
-export async function desativarPremio(id: string): Promise<{ error: string | null }> {
+export async function deactivatePrize(id: string): Promise<{ error: string | null }> {
   const { error } = await supabase
     .from('premios')
     .update({ ativo: false })
@@ -161,7 +155,7 @@ export async function desativarPremio(id: string): Promise<{ error: string | nul
   return { error: null };
 }
 
-export async function reativarPremio(id: string): Promise<{ error: string | null }> {
+export async function reactivatePrize(id: string): Promise<{ error: string | null }> {
   const { error } = await supabase
     .from('premios')
     .update({ ativo: true })
@@ -171,10 +165,8 @@ export async function reativarPremio(id: string): Promise<{ error: string | null
   return { error: null };
 }
 
-// ─── Admin: Resgates ─────────────────────────────────────
-
-export async function listarResgates(): Promise<{
-  data: ResgateComFilhoEPremio[];
+export async function listRedemptions(): Promise<{
+  data: RedemptionWithChildAndPrize[];
   error: string | null;
 }> {
   const { data, error } = await supabase
@@ -183,31 +175,29 @@ export async function listarResgates(): Promise<{
     .order('created_at', { ascending: false });
 
   if (error) return { data: [], error: error.message };
-  return { data: (data ?? []) as ResgateComFilhoEPremio[], error: null };
+  return { data: (data ?? []) as RedemptionWithChildAndPrize[], error: null };
 }
 
-export async function confirmarResgate(resgateId: string): Promise<{ error: string | null }> {
+export async function confirmRedemption(redemptionId: string): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('confirmar_resgate', {
-    p_resgate_id: resgateId,
+    p_resgate_id: redemptionId,
   });
 
   if (error) return { error: error.message };
   return { error: null };
 }
 
-export async function cancelarResgate(resgateId: string): Promise<{ error: string | null }> {
+export async function cancelRedemption(redemptionId: string): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('cancelar_resgate', {
-    p_resgate_id: resgateId,
+    p_resgate_id: redemptionId,
   });
 
   if (error) return { error: error.message };
   return { error: null };
 }
 
-// ─── Filho: Prêmios ──────────────────────────────────────
-
-export async function listarPremiosAtivos(): Promise<{
-  data: Premio[];
+export async function listActivePrizes(): Promise<{
+  data: Prize[];
   error: string | null;
 }> {
   const { data, error } = await supabase
@@ -217,13 +207,11 @@ export async function listarPremiosAtivos(): Promise<{
     .order('custo_pontos');
 
   if (error) return { data: [], error: error.message };
-  return { data: (data ?? []) as Premio[], error: null };
+  return { data: (data ?? []) as Prize[], error: null };
 }
 
-// ─── Filho: Resgates ─────────────────────────────────────
-
-export async function listarResgatesFilho(): Promise<{
-  data: ResgateComPremio[];
+export async function listChildRedemptions(): Promise<{
+  data: RedemptionWithPrize[];
   error: string | null;
 }> {
   const { data, error } = await supabase
@@ -232,22 +220,22 @@ export async function listarResgatesFilho(): Promise<{
     .order('created_at', { ascending: false });
 
   if (error) return { data: [], error: error.message };
-  return { data: (data ?? []) as ResgateComPremio[], error: null };
+  return { data: (data ?? []) as RedemptionWithPrize[], error: null };
 }
 
-export async function solicitarResgate(premioId: string): Promise<{
+export async function requestRedemption(prizeId: string): Promise<{
   data: string | null;
   error: string | null;
 }> {
   const { data, error } = await supabase.rpc('solicitar_resgate', {
-    p_premio_id: premioId,
+    p_premio_id: prizeId,
   });
 
   if (error) return { data: null, error: error.message };
   return { data: data as string, error: null };
 }
 
-export async function contarResgatesPendentes(): Promise<{
+export async function countPendingRedemptions(): Promise<{
   data: number;
   error: string | null;
 }> {

@@ -26,15 +26,14 @@ export default function RegisterScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [nome, setNome] = useState('');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
-  const [confirmaSenha, setConfirmaSenha] = useState('');
-  const [erro, setErro] = useState('');
-  const [carregando, setCarregando] = useState(false);
-  const shouldShowError = Boolean(erro);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const shouldShowError = Boolean(error);
 
-  // ─── Entrance animations ──────────────────────────────────
   const mascotScale    = useRef(new Animated.Value(0.4)).current;
   const mascotRotate   = useRef(new Animated.Value(-12)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
@@ -78,29 +77,28 @@ export default function RegisterScreen() {
     outputRange: ['-12deg', '0deg'],
   });
 
-  // ─── Form logic ───────────────────────────────────────────
-  function validar(): string | null {
+  function validate(): string | null {
     const emailValue = email.trim();
-    if (!nome.trim()) return 'Informe seu nome.';
+    if (!name.trim()) return 'Informe seu nome.';
     if (!emailValue) return 'Informe seu e-mail.';
     if (!isValidEmail(emailValue)) return 'E-mail inválido.';
-    if (!senha) return 'Crie uma senha.';
-    if (senha.length < 6) return 'A senha deve ter ao menos 6 caracteres.';
-    if (senha !== confirmaSenha) return 'As senhas não coincidem.';
+    if (!password) return 'Crie uma senha.';
+    if (password.length < 6) return 'A senha deve ter ao menos 6 caracteres.';
+    if (password !== confirmPassword) return 'As senhas não coincidem.';
     return null;
   }
 
-  async function handleCriarConta() {
-    const erroValidacao = validar();
-    if (erroValidacao) { setErro(erroValidacao); return; }
+  async function handleSignUp() {
+    const validationError = validate();
+    if (validationError) { setError(validationError); return; }
 
-    setErro('');
-    setCarregando(true);
-    const { error } = await signUp(email.trim(), senha);
-    setCarregando(false);
+    setError('');
+    setLoading(true);
+    const { error: signUpError } = await signUp(email.trim(), password);
+    setLoading(false);
 
-    if (error) { setErro(error.message); return; }
-    router.replace({ pathname: '/(auth)/onboarding', params: { nome: nome.trim() } });
+    if (signUpError) { setError(signUpError.message); return; }
+    router.replace({ pathname: '/(auth)/onboarding', params: { nome: name.trim() } });
   }
 
   return (
@@ -116,7 +114,6 @@ export default function RegisterScreen() {
       >
         <StatusBar style={colors.statusBar} />
 
-        {/* Mascot */}
         <Animated.View
           style={{
             transform: [{ scale: mascotScale }, { rotate: mascotRotateDeg }],
@@ -131,7 +128,6 @@ export default function RegisterScreen() {
           />
         </Animated.View>
 
-        {/* Headline */}
         <Animated.View
           style={[styles.headline, { opacity: contentOpacity, transform: [{ translateY: contentY }] }]}
         >
@@ -141,7 +137,6 @@ export default function RegisterScreen() {
           </Text>
         </Animated.View>
 
-        {/* Form card */}
         <Animated.View
           style={[
             styles.card,
@@ -162,10 +157,10 @@ export default function RegisterScreen() {
             }]}
             placeholder="Seu nome"
             placeholderTextColor={colors.text.muted}
-            value={nome}
-            onChangeText={(t) => { setNome(t); setErro(''); }}
+            value={name}
+            onChangeText={(t) => { setName(t); setError(''); }}
             autoCapitalize="words"
-            editable={!carregando}
+            editable={!loading}
             accessibilityLabel="Campo de nome"
           />
 
@@ -179,12 +174,12 @@ export default function RegisterScreen() {
             placeholder="seu@email.com"
             placeholderTextColor={colors.text.muted}
             value={email}
-            onChangeText={(t) => { setEmail(t); setErro(''); }}
+            onChangeText={(t) => { setEmail(t); setError(''); }}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
             maxLength={MAX_EMAIL_LENGTH}
-            editable={!carregando}
+            editable={!loading}
             accessibilityLabel="Campo de e-mail"
           />
 
@@ -197,11 +192,11 @@ export default function RegisterScreen() {
             }]}
             placeholder="Mínimo 6 caracteres"
             placeholderTextColor={colors.text.muted}
-            value={senha}
-            onChangeText={(t) => { setSenha(t); setErro(''); }}
+            value={password}
+            onChangeText={(t) => { setPassword(t); setError(''); }}
             secureTextEntry
             maxLength={128}
-            editable={!carregando}
+            editable={!loading}
             accessibilityLabel="Campo de senha"
           />
 
@@ -214,31 +209,30 @@ export default function RegisterScreen() {
             }]}
             placeholder="Repita a senha"
             placeholderTextColor={colors.text.muted}
-            value={confirmaSenha}
-            onChangeText={(t) => { setConfirmaSenha(t); setErro(''); }}
+            value={confirmPassword}
+            onChangeText={(t) => { setConfirmPassword(t); setError(''); }}
             secureTextEntry
             maxLength={128}
-            editable={!carregando}
+            editable={!loading}
             accessibilityLabel="Campo de confirmar senha"
           />
 
           {shouldShowError ? (
             <Text style={[styles.erro, { color: colors.semantic.error }]} accessibilityRole="alert">
-              {erro}
+              {error}
             </Text>
           ) : null}
 
-          {/* Primary CTA — gold gradient */}
           <Pressable
-            onPress={handleCriarConta}
-            disabled={carregando}
+            onPress={handleSignUp}
+            disabled={loading}
             accessibilityRole="button"
-            accessibilityLabel={carregando ? 'Criando conta' : 'Criar conta'}
-            accessibilityState={{ disabled: carregando, busy: carregando }}
+            accessibilityLabel={loading ? 'Criando conta' : 'Criar conta'}
+            accessibilityState={{ disabled: loading, busy: loading }}
             style={({ pressed }) => [
               styles.primaryBtn,
               shadows.goldButton,
-              { opacity: carregando ? 0.55 : 1, transform: pressed ? [{ translateY: 2 }] : [] },
+              { opacity: loading ? 0.55 : 1, transform: pressed ? [{ translateY: 2 }] : [] },
             ]}
           >
             <LinearGradient
@@ -248,16 +242,15 @@ export default function RegisterScreen() {
               style={styles.primaryBtnGradient}
             >
               <Text style={[styles.primaryBtnText, { color: colors.text.onBrand }]}>
-                {carregando ? 'Criando conta…' : 'Criar conta'}
+                {loading ? 'Criando conta…' : 'Criar conta'}
               </Text>
             </LinearGradient>
           </Pressable>
 
-          {/* Back link */}
           <Pressable
             style={({ pressed }) => [styles.secondaryBtn, { opacity: pressed ? 0.65 : 1 }]}
             onPress={() => router.back()}
-            disabled={carregando}
+            disabled={loading}
             accessibilityRole="button"
             accessibilityLabel="Voltar ao login"
           >

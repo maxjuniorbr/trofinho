@@ -11,11 +11,11 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { signOut, buscarPerfil, type UserProfile } from '@lib/auth';
+import { signOut, getProfile, type UserProfile } from '@lib/auth';
 import { supabase } from '@lib/supabase';
-import { listarAtribuicoesFilho } from '@lib/tarefas';
-import { buscarSaldo } from '@lib/saldos';
-import { saudacao } from '@lib/utils';
+import { listChildAssignments } from '@lib/tasks';
+import { getBalance } from '@lib/balances';
+import { getGreeting } from '@lib/utils';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -25,7 +25,7 @@ import { PointsDisplay } from '@/components/ui/points-display';
 const mascotImage       = require('../../assets/trofinho-mascot.png');
 const celebratingImage  = require('../../assets/trofinho-celebrating.png');
 
-type Familia = { nome: string };
+type Family = { nome: string };
 
 export default function FilhoHomeScreen() {
   const router  = useRouter();
@@ -33,66 +33,65 @@ export default function FilhoHomeScreen() {
   const styles  = useMemo(() => makeStyles(colors), [colors]);
   const insets  = useSafeAreaInsets();
 
-  const [profile,    setProfile]    = useState<UserProfile | null>(null);
-  const [familia,    setFamilia]    = useState<Familia | null>(null);
-  const [carregando, setCarregando] = useState(true);
-  const [saindo,     setSaindo]     = useState(false);
-  const [pendentes,  setPendentes]  = useState(0);
-  const [saldoLivre, setSaldoLivre] = useState(0);
-  const [cofrinho,   setCofrinho]   = useState(0);
+  const [profile,      setProfile]      = useState<UserProfile | null>(null);
+  const [family,       setFamily]       = useState<Family | null>(null);
+  const [loading,      setLoading]      = useState(true);
+  const [loggingOut,   setLoggingOut]   = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [freeBalance,  setFreeBalance]  = useState(0);
+  const [piggyBank,    setPiggyBank]    = useState(0);
 
-  const hasPendentes = pendentes > 0;
+  const hasPending = pendingCount > 0;
 
-  // ─── Entrance animations ────────────────────────────────────
   const heroOpacity    = useRef(new Animated.Value(0)).current;
   const heroY          = useRef(new Animated.Value(20)).current;
   const mascotScale    = useRef(new Animated.Value(0.5)).current;
 
   useEffect(() => {
-    if (!carregando) {
+    if (!loading) {
       Animated.parallel([
         Animated.timing(heroOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
         Animated.spring(heroY, { toValue: 0, friction: 8, tension: 55, useNativeDriver: true }),
         Animated.spring(mascotScale, { toValue: 1, friction: 5, tension: 60, useNativeDriver: true }),
       ]).start();
     }
-  }, [carregando, heroOpacity, heroY, mascotScale]);
+  }, [loading, heroOpacity, heroY, mascotScale]);
 
-  const carregar = useCallback(async () => {
-    setCarregando(true);
+  const loadData = useCallback(async () => {
+    setLoading(true);
     // Reset animations for re-focus
     heroOpacity.setValue(0);
     heroY.setValue(20);
     mascotScale.setValue(0.5);
     try {
-      const p = await buscarPerfil();
+      const p = await getProfile();
       setProfile(p);
       if (p?.familia_id) {
         const { data: fam } = await supabase.from('familias').select('nome').eq('id', p.familia_id).single();
-        setFamilia(fam);
+        setFamily(fam);
       } else {
-        setFamilia(null);
+        setFamily(null);
       }
-      const { data: atribuicoes } = await listarAtribuicoesFilho();
-      setPendentes(atribuicoes.filter((a) => a.status === 'pendente').length);
-      const { data: s } = await buscarSaldo();
-      setSaldoLivre(s?.saldo_livre ?? 0);
-      setCofrinho(s?.cofrinho ?? 0);
+      const { data: atribuicoes } = await listChildAssignments();
+      setPendingCount(atribuicoes.filter((a) => a.status === 'pendente').length);
+      const { data: s } = await getBalance();
+      setFreeBalance(s?.saldo_livre ?? 0);
+      setPiggyBank(s?.cofrinho ?? 0);
     } catch {
-      setFamilia(null);
-      setPendentes(0);
-      setSaldoLivre(0);
-      setCofrinho(0);
+      setFamily(null);
+      setPendingCount(0);
+      setFreeBalance(0);
+      setPiggyBank(0);
     } finally {
-      setCarregando(false);
+      setLoading(false);
     }
   }, [heroOpacity, heroY, mascotScale]);
 
-  useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
-  async function handleSair() { setSaindo(true); await signOut(); }
+  async function handleSignOut() { setLoggingOut(true); await signOut(); }
 
-  if (carregando) {
+  if (loading) {
     return (
       <View style={[styles.loading, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />
@@ -109,33 +108,30 @@ export default function FilhoHomeScreen() {
     >
       <StatusBar style={colors.statusBar} />
 
-      {/* ── Hero ───────────────────────────────────────── */}
       <Animated.View
         style={[styles.hero, { opacity: heroOpacity, transform: [{ translateY: heroY }] }]}
       >
-        <Text style={[styles.heroSub, { color: colors.text.secondary }]}>{saudacao()} 🏆</Text>
+        <Text style={[styles.heroSub, { color: colors.text.secondary }]}>{getGreeting()} 🏆</Text>
         <Text style={[styles.heroTitle, { color: colors.text.primary }]}>
           Olá, {profile?.nome ?? 'Campeão'}!
         </Text>
-        {familia ? (
-          <Text style={[styles.heroFamily, { color: colors.accent.filho }]}>{familia.nome}</Text>
+        {family ? (
+          <Text style={[styles.heroFamily, { color: colors.accent.filho }]}>{family.nome}</Text>
         ) : null}
       </Animated.View>
 
-      {/* ── Mascote ────────────────────────────────────── */}
       <Animated.View style={[styles.mascotContainer, { transform: [{ scale: mascotScale }] }]}>
         <Image
-          source={hasPendentes ? mascotImage : celebratingImage}
+          source={hasPending ? mascotImage : celebratingImage}
           style={styles.mascotImage}
           resizeMode="contain"
-          accessibilityLabel={hasPendentes ? 'Trofinho animado' : 'Trofinho celebrando'}
+          accessibilityLabel={hasPending ? 'Trofinho animado' : 'Trofinho celebrando'}
         />
         <Text style={[styles.mascotCaption, { color: colors.text.secondary }]}>
-          {hasPendentes ? 'Vamos conquistar o dia?' : 'Troféu conquistado! 🎉'}
+          {hasPending ? 'Vamos conquistar o dia?' : 'Troféu conquistado! 🎉'}
         </Text>
       </Animated.View>
 
-      {/* ── Balance grid ───────────────────────────────── */}
       <Animated.View style={[styles.balanceGrid, { opacity: heroOpacity }]}>
         <View
           style={[
@@ -143,10 +139,10 @@ export default function FilhoHomeScreen() {
             { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
             shadows.goldGlow,
           ]}
-          accessibilityLabel={`Saldo livre: ${saldoLivre} pontos`}
+          accessibilityLabel={`Saldo livre: ${freeBalance} pontos`}
         >
           <Text style={[styles.balanceLabel, { color: colors.text.secondary }]}>Livre</Text>
-          <PointsDisplay value={saldoLivre} label="pontos" variant="gold" size="lg" />
+          <PointsDisplay value={freeBalance} label="pontos" variant="gold" size="lg" />
         </View>
         <View
           style={[
@@ -154,52 +150,50 @@ export default function FilhoHomeScreen() {
             { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
             shadows.card,
           ]}
-          accessibilityLabel={`Cofrinho: ${cofrinho} pontos`}
+          accessibilityLabel={`Cofrinho: ${piggyBank} pontos`}
         >
           <Text style={[styles.balanceLabel, { color: colors.text.secondary }]}>Cofrinho</Text>
-          <PointsDisplay value={cofrinho} label="pontos" variant="amber" size="lg" />
+          <PointsDisplay value={piggyBank} label="pontos" variant="amber" size="lg" />
         </View>
       </Animated.View>
 
-      {/* ── Tarefas nav card ───────────────────────────── */}
       <Animated.View style={{ opacity: heroOpacity, width: '100%' }}>
         <Pressable
           style={({ pressed }) => [
             styles.tarefasCard,
             {
               backgroundColor: colors.bg.surface,
-              borderColor: hasPendentes ? colors.semantic.error + '50' : colors.border.subtle,
+              borderColor: hasPending ? colors.semantic.error + '50' : colors.border.subtle,
             },
             shadows.card,
             pressed && { opacity: 0.85 },
           ]}
-          onPress={() => router.push('/(filho)/tarefas')}
+          onPress={() => router.push('/(child)/tasks')}
           accessibilityRole="button"
-          accessibilityLabel={hasPendentes ? `${pendentes} tarefas pendentes` : 'Minhas Tarefas'}
+          accessibilityLabel={hasPending ? `${pendingCount} tarefas pendentes` : 'Minhas Tarefas'}
         >
           <Text style={styles.tarefasEmoji}>📋</Text>
           <View style={styles.tarefasBody}>
             <Text style={[styles.tarefasTitle, { color: colors.text.primary }]}>Minhas Tarefas</Text>
             <Text style={[styles.tarefasSub, { color: colors.text.secondary }]}>
-              {hasPendentes
-                ? `${pendentes} ${pendentes === 1 ? 'tarefa pendente' : 'tarefas pendentes'}`
+              {hasPending
+                ? `${pendingCount} ${pendingCount === 1 ? 'tarefa pendente' : 'tarefas pendentes'}`
                 : 'Tudo em dia!'}
             </Text>
           </View>
-          {hasPendentes ? (
+          {hasPending ? (
             <View style={[styles.pendenteBadge, { backgroundColor: colors.semantic.error }]}>
-              <Text style={styles.pendenteBadgeText}>{pendentes}</Text>
+              <Text style={styles.pendenteBadgeText}>{pendingCount}</Text>
             </View>
           ) : null}
         </Pressable>
       </Animated.View>
 
-      {/* ── Quick nav 2-col ────────────────────────────── */}
       <Animated.View style={[styles.quickGrid, { opacity: heroOpacity }]}>
         {([
-          { emoji: '🎁', label: 'Prêmios',  rota: '/(filho)/premios'  as never },
-          { emoji: '🛍️', label: 'Resgates', rota: '/(filho)/resgates' as never },
-          { emoji: '💰', label: 'Saldo',    rota: '/(filho)/saldo'    as never },
+          { emoji: '🎁', label: 'Prêmios',  rota: '/(child)/prizes'      as never },
+          { emoji: '🛍️', label: 'Resgates', rota: '/(child)/redemptions' as never },
+          { emoji: '💰', label: 'Saldo',    rota: '/(child)/balance'     as never },
         ]).map(({ emoji, label, rota }) => (
           <Pressable
             key={rota}
@@ -219,19 +213,18 @@ export default function FilhoHomeScreen() {
         ))}
       </Animated.View>
 
-      {/* ── Sair ───────────────────────────────────────── */}
       <Pressable
         style={({ pressed }) => [
           styles.sairBtn,
-          { borderColor: colors.border.default, opacity: (saindo || pressed) ? 0.6 : 1 },
+          { borderColor: colors.border.default, opacity: (loggingOut || pressed) ? 0.6 : 1 },
         ]}
-        onPress={handleSair}
-        disabled={saindo}
+        onPress={handleSignOut}
+        disabled={loggingOut}
         accessibilityRole="button"
-        accessibilityLabel={saindo ? 'Saindo' : 'Sair'}
+        accessibilityLabel={loggingOut ? 'Saindo' : 'Sair'}
       >
         <Text style={[styles.sairTexto, { color: colors.text.secondary }]}>
-          {saindo ? 'Saindo…' : 'Sair'}
+          {loggingOut ? 'Saindo…' : 'Sair'}
         </Text>
       </Pressable>
     </ScrollView>
@@ -243,18 +236,15 @@ function makeStyles(colors: ThemeColors) {
     loading:         { flex: 1, alignItems: 'center', justifyContent: 'center' },
     container:       { flexGrow: 1, alignItems: 'center', paddingHorizontal: spacing.screen, paddingBottom: spacing['12'] },
 
-    // Hero
     hero:            { alignItems: 'center', marginBottom: spacing['4'] },
     heroSub:         { fontFamily: typography.family.bold, fontSize: typography.size.sm },
     heroTitle:       { fontFamily: typography.family.black, fontSize: typography.size['3xl'], marginTop: spacing['1'], textAlign: 'center' },
     heroFamily:      { fontFamily: typography.family.semibold, fontSize: typography.size.sm, marginTop: spacing['1'] },
 
-    // Mascote
     mascotContainer: { alignItems: 'center', marginBottom: spacing['6'] },
     mascotImage:     { width: 120, height: 120 },
     mascotCaption:   { fontFamily: typography.family.medium, fontSize: typography.size.sm, marginTop: spacing['2'] },
 
-    // Balance grid
     balanceGrid:     { flexDirection: 'row', gap: spacing['3'], width: '100%', marginBottom: spacing['4'] },
     balanceCard:     {
       flex: 1, borderRadius: radii.outer, borderWidth: 1,
@@ -262,7 +252,6 @@ function makeStyles(colors: ThemeColors) {
     },
     balanceLabel:    { fontFamily: typography.family.bold, fontSize: typography.size.xs, textTransform: 'uppercase', letterSpacing: 0.6 },
 
-    // Tarefas card
     tarefasCard:     {
       flexDirection: 'row', alignItems: 'center', gap: spacing['3'],
       borderRadius: radii.outer, borderWidth: 1, padding: spacing['4'],
@@ -275,7 +264,6 @@ function makeStyles(colors: ThemeColors) {
     pendenteBadge:   { width: 24, height: 24, borderRadius: radii.full, alignItems: 'center', justifyContent: 'center' },
     pendenteBadgeText: { color: '#fff', fontFamily: typography.family.black, fontSize: typography.size.xs },
 
-    // Quick grid
     quickGrid:       { flexDirection: 'row', flexWrap: 'wrap', gap: spacing['3'], width: '100%', marginBottom: spacing['6'] },
     quickCard:       {
       flex: 1, minWidth: 90,
@@ -285,7 +273,6 @@ function makeStyles(colors: ThemeColors) {
     quickEmoji:      { fontSize: 24 },
     quickLabel:      { fontFamily: typography.family.bold, fontSize: typography.size.xs, textAlign: 'center' },
 
-    // Sair
     sairBtn:         { borderWidth: 1, borderRadius: radii.md, paddingVertical: spacing['3'], paddingHorizontal: spacing['8'], alignSelf: 'center', minHeight: 48, justifyContent: 'center' },
     sairTexto:       { fontFamily: typography.family.medium, fontSize: typography.size.sm },
   });

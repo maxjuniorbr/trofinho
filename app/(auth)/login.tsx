@@ -28,12 +28,11 @@ export default function LoginScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
-  const [erro, setErro] = useState('');
-  const [carregando, setCarregando] = useState(false);
-  const shouldShowError = Boolean(erro);
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const shouldShowError = Boolean(error);
 
-  // ─── Entrance animations ──────────────────────────────────
   const mascotScale    = useRef(new Animated.Value(0.4)).current;
   const mascotRotate   = useRef(new Animated.Value(-12)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
@@ -77,29 +76,28 @@ export default function LoginScreen() {
     outputRange: ['-12deg', '0deg'],
   });
 
-  // ─── Form logic ───────────────────────────────────────────
-  function validar(): string | null {
+  function validate(): string | null {
     const emailValue = email.trim();
     if (!emailValue) return 'Informe seu e-mail.';
     if (!isValidEmail(emailValue)) return 'E-mail inválido.';
-    if (!senha) return 'Informe sua senha.';
-    if (senha.length < 6) return 'A senha deve ter ao menos 6 caracteres.';
+    if (!password) return 'Informe sua senha.';
+    if (password.length < 6) return 'A senha deve ter ao menos 6 caracteres.';
     return null;
   }
 
-  async function handleEntrar() {
-    const erroValidacao = validar();
-    if (erroValidacao) { setErro(erroValidacao); return; }
+  async function handleSignIn() {
+    const validationError = validate();
+    if (validationError) { setError(validationError); return; }
 
-    setErro('');
-    setCarregando(true);
-    const { profile, error } = await signIn(email.trim(), senha);
-    setCarregando(false);
+    setError('');
+    setLoading(true);
+    const { profile, error: signInError } = await signIn(email.trim(), password);
+    setLoading(false);
 
-    if (error) { setErro(error.message); return; }
+    if (signInError) { setError(signInError.message); return; }
     if (!profile) { router.replace('/(auth)/onboarding'); return; }
 
-    const destination = profile.papel === 'admin' ? '/(admin)/' : '/(filho)/';
+    const destination = profile.papel === 'admin' ? '/(admin)/' : '/(child)/';
     router.replace(destination);
   }
 
@@ -116,7 +114,6 @@ export default function LoginScreen() {
       >
         <StatusBar style={colors.statusBar} />
 
-        {/* Mascot */}
         <Animated.View
           style={{
             transform: [{ scale: mascotScale }, { rotate: mascotRotateDeg }],
@@ -131,7 +128,6 @@ export default function LoginScreen() {
           />
         </Animated.View>
 
-        {/* Headline */}
         <Animated.View
           style={[styles.headline, { opacity: contentOpacity, transform: [{ translateY: contentY }] }]}
         >
@@ -141,7 +137,6 @@ export default function LoginScreen() {
           </Text>
         </Animated.View>
 
-        {/* Form card */}
         <Animated.View
           style={[
             styles.card,
@@ -163,12 +158,12 @@ export default function LoginScreen() {
             placeholder="seu@email.com"
             placeholderTextColor={colors.text.muted}
             value={email}
-            onChangeText={(t) => { setEmail(t); setErro(''); }}
+            onChangeText={(t) => { setEmail(t); setError(''); }}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
             maxLength={MAX_EMAIL_LENGTH}
-            editable={!carregando}
+            editable={!loading}
             accessibilityLabel="Campo de e-mail"
           />
 
@@ -181,31 +176,30 @@ export default function LoginScreen() {
             }]}
             placeholder="••••••"
             placeholderTextColor={colors.text.muted}
-            value={senha}
-            onChangeText={(t) => { setSenha(t); setErro(''); }}
+            value={password}
+            onChangeText={(t) => { setPassword(t); setError(''); }}
             secureTextEntry
             maxLength={128}
-            editable={!carregando}
+            editable={!loading}
             accessibilityLabel="Campo de senha"
           />
 
           {shouldShowError ? (
             <Text style={[styles.erro, { color: colors.semantic.error }]} accessibilityRole="alert">
-              {erro}
+              {error}
             </Text>
           ) : null}
 
-          {/* Primary CTA — gold gradient button */}
           <Pressable
-            onPress={handleEntrar}
-            disabled={carregando}
+            onPress={handleSignIn}
+            disabled={loading}
             accessibilityRole="button"
-            accessibilityLabel={carregando ? 'Entrando' : 'Entrar'}
-            accessibilityState={{ disabled: carregando, busy: carregando }}
+            accessibilityLabel={loading ? 'Entrando' : 'Entrar'}
+            accessibilityState={{ disabled: loading, busy: loading }}
             style={({ pressed }) => [
               styles.primaryBtn,
               shadows.goldButton,
-              { opacity: carregando ? 0.55 : 1, transform: pressed ? [{ translateY: 2 }] : [] },
+              { opacity: loading ? 0.55 : 1, transform: pressed ? [{ translateY: 2 }] : [] },
             ]}
           >
             <LinearGradient
@@ -215,16 +209,15 @@ export default function LoginScreen() {
               style={styles.primaryBtnGradient}
             >
               <Text style={[styles.primaryBtnText, { color: colors.text.onBrand }]}>
-                {carregando ? 'Entrando…' : 'Entrar'}
+                {loading ? 'Entrando…' : 'Entrar'}
               </Text>
             </LinearGradient>
           </Pressable>
 
-          {/* Secondary link */}
           <Pressable
             style={({ pressed }) => [styles.secondaryBtn, { opacity: pressed ? 0.65 : 1 }]}
             onPress={() => router.push('/(auth)/register')}
-            disabled={carregando}
+            disabled={loading}
             accessibilityRole="button"
             accessibilityLabel="Criar conta"
           >

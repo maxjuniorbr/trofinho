@@ -8,46 +8,46 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { listarPremios, type Premio } from '@lib/premios';
+import { listPrizes, type Prize } from '@lib/prizes';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 
-export default function AdminPremiosScreen() {
+export default function AdminPrizesScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [premios, setPremios] = useState<Premio[]>([]);
-  const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [prizes, setPrizes] = useState<Prize[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const carregar = useCallback(async () => {
-    setCarregando(true);
-    setErro(null);
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const { data, error } = await listarPremios();
-      if (error) setErro(error);
-      else setPremios(data);
+      const { data, error } = await listPrizes();
+      if (error) setError(error);
+      else setPrizes(data);
     } catch {
-      setErro('Não foi possível carregar os prêmios agora.');
-      setPremios([]);
+      setError('Não foi possível carregar os prêmios agora.');
+      setPrizes([]);
     } finally {
-      setCarregando(false);
+      setLoading(false);
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
-  const ativos = premios.filter((p) => p.ativo);
-  const inativos = premios.filter((p) => !p.ativo);
-  const hasErro = Boolean(erro);
-  const shouldShowEmptyState = carregando || hasErro || premios.length === 0;
+  const active = prizes.filter((p) => p.ativo);
+  const inactive = prizes.filter((p) => !p.ativo);
+  const hasError = Boolean(error);
+  const shouldShowEmptyState = loading || hasError || prizes.length === 0;
   const emptyStateMessage = 'Nenhum prêmio cadastrado.\nToque em "+ Novo" para criar o primeiro prêmio.';
-  const resumoInativos = inativos.length > 0
-    ? ` · ${inativos.length} inativo${inativos.length !== 1 ? 's' : ''}`
+  const inactiveSummary = inactive.length > 0
+    ? ` · ${inactive.length} inativo${inactive.length !== 1 ? 's' : ''}`
     : '';
 
   return (
@@ -59,7 +59,7 @@ export default function AdminPremiosScreen() {
         backLabel="Início"
         rightAction={
           <Pressable
-            onPress={() => router.push('/(admin)/premios/novo' as never)}
+            onPress={() => router.push('/(admin)/prizes/new' as never)}
             style={[styles.botaoNova, { backgroundColor: colors.accent.admin }]}
           >
             <Text style={[styles.botaoNovaTexto, { color: colors.text.inverse }]}>+ Novo</Text>
@@ -69,22 +69,22 @@ export default function AdminPremiosScreen() {
 
       {shouldShowEmptyState ? (
         <EmptyState
-          loading={carregando}
-          error={erro}
-          empty={!carregando && !erro}
+          loading={loading}
+          error={error}
+          empty={!loading && !error}
           emptyMessage={emptyStateMessage}
-          onRetry={carregar}
+          onRetry={loadData}
         />
       ) : (
         <FlatList
-          data={premios}
+          data={prizes}
           keyExtractor={(item) => item.id}
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={styles.lista}
           ListHeaderComponent={
             <Text style={styles.resumo}>
-              {ativos.length} ativo{ativos.length !== 1 ? 's' : ''}
-              {resumoInativos}
+              {active.length} ativo{active.length !== 1 ? 's' : ''}
+              {inactiveSummary}
             </Text>
           }
           renderItem={({ item }) => (
@@ -94,7 +94,7 @@ export default function AdminPremiosScreen() {
                 !item.ativo && styles.cardInativo,
                 pressed && { opacity: 0.85 },
               ]}
-              onPress={() => router.push(`/(admin)/premios/${item.id}` as never)}
+              onPress={() => router.push(`/(admin)/prizes/${item.id}` as never)}
               accessibilityRole="button"
               accessibilityLabel={`${item.nome}, ${item.custo_pontos} pontos${!item.ativo ? ', inativo' : ''}`}
             >

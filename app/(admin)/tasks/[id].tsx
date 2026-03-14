@@ -12,87 +12,87 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import {
-  buscarTarefaComAtribuicoes,
-  aprovarAtribuicao,
-  rejeitarAtribuicao,
-  labelStatus,
-  corStatus,
-  type TarefaDetalhe,
-  type AtribuicaoComFilho,
-} from '@lib/tarefas';
+  getTaskWithAssignments,
+  approveAssignment,
+  rejectAssignment,
+  getStatusLabel,
+  getStatusColor,
+  type TaskDetail,
+  type AssignmentWithChild,
+} from '@lib/tasks';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 
-export default function TarefaDetalheAdminScreen() {
+export default function TaskDetailAdminScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [tarefa, setTarefa] = useState<TarefaDetalhe | null>(null);
-  const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [task, setTask] = useState<TaskDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [acoesAtrib, setAcoesAtrib] = useState<
-    Record<string, 'rejeitando' | 'processando' | null>
+  const [assignmentActions, setAssignmentActions] = useState<
+    Record<string, 'rejecting' | 'processing' | null>
   >({});
-  const [notasRejeicao, setNotasRejeicao] = useState<Record<string, string>>({});
-  const [errosAtrib, setErrosAtrib] = useState<Record<string, string>>({});
+  const [rejectionNotes, setRejectionNotes] = useState<Record<string, string>>({});
+  const [assignmentErrors, setAssignmentErrors] = useState<Record<string, string>>({});
 
-  const carregar = useCallback(async () => {
+  const loadData = useCallback(async () => {
     if (!id) return;
-    setCarregando(true);
-    setErro(null);
+    setLoading(true);
+    setError(null);
     try {
-      const { data, error } = await buscarTarefaComAtribuicoes(id);
-      if (error) setErro(error);
-      else setTarefa(data);
+      const { data, error } = await getTaskWithAssignments(id);
+      if (error) setError(error);
+      else setTask(data);
     } catch {
-      setErro('Não foi possível carregar a tarefa agora.');
-      setTarefa(null);
+      setError('Não foi possível carregar a tarefa agora.');
+      setTask(null);
     } finally {
-      setCarregando(false);
+      setLoading(false);
     }
   }, [id]);
 
-  useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
-  async function handleAprovar(atrib: AtribuicaoComFilho) {
-    setAcoesAtrib((prev) => ({ ...prev, [atrib.id]: 'processando' }));
-    setErrosAtrib((prev) => ({ ...prev, [atrib.id]: '' }));
-    const { error } = await aprovarAtribuicao(atrib.id);
+  async function handleApprove(assignment: AssignmentWithChild) {
+    setAssignmentActions((prev) => ({ ...prev, [assignment.id]: 'processing' }));
+    setAssignmentErrors((prev) => ({ ...prev, [assignment.id]: '' }));
+    const { error } = await approveAssignment(assignment.id);
     if (error) {
-      setErrosAtrib((prev) => ({ ...prev, [atrib.id]: error }));
-      setAcoesAtrib((prev) => ({ ...prev, [atrib.id]: null }));
+      setAssignmentErrors((prev) => ({ ...prev, [assignment.id]: error }));
+      setAssignmentActions((prev) => ({ ...prev, [assignment.id]: null }));
     } else {
-      await carregar();
-      setAcoesAtrib((prev) => ({ ...prev, [atrib.id]: null }));
+      await loadData();
+      setAssignmentActions((prev) => ({ ...prev, [assignment.id]: null }));
     }
   }
 
-  async function handleRejeitar(atrib: AtribuicaoComFilho) {
-    const nota = notasRejeicao[atrib.id] ?? '';
-    if (!nota.trim()) {
-      setErrosAtrib((prev) => ({ ...prev, [atrib.id]: 'Informe o motivo da rejeição.' }));
+  async function handleReject(assignment: AssignmentWithChild) {
+    const note = rejectionNotes[assignment.id] ?? '';
+    if (!note.trim()) {
+      setAssignmentErrors((prev) => ({ ...prev, [assignment.id]: 'Informe o motivo da rejeição.' }));
       return;
     }
-    setAcoesAtrib((prev) => ({ ...prev, [atrib.id]: 'processando' }));
-    setErrosAtrib((prev) => ({ ...prev, [atrib.id]: '' }));
-    const { error } = await rejeitarAtribuicao(atrib.id, nota.trim());
+    setAssignmentActions((prev) => ({ ...prev, [assignment.id]: 'processing' }));
+    setAssignmentErrors((prev) => ({ ...prev, [assignment.id]: '' }));
+    const { error } = await rejectAssignment(assignment.id, note.trim());
     if (error) {
-      setErrosAtrib((prev) => ({ ...prev, [atrib.id]: error }));
-      setAcoesAtrib((prev) => ({ ...prev, [atrib.id]: null }));
+      setAssignmentErrors((prev) => ({ ...prev, [assignment.id]: error }));
+      setAssignmentActions((prev) => ({ ...prev, [assignment.id]: null }));
     } else {
-      await carregar();
-      setAcoesAtrib((prev) => ({ ...prev, [atrib.id]: null }));
-      setNotasRejeicao((prev) => ({ ...prev, [atrib.id]: '' }));
+      await loadData();
+      setAssignmentActions((prev) => ({ ...prev, [assignment.id]: null }));
+      setRejectionNotes((prev) => ({ ...prev, [assignment.id]: '' }));
     }
   }
 
-  if (carregando) {
+  if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />
@@ -101,12 +101,12 @@ export default function TarefaDetalheAdminScreen() {
     );
   }
 
-  if (erro || !tarefa) {
+  if (error || !task) {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />
         <ScreenHeader title="Detalhes" onBack={() => router.back()} />
-        <EmptyState error={erro ?? 'Tarefa não encontrada.'} onRetry={carregar} />
+        <EmptyState error={error ?? 'Tarefa não encontrada.'} onRetry={loadData} />
       </View>
     );
   }
@@ -117,74 +117,73 @@ export default function TarefaDetalheAdminScreen() {
       <ScreenHeader title="Detalhes" onBack={() => router.back()} backLabel="Tarefas" />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Dados da tarefa */}
         <View style={styles.card}>
           <View style={styles.cardTopo}>
-            <Text style={styles.cardTitulo}>{tarefa.titulo}</Text>
+            <Text style={styles.cardTitulo}>{task.titulo}</Text>
             <View style={styles.pontosTag}>
-              <Text style={styles.pontosTexto}>{tarefa.pontos} pts</Text>
+              <Text style={styles.pontosTexto}>{task.pontos} pts</Text>
             </View>
           </View>
-          {tarefa.descricao ? (
-            <Text style={styles.descricao}>{tarefa.descricao}</Text>
+          {task.descricao ? (
+            <Text style={styles.descricao}>{task.descricao}</Text>
           ) : null}
           <Text style={styles.meta}>
-            {tarefa.timebox_inicio}
+            {task.timebox_inicio}
             {' \u2192 '}
-            {tarefa.timebox_fim}
+            {task.timebox_fim}
           </Text>
-          {tarefa.exige_evidencia && (
+          {task.exige_evidencia && (
             <View style={styles.tagEvidencia}>
               <Text style={styles.tagEvidenciaTexto}>📷 Exige foto</Text>
             </View>
           )}
         </View>
 
-        <Text style={styles.secaoTitulo}>Atribuições ({tarefa.atribuicoes.length})</Text>
+        <Text style={styles.secaoTitulo}>Atribuições ({task.atribuicoes.length})</Text>
 
-        {tarefa.atribuicoes.length === 0 ? (
+        {task.atribuicoes.length === 0 ? (
           <Text style={styles.semAtrib}>Nenhum filho atribuído.</Text>
         ) : (
-          tarefa.atribuicoes.map((atrib) => {
-            const acao = acoesAtrib[atrib.id] ?? null;
-            const nota = notasRejeicao[atrib.id] ?? '';
-            const erroAtrib = errosAtrib[atrib.id] ?? '';
-            const processando = acao === 'processando';
+          task.atribuicoes.map((assignment) => {
+            const action = assignmentActions[assignment.id] ?? null;
+            const note = rejectionNotes[assignment.id] ?? '';
+            const assignmentError = assignmentErrors[assignment.id] ?? '';
+            const processing = action === 'processing';
 
             return (
-              <View key={atrib.id} style={styles.atribCard}>
+              <View key={assignment.id} style={styles.atribCard}>
                 <View style={styles.atribTopo}>
-                  <Text style={styles.filhoNome}>{atrib.filhos.nome}</Text>
-                  <View style={[styles.statusTag, { backgroundColor: corStatus(atrib.status) + '20' }]}>
-                    <Text style={[styles.statusTexto, { color: corStatus(atrib.status) }]}>
-                      {labelStatus(atrib.status)}
+                  <Text style={styles.filhoNome}>{assignment.filhos.nome}</Text>
+                  <View style={[styles.statusTag, { backgroundColor: getStatusColor(assignment.status) + '20' }]}>
+                    <Text style={[styles.statusTexto, { color: getStatusColor(assignment.status) }]}>
+                      {getStatusLabel(assignment.status)}
                     </Text>
                   </View>
                 </View>
 
-                {atrib.evidencia_url ? (
+                {assignment.evidencia_url ? (
                   <Image
-                    source={{ uri: atrib.evidencia_url }}
+                    source={{ uri: assignment.evidencia_url }}
                     style={styles.evidenciaImg}
                     resizeMode="cover"
                   />
                 ) : null}
 
-                {atrib.nota_rejeicao ? (
+                {assignment.nota_rejeicao ? (
                   <View style={styles.notaRejeicaoBox}>
                     <Text style={styles.notaRejeicaoLabel}>Motivo da rejeição:</Text>
-                    <Text style={styles.notaRejeicaoTexto}>{atrib.nota_rejeicao}</Text>
+                    <Text style={styles.notaRejeicaoTexto}>{assignment.nota_rejeicao}</Text>
                   </View>
                 ) : null}
 
-                {atrib.status === 'aguardando_validacao' && (
+                {assignment.status === 'aguardando_validacao' && (
                   <View style={styles.acoesBox}>
-                    {acao === 'rejeitando' ? (
+                    {action === 'rejecting' ? (
                       <>
                         <TextInput
                           style={styles.inputNota}
-                          value={nota}
-                          onChangeText={(t) => setNotasRejeicao((prev) => ({ ...prev, [atrib.id]: t }))}
+                          value={note}
+                          onChangeText={(t) => setRejectionNotes((prev) => ({ ...prev, [assignment.id]: t }))}
                           placeholder="Motivo da rejeição (obrigatório)"
                           placeholderTextColor={colors.text.muted}
                           multiline
@@ -192,17 +191,17 @@ export default function TarefaDetalheAdminScreen() {
                         <View style={styles.botoesRejeitar}>
                           <Pressable
                             style={[styles.botaoAcao, styles.botaoCancelar]}
-                            onPress={() => setAcoesAtrib((prev) => ({ ...prev, [atrib.id]: null }))}
-                            disabled={processando}
+                            onPress={() => setAssignmentActions((prev) => ({ ...prev, [assignment.id]: null }))}
+                            disabled={processing}
                           >
                             <Text style={styles.botaoCancelarTexto}>Cancelar</Text>
                           </Pressable>
                           <Pressable
-                            style={[styles.botaoAcao, styles.botaoRejeitar, processando && styles.botaoDesabilitado]}
-                            onPress={() => handleRejeitar(atrib)}
-                            disabled={processando}
+                            style={[styles.botaoAcao, styles.botaoRejeitar, processing && styles.botaoDesabilitado]}
+                            onPress={() => handleReject(assignment)}
+                            disabled={processing}
                           >
-                            {processando
+                            {processing
                               ? <ActivityIndicator color="#fff" size="small" />
                               : <Text style={styles.botaoRejeitarTexto}>Confirmar rejeição</Text>}
                           </Pressable>
@@ -211,24 +210,24 @@ export default function TarefaDetalheAdminScreen() {
                     ) : (
                       <View style={styles.botoesValidar}>
                         <Pressable
-                          style={[styles.botaoAcao, styles.botaoRejeitar, processando && styles.botaoDesabilitado]}
-                          onPress={() => setAcoesAtrib((prev) => ({ ...prev, [atrib.id]: 'rejeitando' }))}
-                          disabled={processando}
+                          style={[styles.botaoAcao, styles.botaoRejeitar, processing && styles.botaoDesabilitado]}
+                          onPress={() => setAssignmentActions((prev) => ({ ...prev, [assignment.id]: 'rejecting' }))}
+                          disabled={processing}
                         >
                           <Text style={styles.botaoRejeitarTexto}>Rejeitar</Text>
                         </Pressable>
                         <Pressable
-                          style={[styles.botaoAcao, styles.botaoAprovar, processando && styles.botaoDesabilitado]}
-                          onPress={() => handleAprovar(atrib)}
-                          disabled={processando}
+                          style={[styles.botaoAcao, styles.botaoAprovar, processing && styles.botaoDesabilitado]}
+                          onPress={() => handleApprove(assignment)}
+                          disabled={processing}
                         >
-                          {processando
+                          {processing
                             ? <ActivityIndicator color="#fff" size="small" />
                             : <Text style={styles.botaoAprovarTexto}>Aprovar ✓</Text>}
                         </Pressable>
                       </View>
                     )}
-                    {erroAtrib ? <Text style={styles.erroAtrib}>{erroAtrib}</Text> : null}
+                    {assignmentError ? <Text style={styles.erroAtrib}>{assignmentError}</Text> : null}
                   </View>
                 )}
               </View>
