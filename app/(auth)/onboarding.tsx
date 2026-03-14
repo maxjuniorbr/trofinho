@@ -9,12 +9,17 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { criarFamilia, signOut } from '@lib/auth';
+import { useTheme } from '@/context/theme-context';
+import type { ThemeColors } from '@/constants/theme';
+import { radii, spacing, typography } from '@/constants/theme';
 
 export default function OnboardingScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ nome?: string }>();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [nomeFamilia, setNomeFamilia] = useState('');
   const [nomeAdmin, setNomeAdmin] = useState(params.nome ?? '');
@@ -30,22 +35,14 @@ export default function OnboardingScreen() {
 
   async function handleCriarFamilia() {
     const erroValidacao = validar();
-    if (erroValidacao) {
-      setErro(erroValidacao);
-      return;
-    }
+    if (erroValidacao) { setErro(erroValidacao); return; }
 
     setErro('');
     setCarregando(true);
-
     const { error } = await criarFamilia(nomeFamilia.trim(), nomeAdmin.trim());
     setCarregando(false);
 
-    if (error) {
-      setErro(error.message);
-      return;
-    }
-
+    if (error) { setErro(error.message); return; }
     router.replace('/(admin)/');
   }
 
@@ -57,26 +54,26 @@ export default function OnboardingScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: colors.bg.canvas }]}
       behavior={process.env.EXPO_OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <StatusBar style="auto" />
+        <StatusBar style={colors.statusBar} />
 
         <View style={styles.header}>
           <Text style={styles.emoji}>🏠</Text>
-          <Text style={styles.titulo}>Criar sua família</Text>
-          <Text style={styles.subtitulo}>
+          <Text style={[styles.titulo, { color: colors.text.primary }]}>Criar sua família</Text>
+          <Text style={[styles.subtitulo, { color: colors.text.secondary }]}>
             Você será o administrador e poderá convidar os filhos depois.
           </Text>
         </View>
 
         <View style={styles.form}>
-          <Text style={styles.label}>Nome da família</Text>
+          <Text style={[styles.label, { color: colors.text.secondary }]}>Nome da família</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.bg.surface, borderColor: colors.border.default, color: colors.text.primary }]}
             placeholder="Ex: Família Silva"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.text.muted}
             value={nomeFamilia}
             onChangeText={(t) => { setNomeFamilia(t); setErro(''); }}
             autoCapitalize="words"
@@ -84,11 +81,11 @@ export default function OnboardingScreen() {
             accessibilityLabel="Campo de nome da família"
           />
 
-          <Text style={styles.label}>Seu nome</Text>
+          <Text style={[styles.label, { color: colors.text.secondary }]}>Seu nome</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.bg.surface, borderColor: colors.border.default, color: colors.text.primary }]}
             placeholder="Como quer ser chamado"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.text.muted}
             value={nomeAdmin}
             onChangeText={(t) => { setNomeAdmin(t); setErro(''); }}
             autoCapitalize="words"
@@ -96,38 +93,26 @@ export default function OnboardingScreen() {
             accessibilityLabel="Campo de nome do administrador"
           />
 
-          {erro ? <Text style={styles.erro} accessibilityRole="alert">{erro}</Text> : null}
+          {erro ? <Text style={[styles.erro, { color: colors.semantic.error }]} accessibilityRole="alert">{erro}</Text> : null}
 
           <Pressable
-            style={({ pressed }) => [
-              styles.botao,
-              carregando && styles.botaoDesabilitado,
-              pressed && !carregando && { opacity: 0.85 },
-            ]}
+            style={({ pressed }) => [styles.botao, { backgroundColor: colors.accent.admin, opacity: (carregando || voltando) ? 0.55 : pressed ? 0.82 : 1 }]}
             onPress={handleCriarFamilia}
             disabled={carregando || voltando}
             accessibilityRole="button"
-            accessibilityLabel={carregando ? 'Criando família' : 'Criar família'}
-            accessibilityState={{ disabled: carregando || voltando, busy: carregando }}
           >
-            <Text style={styles.botaoTexto}>
+            <Text style={[styles.botaoTexto, { color: colors.text.inverse }]}>
               {carregando ? 'Criando família…' : 'Criar família'}
             </Text>
           </Pressable>
 
           <Pressable
-            style={({ pressed }) => [
-              styles.botaoVoltar,
-              voltando && styles.botaoDesabilitado,
-              pressed && !voltando && { opacity: 0.7 },
-            ]}
+            style={({ pressed }) => [styles.botaoVoltar, { opacity: (carregando || voltando) ? 0.55 : pressed ? 0.65 : 1 }]}
             onPress={handleVoltar}
             disabled={carregando || voltando}
             accessibilityRole="button"
-            accessibilityLabel={voltando ? 'Saindo' : 'Voltar para o login'}
-            accessibilityState={{ disabled: carregando || voltando, busy: voltando }}
           >
-            <Text style={styles.botaoVoltarTexto}>
+            <Text style={[styles.botaoVoltarTexto, { color: colors.text.secondary }]}>
               {voltando ? 'Saindo…' : 'Voltar para o login'}
             </Text>
           </Pressable>
@@ -137,81 +122,21 @@ export default function OnboardingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#F5F7FF' },
-  container: {
-    flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  emoji: { fontSize: 56 },
-  titulo: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1E1B4B',
-    marginTop: 12,
-  },
-  subtitulo: {
-    fontSize: 15,
-    color: '#6B7280',
-    marginTop: 8,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  form: { width: '100%' },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 6,
-    marginTop: 16,
-  },
-  input: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    borderCurve: 'continuous',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#111827',
-  },
-  erro: {
-    color: '#EF4444',
-    fontSize: 14,
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  botao: {
-    backgroundColor: '#4F46E5',
-    borderRadius: 12,
-    borderCurve: 'continuous',
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 24,
-    minHeight: 44,
-  },
-  botaoDesabilitado: { opacity: 0.6 },
-  botaoTexto: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  botaoVoltar: {
-    marginTop: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    minHeight: 44,
-  },
-  botaoVoltarTexto: {
-    color: '#6B7280',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    flex: { flex: 1 },
+    container: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: spacing['6'] },
+    header: { alignItems: 'center', marginBottom: spacing['10'] },
+    emoji: { fontSize: 56 },
+    titulo: { fontSize: typography.size['2xl'], fontWeight: typography.weight.bold, marginTop: spacing['3'] },
+    subtitulo: { fontSize: typography.size.md, marginTop: spacing['2'], textAlign: 'center', lineHeight: 22 },
+    form: { width: '100%' },
+    label: { fontSize: typography.size.sm, fontWeight: typography.weight.semibold, marginBottom: spacing['1'], marginTop: spacing['4'] },
+    input: { borderWidth: 1, borderRadius: radii.md, paddingHorizontal: spacing['4'], paddingVertical: spacing['3'], fontSize: typography.size.md },
+    erro: { fontSize: typography.size.sm, marginTop: spacing['3'], textAlign: 'center' },
+    botao: { borderRadius: radii.md, paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['6'], minHeight: 52 },
+    botaoTexto: { fontSize: typography.size.md, fontWeight: typography.weight.semibold },
+    botaoVoltar: { paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['2'], minHeight: 44 },
+    botaoVoltarTexto: { fontSize: typography.size.md },
+  });
+}

@@ -8,7 +8,7 @@ import {
   Image,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import {
@@ -18,10 +18,17 @@ import {
   corStatus,
   type AtribuicaoFilho,
 } from '@lib/tarefas';
+import { useTheme } from '@/context/theme-context';
+import type { ThemeColors } from '@/constants/theme';
+import { radii, spacing, typography } from '@/constants/theme';
+import { ScreenHeader } from '@/components/ui/screen-header';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export default function FilhoTarefaDetalheScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [atribuicao, setAtribuicao] = useState<AtribuicaoFilho | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -33,7 +40,6 @@ export default function FilhoTarefaDetalheScreen() {
     if (!id) return;
     setCarregando(true);
     setErro(null);
-
     try {
       const { data, error } = await buscarAtribuicaoFilho(id);
       if (error) setErro(error);
@@ -46,73 +52,55 @@ export default function FilhoTarefaDetalheScreen() {
     }
   }, [id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      carregar();
-    }, [carregar])
-  );
+  useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
 
   async function handleConcluir() {
     if (!atribuicao) return;
     setErroConclusao(null);
 
     if (atribuicao.tarefas.exige_evidencia) {
-      // Solicita permissão da câmera
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
-        setErroConclusao(
-          'Permissão da câmera negada. Habilite nas configurações do dispositivo.'
-        );
+        setErroConclusao('Permissão da câmera negada. Habilite nas configurações do dispositivo.');
         return;
       }
-
       const resultado = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         quality: 0.7,
         allowsEditing: true,
         aspect: [4, 3],
       });
-
       if (resultado.canceled || resultado.assets.length === 0) return;
-
       const imagemUri = resultado.assets[0].uri;
       setConcluindo(true);
       const { error } = await concluirAtribuicao(atribuicao.id, imagemUri);
       setConcluindo(false);
-
-      if (error) {
-        setErroConclusao(error);
-      } else {
-        await carregar();
-      }
+      if (error) setErroConclusao(error);
+      else await carregar();
     } else {
       setConcluindo(true);
       const { error } = await concluirAtribuicao(atribuicao.id, null);
       setConcluindo(false);
-
-      if (error) {
-        setErroConclusao(error);
-      } else {
-        await carregar();
-      }
+      if (error) setErroConclusao(error);
+      else await carregar();
     }
   }
 
   if (carregando) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#0EA5E9" />
+      <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
+        <StatusBar style={colors.statusBar} />
+        <ActivityIndicator size="large" color={colors.accent.filho} />
       </View>
     );
   }
 
   if (erro || !atribuicao) {
     return (
-      <View style={styles.loading}>
-        <Text style={styles.erroTexto}>{erro ?? 'Tarefa não encontrada.'}</Text>
-        <Pressable style={styles.botaoVoltar} onPress={() => router.back()}>
-          <Text style={styles.botaoVoltarTexto}>← Voltar</Text>
-        </Pressable>
+      <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
+        <StatusBar style={colors.statusBar} />
+        <ScreenHeader title="Detalhe" onBack={() => router.back()} backLabel="← Tarefas" />
+        <EmptyState error={erro ?? 'Tarefa não encontrada.'} onRetry={carregar} />
       </View>
     );
   }
@@ -121,27 +109,14 @@ export default function FilhoTarefaDetalheScreen() {
   const podeConcluir = atribuicao.status === 'pendente';
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="auto" />
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()}>
-          <Text style={styles.voltarTexto}>← Tarefas</Text>
-        </Pressable>
-        <Text style={styles.headerTitulo}>Detalhe</Text>
-        <View style={{ minWidth: 60 }} />
-      </View>
+    <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
+      <StatusBar style={colors.statusBar} />
+      <ScreenHeader title="Detalhe" onBack={() => router.back()} backLabel="← Tarefas" />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Status badge */}
-        <View
-          style={[
-            styles.statusBadge,
-            { backgroundColor: corStatus(atribuicao.status) },
-          ]}
-        >
-          <Text style={styles.statusBadgeTexto}>
-            {labelStatus(atribuicao.status)}
-          </Text>
+        <View style={[styles.statusBadge, { backgroundColor: corStatus(atribuicao.status) }]}>
+          <Text style={styles.statusBadgeTexto}>{labelStatus(atribuicao.status)}</Text>
         </View>
 
         {/* Dados da tarefa */}
@@ -152,12 +127,8 @@ export default function FilhoTarefaDetalheScreen() {
               <Text style={styles.pontosTexto}>{tarefa.pontos} pts</Text>
             </View>
           </View>
-          {tarefa.descricao ? (
-            <Text style={styles.descricao}>{tarefa.descricao}</Text>
-          ) : null}
-          <Text style={styles.meta}>
-            {tarefa.timebox_inicio} → {tarefa.timebox_fim}
-          </Text>
+          {tarefa.descricao ? <Text style={styles.descricao}>{tarefa.descricao}</Text> : null}
+          <Text style={styles.meta}>{tarefa.timebox_inicio} → {tarefa.timebox_fim}</Text>
           {tarefa.exige_evidencia && (
             <View style={styles.tagEvidencia}>
               <Text style={styles.tagEvidenciaTexto}>📷 Enviar foto como prova</Text>
@@ -169,11 +140,7 @@ export default function FilhoTarefaDetalheScreen() {
         {atribuicao.evidencia_url ? (
           <View style={styles.evidenciaBox}>
             <Text style={styles.evidenciaLabel}>Foto enviada:</Text>
-            <Image
-              source={{ uri: atribuicao.evidencia_url }}
-              style={styles.evidenciaImg}
-              resizeMode="cover"
-            />
+            <Image source={{ uri: atribuicao.evidencia_url }} style={styles.evidenciaImg} resizeMode="cover" />
           </View>
         ) : null}
 
@@ -181,52 +148,39 @@ export default function FilhoTarefaDetalheScreen() {
         {atribuicao.nota_rejeicao ? (
           <View style={styles.notaRejeicaoBox}>
             <Text style={styles.notaRejeicaoLabel}>Motivo da rejeição:</Text>
-            <Text style={styles.notaRejeicaoTexto}>
-              {atribuicao.nota_rejeicao}
-            </Text>
-            <Text style={styles.notaRejeicaoHint}>
-              Converse com o responsável para alinhar os próximos passos.
-            </Text>
+            <Text style={styles.notaRejeicaoTexto}>{atribuicao.nota_rejeicao}</Text>
+            <Text style={styles.notaRejeicaoHint}>Converse com o responsável para alinhar os próximos passos.</Text>
           </View>
         ) : null}
 
         {/* Ação de conclusão */}
         {podeConcluir && (
           <>
-            {erroConclusao ? (
-              <Text style={styles.erroTexto}>{erroConclusao}</Text>
-            ) : null}
+            {erroConclusao ? <Text style={styles.erroTexto}>{erroConclusao}</Text> : null}
             <Pressable
               style={[styles.botaoConcluir, concluindo && styles.botaoDesabilitado]}
               onPress={handleConcluir}
               disabled={concluindo}
             >
-              {concluindo ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.botaoConcluirTexto}>
-                  {tarefa.exige_evidencia
-                    ? '📷 Tirar foto e concluir'
-                    : '✓ Concluir tarefa'}
-                </Text>
-              )}
+              {concluindo
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.botaoConcluirTexto}>
+                    {tarefa.exige_evidencia ? '📷 Tirar foto e concluir' : '✓ Concluir tarefa'}
+                  </Text>
+              }
             </Pressable>
           </>
         )}
 
         {atribuicao.status === 'aguardando_validacao' && (
           <View style={styles.aguardandoBox}>
-            <Text style={styles.aguardandoTexto}>
-              ⏳ Aguardando validação do responsável
-            </Text>
+            <Text style={styles.aguardandoTexto}>⏳ Aguardando validação do responsável</Text>
           </View>
         )}
 
         {atribuicao.status === 'aprovada' && (
           <View style={styles.aprovadoBox}>
-            <Text style={styles.aprovadoTexto}>
-              🏆 Parabéns! {tarefa.pontos} pontos creditados no seu saldo.
-            </Text>
+            <Text style={styles.aprovadoTexto}>🏆 Parabéns! {tarefa.pontos} pontos creditados no seu saldo.</Text>
           </View>
         )}
       </ScrollView>
@@ -234,147 +188,55 @@ export default function FilhoTarefaDetalheScreen() {
   );
 }
 
-const BLUE = '#0EA5E9';
-
-const styles = StyleSheet.create({
-  loading: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F0F9FF',
-    padding: 24,
-  },
-  container: { flex: 1, backgroundColor: '#F0F9FF' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 56,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  voltarTexto: { color: BLUE, fontSize: 15, fontWeight: '500' },
-  headerTitulo: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-    flex: 1,
-    textAlign: 'center',
-  },
-  erroTexto: {
-    color: '#EF4444',
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 12,
-    marginTop: 8,
-  },
-  botaoVoltar: {
-    borderWidth: 1,
-    borderColor: BLUE,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  botaoVoltarTexto: { color: BLUE, fontWeight: '500' },
-  scrollContent: { padding: 16, paddingBottom: 48 },
-  statusBadge: {
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    alignSelf: 'center',
-    marginBottom: 16,
-  },
-  statusBadgeTexto: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.06)',
-  },
-  cardTopo: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  cardTitulo: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-    marginRight: 8,
-  },
-  pontosTag: {
-    backgroundColor: '#E0F2FE',
-    borderRadius: 8,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-  },
-  pontosTexto: { fontSize: 14, fontWeight: '700', color: BLUE },
-  descricao: { fontSize: 14, color: '#6B7280', marginBottom: 8, lineHeight: 20 },
-  meta: { fontSize: 12, color: '#9CA3AF' },
-  tagEvidencia: {
-    backgroundColor: '#FEF3C7',
-    borderRadius: 6,
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    alignSelf: 'flex-start',
-    marginTop: 8,
-  },
-  tagEvidenciaTexto: { fontSize: 12, color: '#92400E', fontWeight: '600' },
-  evidenciaBox: { marginBottom: 16 },
-  evidenciaLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  evidenciaImg: {
-    width: '100%',
-    height: 220,
-    borderRadius: 12,
-  },
-  notaRejeicaoBox: {
-    backgroundColor: '#FEF2F2',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-  },
-  notaRejeicaoLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#B91C1C',
-    marginBottom: 4,
-  },
-  notaRejeicaoTexto: { fontSize: 14, color: '#7F1D1D', marginBottom: 8 },
-  notaRejeicaoHint: { fontSize: 12, color: '#9CA3AF', fontStyle: 'italic' },
-  botaoConcluir: {
-    backgroundColor: BLUE,
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  botaoDesabilitado: { opacity: 0.6 },
-  botaoConcluirTexto: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  aguardandoBox: {
-    backgroundColor: '#DBEAFE',
-    borderRadius: 12,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  aguardandoTexto: { fontSize: 14, color: '#1E40AF', fontWeight: '600' },
-  aprovadoBox: {
-    backgroundColor: '#D1FAE5',
-    borderRadius: 12,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  aprovadoTexto: { fontSize: 14, color: '#065F46', fontWeight: '600', textAlign: 'center' },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing['6'] },
+    container: { flex: 1 },
+    scrollContent: { padding: spacing['4'], paddingBottom: spacing['12'] },
+    statusBadge: {
+      borderRadius: radii.lg,
+      paddingVertical: spacing['2'],
+      paddingHorizontal: spacing['4'],
+      alignSelf: 'center',
+      marginBottom: spacing['4'],
+    },
+    statusBadgeTexto: { color: '#fff', fontSize: typography.size.sm, fontWeight: typography.weight.bold },
+    card: {
+      backgroundColor: colors.bg.surface,
+      borderRadius: radii.xl,
+      padding: spacing['4'],
+      marginBottom: spacing['4'],
+      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.06)',
+    },
+    cardTopo: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: spacing['2'] },
+    cardTitulo: { flex: 1, fontSize: typography.size.lg, fontWeight: typography.weight.bold, color: colors.text.primary, marginRight: spacing['2'] },
+    pontosTag: { backgroundColor: colors.accent.filhoBg, borderRadius: radii.md, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'] },
+    pontosTexto: { fontSize: typography.size.sm, fontWeight: typography.weight.bold, color: colors.accent.filho },
+    descricao: { fontSize: typography.size.sm, color: colors.text.secondary, marginBottom: spacing['2'], lineHeight: 20 },
+    meta: { fontSize: typography.size.xs, color: colors.text.muted },
+    tagEvidencia: {
+      backgroundColor: colors.semantic.warningBg,
+      borderRadius: radii.sm,
+      paddingVertical: 3,
+      paddingHorizontal: spacing['2'],
+      alignSelf: 'flex-start',
+      marginTop: spacing['2'],
+    },
+    tagEvidenciaTexto: { fontSize: typography.size.xs, color: colors.semantic.warning, fontWeight: typography.weight.semibold },
+    evidenciaBox: { marginBottom: spacing['4'] },
+    evidenciaLabel: { fontSize: typography.size.xs, fontWeight: typography.weight.semibold, color: colors.text.secondary, marginBottom: spacing['2'] },
+    evidenciaImg: { width: '100%', height: 220, borderRadius: radii.xl },
+    notaRejeicaoBox: { backgroundColor: colors.semantic.errorBg, borderRadius: radii.xl, padding: spacing['3'], marginBottom: spacing['4'] },
+    notaRejeicaoLabel: { fontSize: typography.size.xs, fontWeight: typography.weight.bold, color: colors.semantic.error, marginBottom: spacing['1'] },
+    notaRejeicaoTexto: { fontSize: typography.size.sm, color: colors.text.primary, marginBottom: spacing['2'] },
+    notaRejeicaoHint: { fontSize: typography.size.xs, color: colors.text.muted, fontStyle: 'italic' },
+    erroTexto: { color: colors.semantic.error, fontSize: typography.size.sm, textAlign: 'center', marginBottom: spacing['3'], marginTop: spacing['2'] },
+    botaoConcluir: { backgroundColor: colors.accent.filho, borderRadius: radii.xl, paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['2'] },
+    botaoDesabilitado: { opacity: 0.6 },
+    botaoConcluirTexto: { color: '#fff', fontSize: typography.size.md, fontWeight: typography.weight.bold },
+    aguardandoBox: { backgroundColor: colors.accent.filhoBg, borderRadius: radii.xl, padding: spacing['3'], alignItems: 'center', marginTop: spacing['2'] },
+    aguardandoTexto: { fontSize: typography.size.sm, color: colors.accent.filho, fontWeight: typography.weight.semibold },
+    aprovadoBox: { backgroundColor: colors.semantic.successBg, borderRadius: radii.xl, padding: spacing['3'], alignItems: 'center', marginTop: spacing['2'] },
+    aprovadoTexto: { fontSize: typography.size.sm, color: colors.semantic.success, fontWeight: typography.weight.semibold, textAlign: 'center' },
+  });
+}

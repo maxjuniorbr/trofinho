@@ -9,12 +9,18 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { signUp } from '@lib/auth';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
+import { useTheme } from '@/context/theme-context';
+import type { ThemeColors } from '@/constants/theme';
+import { radii, spacing, typography } from '@/constants/theme';
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -24,7 +30,6 @@ export default function RegisterScreen() {
 
   function validar(): string | null {
     const emailValue = email.trim();
-
     if (!nome.trim()) return 'Informe seu nome.';
     if (!emailValue) return 'Informe seu e-mail.';
     if (!isValidEmail(emailValue)) return 'E-mail inválido.';
@@ -36,65 +41,50 @@ export default function RegisterScreen() {
 
   async function handleCriarConta() {
     const erroValidacao = validar();
-    if (erroValidacao) {
-      setErro(erroValidacao);
-      return;
-    }
+    if (erroValidacao) { setErro(erroValidacao); return; }
 
     setErro('');
     setCarregando(true);
-
     const { error } = await signUp(email.trim(), senha);
     setCarregando(false);
 
-    if (error) {
-      setErro(error.message);
-      return;
-    }
-
-    router.replace({
-      pathname: '/(auth)/onboarding',
-      params: { nome: nome.trim() },
-    });
-  }
-
-  function limparErro() {
-    setErro('');
+    if (error) { setErro(error.message); return; }
+    router.replace({ pathname: '/(auth)/onboarding', params: { nome: nome.trim() } });
   }
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: colors.bg.canvas }]}
       behavior={process.env.EXPO_OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <StatusBar style="auto" />
+        <StatusBar style={colors.statusBar} />
 
         <View style={styles.header}>
-          <Text style={styles.titulo}>Criar conta</Text>
-          <Text style={styles.subtitulo}>Junte-se ao Trofinho 🏆</Text>
+          <Text style={[styles.titulo, { color: colors.text.primary }]}>Criar conta</Text>
+          <Text style={[styles.subtitulo, { color: colors.text.secondary }]}>Junte-se ao Trofinho 🏆</Text>
         </View>
 
         <View style={styles.form}>
-          <Text style={styles.label}>Nome</Text>
+          <Text style={[styles.label, { color: colors.text.secondary }]}>Nome</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.bg.surface, borderColor: colors.border.default, color: colors.text.primary }]}
             placeholder="Seu nome"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.text.muted}
             value={nome}
-            onChangeText={(t) => { setNome(t); limparErro(); }}
+            onChangeText={(t) => { setNome(t); setErro(''); }}
             autoCapitalize="words"
             editable={!carregando}
             accessibilityLabel="Campo de nome"
           />
 
-          <Text style={styles.label}>E-mail</Text>
+          <Text style={[styles.label, { color: colors.text.secondary }]}>E-mail</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.bg.surface, borderColor: colors.border.default, color: colors.text.primary }]}
             placeholder="seu@email.com"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.text.muted}
             value={email}
-            onChangeText={(t) => { setEmail(t); limparErro(); }}
+            onChangeText={(t) => { setEmail(t); setErro(''); }}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
@@ -103,63 +93,52 @@ export default function RegisterScreen() {
             accessibilityLabel="Campo de e-mail"
           />
 
-          <Text style={styles.label}>Senha</Text>
+          <Text style={[styles.label, { color: colors.text.secondary }]}>Senha</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.bg.surface, borderColor: colors.border.default, color: colors.text.primary }]}
             placeholder="Mínimo 6 caracteres"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.text.muted}
             value={senha}
-            onChangeText={(t) => { setSenha(t); limparErro(); }}
+            onChangeText={(t) => { setSenha(t); setErro(''); }}
             secureTextEntry
             maxLength={128}
             editable={!carregando}
             accessibilityLabel="Campo de senha"
           />
 
-          <Text style={styles.label}>Confirmar senha</Text>
+          <Text style={[styles.label, { color: colors.text.secondary }]}>Confirmar senha</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.bg.surface, borderColor: colors.border.default, color: colors.text.primary }]}
             placeholder="Repita a senha"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.text.muted}
             value={confirmaSenha}
-            onChangeText={(t) => { setConfirmaSenha(t); limparErro(); }}
+            onChangeText={(t) => { setConfirmaSenha(t); setErro(''); }}
             secureTextEntry
             maxLength={128}
             editable={!carregando}
             accessibilityLabel="Campo de confirmar senha"
           />
 
-          {erro ? <Text style={styles.erro} accessibilityRole="alert">{erro}</Text> : null}
+          {erro ? <Text style={[styles.erro, { color: colors.semantic.error }]} accessibilityRole="alert">{erro}</Text> : null}
 
           <Pressable
-            style={({ pressed }) => [
-              styles.botao,
-              carregando && styles.botaoDesabilitado,
-              pressed && !carregando && { opacity: 0.85 },
-            ]}
+            style={({ pressed }) => [styles.botao, { backgroundColor: colors.accent.admin, opacity: carregando ? 0.55 : pressed ? 0.82 : 1 }]}
             onPress={handleCriarConta}
             disabled={carregando}
             accessibilityRole="button"
-            accessibilityLabel={carregando ? 'Criando conta' : 'Criar conta'}
-            accessibilityState={{ disabled: carregando, busy: carregando }}
           >
-            <Text style={styles.botaoTexto}>
+            <Text style={[styles.botaoTexto, { color: colors.text.inverse }]}>
               {carregando ? 'Criando conta…' : 'Criar conta'}
             </Text>
           </Pressable>
 
           <Pressable
-            style={({ pressed }) => [
-              styles.botaoSecundario,
-              pressed && { opacity: 0.7 },
-            ]}
+            style={({ pressed }) => [styles.botaoSecundario, { opacity: pressed ? 0.65 : 1 }]}
             onPress={() => router.back()}
             disabled={carregando}
             accessibilityRole="button"
-            accessibilityLabel="Voltar ao login"
-            accessibilityState={{ disabled: carregando }}
           >
-            <Text style={styles.botaoSecundarioTexto}>← Voltar ao login</Text>
+            <Text style={[styles.botaoSecundarioTexto, { color: colors.text.secondary }]}>← Voltar ao login</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -167,76 +146,20 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#F5F7FF' },
-  container: {
-    flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  titulo: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1E1B4B',
-  },
-  subtitulo: {
-    fontSize: 16,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  form: { width: '100%' },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 6,
-    marginTop: 16,
-  },
-  input: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    borderCurve: 'continuous',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#111827',
-  },
-  erro: {
-    color: '#EF4444',
-    fontSize: 14,
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  botao: {
-    backgroundColor: '#4F46E5',
-    borderRadius: 12,
-    borderCurve: 'continuous',
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 24,
-    minHeight: 44,
-  },
-  botaoDesabilitado: { opacity: 0.6 },
-  botaoTexto: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  botaoSecundario: {
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 8,
-    minHeight: 44,
-  },
-  botaoSecundarioTexto: {
-    color: '#6B7280',
-    fontSize: 15,
-  },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    flex: { flex: 1 },
+    container: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: spacing['6'] },
+    header: { alignItems: 'center', marginBottom: spacing['8'] },
+    titulo: { fontSize: typography.size['2xl'], fontWeight: typography.weight.bold },
+    subtitulo: { fontSize: typography.size.md, marginTop: spacing['1'] },
+    form: { width: '100%' },
+    label: { fontSize: typography.size.sm, fontWeight: typography.weight.semibold, marginBottom: spacing['1'], marginTop: spacing['4'] },
+    input: { borderWidth: 1, borderRadius: radii.md, paddingHorizontal: spacing['4'], paddingVertical: spacing['3'], fontSize: typography.size.md },
+    erro: { fontSize: typography.size.sm, marginTop: spacing['3'], textAlign: 'center' },
+    botao: { borderRadius: radii.md, paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['6'], minHeight: 52 },
+    botaoTexto: { fontSize: typography.size.md, fontWeight: typography.weight.semibold },
+    botaoSecundario: { paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['2'], minHeight: 44 },
+    botaoSecundarioTexto: { fontSize: typography.size.md },
+  });
+}

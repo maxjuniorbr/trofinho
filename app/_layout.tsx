@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { supabase } from '@lib/supabase';
 import { buscarPerfil, type UserProfile } from '@lib/auth';
+import { ThemeProvider } from '@/context/theme-context';
 
 // Mantém a splash screen visível até resolvermos a sessão
 SplashScreen.preventAutoHideAsync();
@@ -68,11 +69,13 @@ export default function RootLayout() {
   }, [pronto]);
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(admin)" />
-      <Stack.Screen name="(filho)" />
-    </Stack>
+    <ThemeProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(admin)" />
+        <Stack.Screen name="(filho)" />
+      </Stack>
+    </ThemeProvider>
   );
 }

@@ -9,12 +9,18 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { signIn } from '@lib/auth';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
+import { useTheme } from '@/context/theme-context';
+import type { ThemeColors } from '@/constants/theme';
+import { radii, spacing, typography } from '@/constants/theme';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
@@ -22,7 +28,6 @@ export default function LoginScreen() {
 
   function validar(): string | null {
     const emailValue = email.trim();
-
     if (!emailValue) return 'Informe seu e-mail.';
     if (!isValidEmail(emailValue)) return 'E-mail inválido.';
     if (!senha) return 'Informe sua senha.';
@@ -32,54 +37,41 @@ export default function LoginScreen() {
 
   async function handleEntrar() {
     const erroValidacao = validar();
-    if (erroValidacao) {
-      setErro(erroValidacao);
-      return;
-    }
+    if (erroValidacao) { setErro(erroValidacao); return; }
 
     setErro('');
     setCarregando(true);
-
     const { profile, error } = await signIn(email.trim(), senha);
     setCarregando(false);
 
-    if (error) {
-      setErro(error.message);
-      return;
-    }
-
-    if (!profile) {
-      router.replace('/(auth)/onboarding');
-      return;
-    }
-
-    if (profile.papel === 'admin') {
-      router.replace('/(admin)/');
-    } else {
-      router.replace('/(filho)/');
-    }
+    if (error) { setErro(error.message); return; }
+    if (!profile) { router.replace('/(auth)/onboarding'); return; }
+    router.replace(profile.papel === 'admin' ? '/(admin)/' : '/(filho)/');
   }
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: colors.bg.canvas }]}
       behavior={process.env.EXPO_OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <StatusBar style="auto" />
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
+        <StatusBar style={colors.statusBar} />
 
         <View style={styles.header}>
           <Text style={styles.logo}>🏆</Text>
-          <Text style={styles.titulo}>Trofinho</Text>
-          <Text style={styles.subtitulo}>Aprenda, ganhe e guarde</Text>
+          <Text style={[styles.titulo, { color: colors.text.primary }]}>Trofinho</Text>
+          <Text style={[styles.subtitulo, { color: colors.text.secondary }]}>Aprenda, ganhe e guarde</Text>
         </View>
 
         <View style={styles.form}>
-          <Text style={styles.label}>E-mail</Text>
+          <Text style={[styles.label, { color: colors.text.secondary }]}>E-mail</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.bg.surface, borderColor: colors.border.default, color: colors.text.primary }]}
             placeholder="seu@email.com"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.text.muted}
             value={email}
             onChangeText={(t) => { setEmail(t); setErro(''); }}
             keyboardType="email-address"
@@ -90,11 +82,11 @@ export default function LoginScreen() {
             accessibilityLabel="Campo de e-mail"
           />
 
-          <Text style={styles.label}>Senha</Text>
+          <Text style={[styles.label, { color: colors.text.secondary }]}>Senha</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.bg.surface, borderColor: colors.border.default, color: colors.text.primary }]}
             placeholder="••••••"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.text.muted}
             value={senha}
             onChangeText={(t) => { setSenha(t); setErro(''); }}
             secureTextEntry
@@ -103,13 +95,12 @@ export default function LoginScreen() {
             accessibilityLabel="Campo de senha"
           />
 
-          {erro ? <Text style={styles.erro} accessibilityRole="alert">{erro}</Text> : null}
+          {erro ? <Text style={[styles.erro, { color: colors.semantic.error }]} accessibilityRole="alert">{erro}</Text> : null}
 
           <Pressable
             style={({ pressed }) => [
               styles.botao,
-              carregando && styles.botaoDesabilitado,
-              pressed && !carregando && { opacity: 0.85 },
+              { backgroundColor: colors.accent.admin, opacity: carregando ? 0.55 : pressed ? 0.82 : 1 },
             ]}
             onPress={handleEntrar}
             disabled={carregando}
@@ -117,23 +108,19 @@ export default function LoginScreen() {
             accessibilityLabel={carregando ? 'Entrando' : 'Entrar'}
             accessibilityState={{ disabled: carregando, busy: carregando }}
           >
-            <Text style={styles.botaoTexto}>
+            <Text style={[styles.botaoTexto, { color: colors.text.inverse }]}>
               {carregando ? 'Entrando…' : 'Entrar'}
             </Text>
           </Pressable>
 
           <Pressable
-            style={({ pressed }) => [
-              styles.botaoSecundario,
-              pressed && { opacity: 0.7 },
-            ]}
+            style={({ pressed }) => [styles.botaoSecundario, { opacity: pressed ? 0.65 : 1 }]}
             onPress={() => router.push('/(auth)/register')}
             disabled={carregando}
             accessibilityRole="button"
             accessibilityLabel="Criar conta"
-            accessibilityState={{ disabled: carregando }}
           >
-            <Text style={styles.botaoSecundarioTexto}>Criar conta</Text>
+            <Text style={[styles.botaoSecundarioTexto, { color: colors.accent.admin }]}>Criar conta</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -141,80 +128,28 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#F5F7FF' },
-  container: {
-    flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  logo: { fontSize: 56 },
-  titulo: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#1E1B4B',
-    marginTop: 8,
-  },
-  subtitulo: {
-    fontSize: 16,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  form: { width: '100%' },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 6,
-    marginTop: 16,
-  },
-  input: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    borderCurve: 'continuous',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#111827',
-  },
-  erro: {
-    color: '#EF4444',
-    fontSize: 14,
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  botao: {
-    backgroundColor: '#4F46E5',
-    borderRadius: 12,
-    borderCurve: 'continuous',
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 24,
-    minHeight: 44,
-  },
-  botaoDesabilitado: { opacity: 0.6 },
-  botaoTexto: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  botaoSecundario: {
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 8,
-    minHeight: 44,
-  },
-  botaoSecundarioTexto: {
-    color: '#4F46E5',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-});
-
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    flex: { flex: 1 },
+    container: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: spacing['6'] },
+    header: { alignItems: 'center', marginBottom: spacing['10'] },
+    logo: { fontSize: 56 },
+    titulo: { fontSize: typography.size['3xl'], fontWeight: typography.weight.bold, marginTop: spacing['2'] },
+    subtitulo: { fontSize: typography.size.md, marginTop: spacing['1'] },
+    form: { width: '100%' },
+    label: { fontSize: typography.size.sm, fontWeight: typography.weight.semibold, marginBottom: spacing['1'], marginTop: spacing['4'] },
+    input: {
+      borderWidth: 1, borderRadius: radii.md,
+      paddingHorizontal: spacing['4'], paddingVertical: spacing['3'],
+      fontSize: typography.size.md,
+    },
+    erro: { fontSize: typography.size.sm, marginTop: spacing['3'], textAlign: 'center' },
+    botao: {
+      borderRadius: radii.md, paddingVertical: spacing['4'],
+      alignItems: 'center', marginTop: spacing['6'], minHeight: 52,
+    },
+    botaoTexto: { fontSize: typography.size.md, fontWeight: typography.weight.semibold },
+    botaoSecundario: { paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['2'], minHeight: 44 },
+    botaoSecundarioTexto: { fontSize: typography.size.md, fontWeight: typography.weight.medium },
+  });
+}
