@@ -17,7 +17,7 @@ import {
 import { buscarSaldo } from '@lib/saldos';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, spacing, typography } from '@/constants/theme';
+import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { EmptyState } from '@/components/ui/empty-state';
 
 export default function FilhoPremiosScreen() {
@@ -154,10 +154,10 @@ function makeStyles(colors: ThemeColors) {
       marginBottom: spacing['1'],
       gap: spacing['1'],
     },
-    saldoLabel: { fontSize: typography.size.xs, color: 'rgba(255,255,255,0.85)', fontWeight: typography.weight.medium },
-    saldoValor: { fontSize: typography.size['2xl'], fontWeight: typography.weight.extrabold, color: '#fff' },
-    erroTexto: { color: colors.semantic.error, fontSize: typography.size.sm, fontWeight: typography.weight.medium, marginBottom: spacing['1'] },
-    sucessoTexto: { color: colors.semantic.success, fontSize: typography.size.sm, fontWeight: typography.weight.semibold, marginBottom: spacing['1'] },
+    saldoLabel: { fontSize: typography.size.xs, color: 'rgba(255,255,255,0.85)', fontFamily: typography.family.medium },
+    saldoValor: { fontSize: typography.size['2xl'], fontFamily: typography.family.extrabold, color: '#fff' },
+    erroTexto: { color: colors.semantic.error, fontSize: typography.size.sm, fontFamily: typography.family.medium, marginBottom: spacing['1'] },
+    sucessoTexto: { color: colors.semantic.success, fontSize: typography.size.sm, fontFamily: typography.family.semibold, marginBottom: spacing['1'] },
     card: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,
@@ -166,12 +166,12 @@ function makeStyles(colors: ThemeColors) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing['3'],
-      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)',
+      ...shadows.card,
     },
     cardInfo: { flex: 1, gap: spacing['1'] },
-    cardNome: { fontSize: typography.size.md, fontWeight: typography.weight.semibold, color: colors.text.primary },
+    cardNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary },
     cardDescricao: { fontSize: typography.size.xs, color: colors.text.secondary },
-    cardCusto: { fontSize: typography.size.xs, fontWeight: typography.weight.bold, color: colors.accent.filho },
+    cardCusto: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.accent.filho },
     textoSemSaldo: { fontSize: typography.size.xs, color: colors.semantic.error },
     botaoResgatar: {
       backgroundColor: colors.accent.filho,
@@ -183,6 +183,6 @@ function makeStyles(colors: ThemeColors) {
       minWidth: 88,
     },
     botaoDesabilitado: { backgroundColor: colors.accent.filhoBg },
-    botaoResgatarTexto: { color: '#fff', fontWeight: typography.weight.bold, fontSize: typography.size.sm },
+    botaoResgatarTexto: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.sm },
   });
 }

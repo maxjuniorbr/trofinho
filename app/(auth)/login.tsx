@@ -106,9 +106,10 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.flex, { backgroundColor: colors.bg.canvas }]}
-      behavior={process.env.EXPO_OS === 'ios' ? 'padding' : 'height'}
+      behavior="padding"
     >
       <ScrollView
+        style={[styles.flex, { backgroundColor: colors.bg.canvas }]}
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}

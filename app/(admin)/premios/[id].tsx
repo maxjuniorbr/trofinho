@@ -180,7 +180,7 @@ function makeStyles(colors: ThemeColors) {
     avisoInativo: { backgroundColor: colors.semantic.warningBg, borderRadius: radii.lg, borderCurve: 'continuous', padding: spacing['3'] },
     avisoInativoTexto: { fontSize: typography.size.xs, color: colors.semantic.warning, textAlign: 'center' },
     campo: { gap: spacing['2'] },
-    label: { fontSize: typography.size.xs, fontWeight: typography.weight.semibold, color: colors.text.secondary },
+    label: { fontSize: typography.size.xs, fontFamily: typography.family.semibold, color: colors.text.secondary },
     input: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.lg,
@@ -193,11 +193,11 @@ function makeStyles(colors: ThemeColors) {
       color: colors.text.primary,
     },
     inputMultilinha: { minHeight: 80, paddingTop: spacing['3'] },
-    erroTexto: { color: colors.semantic.error, fontSize: typography.size.sm, fontWeight: typography.weight.medium },
-    sucessoTexto: { color: colors.semantic.success, fontSize: typography.size.sm, fontWeight: typography.weight.semibold },
+    erroTexto: { color: colors.semantic.error, fontSize: typography.size.sm, fontFamily: typography.family.medium },
+    sucessoTexto: { color: colors.semantic.success, fontSize: typography.size.sm, fontFamily: typography.family.semibold },
     botao: { backgroundColor: colors.accent.admin, borderRadius: radii.xl, borderCurve: 'continuous', paddingVertical: spacing['3'], alignItems: 'center', marginTop: spacing['1'] },
     botaoDesabilitado: { opacity: 0.55 },
-    botaoTexto: { color: '#fff', fontWeight: typography.weight.bold, fontSize: typography.size.md },
+    botaoTexto: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.md },
     botaoSecundario: {
       borderRadius: radii.xl,
       borderCurve: 'continuous',
@@ -206,6 +206,6 @@ function makeStyles(colors: ThemeColors) {
       paddingVertical: spacing['3'],
       alignItems: 'center',
     },
-    botaoSecundarioTexto: { color: colors.semantic.error, fontWeight: typography.weight.bold, fontSize: typography.size.md },
+    botaoSecundarioTexto: { color: colors.semantic.error, fontFamily: typography.family.bold, fontSize: typography.size.md },
   });
 }

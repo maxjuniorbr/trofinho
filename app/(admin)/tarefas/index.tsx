@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { listarTarefasAdmin, type TarefaListItem } from '@lib/tarefas';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, spacing, typography } from '@/constants/theme';
+import { radii, shadows, spacing, typography } from '@/constants/theme';
 
 export default function AdminTarefasScreen() {
   const router = useRouter();
@@ -60,7 +60,7 @@ export default function AdminTarefasScreen() {
             const aprovadas = item.atribuicoes.filter((a) => a.status === 'aprovada').length;
             return (
               <Pressable
-                style={({ pressed }) => [styles.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle, boxShadow: colors.shadow.low, opacity: pressed ? 0.9 : 1 }]}
+                style={({ pressed }) => [styles.card, shadows.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle, opacity: pressed ? 0.9 : 1 }]}
                 onPress={() => router.push(`/(admin)/tarefas/${item.id}` as never)}
               >
                 <View style={styles.cardTopo}>
@@ -94,13 +94,13 @@ function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
     botaoNova: { borderRadius: radii.sm, paddingVertical: spacing['1'] + 2, paddingHorizontal: spacing['3'] },
-    botaoNovaTexto: { fontSize: typography.size.sm, fontWeight: typography.weight.semibold },
+    botaoNovaTexto: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
     lista: { padding: spacing['4'], paddingBottom: spacing['10'], gap: 10 },
     card: { borderRadius: radii.lg, borderWidth: 1, padding: spacing['4'] },
     cardTopo: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing['2'] },
-    cardTitulo: { flex: 1, fontSize: typography.size.md, fontWeight: typography.weight.semibold, marginRight: spacing['2'] },
+    cardTitulo: { flex: 1, fontSize: typography.size.md, fontFamily: typography.family.semibold, marginRight: spacing['2'] },
     pontosTag: { borderRadius: radii.full, paddingHorizontal: spacing['2'], paddingVertical: 3 },
-    pontosTexto: { fontSize: typography.size.xs, fontWeight: typography.weight.bold },
+    pontosTexto: { fontSize: typography.size.xs, fontFamily: typography.family.bold },
     cardPrazo: { fontSize: typography.size.xs, marginBottom: spacing['2'] },
     cardStats: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
     statTexto: { fontSize: typography.size.xs },

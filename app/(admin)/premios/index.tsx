@@ -11,7 +11,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { listarPremios, type Premio } from '@lib/premios';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, spacing, typography } from '@/constants/theme';
+import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 
@@ -131,22 +131,22 @@ function makeStyles(colors: ThemeColors) {
       borderCurve: 'continuous',
       padding: spacing['4'],
       gap: spacing['2'],
-      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)',
+      ...shadows.card,
     },
     cardInativo: { opacity: 0.55 },
     cardTopo: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
-    cardNome: { fontSize: typography.size.md, fontWeight: typography.weight.semibold, color: colors.text.primary, flex: 1 },
+    cardNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary, flex: 1 },
     textoInativo: { color: colors.text.muted },
     cardDescricao: { fontSize: typography.size.sm, color: colors.text.secondary },
-    cardCusto: { fontSize: typography.size.xs, fontWeight: typography.weight.bold, color: colors.accent.admin },
+    cardCusto: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.accent.admin },
     badgeInativo: {
       backgroundColor: colors.bg.muted,
       borderRadius: radii.md,
       paddingHorizontal: spacing['2'],
       paddingVertical: 2,
     },
-    badgeInativoTexto: { fontSize: typography.size.xs, color: colors.text.muted, fontWeight: typography.weight.semibold },
+    badgeInativoTexto: { fontSize: typography.size.xs, color: colors.text.muted, fontFamily: typography.family.semibold },
     botaoNova: { borderRadius: radii.sm, paddingVertical: spacing['1'] + 2, paddingHorizontal: spacing['3'] },
-    botaoNovaTexto: { fontSize: typography.size.sm, fontWeight: typography.weight.semibold },
+    botaoNovaTexto: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
   });
 }

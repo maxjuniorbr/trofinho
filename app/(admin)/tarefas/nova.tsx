@@ -149,7 +149,7 @@ export default function NovaTarefaScreen() {
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     scrollContent: { padding: spacing['5'], paddingBottom: spacing['10'] },
-    label: { fontSize: typography.size.sm, fontWeight: typography.weight.semibold, marginBottom: spacing['1'], marginTop: spacing['4'] },
+    label: { fontSize: typography.size.sm, fontFamily: typography.family.semibold, marginBottom: spacing['1'], marginTop: spacing['4'] },
     input: { borderWidth: 1, borderRadius: radii.md, paddingHorizontal: spacing['4'], paddingVertical: spacing['3'], fontSize: typography.size.md },
     inputMultiline: { minHeight: 80, textAlignVertical: 'top' },
     linha: { flexDirection: 'row', gap: 8, marginTop: spacing['2'] },
@@ -157,14 +157,14 @@ function makeStyles(colors: ThemeColors) {
     dateBtn: { borderWidth: 1, borderRadius: radii.md, paddingVertical: spacing['3'], paddingHorizontal: spacing['4'] },
     dateBtnTexto: { fontSize: typography.size.md },
     switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: spacing['4'], marginTop: spacing['4'], borderTopWidth: 1 },
-    secaoTitulo: { fontSize: typography.size.md, fontWeight: typography.weight.bold, marginTop: spacing['5'], marginBottom: spacing['3'] },
+    secaoTitulo: { fontSize: typography.size.md, fontFamily: typography.family.bold, marginTop: spacing['5'], marginBottom: spacing['3'] },
     filhosList: { gap: 8 },
     filhoItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderRadius: radii.md, padding: spacing['3'] },
-    filhoNome: { fontSize: typography.size.md, fontWeight: typography.weight.medium },
+    filhoNome: { fontSize: typography.size.md, fontFamily: typography.family.medium },
     filhoCheck: { fontSize: typography.size.lg },
     semFilhos: { fontSize: typography.size.sm, textAlign: 'center', marginVertical: spacing['4'] },
     erroTexto: { fontSize: typography.size.sm, marginTop: spacing['4'], textAlign: 'center' },
     botaoCriar: { borderRadius: radii.md, paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['6'], minHeight: 52 },
-    botaoCriarTexto: { fontSize: typography.size.md, fontWeight: typography.weight.semibold },
+    botaoCriarTexto: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
   });
 }
