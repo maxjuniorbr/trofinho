@@ -5,44 +5,44 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Avatar } from '@/components/ui/avatar';
-import { listarSaldosAdmin, type SaldoComFilho } from '@lib/saldos';
+import { listAdminBalances, type BalanceWithChild } from '@lib/balances';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 
-export default function SaldosAdminScreen() {
+export default function BalancesAdminScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [itens, setItens] = useState<SaldoComFilho[]>([]);
-  const [carregando, setCarregando] = useState(true);
+  const [balances, setBalances] = useState<BalanceWithChild[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const carregar = useCallback(async () => {
-    setCarregando(true);
-    try { const { data } = await listarSaldosAdmin(); setItens(data); }
-    finally { setCarregando(false); }
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try { const { data } = await listAdminBalances(); setBalances(data); }
+    finally { setLoading(false); }
   }, []);
 
-  useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
       <StatusBar style={colors.statusBar} />
       <ScreenHeader title="Saldos dos Filhos" onBack={() => router.back()} backLabel="Início" />
 
-      {carregando ? (
+      {loading ? (
         <EmptyState loading />
       ) : (
         <FlatList
-          data={itens}
+          data={balances}
           keyExtractor={(s) => s.filho_id}
           contentContainerStyle={styles.lista}
           ListEmptyComponent={<EmptyState empty emptyMessage={'Nenhum saldo ainda.\nAprove tarefas para creditar pontos.'} />}
           renderItem={({ item }) => (
             <Pressable
               style={({ pressed }) => [styles.card, shadows.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle, opacity: pressed ? 0.9 : 1 }]}
-              onPress={() => router.push({ pathname: '/(admin)/saldos/[filho_id]', params: { filho_id: item.filho_id, nome: item.filhos.nome } })}
+              onPress={() => router.push({ pathname: '/(admin)/balances/[filho_id]', params: { filho_id: item.filho_id, nome: item.filhos.nome } })}
             >
               <Avatar name={item.filhos.nome} size={44} />
               <View style={styles.info}>

@@ -12,14 +12,14 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { signOut, buscarPerfil, type UserProfile } from '@lib/auth';
+import { signOut, getProfile, type UserProfile } from '@lib/auth';
 import { supabase } from '@lib/supabase';
-import { listarTarefasAdmin } from '@lib/tarefas';
-import { listarSaldosAdmin, type SaldoComFilho } from '@lib/saldos';
-import { saudacao } from '@lib/utils';
-import { listarFilhos } from '@lib/filhos';
-import type { Filho } from '@lib/tarefas';
-import { contarResgatesPendentes } from '@lib/premios';
+import { listAdminTasks } from '@lib/tasks';
+import { listAdminBalances, type BalanceWithChild } from '@lib/balances';
+import { getGreeting } from '@lib/utils';
+import { listChildren } from '@lib/children';
+import type { Child } from '@lib/tasks';
+import { countPendingRedemptions } from '@lib/prizes';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -27,7 +27,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { PointsDisplay } from '@/components/ui/points-display';
 import { Badge } from '@/components/ui/badge';
 
-type Familia = { nome: string };
+type Family = { nome: string };
 
 export default function AdminHomeScreen() {
   const router = useRouter();
@@ -36,64 +36,63 @@ export default function AdminHomeScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [familia, setFamilia] = useState<Familia | null>(null);
-  const [filhos, setFilhos] = useState<Filho[]>([]);
-  const [saldosMap, setSaldosMap] = useState<Map<string, SaldoComFilho>>(new Map());
-  const [carregando, setCarregando] = useState(true);
-  const [saindo, setSaindo] = useState(false);
-  const [qtdValidar, setQtdValidar] = useState(0);
-  const [qtdResgatesPendentes, setQtdResgatesPendentes] = useState(0);
+  const [family, setFamily] = useState<Family | null>(null);
+  const [children, setChildren] = useState<Child[]>([]);
+  const [balancesMap, setBalancesMap] = useState<Map<string, BalanceWithChild>>(new Map());
+  const [loading, setLoading] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [pendingValidationCount, setPendingValidationCount] = useState(0);
+  const [pendingRedemptionCount, setPendingRedemptionCount] = useState(0);
 
-  // ─── Entrance animation ───────────────────────────────────
   const headerOpacity = useRef(new Animated.Value(0)).current;
   const headerY       = useRef(new Animated.Value(16)).current;
 
   useEffect(() => {
-    if (!carregando) {
+    if (!loading) {
       Animated.parallel([
         Animated.timing(headerOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
         Animated.spring(headerY, { toValue: 0, friction: 8, tension: 55, useNativeDriver: true }),
       ]).start();
     }
-  }, [carregando, headerOpacity, headerY]);
+  }, [loading, headerOpacity, headerY]);
 
-  const carregar = useCallback(async () => {
-    setCarregando(true);
+  const loadData = useCallback(async () => {
+    setLoading(true);
     try {
-      const p = await buscarPerfil();
+      const p = await getProfile();
       setProfile(p);
       if (p?.familia_id) {
         const { data: fam } = await supabase.from('familias').select('nome').eq('id', p.familia_id).single();
-        setFamilia(fam);
+        setFamily(fam);
       } else {
-        setFamilia(null);
+        setFamily(null);
       }
-      const { data: tarefas } = await listarTarefasAdmin();
-      setQtdValidar(tarefas.reduce((acc, t) => acc + t.atribuicoes.filter((a) => a.status === 'aguardando_validacao').length, 0));
-      const [{ data: filhosData }, { data: saldosData }] = await Promise.all([
-        listarFilhos(),
-        listarSaldosAdmin(),
+      const { data: tarefas } = await listAdminTasks();
+      setPendingValidationCount(tarefas.reduce((acc, t) => acc + t.atribuicoes.filter((a) => a.status === 'aguardando_validacao').length, 0));
+      const [{ data: childrenData }, { data: balancesData }] = await Promise.all([
+        listChildren(),
+        listAdminBalances(),
       ]);
-      setFilhos(filhosData);
-      setSaldosMap(new Map(saldosData.map((s) => [s.filho_id, s])));
-      const { data: qtdPendentes } = await contarResgatesPendentes();
-      setQtdResgatesPendentes(qtdPendentes);
+      setChildren(childrenData);
+      setBalancesMap(new Map(balancesData.map((s) => [s.filho_id, s])));
+      const { data: redemptionCount } = await countPendingRedemptions();
+      setPendingRedemptionCount(redemptionCount);
     } catch {
-      setFamilia(null);
-      setFilhos([]);
-      setSaldosMap(new Map());
-      setQtdValidar(0);
-      setQtdResgatesPendentes(0);
+      setFamily(null);
+      setChildren([]);
+      setBalancesMap(new Map());
+      setPendingValidationCount(0);
+      setPendingRedemptionCount(0);
     } finally {
-      setCarregando(false);
+      setLoading(false);
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
-  async function handleSair() { setSaindo(true); await signOut(); }
+  async function handleSignOut() { setLoggingOut(true); await signOut(); }
 
-  if (carregando) {
+  if (loading) {
     return (
       <View style={[styles.loading, { backgroundColor: colors.bg.canvas, paddingTop: insets.top }]}>
         <ActivityIndicator size="large" color={colors.brand.vivid} />
@@ -101,7 +100,7 @@ export default function AdminHomeScreen() {
     );
   }
 
-  const totalPontos = Array.from(saldosMap.values()).reduce((acc, s) => acc + s.saldo_livre + s.cofrinho, 0);
+  const totalPoints = Array.from(balancesMap.values()).reduce((acc, s) => acc + s.saldo_livre + s.cofrinho, 0);
 
   return (
     <ScrollView
@@ -111,63 +110,60 @@ export default function AdminHomeScreen() {
     >
       <StatusBar style={colors.statusBar} />
 
-      {/* ── Hero Header ───────────────────────────────────── */}
       <Animated.View
         style={[styles.hero, { opacity: headerOpacity, transform: [{ translateY: headerY }] }]}
       >
         <View style={styles.heroText}>
-          <Text style={[styles.heroSub, { color: colors.text.secondary }]}>{saudacao()} 👋</Text>
+          <Text style={[styles.heroSub, { color: colors.text.secondary }]}>{getGreeting()} 👋</Text>
           <Text style={[styles.heroTitle, { color: colors.text.primary }]}>
             Olá, {profile?.nome ?? 'Admin'}
           </Text>
-          {familia ? (
-            <Text style={[styles.heroFamily, { color: colors.accent.admin }]}>{familia.nome}</Text>
+          {family ? (
+            <Text style={[styles.heroFamily, { color: colors.accent.admin }]}>{family.nome}</Text>
           ) : null}
         </View>
         <Avatar name={profile?.nome ?? 'A'} size={52} />
       </Animated.View>
 
-      {/* ── Stats strip ───────────────────────────────────── */}
       <Animated.View
         style={[styles.statsRow, { opacity: headerOpacity }]}
       >
         <View style={[styles.statCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
-          <Text style={[styles.statValue, { color: colors.brand.vivid }]}>{filhos.length}</Text>
+          <Text style={[styles.statValue, { color: colors.brand.vivid }]}>{children.length}</Text>
           <Text style={[styles.statLabel, { color: colors.text.secondary }]}>filhos</Text>
         </View>
         <View style={[styles.statCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
-          <PointsDisplay value={totalPontos} label="pts família" variant="gold" size="sm" />
+          <PointsDisplay value={totalPoints} label="pts família" variant="gold" size="sm" />
         </View>
-        {qtdValidar > 0 ? (
+        {pendingValidationCount > 0 ? (
           <View style={[styles.statCard, { backgroundColor: colors.semantic.errorBg, borderColor: colors.semantic.error + '40' }]}>
-            <Text style={[styles.statValue, { color: colors.semantic.error }]}>{qtdValidar}</Text>
+            <Text style={[styles.statValue, { color: colors.semantic.error }]}>{pendingValidationCount}</Text>
             <Text style={[styles.statLabel, { color: colors.semantic.error }]}>pendentes</Text>
           </View>
         ) : null}
       </Animated.View>
 
-      {/* ── Seus filhos ───────────────────────────────────── */}
-      {filhos.length > 0 ? (
+      {children.length > 0 ? (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Seus filhos</Text>
-            <Pressable onPress={() => router.push('/(admin)/filhos')} accessibilityRole="button">
+            <Pressable onPress={() => router.push('/(admin)/children')} accessibilityRole="button">
               <Text style={[styles.sectionLink, { color: colors.brand.vivid }]}>Ver todos</Text>
             </Pressable>
           </View>
           <FlatList
-            data={filhos}
+            data={children}
             keyExtractor={(item) => item.id}
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.childrenList}
             renderItem={({ item }) => {
-              const saldo = saldosMap.get(item.id);
+              const saldo = balancesMap.get(item.id);
               const pts = saldo ? saldo.saldo_livre + saldo.cofrinho : 0;
               return (
                 <Pressable
                   style={[styles.childCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}
-                  onPress={() => router.push(`/(admin)/saldos/${item.id}` as never)}
+                  onPress={() => router.push(`/(admin)/balances/${item.id}` as never)}
                   accessibilityRole="button"
                   accessibilityLabel={`${item.nome}, ${pts} pontos`}
                 >
@@ -185,31 +181,30 @@ export default function AdminHomeScreen() {
         </View>
       ) : null}
 
-      {/* ── Pendentes para validar ────────────────────────── */}
-      {qtdValidar > 0 ? (
+      {pendingValidationCount > 0 ? (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
               <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Pendentes</Text>
               <View style={[styles.countBadge, { backgroundColor: colors.semantic.error }]}>
-                <Text style={styles.countBadgeText}>{qtdValidar}</Text>
+                <Text style={styles.countBadgeText}>{pendingValidationCount}</Text>
               </View>
             </View>
-            <Pressable onPress={() => router.push('/(admin)/tarefas')} accessibilityRole="button">
+            <Pressable onPress={() => router.push('/(admin)/tasks')} accessibilityRole="button">
               <Text style={[styles.sectionLink, { color: colors.brand.vivid }]}>Ver todas</Text>
             </Pressable>
           </View>
           <Pressable
             style={[styles.navCard, { backgroundColor: colors.bg.surface, borderColor: colors.semantic.error + '40' }, shadows.card]}
-            onPress={() => router.push('/(admin)/tarefas')}
+            onPress={() => router.push('/(admin)/tasks')}
             accessibilityRole="button"
-            accessibilityLabel={`${qtdValidar} tarefas aguardando validação`}
+            accessibilityLabel={`${pendingValidationCount} tarefas aguardando validação`}
           >
             <Text style={styles.navCardEmoji}>📋</Text>
             <View style={styles.navCardBody}>
               <Text style={[styles.navCardTitle, { color: colors.text.primary }]}>Tarefas</Text>
               <Text style={[styles.navCardSub, { color: colors.text.secondary }]}>
-                {qtdValidar} {qtdValidar === 1 ? 'tarefa aguardando' : 'tarefas aguardando'} validação
+                {pendingValidationCount} {pendingValidationCount === 1 ? 'tarefa aguardando' : 'tarefas aguardando'} validação
               </Text>
             </View>
             <Badge label="Validar" variant="error" />
@@ -217,16 +212,15 @@ export default function AdminHomeScreen() {
         </View>
       ) : null}
 
-      {/* ── Ações rápidas ─────────────────────────────────── */}
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Ações rápidas</Text>
         <View style={styles.quickGrid}>
           {([
-            { emoji: '📋', label: 'Tarefas',    rota: '/(admin)/tarefas',  badge: qtdValidar        },
-            { emoji: '👨‍👧', label: 'Filhos',     rota: '/(admin)/filhos',   badge: 0                 },
-            { emoji: '💰', label: 'Saldos',     rota: '/(admin)/saldos',   badge: 0                 },
-            { emoji: '🎁', label: 'Prêmios',    rota: '/(admin)/premios',  badge: 0                 },
-            { emoji: '🛍️', label: 'Resgates',   rota: '/(admin)/resgates', badge: qtdResgatesPendentes },
+            { emoji: '📋', label: 'Tarefas',    rota: '/(admin)/tasks',       badge: pendingValidationCount },
+            { emoji: '👨‍👧', label: 'Filhos',     rota: '/(admin)/children',    badge: 0                      },
+            { emoji: '💰', label: 'Saldos',     rota: '/(admin)/balances',    badge: 0                      },
+            { emoji: '🎁', label: 'Prêmios',    rota: '/(admin)/prizes',      badge: 0                      },
+            { emoji: '🛍️', label: 'Resgates',   rota: '/(admin)/redemptions', badge: pendingRedemptionCount  },
           ] as const).map(({ emoji, label, rota, badge }) => (
             <Pressable
               key={rota}
@@ -252,19 +246,18 @@ export default function AdminHomeScreen() {
         </View>
       </View>
 
-      {/* ── Sair ─────────────────────────────────────────── */}
       <Pressable
         style={({ pressed }) => [
           styles.sairBtn,
-          { borderColor: colors.border.default, opacity: (saindo || pressed) ? 0.6 : 1 },
+          { borderColor: colors.border.default, opacity: (loggingOut || pressed) ? 0.6 : 1 },
         ]}
-        onPress={handleSair}
-        disabled={saindo}
+        onPress={handleSignOut}
+        disabled={loggingOut}
         accessibilityRole="button"
-        accessibilityLabel={saindo ? 'Saindo' : 'Sair'}
+        accessibilityLabel={loggingOut ? 'Saindo' : 'Sair'}
       >
         <Text style={[styles.sairTexto, { color: colors.text.secondary }]}>
-          {saindo ? 'Saindo…' : 'Sair'}
+          {loggingOut ? 'Saindo…' : 'Sair'}
         </Text>
       </Pressable>
     </ScrollView>
@@ -276,14 +269,12 @@ function makeStyles(colors: ThemeColors) {
     loading:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
     container:     { flexGrow: 1, paddingHorizontal: spacing.screen, paddingBottom: spacing['12'] },
 
-    // Hero
     hero:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing['5'] },
     heroText:      { flex: 1, paddingRight: spacing['4'] },
     heroSub:       { fontFamily: typography.family.bold, fontSize: typography.size.sm },
     heroTitle:     { fontFamily: typography.family.black, fontSize: typography.size['2xl'], marginTop: spacing['1'] },
     heroFamily:    { fontFamily: typography.family.semibold, fontSize: typography.size.sm, marginTop: spacing['1'] },
 
-    // Stats
     statsRow:      { flexDirection: 'row', gap: spacing['3'], marginBottom: spacing['6'] },
     statCard:      {
       flex: 1, borderRadius: radii.inner, borderWidth: 1,
@@ -292,7 +283,6 @@ function makeStyles(colors: ThemeColors) {
     statValue:     { fontFamily: typography.family.black, fontSize: typography.size.xl },
     statLabel:     { fontFamily: typography.family.semibold, fontSize: typography.size.xs, marginTop: spacing['1'] },
 
-    // Sections
     section:       { marginBottom: spacing['6'] },
     sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing['3'] },
     sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
@@ -301,7 +291,6 @@ function makeStyles(colors: ThemeColors) {
     countBadge:    { width: 24, height: 24, borderRadius: radii.full, alignItems: 'center', justifyContent: 'center' },
     countBadgeText:{ color: '#fff', fontFamily: typography.family.black, fontSize: typography.size.xs },
 
-    // Children scroll
     childrenList:  { gap: spacing['3'] },
     childCard:     {
       width: 120, borderRadius: radii.inner, borderWidth: 1,
@@ -310,7 +299,6 @@ function makeStyles(colors: ThemeColors) {
     childName:     { fontFamily: typography.family.bold, fontSize: typography.size.xs, textAlign: 'center' },
     childPoints:   { fontFamily: typography.family.black, fontSize: typography.size.sm },
 
-    // Nav card (pendentes)
     navCard:       {
       flexDirection: 'row', alignItems: 'center', gap: spacing['3'],
       borderRadius: radii.outer, borderWidth: 1, padding: spacing['4'],
@@ -320,7 +308,6 @@ function makeStyles(colors: ThemeColors) {
     navCardTitle:  { fontFamily: typography.family.bold, fontSize: typography.size.md },
     navCardSub:    { fontFamily: typography.family.medium, fontSize: typography.size.xs, marginTop: spacing['1'] },
 
-    // Quick grid
     quickGrid:     { flexDirection: 'row', flexWrap: 'wrap', gap: spacing['3'] },
     quickCard:     {
       width: '30%',
@@ -333,7 +320,6 @@ function makeStyles(colors: ThemeColors) {
     quickBadge:    { position: 'absolute', top: spacing['2'], right: spacing['2'], minWidth: 20, height: 20, borderRadius: radii.full, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing['1'] },
     quickBadgeText:{ color: '#fff', fontFamily: typography.family.black, fontSize: 10 },
 
-    // Sair
     sairBtn:       { borderWidth: 1, borderRadius: radii.md, paddingVertical: spacing['3'], alignItems: 'center', alignSelf: 'center', paddingHorizontal: spacing['8'], marginTop: spacing['2'], minHeight: 48 },
     sairTexto:     { fontFamily: typography.family.medium, fontSize: typography.size.sm },
   });

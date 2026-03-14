@@ -10,7 +10,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo } from 'react';
-import { criarFamilia, signOut } from '@lib/auth';
+import { createFamily, signOut } from '@lib/auth';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, spacing, typography } from '@/constants/theme';
@@ -21,37 +21,37 @@ export default function OnboardingScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [nomeFamilia, setNomeFamilia] = useState('');
-  const [nomeAdmin, setNomeAdmin] = useState(params.nome ?? '');
-  const [erro, setErro] = useState('');
-  const [carregando, setCarregando] = useState(false);
-  const [voltando, setVoltando] = useState(false);
-  const shouldShowError = Boolean(erro);
-  const isBusy = carregando || voltando;
-  const submitLabel = carregando ? 'Criando família…' : 'Criar família';
-  const backLabel = voltando ? 'Saindo…' : 'Voltar para o login';
+  const [familyName, setFamilyName] = useState('');
+  const [adminName, setAdminName] = useState(params.nome ?? '');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const shouldShowError = Boolean(error);
+  const isBusy = loading || loggingOut;
+  const submitLabel = loading ? 'Criando família…' : 'Criar família';
+  const backLabel = loggingOut ? 'Saindo…' : 'Voltar para o login';
 
-  function validar(): string | null {
-    if (!nomeFamilia.trim()) return 'Informe o nome da família.';
-    if (!nomeAdmin.trim()) return 'Informe seu nome.';
+  function validate(): string | null {
+    if (!familyName.trim()) return 'Informe o nome da família.';
+    if (!adminName.trim()) return 'Informe seu nome.';
     return null;
   }
 
-  async function handleCriarFamilia() {
-    const erroValidacao = validar();
-    if (erroValidacao) { setErro(erroValidacao); return; }
+  async function handleCreateFamily() {
+    const validationError = validate();
+    if (validationError) { setError(validationError); return; }
 
-    setErro('');
-    setCarregando(true);
-    const { error } = await criarFamilia(nomeFamilia.trim(), nomeAdmin.trim());
-    setCarregando(false);
+    setError('');
+    setLoading(true);
+    const { error: createError } = await createFamily(familyName.trim(), adminName.trim());
+    setLoading(false);
 
-    if (error) { setErro(error.message); return; }
+    if (createError) { setError(createError.message); return; }
     router.replace('/(admin)/');
   }
 
-  async function handleVoltar() {
-    setVoltando(true);
+  async function handleBack() {
+    setLoggingOut(true);
     await signOut();
     router.replace('/(auth)/login');
   }
@@ -78,10 +78,10 @@ export default function OnboardingScreen() {
             style={[styles.input, { backgroundColor: colors.bg.surface, borderColor: colors.border.default, color: colors.text.primary }]}
             placeholder="Ex: Família Silva"
             placeholderTextColor={colors.text.muted}
-            value={nomeFamilia}
-            onChangeText={(t) => { setNomeFamilia(t); setErro(''); }}
+            value={familyName}
+            onChangeText={(t) => { setFamilyName(t); setError(''); }}
             autoCapitalize="words"
-            editable={!carregando}
+            editable={!loading}
             accessibilityLabel="Campo de nome da família"
           />
 
@@ -90,16 +90,16 @@ export default function OnboardingScreen() {
             style={[styles.input, { backgroundColor: colors.bg.surface, borderColor: colors.border.default, color: colors.text.primary }]}
             placeholder="Como quer ser chamado"
             placeholderTextColor={colors.text.muted}
-            value={nomeAdmin}
-            onChangeText={(t) => { setNomeAdmin(t); setErro(''); }}
+            value={adminName}
+            onChangeText={(t) => { setAdminName(t); setError(''); }}
             autoCapitalize="words"
-            editable={!carregando}
+            editable={!loading}
             accessibilityLabel="Campo de nome do administrador"
           />
 
           {shouldShowError ? (
             <Text style={[styles.erro, { color: colors.semantic.error }]} accessibilityRole="alert">
-              {erro}
+              {error}
             </Text>
           ) : null}
 
@@ -115,7 +115,7 @@ export default function OnboardingScreen() {
 
               return [styles.botao, { backgroundColor: colors.accent.admin, opacity }];
             }}
-            onPress={handleCriarFamilia}
+            onPress={handleCreateFamily}
             disabled={isBusy}
             accessibilityRole="button"
           >
@@ -134,7 +134,7 @@ export default function OnboardingScreen() {
 
               return [styles.botaoVoltar, { opacity }];
             }}
-            onPress={handleVoltar}
+            onPress={handleBack}
             disabled={isBusy}
             accessibilityRole="button"
           >

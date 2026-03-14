@@ -10,32 +10,32 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo } from 'react';
 import { useRouter } from 'expo-router';
-import { criarPremio } from '@lib/premios';
+import { createPrize } from '@lib/prizes';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 
-export default function NovoPremioScreen() {
+export default function NewPrizeScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [nome, setNome] = useState('');
-  const [descricao, setDescricao] = useState('');
-  const [custoStr, setCustoStr] = useState('');
-  const [enviando, setEnviando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [costStr, setCostStr] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  async function handleCriar() {
-    setErro(null);
-    if (!nome.trim()) return setErro('Informe o nome do prêmio.');
-    const custo = Number.parseInt(custoStr, 10);
-    if (Number.isNaN(custo) || custo <= 0) return setErro('Custo em pontos deve ser um número maior que zero.');
-    setEnviando(true);
-    const { error } = await criarPremio({ nome: nome.trim(), descricao: descricao.trim() || null, custo_pontos: custo });
-    setEnviando(false);
-    if (error) return setErro(error);
+  async function handleCreate() {
+    setError(null);
+    if (!name.trim()) return setError('Informe o nome do prêmio.');
+    const cost = Number.parseInt(costStr, 10);
+    if (Number.isNaN(cost) || cost <= 0) return setError('Custo em pontos deve ser um número maior que zero.');
+    setSaving(true);
+    const { error } = await createPrize({ nome: name.trim(), descricao: description.trim() || null, custo_pontos: cost });
+    setSaving(false);
+    if (error) return setError(error);
     router.back();
   }
 
@@ -51,8 +51,8 @@ export default function NovoPremioScreen() {
           <Text style={styles.label}>Nome *</Text>
           <TextInput
             style={styles.input}
-            value={nome}
-            onChangeText={setNome}
+            value={name}
+            onChangeText={setName}
             placeholder="Ex: Sorvete, Filme no cinema…"
             placeholderTextColor={colors.text.muted}
             autoFocus
@@ -64,8 +64,8 @@ export default function NovoPremioScreen() {
           <Text style={styles.label}>Descrição</Text>
           <TextInput
             style={[styles.input, styles.inputMultilinha]}
-            value={descricao}
-            onChangeText={setDescricao}
+            value={description}
+            onChangeText={setDescription}
             placeholder="Detalhes opcionais…"
             placeholderTextColor={colors.text.muted}
             multiline
@@ -78,8 +78,8 @@ export default function NovoPremioScreen() {
           <Text style={styles.label}>Custo em pontos *</Text>
           <TextInput
             style={styles.input}
-            value={custoStr}
-            onChangeText={setCustoStr}
+            value={costStr}
+            onChangeText={setCostStr}
             placeholder="Ex: 50"
             placeholderTextColor={colors.text.muted}
             keyboardType="numeric"
@@ -87,14 +87,14 @@ export default function NovoPremioScreen() {
           />
         </View>
 
-        {erro ? <Text style={styles.erro}>{erro}</Text> : null}
+        {error ? <Text style={styles.erro}>{error}</Text> : null}
 
         <Pressable
-          style={({ pressed }) => [styles.botao, enviando && styles.botaoDesabilitado, pressed && !enviando && { opacity: 0.85 }]}
-          onPress={handleCriar}
-          disabled={enviando}
+          style={({ pressed }) => [styles.botao, saving && styles.botaoDesabilitado, pressed && !saving && { opacity: 0.85 }]}
+          onPress={handleCreate}
+          disabled={saving}
         >
-          <Text style={styles.botaoTexto}>{enviando ? 'Salvando…' : 'Criar prêmio'}</Text>
+          <Text style={styles.botaoTexto}>{saving ? 'Salvando…' : 'Criar prêmio'}</Text>
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
