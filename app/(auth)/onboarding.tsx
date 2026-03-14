@@ -3,9 +3,8 @@ import {
   Text,
   View,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -59,7 +58,7 @@ export default function OnboardingScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={process.env.EXPO_OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <StatusBar style="auto" />
@@ -82,6 +81,7 @@ export default function OnboardingScreen() {
             onChangeText={(t) => { setNomeFamilia(t); setErro(''); }}
             autoCapitalize="words"
             editable={!carregando}
+            accessibilityLabel="Campo de nome da família"
           />
 
           <Text style={styles.label}>Seu nome</Text>
@@ -93,29 +93,44 @@ export default function OnboardingScreen() {
             onChangeText={(t) => { setNomeAdmin(t); setErro(''); }}
             autoCapitalize="words"
             editable={!carregando}
+            accessibilityLabel="Campo de nome do administrador"
           />
 
-          {erro ? <Text style={styles.erro}>{erro}</Text> : null}
+          {erro ? <Text style={styles.erro} accessibilityRole="alert">{erro}</Text> : null}
 
-          <TouchableOpacity
-            style={[styles.botao, carregando && styles.botaoDesabilitado]}
+          <Pressable
+            style={({ pressed }) => [
+              styles.botao,
+              carregando && styles.botaoDesabilitado,
+              pressed && !carregando && { opacity: 0.85 },
+            ]}
             onPress={handleCriarFamilia}
             disabled={carregando || voltando}
+            accessibilityRole="button"
+            accessibilityLabel={carregando ? 'Criando família' : 'Criar família'}
+            accessibilityState={{ disabled: carregando || voltando, busy: carregando }}
           >
             <Text style={styles.botaoTexto}>
               {carregando ? 'Criando família…' : 'Criar família'}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
 
-          <TouchableOpacity
-            style={[styles.botaoVoltar, voltando && styles.botaoDesabilitado]}
+          <Pressable
+            style={({ pressed }) => [
+              styles.botaoVoltar,
+              voltando && styles.botaoDesabilitado,
+              pressed && !voltando && { opacity: 0.7 },
+            ]}
             onPress={handleVoltar}
             disabled={carregando || voltando}
+            accessibilityRole="button"
+            accessibilityLabel={voltando ? 'Saindo' : 'Voltar para o login'}
+            accessibilityState={{ disabled: carregando || voltando, busy: voltando }}
           >
             <Text style={styles.botaoVoltarTexto}>
               {voltando ? 'Saindo…' : 'Voltar para o login'}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -161,6 +176,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
     borderRadius: 12,
+    borderCurve: 'continuous',
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
@@ -175,9 +191,11 @@ const styles = StyleSheet.create({
   botao: {
     backgroundColor: '#4F46E5',
     borderRadius: 12,
+    borderCurve: 'continuous',
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 24,
+    minHeight: 44,
   },
   botaoDesabilitado: { opacity: 0.6 },
   botaoTexto: {
@@ -189,6 +207,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingVertical: 12,
     alignItems: 'center',
+    minHeight: 44,
   },
   botaoVoltarTexto: {
     color: '#6B7280',

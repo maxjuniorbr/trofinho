@@ -2,13 +2,13 @@ import {
   StyleSheet,
   Text,
   View,
-  TouchableOpacity,
+  Pressable,
   FlatList,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { AsyncListState } from '@/components/AsyncListState';
+import AsyncListState from '@/components/AsyncListState';
 import { listarFilhos } from '@lib/filhos';
 import type { Filho } from '@lib/tarefas';
 
@@ -45,11 +45,10 @@ export default function AdminFilhosScreen() {
     if (carregando || erro || filhos.length === 0) {
       return (
         <AsyncListState
-          isLoading={carregando}
+          loading={carregando}
           error={erro}
-          isEmpty={filhos.length === 0}
-          emptyTitle="Nenhum filho cadastrado."
-          emptySubtitle='Toque em "+ Novo" para cadastrar o primeiro filho.'
+          empty={filhos.length === 0}
+          emptyMessage={'Nenhum filho cadastrado.\nToque em "+ Novo" para cadastrar o primeiro filho.'}
           onRetry={carregar}
         />
       );
@@ -84,16 +83,16 @@ export default function AdminFilhosScreen() {
       <StatusBar style="auto" />
 
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.voltarBtn}>
+        <Pressable onPress={() => router.back()} style={styles.voltarBtn}>
           <Text style={styles.voltarTexto}>← Início</Text>
-        </TouchableOpacity>
+        </Pressable>
         <Text style={styles.titulo}>Filhos</Text>
-        <TouchableOpacity
+        <Pressable
           style={styles.botaoNovo}
           onPress={() => router.push('/(admin)/filhos/novo')}
         >
           <Text style={styles.botaoNovoTexto}>+ Novo</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       {renderConteudo()}
@@ -131,10 +130,7 @@ const styles = StyleSheet.create({
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
   },
   avatar: {
     width: 44,

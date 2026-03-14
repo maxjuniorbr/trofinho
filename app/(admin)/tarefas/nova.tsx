@@ -2,12 +2,11 @@ import {
   StyleSheet,
   Text,
   View,
-  TouchableOpacity,
+  Pressable,
   TextInput,
   ScrollView,
   Switch,
   KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -102,7 +101,7 @@ export default function NovaTarefaScreen() {
     return filhos.map((f) => {
       const selecionado = filhosSelecionados.has(f.id);
       return (
-        <TouchableOpacity
+        <Pressable
           key={f.id}
           style={[styles.filhoItem, selecionado && styles.filhoSelecionado]}
           onPress={() => toggleFilho(f.id)}
@@ -116,7 +115,7 @@ export default function NovaTarefaScreen() {
             {f.nome}
           </Text>
           <Text style={styles.filhoCheck}>{selecionado ? '✓' : '○'}</Text>
-        </TouchableOpacity>
+        </Pressable>
       );
     });
   }
@@ -124,13 +123,13 @@ export default function NovaTarefaScreen() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
     >
       <StatusBar style="auto" />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <Pressable onPress={() => router.back()}>
           <Text style={styles.voltar}>← Voltar</Text>
-        </TouchableOpacity>
+        </Pressable>
         <Text style={styles.titulo}>Nova Tarefa</Text>
         <View style={{ minWidth: 60 }} />
       </View>
@@ -209,7 +208,7 @@ export default function NovaTarefaScreen() {
 
         {erro && <Text style={styles.erroTexto}>{erro}</Text>}
 
-        <TouchableOpacity
+        <Pressable
           style={[styles.botaoCriar, enviando && styles.botaoDesabilitado]}
           onPress={handleCriar}
           disabled={enviando}
@@ -219,7 +218,7 @@ export default function NovaTarefaScreen() {
           ) : (
             <Text style={styles.botaoCriarTexto}>Criar tarefa</Text>
           )}
-        </TouchableOpacity>
+        </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );

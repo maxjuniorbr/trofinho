@@ -2,13 +2,12 @@ import {
   StyleSheet,
   Text,
   View,
-  TouchableOpacity,
+  Pressable,
   FlatList,
   Modal,
   TextInput,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback } from 'react';
@@ -101,9 +100,9 @@ export default function SaldoFilhoScreen() {
       <StatusBar style="auto" />
 
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <Pressable onPress={() => router.back()}>
           <Text style={styles.voltar}>← Voltar</Text>
-        </TouchableOpacity>
+        </Pressable>
         <Text style={styles.titulo}>Meu Saldo</Text>
         <View style={{ minWidth: 60 }} />
       </View>
@@ -139,13 +138,13 @@ export default function SaldoFilhoScreen() {
             )}
 
             {/* Botão transferir */}
-            <TouchableOpacity
+            <Pressable
               style={[styles.btnTransferir, saldoLivre === 0 && styles.btnDesabilitado]}
               onPress={() => { setModalAberto(true); setValorStr(''); setErrModal(null); }}
               disabled={saldoLivre === 0}
             >
               <Text style={styles.btnTransferirTexto}>🐷 Guardar no cofrinho</Text>
-            </TouchableOpacity>
+            </Pressable>
 
             <Text style={styles.secaoTitulo}>Histórico</Text>
             {movs.length === 0 && (
@@ -176,7 +175,7 @@ export default function SaldoFilhoScreen() {
       <Modal visible={modalAberto} transparent animationType="slide">
         <KeyboardAvoidingView
           style={styles.modalOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
         >
           <View style={styles.modalBox}>
             <Text style={styles.modalTitulo}>🐷 Guardar no cofrinho</Text>
@@ -194,13 +193,13 @@ export default function SaldoFilhoScreen() {
             />
             {errModal && <Text style={styles.errModal}>{errModal}</Text>}
             <View style={styles.modalBtns}>
-              <TouchableOpacity
+              <Pressable
                 style={styles.btnCancelar}
                 onPress={() => setModalAberto(false)}
               >
                 <Text style={styles.btnCancelarTexto}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+              </Pressable>
+              <Pressable
                 style={[styles.btnConfirmar, enviando && styles.btnDesabilitado]}
                 onPress={handleTransferir}
                 disabled={enviando}
@@ -209,7 +208,7 @@ export default function SaldoFilhoScreen() {
                   ? <ActivityIndicator color="#fff" />
                   : <Text style={styles.btnConfirmarTexto}>Guardar</Text>
                 }
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -241,10 +240,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 18,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
   },
   saldoLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '600', marginBottom: 4 },
   saldoValor: { color: '#fff', fontSize: 36, fontWeight: '800' },

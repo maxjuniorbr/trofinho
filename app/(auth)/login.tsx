@@ -3,9 +3,8 @@ import {
   Text,
   View,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -64,7 +63,7 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={process.env.EXPO_OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <StatusBar style="auto" />
@@ -88,6 +87,7 @@ export default function LoginScreen() {
             autoCorrect={false}
             maxLength={MAX_EMAIL_LENGTH}
             editable={!carregando}
+            accessibilityLabel="Campo de e-mail"
           />
 
           <Text style={styles.label}>Senha</Text>
@@ -100,27 +100,41 @@ export default function LoginScreen() {
             secureTextEntry
             maxLength={128}
             editable={!carregando}
+            accessibilityLabel="Campo de senha"
           />
 
-          {erro ? <Text style={styles.erro}>{erro}</Text> : null}
+          {erro ? <Text style={styles.erro} accessibilityRole="alert">{erro}</Text> : null}
 
-          <TouchableOpacity
-            style={[styles.botao, carregando && styles.botaoDesabilitado]}
+          <Pressable
+            style={({ pressed }) => [
+              styles.botao,
+              carregando && styles.botaoDesabilitado,
+              pressed && !carregando && { opacity: 0.85 },
+            ]}
             onPress={handleEntrar}
             disabled={carregando}
+            accessibilityRole="button"
+            accessibilityLabel={carregando ? 'Entrando' : 'Entrar'}
+            accessibilityState={{ disabled: carregando, busy: carregando }}
           >
             <Text style={styles.botaoTexto}>
               {carregando ? 'Entrando…' : 'Entrar'}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
 
-          <TouchableOpacity
-            style={styles.botaoSecundario}
+          <Pressable
+            style={({ pressed }) => [
+              styles.botaoSecundario,
+              pressed && { opacity: 0.7 },
+            ]}
             onPress={() => router.push('/(auth)/register')}
             disabled={carregando}
+            accessibilityRole="button"
+            accessibilityLabel="Criar conta"
+            accessibilityState={{ disabled: carregando }}
           >
             <Text style={styles.botaoSecundarioTexto}>Criar conta</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -164,6 +178,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
     borderRadius: 12,
+    borderCurve: 'continuous',
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
@@ -178,9 +193,11 @@ const styles = StyleSheet.create({
   botao: {
     backgroundColor: '#4F46E5',
     borderRadius: 12,
+    borderCurve: 'continuous',
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 24,
+    minHeight: 44,
   },
   botaoDesabilitado: { opacity: 0.6 },
   botaoTexto: {
@@ -192,6 +209,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
+    minHeight: 44,
   },
   botaoSecundarioTexto: {
     color: '#4F46E5',
@@ -199,3 +217,4 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
+

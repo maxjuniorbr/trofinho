@@ -1,11 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
-import Constants from 'expo-constants';
 
-// Lê as variáveis de ambiente injetadas pelo Expo via app.config.js / .env.local
-const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl as string;
-const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey as string;
+// Lê as variáveis de ambiente injetadas pelo Expo via .env.local
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
@@ -19,7 +17,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
  * e localStorage em ambientes web (ex: Expo Web).
  */
 function getWebStorage(): Storage | null {
-  if (Platform.OS !== 'web') {
+  if (process.env.EXPO_OS !== 'web') {
     return null;
   }
 
@@ -33,20 +31,20 @@ function getWebStorage(): Storage | null {
 
 const ExpoSecureStoreAdapter = {
   getItem: (key: string) => {
-    if (Platform.OS === 'web') {
+    if (process.env.EXPO_OS === 'web') {
       return Promise.resolve(getWebStorage()?.getItem(key) ?? null);
     }
     return SecureStore.getItemAsync(key);
   },
   setItem: (key: string, value: string) => {
-    if (Platform.OS === 'web') {
+    if (process.env.EXPO_OS === 'web') {
       getWebStorage()?.setItem(key, value);
       return Promise.resolve();
     }
     return SecureStore.setItemAsync(key, value);
   },
   removeItem: (key: string) => {
-    if (Platform.OS === 'web') {
+    if (process.env.EXPO_OS === 'web') {
       getWebStorage()?.removeItem(key);
       return Promise.resolve();
     }
@@ -62,3 +60,4 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: false,
   },
 });
+
