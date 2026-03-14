@@ -1,12 +1,19 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
+import { useFonts,
+  Nunito_500Medium,
+  Nunito_600SemiBold,
+  Nunito_700Bold,
+  Nunito_800ExtraBold,
+  Nunito_900Black,
+} from '@expo-google-fonts/nunito';
 import { supabase } from '@lib/supabase';
 import { buscarPerfil, type UserProfile } from '@lib/auth';
 import { ThemeProvider } from '@/context/theme-context';
 
 // Mantém a splash screen visível até resolvermos a sessão
-SplashScreen.preventAutoHideAsync();
+void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const router = useRouter();
@@ -14,16 +21,26 @@ export default function RootLayout() {
   const [pronto, setPronto] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null | undefined>(undefined);
 
+  const [fontsLoaded] = useFonts({
+    Nunito_500Medium,
+    Nunito_600SemiBold,
+    Nunito_700Bold,
+    Nunito_800ExtraBold,
+    Nunito_900Black,
+  });
+
   // Carrega sessão inicial e escuta mudanças de auth
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // SIGNED_OUT: limpa perfil imediatamente, sem chamar buscarPerfil
-        if (event === 'SIGNED_OUT' || !session) {
+        const hasActiveSession = event !== 'SIGNED_OUT' && Boolean(session);
+
+        if (!hasActiveSession) {
           setProfile(null);
           setPronto(true);
           return;
         }
+
         const p = await buscarPerfil();
         setProfile(p);
         setPronto(true);
@@ -49,24 +66,26 @@ export default function RootLayout() {
 
     if (profile === undefined) return;
 
-    if (!profile.familia_id) {
-      if (seg1 === 'onboarding') return;
+    const hasFamilia = Boolean(profile.familia_id);
 
-      router.replace('/(auth)/onboarding');
+    if (!hasFamilia) {
+      if (seg1 !== 'onboarding') {
+        router.replace('/(auth)/onboarding');
+      }
       return;
     }
 
     if (inAuth) {
       router.replace(profile.papel === 'admin' ? '/(admin)/' : '/(filho)/');
     }
-  }, [pronto, profile, segments]);
+  }, [pronto, profile, router, segments]);
 
-  // Esconde splash screen quando pronto
+  // Esconde splash screen quando pronto E fonts carregadas
   useEffect(() => {
-    if (!pronto) return;
+    if (!pronto || !fontsLoaded) return;
 
-    SplashScreen.hideAsync();
-  }, [pronto]);
+    void SplashScreen.hideAsync();
+  }, [pronto, fontsLoaded]);
 
   return (
     <ThemeProvider>
