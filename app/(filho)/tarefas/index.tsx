@@ -4,7 +4,6 @@ import {
   View,
   Pressable,
   FlatList,
-  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
@@ -20,6 +19,7 @@ import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { EmptyState } from '@/components/ui/empty-state';
 
 type Filtro = 'pendente' | 'aguardando_validacao' | 'historico';
 
@@ -70,59 +70,7 @@ export default function FilhoTarefasScreen() {
     mensagemVazio = 'Nada aguardando validação.';
   }
 
-  function renderConteudo() {
-    if (carregando) {
-      return (
-        <View style={styles.centro}>
-          <ActivityIndicator size="large" color={colors.accent.filho} />
-        </View>
-      );
-    }
-    if (erro) {
-      return (
-        <View style={styles.centro}>
-          <Text style={styles.erroTexto}>{erro}</Text>
-          <Pressable style={styles.botaoRetentar} onPress={carregar}>
-            <Text style={styles.botaoRetentarTexto}>Tentar novamente</Text>
-          </Pressable>
-        </View>
-      );
-    }
-    if (filtradas.length === 0) {
-      return (
-        <View style={styles.centro}>
-          <Text style={styles.vazio}>{mensagemVazio}</Text>
-        </View>
-      );
-    }
-
-    return (
-      <FlatList
-        data={filtradas}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.lista}
-        renderItem={({ item }) => (
-          <Pressable
-            style={styles.card}
-            onPress={() => router.push(`/(filho)/tarefas/${item.id}` as never)}
-          >
-            <View style={styles.cardTopo}>
-              <Text style={styles.cardTitulo} numberOfLines={2}>{item.tarefas.titulo}</Text>
-              <View style={styles.pontosTag}>
-                <Text style={styles.pontosTexto}>{item.tarefas.pontos} pts</Text>
-              </View>
-            </View>
-            <Text style={styles.cardPrazo}>Prazo: {item.tarefas.timebox_fim}</Text>
-            <View style={[styles.statusTag, { backgroundColor: corStatus(item.status) + '20' }]}>
-              <Text style={[styles.statusTexto, { color: corStatus(item.status) }]}>
-                {labelStatus(item.status)}
-              </Text>
-            </View>
-          </Pressable>
-        )}
-      />
-    );
-  }
+  const shouldShowEmptyState = carregando || Boolean(erro) || filtradas.length === 0;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
@@ -143,7 +91,40 @@ export default function FilhoTarefasScreen() {
         ))}
       </View>
 
-      {renderConteudo()}
+      {shouldShowEmptyState ? (
+        <EmptyState
+          loading={carregando}
+          error={erro}
+          empty={!carregando && !erro}
+          emptyMessage={mensagemVazio}
+          onRetry={carregar}
+        />
+      ) : (
+        <FlatList
+          data={filtradas}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.lista}
+          renderItem={({ item }) => (
+            <Pressable
+              style={styles.card}
+              onPress={() => router.push(`/(filho)/tarefas/${item.id}` as never)}
+            >
+              <View style={styles.cardTopo}>
+                <Text style={styles.cardTitulo} numberOfLines={2}>{item.tarefas.titulo}</Text>
+                <View style={styles.pontosTag}>
+                  <Text style={styles.pontosTexto}>{item.tarefas.pontos} pts</Text>
+                </View>
+              </View>
+              <Text style={styles.cardPrazo}>Prazo: {item.tarefas.timebox_fim}</Text>
+              <View style={[styles.statusTag, { backgroundColor: corStatus(item.status) + '20' }]}>
+                <Text style={[styles.statusTexto, { color: corStatus(item.status) }]}>
+                  {labelStatus(item.status)}
+                </Text>
+              </View>
+            </Pressable>
+          )}
+        />
+      )}
     </View>
   );
 }
@@ -162,7 +143,7 @@ function makeStyles(colors: ThemeColors) {
     },
     filtroBtn: {
       flex: 1,
-      paddingVertical: 7,
+      paddingVertical: spacing['2'],
       borderRadius: radii.md,
       alignItems: 'center',
       backgroundColor: colors.accent.filhoBg,
@@ -170,17 +151,6 @@ function makeStyles(colors: ThemeColors) {
     filtroBtnAtivo: { backgroundColor: colors.accent.filho },
     filtroTexto: { fontSize: typography.size.xs, fontFamily: typography.family.semibold, color: colors.text.secondary },
     filtroTextoAtivo: { color: '#fff' },
-    centro: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing['6'] },
-    erroTexto: { color: colors.semantic.error, fontSize: typography.size.md, textAlign: 'center', marginBottom: spacing['3'] },
-    botaoRetentar: {
-      borderWidth: 1,
-      borderColor: colors.accent.filho,
-      borderRadius: radii.md,
-      paddingVertical: spacing['2'],
-      paddingHorizontal: spacing['4'],
-    },
-    botaoRetentarTexto: { color: colors.accent.filho, fontSize: typography.size.sm, fontFamily: typography.family.medium },
-    vazio: { fontSize: typography.size.md, color: colors.text.muted, textAlign: 'center' },
     lista: { padding: spacing['4'], gap: spacing['3'] },
     card: {
       backgroundColor: colors.bg.surface,

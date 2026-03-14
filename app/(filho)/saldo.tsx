@@ -28,6 +28,7 @@ import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { PointsDisplay } from '@/components/ui/points-display';
 
 export default function SaldoFilhoScreen() {
   const router = useRouter();
@@ -108,15 +109,13 @@ export default function SaldoFilhoScreen() {
         ListHeaderComponent={
           <>
             <View style={styles.cardsRow}>
-              <View style={[styles.saldoCard, { backgroundColor: colors.accent.filho }]}>
+              <View style={[styles.saldoCard, { backgroundColor: colors.bg.elevated }, shadows.goldGlow]}>
                 <Text style={styles.saldoLabel}>💰 Saldo livre</Text>
-                <Text style={styles.saldoValor}>{saldoLivre}</Text>
-                <Text style={styles.saldoPts}>pontos</Text>
+                <PointsDisplay value={saldoLivre} label="pontos" variant="gold" size="lg" />
               </View>
-              <View style={[styles.saldoCard, { backgroundColor: colors.semantic.warning }]}>
+              <View style={[styles.saldoCard, { backgroundColor: colors.bg.elevated }, shadows.card]}>
                 <Text style={styles.saldoLabel}>🐷 Cofrinho</Text>
-                <Text style={styles.saldoValor}>{cofrinho}</Text>
-                <Text style={styles.saldoPts}>pontos</Text>
+                <PointsDisplay value={cofrinho} label="pontos" variant="amber" size="lg" />
               </View>
             </View>
 
@@ -143,7 +142,9 @@ export default function SaldoFilhoScreen() {
         }
         renderItem={({ item }) => (
           <View style={styles.movItem}>
-            <Text style={styles.movEmoji}>{emojiTipo(item.tipo)}</Text>
+            <View style={[styles.movEmojiBox, { backgroundColor: isCredito(item.tipo) ? colors.semantic.successBg : colors.semantic.errorBg }]}>
+              <Text style={styles.movEmoji}>{emojiTipo(item.tipo)}</Text>
+            </View>
             <View style={styles.movInfo}>
               <Text style={styles.movLabel}>{labelTipo(item.tipo)}</Text>
               <Text style={styles.movDesc} numberOfLines={1}>{item.descricao}</Text>
@@ -211,11 +212,9 @@ function makeStyles(colors: ThemeColors) {
       borderRadius: radii.xl,
       padding: spacing['4'],
       alignItems: 'center',
-      ...shadows.card,
+      gap: spacing['1'],
     },
-    saldoLabel: { color: 'rgba(255,255,255,0.85)', fontSize: typography.size.xs, fontFamily: typography.family.semibold, marginBottom: spacing['1'] },
-    saldoValor: { color: '#fff', fontSize: typography.size['4xl'], fontFamily: typography.family.extrabold },
-    saldoPts: { color: 'rgba(255,255,255,0.8)', fontSize: typography.size.xs, marginTop: 2 },
+    saldoLabel: { color: colors.text.secondary, fontSize: typography.size.xs, fontFamily: typography.family.semibold, marginBottom: spacing['1'] },
     valBox: { backgroundColor: colors.semantic.successBg, borderRadius: radii.lg, padding: spacing['2'], marginBottom: spacing['3'] },
     valTexto: { color: colors.semantic.success, fontSize: typography.size.xs },
     btnTransferir: {
@@ -234,10 +233,13 @@ function makeStyles(colors: ThemeColors) {
       alignItems: 'center',
       backgroundColor: colors.bg.surface,
       borderRadius: radii.lg,
+      borderCurve: 'continuous',
       padding: spacing['3'],
       marginBottom: spacing['2'],
+      ...shadows.card,
     },
-    movEmoji: { fontSize: 22, marginRight: spacing['3'] },
+    movEmojiBox: { width: 36, height: 36, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center', marginRight: spacing['3'] },
+    movEmoji: { fontSize: 18 },
     movInfo: { flex: 1 },
     movLabel: { fontSize: typography.size.sm, fontFamily: typography.family.semibold, color: colors.text.primary },
     movDesc: { fontSize: typography.size.xs, color: colors.text.secondary, marginTop: 1 },
