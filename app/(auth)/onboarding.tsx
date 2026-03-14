@@ -26,6 +26,10 @@ export default function OnboardingScreen() {
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
   const [voltando, setVoltando] = useState(false);
+  const shouldShowError = Boolean(erro);
+  const isBusy = carregando || voltando;
+  const submitLabel = carregando ? 'Criando família…' : 'Criar família';
+  const backLabel = voltando ? 'Saindo…' : 'Voltar para o login';
 
   function validar(): string | null {
     if (!nomeFamilia.trim()) return 'Informe o nome da família.';
@@ -93,28 +97,48 @@ export default function OnboardingScreen() {
             accessibilityLabel="Campo de nome do administrador"
           />
 
-          {erro ? <Text style={[styles.erro, { color: colors.semantic.error }]} accessibilityRole="alert">{erro}</Text> : null}
+          {shouldShowError ? (
+            <Text style={[styles.erro, { color: colors.semantic.error }]} accessibilityRole="alert">
+              {erro}
+            </Text>
+          ) : null}
 
           <Pressable
-            style={({ pressed }) => [styles.botao, { backgroundColor: colors.accent.admin, opacity: (carregando || voltando) ? 0.55 : pressed ? 0.82 : 1 }]}
+            style={({ pressed }) => {
+              let opacity = 1;
+
+              if (isBusy) {
+                opacity = 0.55;
+              } else if (pressed) {
+                opacity = 0.82;
+              }
+
+              return [styles.botao, { backgroundColor: colors.accent.admin, opacity }];
+            }}
             onPress={handleCriarFamilia}
-            disabled={carregando || voltando}
+            disabled={isBusy}
             accessibilityRole="button"
           >
-            <Text style={[styles.botaoTexto, { color: colors.text.inverse }]}>
-              {carregando ? 'Criando família…' : 'Criar família'}
-            </Text>
+            <Text style={[styles.botaoTexto, { color: colors.text.inverse }]}>{submitLabel}</Text>
           </Pressable>
 
           <Pressable
-            style={({ pressed }) => [styles.botaoVoltar, { opacity: (carregando || voltando) ? 0.55 : pressed ? 0.65 : 1 }]}
+            style={({ pressed }) => {
+              let opacity = 1;
+
+              if (isBusy) {
+                opacity = 0.55;
+              } else if (pressed) {
+                opacity = 0.65;
+              }
+
+              return [styles.botaoVoltar, { opacity }];
+            }}
             onPress={handleVoltar}
-            disabled={carregando || voltando}
+            disabled={isBusy}
             accessibilityRole="button"
           >
-            <Text style={[styles.botaoVoltarTexto, { color: colors.text.secondary }]}>
-              {voltando ? 'Saindo…' : 'Voltar para o login'}
-            </Text>
+            <Text style={[styles.botaoVoltarTexto, { color: colors.text.secondary }]}>{backLabel}</Text>
           </Pressable>
         </View>
       </ScrollView>

@@ -62,12 +62,13 @@ export default function FilhoTarefasScreen() {
   useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
 
   const filtradas = atribuicoes.filter((a) => pertenceFiltro(a.status, filtro));
+  let mensagemVazio = 'Nenhuma tarefa concluída ainda.';
 
-  const mensagemVazio = filtro === 'pendente'
-    ? 'Nenhuma tarefa pendente.'
-    : filtro === 'aguardando_validacao'
-    ? 'Nada aguardando validação.'
-    : 'Nenhuma tarefa concluída ainda.';
+  if (filtro === 'pendente') {
+    mensagemVazio = 'Nenhuma tarefa pendente.';
+  } else if (filtro === 'aguardando_validacao') {
+    mensagemVazio = 'Nada aguardando validação.';
+  }
 
   function renderConteudo() {
     if (carregando) {

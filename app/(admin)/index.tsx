@@ -15,6 +15,11 @@ import { radii, spacing, typography } from '@/constants/theme';
 
 type Familia = { nome: string };
 
+function formatarContagem(count: number, singular: string, plural: string): string {
+  const label = count === 1 ? singular : plural;
+  return `${count} ${label}`;
+}
+
 export default function AdminHomeScreen() {
   const router = useRouter();
   const { colors } = useTheme();
@@ -29,6 +34,10 @@ export default function AdminHomeScreen() {
   const [qtdFilhos, setQtdFilhos] = useState(0);
   const [totalPontos, setTotalPontos] = useState(0);
   const [qtdResgatesPendentes, setQtdResgatesPendentes] = useState(0);
+  const hasTarefasPendentes = qtdValidar > 0;
+  const hasFilhos = qtdFilhos > 0;
+  const hasPontosDistribuidos = totalPontos > 0;
+  const hasResgatesPendentes = qtdResgatesPendentes > 0;
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -54,10 +63,21 @@ export default function AdminHomeScreen() {
 
   useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
 
-  const tarefasPendentesTexto = qtdValidar === 0 ? 'Crie tarefas e acompanhe o progresso dos filhos.' : `${qtdValidar} ${qtdValidar === 1 ? 'tarefa' : 'tarefas'} aguardando validação.`;
-  const filhosTexto = qtdFilhos === 0 ? 'Cadastre os filhos da família.' : qtdFilhos === 1 ? '1 filho cadastrado.' : `${qtdFilhos} filhos cadastrados.`;
-  const resgatesTexto = qtdResgatesPendentes === 0 ? 'Confirme os resgates solicitados pelos filhos.' : `${qtdResgatesPendentes} ${qtdResgatesPendentes === 1 ? 'resgate' : 'resgates'} aguardando confirmação.`;
-  const resgatesAccessLabel = qtdResgatesPendentes === 0 ? 'Resgates. Nenhum pendente' : `Resgates. ${qtdResgatesPendentes} ${qtdResgatesPendentes === 1 ? 'pendente' : 'pendentes'}`;
+  const tarefasPendentesTexto = hasTarefasPendentes
+    ? `${formatarContagem(qtdValidar, 'tarefa', 'tarefas')} aguardando validação.`
+    : 'Crie tarefas e acompanhe o progresso dos filhos.';
+  const filhosTexto = hasFilhos
+    ? `${formatarContagem(qtdFilhos, 'filho cadastrado.', 'filhos cadastrados.')}`
+    : 'Cadastre os filhos da família.';
+  const resgatesTexto = hasResgatesPendentes
+    ? `${formatarContagem(qtdResgatesPendentes, 'resgate', 'resgates')} aguardando confirmação.`
+    : 'Confirme os resgates solicitados pelos filhos.';
+  const resgatesAccessLabel = hasResgatesPendentes
+    ? `Resgates. ${formatarContagem(qtdResgatesPendentes, 'pendente', 'pendentes')}`
+    : 'Resgates. Nenhum pendente';
+  const pontosTexto = hasPontosDistribuidos
+    ? `${totalPontos} pontos distribuídos na família.`
+    : 'Gerencie valorização e penalizações dos filhos.';
 
   async function handleSair() { setSaindo(true); await signOut(); }
 
@@ -85,7 +105,7 @@ export default function AdminHomeScreen() {
       {([
         { emoji: '📋', titulo: 'Tarefas', texto: tarefasPendentesTexto, link: 'Ver tarefas →', rota: '/(admin)/tarefas', badge: qtdValidar, badgeCor: colors.semantic.error, accessLabel: `Tarefas. ${tarefasPendentesTexto}` },
         { emoji: '👨‍👧', titulo: 'Filhos', texto: filhosTexto, link: 'Gerenciar filhos →', rota: '/(admin)/filhos', badge: qtdFilhos, badgeCor: colors.semantic.success, accessLabel: `Filhos. ${filhosTexto}` },
-        { emoji: '💰', titulo: 'Pontos & Cofrinho', texto: totalPontos > 0 ? `${totalPontos} pontos distribuídos na família.` : 'Gerencie valorização e penalizações dos filhos.', link: 'Ver saldos →', rota: '/(admin)/saldos', badge: 0, badgeCor: colors.semantic.info, accessLabel: 'Pontos e Cofrinho' },
+        { emoji: '💰', titulo: 'Pontos & Cofrinho', texto: pontosTexto, link: 'Ver saldos →', rota: '/(admin)/saldos', badge: 0, badgeCor: colors.semantic.info, accessLabel: 'Pontos e Cofrinho' },
         { emoji: '🎁', titulo: 'Prêmios', texto: 'Gerencie o catálogo de prêmios da família.', link: 'Ver prêmios →', rota: '/(admin)/premios', badge: 0, badgeCor: colors.brand.vivid, accessLabel: 'Prêmios' },
         { emoji: '🛍️', titulo: 'Resgates', texto: resgatesTexto, link: 'Ver resgates →', rota: '/(admin)/resgates', badge: qtdResgatesPendentes, badgeCor: colors.semantic.warning, accessLabel: resgatesAccessLabel },
       ] as const).map(({ emoji, titulo, texto, link, rota, badge, badgeCor, accessLabel }) => (
@@ -98,11 +118,11 @@ export default function AdminHomeScreen() {
         >
           <View style={styles.cardTopo}>
             <Text style={[styles.cardTitulo, { color: colors.accent.admin }]}>{emoji} {titulo}</Text>
-            {badge > 0 && (
+            {badge > 0 ? (
               <View style={[styles.badge, { backgroundColor: badgeCor }]}>
                 <Text style={styles.badgeTexto}>{badge}</Text>
               </View>
-            )}
+            ) : null}
           </View>
           <Text style={[styles.cardTexto, { color: colors.text.secondary }]}>{texto}</Text>
           <Text style={[styles.cardLink, { color: colors.accent.admin }]}>{link}</Text>

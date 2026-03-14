@@ -12,6 +12,8 @@ interface EmptyStateProps {
   onRetry?: () => void;
 }
 
+type ReadonlyEmptyStateProps = Readonly<EmptyStateProps>;
+
 export function EmptyState({
   loading = false,
   error = null,
@@ -19,8 +21,10 @@ export function EmptyState({
   emptyTitle,
   emptyMessage = 'Nenhum item encontrado.',
   onRetry,
-}: EmptyStateProps) {
+}: ReadonlyEmptyStateProps) {
   const { colors } = useTheme();
+  const hasRetry = typeof onRetry === 'function';
+  const hasEmptyTitle = Boolean(emptyTitle);
 
   if (loading) {
     return (
@@ -36,11 +40,11 @@ export function EmptyState({
         <Text style={[styles.icon]}>⚠️</Text>
         <Text style={[styles.title, { color: colors.text.primary }]}>Algo deu errado</Text>
         <Text style={[styles.message, { color: colors.text.secondary }]}>{error}</Text>
-        {onRetry && (
+        {hasRetry ? (
           <Pressable onPress={onRetry} style={[styles.retryBtn, { backgroundColor: colors.bg.elevated }]}>
             <Text style={[styles.retryLabel, { color: colors.text.primary }]}>Tentar novamente</Text>
           </Pressable>
-        )}
+        ) : null}
       </View>
     );
   }
@@ -49,9 +53,9 @@ export function EmptyState({
     return (
       <View style={styles.center}>
         <Text style={styles.icon}>📭</Text>
-        {emptyTitle && (
+        {hasEmptyTitle ? (
           <Text style={[styles.title, { color: colors.text.primary }]}>{emptyTitle}</Text>
-        )}
+        ) : null}
         <Text style={[styles.message, { color: colors.text.secondary }]}>{emptyMessage}</Text>
       </View>
     );

@@ -27,6 +27,9 @@ export default function FilhoResgatesScreen() {
   const [resgates, setResgates] = useState<ResgateComPremio[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const hasErro = Boolean(erro);
+  const shouldShowEmptyState = carregando || hasErro || resgates.length === 0;
+  const emptyStateMessage = 'Nenhum resgate realizado ainda.\nVá ao catálogo e troque seus pontos!';
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -49,14 +52,14 @@ export default function FilhoResgatesScreen() {
     <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
       <StatusBar style={colors.statusBar} />
 
-      {carregando || erro || resgates.length === 0 ? (
+      {shouldShowEmptyState ? (
         <EmptyState
           loading={carregando}
-          error={erro ? erro ?? 'Nenhum resgate realizado ainda.\nVá ao catálogo e troque seus pontos!' : null}
+          error={erro}
           empty={!carregando && !erro}
-          emptyMessage={erro ?? 'Nenhum resgate realizado ainda.\nVá ao catálogo e troque seus pontos!'}
+          emptyMessage={emptyStateMessage}
           onRetry={carregar}
-          />
+        />
       ) : (
         <FlatList
           data={resgates}

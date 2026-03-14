@@ -139,6 +139,10 @@ export default function SaldoFilhoAdminScreen() {
   const saldoLivre = saldo?.saldo_livre ?? 0;
   const cofrinho = saldo?.cofrinho ?? 0;
   const periodoAtual = saldo ? labelPeriodoValorizacao(saldo.periodo_valorizacao) : null;
+  const hasConfigSuccess = Boolean(sucModal);
+  const hasModalError = Boolean(errModal);
+  const hasMovimentacoes = movs.length > 0;
+  const hasValorizacaoConfigurada = (saldo?.indice_valorizacao ?? 0) > 0;
   const ultimaValorizacaoTexto = saldo?.data_ultima_valorizacao
     ? ` · última em ${new Date(saldo.data_ultima_valorizacao).toLocaleDateString('pt-BR')}`
     : '';
@@ -169,7 +173,7 @@ export default function SaldoFilhoAdminScreen() {
 
             <View style={styles.boxConfig}>
               <Text style={styles.boxConfigTitulo}>📈 Valorização do cofrinho</Text>
-              {(saldo?.indice_valorizacao ?? 0) > 0 ? (
+              {hasValorizacaoConfigurada ? (
                 <Text style={styles.boxConfigTexto}>
                   {saldo!.indice_valorizacao}% ao {periodoAtual}{ultimaValorizacaoTexto}
                 </Text>
@@ -180,7 +184,7 @@ export default function SaldoFilhoAdminScreen() {
                 <Pressable style={styles.btnAcao} onPress={() => abrirModal('valorizacao_config')}>
                   <Text style={styles.btnAcaoTexto}>Configurar</Text>
                 </Pressable>
-                {(saldo?.indice_valorizacao ?? 0) > 0 && (
+                {hasValorizacaoConfigurada ? (
                   <Pressable
                     style={[styles.btnAcao, { backgroundColor: colors.semantic.successBg }]}
                     onPress={handleValorizacao}
@@ -190,9 +194,9 @@ export default function SaldoFilhoAdminScreen() {
                       {enviando ? '…' : 'Aplicar agora'}
                     </Text>
                   </Pressable>
-                )}
+                ) : null}
               </View>
-              {sucModal && <Text style={styles.sucTexto}>{sucModal}</Text>}
+              {hasConfigSuccess ? <Text style={styles.sucTexto}>{sucModal}</Text> : null}
             </View>
 
             <Pressable style={styles.btnPenalizar} onPress={() => abrirModal('penalizar')}>
@@ -200,9 +204,9 @@ export default function SaldoFilhoAdminScreen() {
             </Pressable>
 
             <Text style={styles.secaoTitulo}>Histórico</Text>
-            {movs.length === 0 && (
+            {!hasMovimentacoes ? (
               <Text style={styles.vazio}>Nenhuma movimentação ainda.</Text>
-            )}
+            ) : null}
           </>
         }
         renderItem={({ item }) => (
@@ -252,7 +256,7 @@ export default function SaldoFilhoAdminScreen() {
               multiline
               maxLength={200}
             />
-            {errModal && <Text style={styles.errModal}>{errModal}</Text>}
+            {hasModalError ? <Text style={styles.errModal}>{errModal}</Text> : null}
             <View style={styles.modalBtns}>
               <Pressable style={styles.btnCancelar} onPress={() => setModalTipo(null)}>
                 <Text style={styles.btnCancelarTexto}>Cancelar</Text>
@@ -303,7 +307,7 @@ export default function SaldoFilhoAdminScreen() {
                 </Pressable>
               ))}
             </View>
-            {errModal && <Text style={styles.errModal}>{errModal}</Text>}
+            {hasModalError ? <Text style={styles.errModal}>{errModal}</Text> : null}
             <View style={styles.modalBtns}>
               <Pressable style={styles.btnCancelar} onPress={() => setModalTipo(null)}>
                 <Text style={styles.btnCancelarTexto}>Cancelar</Text>
