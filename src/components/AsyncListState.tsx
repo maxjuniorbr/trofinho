@@ -6,7 +6,7 @@ import {
   View,
 } from 'react-native';
 
-type AsyncListStateProps = {
+type AsyncListStateProps = Readonly<{
   isLoading: boolean;
   error: string | null;
   isEmpty: boolean;
@@ -14,7 +14,7 @@ type AsyncListStateProps = {
   emptySubtitle?: string;
   onRetry?: () => void;
   retryLabel?: string;
-};
+}>;
 
 export function AsyncListState({
   isLoading,
