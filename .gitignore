@@ -28,10 +28,16 @@ yarn-error.*
 
 # macOS
 .DS_Store
-*.pem
 
-# local env files
-.env*.local
+# Variáveis de ambiente — nunca commitar
+# Cobre: .env.local, .env.local.dev, .env.cloud, .env.production, etc.
+.env.*
+!.env.example
+
+# Supabase local
+supabase/.branches
+supabase/.temp
+*.pem
 
 # typescript
 *.tsbuildinfo
