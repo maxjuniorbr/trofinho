@@ -16,6 +16,8 @@ import { signOut, buscarPerfil, type UserProfile } from '@lib/auth';
 import { supabase } from '@lib/supabase';
 import { listarTarefasAdmin } from '@lib/tarefas';
 import { listarSaldosAdmin, type SaldoComFilho } from '@lib/saldos';
+import { listarFilhos } from '@lib/filhos';
+import type { Filho } from '@lib/tarefas';
 import { contarResgatesPendentes } from '@lib/premios';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
@@ -34,7 +36,8 @@ export default function AdminHomeScreen() {
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [familia, setFamilia] = useState<Familia | null>(null);
-  const [saldos, setSaldos] = useState<SaldoComFilho[]>([]);
+  const [filhos, setFilhos] = useState<Filho[]>([]);
+  const [saldosMap, setSaldosMap] = useState<Map<string, SaldoComFilho>>(new Map());
   const [carregando, setCarregando] = useState(true);
   const [saindo, setSaindo] = useState(false);
   const [qtdValidar, setQtdValidar] = useState(0);
@@ -66,13 +69,18 @@ export default function AdminHomeScreen() {
       }
       const { data: tarefas } = await listarTarefasAdmin();
       setQtdValidar(tarefas.reduce((acc, t) => acc + t.atribuicoes.filter((a) => a.status === 'aguardando_validacao').length, 0));
-      const { data: saldosData } = await listarSaldosAdmin();
-      setSaldos(saldosData);
+      const [{ data: filhosData }, { data: saldosData }] = await Promise.all([
+        listarFilhos(),
+        listarSaldosAdmin(),
+      ]);
+      setFilhos(filhosData);
+      setSaldosMap(new Map(saldosData.map((s) => [s.filho_id, s])));
       const { data: qtdPendentes } = await contarResgatesPendentes();
       setQtdResgatesPendentes(qtdPendentes);
     } catch {
       setFamilia(null);
-      setSaldos([]);
+      setFilhos([]);
+      setSaldosMap(new Map());
       setQtdValidar(0);
       setQtdResgatesPendentes(0);
     } finally {
@@ -92,7 +100,7 @@ export default function AdminHomeScreen() {
     );
   }
 
-  const totalPontos = saldos.reduce((acc, s) => acc + s.saldo_livre + s.cofrinho, 0);
+  const totalPontos = Array.from(saldosMap.values()).reduce((acc, s) => acc + s.saldo_livre + s.cofrinho, 0);
 
   return (
     <ScrollView
@@ -123,7 +131,7 @@ export default function AdminHomeScreen() {
         style={[styles.statsRow, { opacity: headerOpacity }]}
       >
         <View style={[styles.statCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
-          <Text style={[styles.statValue, { color: colors.brand.vivid }]}>{saldos.length}</Text>
+          <Text style={[styles.statValue, { color: colors.brand.vivid }]}>{filhos.length}</Text>
           <Text style={[styles.statLabel, { color: colors.text.secondary }]}>filhos</Text>
         </View>
         <View style={[styles.statCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
@@ -138,7 +146,7 @@ export default function AdminHomeScreen() {
       </Animated.View>
 
       {/* ── Seus filhos ───────────────────────────────────── */}
-      {saldos.length > 0 ? (
+      {filhos.length > 0 ? (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Seus filhos</Text>
@@ -147,27 +155,31 @@ export default function AdminHomeScreen() {
             </Pressable>
           </View>
           <FlatList
-            data={saldos}
-            keyExtractor={(item) => item.filho_id}
+            data={filhos}
+            keyExtractor={(item) => item.id}
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.childrenList}
-            renderItem={({ item }) => (
-              <Pressable
-                style={[styles.childCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}
-                onPress={() => router.push(`/(admin)/saldos/${item.filho_id}` as never)}
-                accessibilityRole="button"
-                accessibilityLabel={`${item.filhos.nome}, ${item.saldo_livre + item.cofrinho} pontos`}
-              >
-                <Avatar name={item.filhos.nome} size={48} />
-                <Text style={[styles.childName, { color: colors.text.primary }]} numberOfLines={1}>
-                  {item.filhos.nome}
-                </Text>
-                <Text style={[styles.childPoints, { color: colors.brand.vivid }]}>
-                  {(item.saldo_livre + item.cofrinho).toLocaleString('pt-BR')} pts
-                </Text>
-              </Pressable>
-            )}
+            renderItem={({ item }) => {
+              const saldo = saldosMap.get(item.id);
+              const pts = saldo ? saldo.saldo_livre + saldo.cofrinho : 0;
+              return (
+                <Pressable
+                  style={[styles.childCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}
+                  onPress={() => router.push(`/(admin)/saldos/${item.id}` as never)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${item.nome}, ${pts} pontos`}
+                >
+                  <Avatar name={item.nome} size={48} />
+                  <Text style={[styles.childName, { color: colors.text.primary }]} numberOfLines={1}>
+                    {item.nome}
+                  </Text>
+                  <Text style={[styles.childPoints, { color: colors.brand.vivid }]}>
+                    {pts.toLocaleString('pt-BR')} pts
+                  </Text>
+                </Pressable>
+              );
+            }}
           />
         </View>
       ) : null}
