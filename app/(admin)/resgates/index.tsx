@@ -20,7 +20,7 @@ import {
 } from '@lib/premios';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, spacing, typography } from '@/constants/theme';
+import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatarData } from '@lib/utils';
 
@@ -192,30 +192,30 @@ function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
     lista: { padding: spacing['4'], gap: spacing['2'], paddingBottom: spacing['10'] },
-    erroAcao: { color: colors.semantic.error, fontSize: typography.size.sm, fontWeight: typography.weight.medium, marginBottom: spacing['2'], textAlign: 'center' },
+    erroAcao: { color: colors.semantic.error, fontSize: typography.size.sm, fontFamily: typography.family.medium, marginBottom: spacing['2'], textAlign: 'center' },
     secaoHeader: { paddingVertical: spacing['2'] },
-    secaoTitulo: { fontSize: typography.size.xs, fontWeight: typography.weight.bold, color: colors.text.muted, textTransform: 'uppercase', letterSpacing: 0.5 },
+    secaoTitulo: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.text.muted, textTransform: 'uppercase', letterSpacing: 0.5 },
     card: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,
       borderCurve: 'continuous',
       padding: spacing['4'],
       gap: spacing['2'],
-      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)',
+      ...shadows.card,
     },
     cardPendente: { borderLeftWidth: 3, borderLeftColor: colors.semantic.warning },
     cardTopo: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing['2'] },
-    cardNome: { fontSize: typography.size.md, fontWeight: typography.weight.semibold, color: colors.text.primary },
+    cardNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary },
     cardFilho: { fontSize: typography.size.xs, color: colors.text.secondary },
     statusBadge: { borderRadius: radii.md, borderCurve: 'continuous', paddingHorizontal: spacing['2'], paddingVertical: 3, alignSelf: 'flex-end' },
-    statusTexto: { fontSize: typography.size.xs, fontWeight: typography.weight.semibold },
+    statusTexto: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
     cardData: { fontSize: typography.size.xs, color: colors.text.muted, textAlign: 'right', marginTop: spacing['1'] },
-    cardPontos: { fontSize: typography.size.xs, fontWeight: typography.weight.bold, color: colors.accent.admin },
+    cardPontos: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.accent.admin },
     acoesRow: { flexDirection: 'row', gap: spacing['2'], marginTop: spacing['1'] },
     botaoConfirmar: { flex: 1, backgroundColor: colors.semantic.success, borderRadius: radii.lg, borderCurve: 'continuous', paddingVertical: spacing['2'], alignItems: 'center' },
-    botaoConfirmarTexto: { color: '#fff', fontWeight: typography.weight.bold, fontSize: typography.size.sm },
+    botaoConfirmarTexto: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.sm },
     botaoCancelar: { flex: 1, borderRadius: radii.lg, borderCurve: 'continuous', borderWidth: 1.5, borderColor: colors.semantic.error, paddingVertical: spacing['2'], alignItems: 'center' },
-    botaoCancelarTexto: { color: colors.semantic.error, fontWeight: typography.weight.bold, fontSize: typography.size.sm },
+    botaoCancelarTexto: { color: colors.semantic.error, fontFamily: typography.family.bold, fontSize: typography.size.sm },
     botaoDesabilitado: { opacity: 0.5 },
   });
 }

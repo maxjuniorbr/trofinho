@@ -9,7 +9,7 @@ import { listarFilhos } from '@lib/filhos';
 import type { Filho } from '@lib/tarefas';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, spacing, typography } from '@/constants/theme';
+import { radii, shadows, spacing, typography } from '@/constants/theme';
 
 export default function AdminFilhosScreen() {
   const router = useRouter();
@@ -53,7 +53,7 @@ export default function AdminFilhosScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
           renderItem={({ item }) => (
-            <View style={[styles.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle, boxShadow: colors.shadow.low }]}>
+            <View style={[styles.card, shadows.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
               <Avatar name={item.nome} size={44} />
               <View style={styles.cardInfo}>
                 <Text style={[styles.cardNome, { color: colors.text.primary }]}>{item.nome}</Text>
@@ -73,11 +73,11 @@ function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
     botaoNovo: { borderRadius: radii.sm, paddingVertical: spacing['1'] + 2, paddingHorizontal: spacing['3'] },
-    botaoNovoTexto: { fontSize: typography.size.sm, fontWeight: typography.weight.semibold },
+    botaoNovoTexto: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
     lista: { padding: spacing['4'], gap: 10 },
     card: { borderRadius: radii.lg, borderWidth: 1, padding: spacing['3'], flexDirection: 'row', alignItems: 'center' },
     cardInfo: { flex: 1, marginLeft: spacing['3'] },
-    cardNome: { fontSize: typography.size.md, fontWeight: typography.weight.semibold },
+    cardNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
     cardStatus: { fontSize: typography.size.xs, marginTop: spacing['1'] },
   });
 }

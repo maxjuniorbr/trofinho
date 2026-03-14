@@ -105,7 +105,7 @@ function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     scroll: { padding: spacing['6'], gap: spacing['5'], flexGrow: 1 },
     campo: { gap: spacing['2'] },
-    label: { fontSize: typography.size.xs, fontWeight: typography.weight.semibold, color: colors.text.secondary },
+    label: { fontSize: typography.size.xs, fontFamily: typography.family.semibold, color: colors.text.secondary },
     input: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.lg,
@@ -118,7 +118,7 @@ function makeStyles(colors: ThemeColors) {
       color: colors.text.primary,
     },
     inputMultilinha: { minHeight: 80, paddingTop: spacing['3'] },
-    erro: { color: colors.semantic.error, fontSize: typography.size.sm, fontWeight: typography.weight.medium },
+    erro: { color: colors.semantic.error, fontSize: typography.size.sm, fontFamily: typography.family.medium },
     botao: {
       backgroundColor: colors.accent.admin,
       borderRadius: radii.xl,
@@ -128,6 +128,6 @@ function makeStyles(colors: ThemeColors) {
       marginTop: spacing['1'],
     },
     botaoDesabilitado: { opacity: 0.55 },
-    botaoTexto: { color: '#fff', fontWeight: typography.weight.bold, fontSize: typography.size.md },
+    botaoTexto: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.md },
   });
 }

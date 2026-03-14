@@ -8,7 +8,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { listarSaldosAdmin, type SaldoComFilho } from '@lib/saldos';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, spacing, typography } from '@/constants/theme';
+import { radii, shadows, spacing, typography } from '@/constants/theme';
 
 export default function SaldosAdminScreen() {
   const router = useRouter();
@@ -41,7 +41,7 @@ export default function SaldosAdminScreen() {
           ListEmptyComponent={<EmptyState empty emptyMessage={'Nenhum saldo ainda.\nAprove tarefas para creditar pontos.'} />}
           renderItem={({ item }) => (
             <Pressable
-              style={({ pressed }) => [styles.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle, boxShadow: colors.shadow.low, opacity: pressed ? 0.9 : 1 }]}
+              style={({ pressed }) => [styles.card, shadows.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle, opacity: pressed ? 0.9 : 1 }]}
               onPress={() => router.push({ pathname: '/(admin)/saldos/[filho_id]', params: { filho_id: item.filho_id, nome: item.filhos.nome } })}
             >
               <Avatar name={item.filhos.nome} size={44} />
@@ -69,7 +69,7 @@ function makeStyles(colors: ThemeColors) {
     lista: { padding: spacing['5'], paddingBottom: spacing['12'] },
     card: { flexDirection: 'row', alignItems: 'center', borderRadius: radii.lg, borderWidth: 1, padding: spacing['4'], marginBottom: 10 },
     info: { flex: 1, marginLeft: spacing['3'] },
-    nome: { fontSize: typography.size.md, fontWeight: typography.weight.bold },
+    nome: { fontSize: typography.size.md, fontFamily: typography.family.bold },
     detalhe: { fontSize: typography.size.sm, marginTop: 3 },
     seta: { fontSize: 22 },
   });
