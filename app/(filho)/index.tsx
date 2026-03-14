@@ -1,13 +1,15 @@
 import {
+  Animated,
+  Image,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
-  Pressable,
   ActivityIndicator,
-  ScrollView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { signOut, buscarPerfil, type UserProfile } from '@lib/auth';
 import { supabase } from '@lib/supabase';
@@ -15,33 +17,52 @@ import { listarAtribuicoesFilho } from '@lib/tarefas';
 import { buscarSaldo } from '@lib/saldos';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, spacing, typography } from '@/constants/theme';
+import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { PointsDisplay } from '@/components/ui/points-display';
+
+const mascotImage       = require('../../assets/trofinho-mascot.png');
+const celebratingImage  = require('../../assets/trofinho-celebrating.png');
 
 type Familia = { nome: string };
-const TASKS_LINK_LABEL = 'Ver tarefas →';
-const SALDO_LINK_LABEL = 'Ver detalhes →';
-const PREMIOS_LINK_LABEL = 'Ver prêmios →';
-const RESGATES_LINK_LABEL = 'Ver resgates →';
 
 export default function FilhoHomeScreen() {
-  const router = useRouter();
+  const router  = useRouter();
   const { colors } = useTheme();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
-  const insets = useSafeAreaInsets();
+  const styles  = useMemo(() => makeStyles(colors), [colors]);
+  const insets  = useSafeAreaInsets();
 
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [familia, setFamilia] = useState<Familia | null>(null);
+  const [profile,    setProfile]    = useState<UserProfile | null>(null);
+  const [familia,    setFamilia]    = useState<Familia | null>(null);
   const [carregando, setCarregando] = useState(true);
-  const [saindo, setSaindo] = useState(false);
-  const [pendentes, setPendentes] = useState(0);
+  const [saindo,     setSaindo]     = useState(false);
+  const [pendentes,  setPendentes]  = useState(0);
   const [saldoLivre, setSaldoLivre] = useState(0);
-  const [cofrinho, setCofrinho] = useState(0);
+  const [cofrinho,   setCofrinho]   = useState(0);
+
   const hasPendentes = pendentes > 0;
-  const hasSaldoLivre = saldoLivre > 0;
+
+  // ─── Entrance animations ────────────────────────────────────
+  const heroOpacity    = useRef(new Animated.Value(0)).current;
+  const heroY          = useRef(new Animated.Value(20)).current;
+  const mascotScale    = useRef(new Animated.Value(0.5)).current;
+
+  useEffect(() => {
+    if (!carregando) {
+      Animated.parallel([
+        Animated.timing(heroOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.spring(heroY, { toValue: 0, friction: 8, tension: 55, useNativeDriver: true }),
+        Animated.spring(mascotScale, { toValue: 1, friction: 5, tension: 60, useNativeDriver: true }),
+      ]).start();
+    }
+  }, [carregando, heroOpacity, heroY, mascotScale]);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
+    // Reset animations for re-focus
+    heroOpacity.setValue(0);
+    heroY.setValue(20);
+    mascotScale.setValue(0.5);
     try {
       const p = await buscarPerfil();
       setProfile(p);
@@ -64,23 +85,11 @@ export default function FilhoHomeScreen() {
     } finally {
       setCarregando(false);
     }
-  }, []);
+  }, [heroOpacity, heroY, mascotScale]);
 
   useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
 
-  const tarefaPendenteLabel = pendentes === 1 ? 'tarefa pendente' : 'tarefas pendentes';
-  const tarefasPendentesTexto = hasPendentes
-    ? `${pendentes} ${tarefaPendenteLabel} esperando por você!`
-    : 'Nenhuma tarefa pendente no momento.';
-  const saldoTexto = `💰 ${saldoLivre} pts livre · 🐷 ${cofrinho} pts cofrinho`;
-  const premiosTexto = hasSaldoLivre
-    ? `Você tem ${saldoLivre} pts disponíveis para resgatar!`
-    : 'Veja os prêmios disponíveis e acumule pontos.';
-
-  async function handleSair() {
-    setSaindo(true);
-    await signOut();
-  }
+  async function handleSair() { setSaindo(true); await signOut(); }
 
   if (carregando) {
     return (
@@ -92,80 +101,137 @@ export default function FilhoHomeScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + spacing['6'] }]} style={{ backgroundColor: colors.bg.canvas }}>
+    <ScrollView
+      style={{ backgroundColor: colors.bg.canvas }}
+      contentContainerStyle={[styles.container, { paddingTop: insets.top + spacing['6'] }]}
+      showsVerticalScrollIndicator={false}
+    >
       <StatusBar style={colors.statusBar} />
 
-      <View style={styles.header}>
-        <Text style={styles.emoji}>⭐</Text>
-        <Text style={styles.familia}>{familia?.nome ?? '—'}</Text>
-        <Text style={styles.boasVindas}>Olá, {profile?.nome ?? 'Filho'}!</Text>
-      </View>
-
-      <Pressable
-        style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}
-        onPress={() => router.push('/(filho)/tarefas')}
-        accessibilityRole="button"
-        accessibilityLabel={`Minhas Tarefas. ${tarefasPendentesTexto}`}
+      {/* ── Hero ───────────────────────────────────────── */}
+      <Animated.View
+        style={[styles.hero, { opacity: heroOpacity, transform: [{ translateY: heroY }] }]}
       >
-        <View style={styles.cardTopo}>
-          <Text style={styles.cardTitulo}>📋 Minhas Tarefas</Text>
+        <Text style={[styles.heroSub, { color: colors.text.secondary }]}>Bom dia 🏆</Text>
+        <Text style={[styles.heroTitle, { color: colors.text.primary }]}>
+          Olá, {profile?.nome ?? 'Campeão'}!
+        </Text>
+        {familia ? (
+          <Text style={[styles.heroFamily, { color: colors.accent.filho }]}>{familia.nome}</Text>
+        ) : null}
+      </Animated.View>
+
+      {/* ── Mascote ────────────────────────────────────── */}
+      <Animated.View style={[styles.mascotContainer, { transform: [{ scale: mascotScale }] }]}>
+        <Image
+          source={hasPendentes ? mascotImage : celebratingImage}
+          style={styles.mascotImage}
+          resizeMode="contain"
+          accessibilityLabel={hasPendentes ? 'Trofinho animado' : 'Trofinho celebrando'}
+        />
+        <Text style={[styles.mascotCaption, { color: colors.text.secondary }]}>
+          {hasPendentes ? 'Vamos conquistar o dia?' : 'Troféu conquistado! 🎉'}
+        </Text>
+      </Animated.View>
+
+      {/* ── Balance grid ───────────────────────────────── */}
+      <Animated.View style={[styles.balanceGrid, { opacity: heroOpacity }]}>
+        <View
+          style={[
+            styles.balanceCard,
+            { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+            shadows.goldGlow,
+          ]}
+          accessibilityLabel={`Saldo livre: ${saldoLivre} pontos`}
+        >
+          <Text style={[styles.balanceLabel, { color: colors.text.secondary }]}>Livre</Text>
+          <PointsDisplay value={saldoLivre} label="pontos" variant="gold" size="lg" />
+        </View>
+        <View
+          style={[
+            styles.balanceCard,
+            { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+            shadows.card,
+          ]}
+          accessibilityLabel={`Cofrinho: ${cofrinho} pontos`}
+        >
+          <Text style={[styles.balanceLabel, { color: colors.text.secondary }]}>Cofrinho</Text>
+          <PointsDisplay value={cofrinho} label="pontos" variant="amber" size="lg" />
+        </View>
+      </Animated.View>
+
+      {/* ── Tarefas nav card ───────────────────────────── */}
+      <Animated.View style={{ opacity: heroOpacity, width: '100%' }}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.tarefasCard,
+            {
+              backgroundColor: colors.bg.surface,
+              borderColor: hasPendentes ? colors.semantic.error + '50' : colors.border.subtle,
+            },
+            shadows.card,
+            pressed && { opacity: 0.85 },
+          ]}
+          onPress={() => router.push('/(filho)/tarefas')}
+          accessibilityRole="button"
+          accessibilityLabel={hasPendentes ? `${pendentes} tarefas pendentes` : 'Minhas Tarefas'}
+        >
+          <Text style={styles.tarefasEmoji}>📋</Text>
+          <View style={styles.tarefasBody}>
+            <Text style={[styles.tarefasTitle, { color: colors.text.primary }]}>Minhas Tarefas</Text>
+            <Text style={[styles.tarefasSub, { color: colors.text.secondary }]}>
+              {hasPendentes
+                ? `${pendentes} ${pendentes === 1 ? 'tarefa pendente' : 'tarefas pendentes'}`
+                : 'Tudo em dia!'}
+            </Text>
+          </View>
           {hasPendentes ? (
-            <View style={styles.badge}>
-              <Text style={styles.badgeTexto}>{pendentes}</Text>
+            <View style={[styles.pendenteBadge, { backgroundColor: colors.semantic.error }]}>
+              <Text style={styles.pendenteBadgeText}>{pendentes}</Text>
             </View>
           ) : null}
-        </View>
-        <Text style={styles.cardTexto}>{tarefasPendentesTexto}</Text>
-        <Text style={styles.cardLink}>{TASKS_LINK_LABEL}</Text>
-      </Pressable>
+        </Pressable>
+      </Animated.View>
 
-      <Pressable
-        style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}
-        onPress={() => router.push('/(filho)/saldo')}
-        accessibilityRole="button"
-        accessibilityLabel={`Meu Saldo. ${saldoLivre} pontos livre, ${cofrinho} pontos cofrinho`}
-      >
-        <View style={styles.cardTopo}>
-          <Text style={styles.cardTitulo}>💰 Meu Saldo</Text>
-        </View>
-        <Text style={styles.cardTexto}>{saldoTexto}</Text>
-        <Text style={styles.cardLink}>{SALDO_LINK_LABEL}</Text>
-      </Pressable>
+      {/* ── Quick nav 2-col ────────────────────────────── */}
+      <Animated.View style={[styles.quickGrid, { opacity: heroOpacity }]}>
+        {([
+          { emoji: '🎁', label: 'Prêmios',  rota: '/(filho)/premios'  as never },
+          { emoji: '🛍️', label: 'Resgates', rota: '/(filho)/resgates' as never },
+          { emoji: '💰', label: 'Saldo',    rota: '/(filho)/saldo'    as never },
+        ]).map(({ emoji, label, rota }) => (
+          <Pressable
+            key={rota}
+            style={({ pressed }) => [
+              styles.quickCard,
+              { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+              shadows.card,
+              pressed && { opacity: 0.8 },
+            ]}
+            onPress={() => router.push(rota)}
+            accessibilityRole="button"
+            accessibilityLabel={label}
+          >
+            <Text style={styles.quickEmoji}>{emoji}</Text>
+            <Text style={[styles.quickLabel, { color: colors.text.primary }]}>{label}</Text>
+          </Pressable>
+        ))}
+      </Animated.View>
 
+      {/* ── Sair ───────────────────────────────────────── */}
       <Pressable
-        style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}
-        onPress={() => router.push('/(filho)/premios' as never)}
-        accessibilityRole="button"
-        accessibilityLabel="Catálogo de Prêmios"
-      >
-        <View style={styles.cardTopo}>
-          <Text style={styles.cardTitulo}>🎁 Catálogo de Prêmios</Text>
-        </View>
-        <Text style={styles.cardTexto}>{premiosTexto}</Text>
-        <Text style={styles.cardLink}>{PREMIOS_LINK_LABEL}</Text>
-      </Pressable>
-
-      <Pressable
-        style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}
-        onPress={() => router.push('/(filho)/resgates' as never)}
-        accessibilityRole="button"
-        accessibilityLabel="Meus Resgates"
-      >
-        <View style={styles.cardTopo}>
-          <Text style={styles.cardTitulo}>🛍️ Meus Resgates</Text>
-        </View>
-        <Text style={styles.cardTexto}>Acompanhe o status dos seus resgates.</Text>
-        <Text style={styles.cardLink}>{RESGATES_LINK_LABEL}</Text>
-      </Pressable>
-
-      <Pressable
-        style={({ pressed }) => [styles.botaoSair, saindo && styles.botaoDesabilitado, pressed && !saindo && { opacity: 0.7 }]}
+        style={({ pressed }) => [
+          styles.sairBtn,
+          { borderColor: colors.border.default, opacity: (saindo || pressed) ? 0.6 : 1 },
+        ]}
         onPress={handleSair}
         disabled={saindo}
         accessibilityRole="button"
         accessibilityLabel={saindo ? 'Saindo' : 'Sair'}
       >
-        <Text style={styles.botaoSairTexto}>{saindo ? 'Saindo…' : 'Sair'}</Text>
+        <Text style={[styles.sairTexto, { color: colors.text.secondary }]}>
+          {saindo ? 'Saindo…' : 'Sair'}
+        </Text>
       </Pressable>
     </ScrollView>
   );
@@ -173,50 +239,53 @@ export default function FilhoHomeScreen() {
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    container: {
-      flexGrow: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: spacing['6'],
+    loading:         { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    container:       { flexGrow: 1, alignItems: 'center', paddingHorizontal: spacing.screen, paddingBottom: spacing['12'] },
+
+    // Hero
+    hero:            { alignItems: 'center', marginBottom: spacing['4'] },
+    heroSub:         { fontFamily: typography.family.bold, fontSize: typography.size.sm },
+    heroTitle:       { fontFamily: typography.family.black, fontSize: typography.size['3xl'], marginTop: 2, textAlign: 'center' },
+    heroFamily:      { fontFamily: typography.family.semibold, fontSize: typography.size.sm, marginTop: 4 },
+
+    // Mascote
+    mascotContainer: { alignItems: 'center', marginBottom: spacing['6'] },
+    mascotImage:     { width: 120, height: 120 },
+    mascotCaption:   { fontFamily: typography.family.medium, fontSize: typography.size.sm, marginTop: spacing['2'] },
+
+    // Balance grid
+    balanceGrid:     { flexDirection: 'row', gap: spacing['3'], width: '100%', marginBottom: spacing['4'] },
+    balanceCard:     {
+      flex: 1, borderRadius: radii.outer, borderWidth: 1,
+      padding: spacing['4'], alignItems: 'center', gap: spacing['2'],
     },
-    header: { alignItems: 'center', marginBottom: spacing['8'] },
-    emoji: { fontSize: 48 },
-    familia: { fontSize: typography.size['2xl'], fontWeight: typography.weight.bold, color: colors.accent.filho, marginTop: spacing['3'] },
-    boasVindas: { fontSize: typography.size.md, color: colors.text.secondary, marginTop: spacing['1'] },
-    card: {
-      backgroundColor: colors.bg.surface,
-      borderRadius: radii.xl,
-      borderCurve: 'continuous',
-      padding: spacing['6'],
-      width: '100%',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
-      marginBottom: spacing['4'],
+    balanceLabel:    { fontFamily: typography.family.bold, fontSize: typography.size.xs, textTransform: 'uppercase', letterSpacing: 0.6 },
+
+    // Tarefas card
+    tarefasCard:     {
+      flexDirection: 'row', alignItems: 'center', gap: spacing['3'],
+      borderRadius: radii.outer, borderWidth: 1, padding: spacing['4'],
+      width: '100%', marginBottom: spacing['4'],
     },
-    cardTopo: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing['2'] },
-    cardTitulo: { fontSize: typography.size.sm, fontWeight: typography.weight.bold, color: colors.accent.filho, flex: 1 },
-    badge: {
-      backgroundColor: colors.semantic.error,
-      borderRadius: radii.full,
-      borderCurve: 'continuous',
-      paddingHorizontal: spacing['2'],
-      paddingVertical: 2,
-      minWidth: 24,
-      alignItems: 'center',
+    tarefasEmoji:    { fontSize: 28 },
+    tarefasBody:     { flex: 1 },
+    tarefasTitle:    { fontFamily: typography.family.bold, fontSize: typography.size.md },
+    tarefasSub:      { fontFamily: typography.family.medium, fontSize: typography.size.xs, marginTop: 2 },
+    pendenteBadge:   { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+    pendenteBadgeText: { color: '#fff', fontFamily: typography.family.black, fontSize: typography.size.xs },
+
+    // Quick grid
+    quickGrid:       { flexDirection: 'row', flexWrap: 'wrap', gap: spacing['3'], width: '100%', marginBottom: spacing['6'] },
+    quickCard:       {
+      flex: 1, minWidth: 90,
+      borderRadius: radii.inner, borderWidth: 1,
+      paddingVertical: spacing['4'], alignItems: 'center', gap: spacing['1'],
     },
-    badgeTexto: { color: '#fff', fontSize: typography.size.xs, fontWeight: typography.weight.bold },
-    cardTexto: { fontSize: typography.size.md, color: colors.text.primary, lineHeight: 22 },
-    cardLink: { fontSize: typography.size.sm, color: colors.accent.filho, fontWeight: typography.weight.semibold, marginTop: spacing['2'] },
-    botaoSair: {
-      borderWidth: 1,
-      borderColor: colors.border.default,
-      borderRadius: radii.xl,
-      borderCurve: 'continuous',
-      paddingVertical: spacing['3'],
-      paddingHorizontal: spacing['8'],
-      minHeight: 44,
-    },
-    botaoDesabilitado: { opacity: 0.5 },
-    botaoSairTexto: { color: colors.text.secondary, fontSize: typography.size.md, fontWeight: typography.weight.medium },
+    quickEmoji:      { fontSize: 24 },
+    quickLabel:      { fontFamily: typography.family.bold, fontSize: typography.size.xs, textAlign: 'center' },
+
+    // Sair
+    sairBtn:         { borderWidth: 1, borderRadius: radii.md, paddingVertical: spacing['3'], paddingHorizontal: spacing['8'], alignSelf: 'center' },
+    sairTexto:       { fontFamily: typography.family.medium, fontSize: typography.size.sm },
   });
 }
