@@ -26,7 +26,7 @@ import {
 import { buscarMeuFilhoId } from '@lib/filhos';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, spacing, typography } from '@/constants/theme';
+import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 
 export default function SaldoFilhoScreen() {
@@ -166,7 +166,7 @@ export default function SaldoFilhoScreen() {
           <View style={styles.modalBox}>
             <Text style={styles.modalTitulo}>🐷 Guardar no cofrinho</Text>
             <Text style={styles.modalSub}>
-              Saldo livre disponível: <Text style={{ fontWeight: typography.weight.bold }}>{saldoLivre}</Text> pts
+              Saldo livre disponível: <Text style={{ fontFamily: typography.family.bold }}>{saldoLivre}</Text> pts
             </Text>
             <TextInput
               style={styles.modalInput}
@@ -211,10 +211,10 @@ function makeStyles(colors: ThemeColors) {
       borderRadius: radii.xl,
       padding: spacing['4'],
       alignItems: 'center',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+      ...shadows.card,
     },
-    saldoLabel: { color: 'rgba(255,255,255,0.85)', fontSize: typography.size.xs, fontWeight: typography.weight.semibold, marginBottom: spacing['1'] },
-    saldoValor: { color: '#fff', fontSize: typography.size['4xl'], fontWeight: typography.weight.extrabold },
+    saldoLabel: { color: 'rgba(255,255,255,0.85)', fontSize: typography.size.xs, fontFamily: typography.family.semibold, marginBottom: spacing['1'] },
+    saldoValor: { color: '#fff', fontSize: typography.size['4xl'], fontFamily: typography.family.extrabold },
     saldoPts: { color: 'rgba(255,255,255,0.8)', fontSize: typography.size.xs, marginTop: 2 },
     valBox: { backgroundColor: colors.semantic.successBg, borderRadius: radii.lg, padding: spacing['2'], marginBottom: spacing['3'] },
     valTexto: { color: colors.semantic.success, fontSize: typography.size.xs },
@@ -226,8 +226,8 @@ function makeStyles(colors: ThemeColors) {
       marginBottom: spacing['6'],
     },
     btnDesabilitado: { opacity: 0.4 },
-    btnTransferirTexto: { color: '#fff', fontWeight: typography.weight.bold, fontSize: typography.size.md },
-    secaoTitulo: { fontSize: typography.size.md, fontWeight: typography.weight.bold, color: colors.text.primary, marginBottom: spacing['3'] },
+    btnTransferirTexto: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.md },
+    secaoTitulo: { fontSize: typography.size.md, fontFamily: typography.family.bold, color: colors.text.primary, marginBottom: spacing['3'] },
     vazio: { color: colors.text.muted, fontSize: typography.size.sm, textAlign: 'center', marginTop: spacing['2'] },
     movItem: {
       flexDirection: 'row',
@@ -239,10 +239,10 @@ function makeStyles(colors: ThemeColors) {
     },
     movEmoji: { fontSize: 22, marginRight: spacing['3'] },
     movInfo: { flex: 1 },
-    movLabel: { fontSize: typography.size.sm, fontWeight: typography.weight.semibold, color: colors.text.primary },
+    movLabel: { fontSize: typography.size.sm, fontFamily: typography.family.semibold, color: colors.text.primary },
     movDesc: { fontSize: typography.size.xs, color: colors.text.secondary, marginTop: 1 },
     movData: { fontSize: typography.size.xs, color: colors.text.muted, marginTop: 2 },
-    movValor: { fontSize: typography.size.md, fontWeight: typography.weight.bold },
+    movValor: { fontSize: typography.size.md, fontFamily: typography.family.bold },
     credito: { color: colors.semantic.success },
     debito: { color: colors.semantic.error },
     modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
@@ -254,7 +254,7 @@ function makeStyles(colors: ThemeColors) {
       paddingBottom: spacing['12'],
       gap: spacing['4'],
     },
-    modalTitulo: { fontSize: typography.size.lg, fontWeight: typography.weight.bold, color: colors.text.primary },
+    modalTitulo: { fontSize: typography.size.lg, fontFamily: typography.family.bold, color: colors.text.primary },
     modalSub: { fontSize: typography.size.sm, color: colors.text.secondary },
     modalInput: {
       borderWidth: 1,
@@ -263,7 +263,7 @@ function makeStyles(colors: ThemeColors) {
       paddingHorizontal: spacing['3'],
       paddingVertical: spacing['3'],
       fontSize: typography.size['2xl'],
-      fontWeight: typography.weight.bold,
+      fontFamily: typography.family.bold,
       color: colors.text.primary,
       textAlign: 'center',
     },
@@ -277,7 +277,7 @@ function makeStyles(colors: ThemeColors) {
       paddingVertical: spacing['3'],
       alignItems: 'center',
     },
-    btnCancelarTexto: { color: colors.text.secondary, fontWeight: typography.weight.semibold },
+    btnCancelarTexto: { color: colors.text.secondary, fontFamily: typography.family.semibold },
     btnConfirmar: {
       flex: 1,
       backgroundColor: colors.semantic.warning,
@@ -285,6 +285,6 @@ function makeStyles(colors: ThemeColors) {
       paddingVertical: spacing['3'],
       alignItems: 'center',
     },
-    btnConfirmarTexto: { color: '#fff', fontWeight: typography.weight.bold, fontSize: typography.size.md },
+    btnConfirmarTexto: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.md },
   });
 }

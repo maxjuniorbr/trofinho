@@ -16,7 +16,7 @@ import {
 } from '@lib/premios';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, spacing, typography } from '@/constants/theme';
+import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatarData } from '@lib/utils';
 
@@ -98,14 +98,14 @@ function makeStyles(colors: ThemeColors) {
       borderCurve: 'continuous',
       padding: spacing['4'],
       gap: spacing['2'],
-      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)',
+      ...shadows.card,
     },
     cardTopo: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
-    cardNome: { fontSize: typography.size.md, fontWeight: typography.weight.semibold, color: colors.text.primary, flex: 1 },
+    cardNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary, flex: 1 },
     statusBadge: { borderRadius: radii.md, borderCurve: 'continuous', paddingHorizontal: spacing['2'], paddingVertical: 3 },
-    statusTexto: { fontSize: typography.size.xs, fontWeight: typography.weight.semibold },
+    statusTexto: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
     cardRodape: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    cardPontos: { fontSize: typography.size.xs, fontWeight: typography.weight.bold, color: colors.accent.filho },
+    cardPontos: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.accent.filho },
     cardData: { fontSize: typography.size.xs, color: colors.text.muted },
   });
 }

@@ -20,7 +20,7 @@ import {
 } from '@lib/tarefas';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, spacing, typography } from '@/constants/theme';
+import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 
@@ -204,18 +204,18 @@ function makeStyles(colors: ThemeColors) {
       alignSelf: 'center',
       marginBottom: spacing['4'],
     },
-    statusBadgeTexto: { color: '#fff', fontSize: typography.size.sm, fontWeight: typography.weight.bold },
+    statusBadgeTexto: { color: '#fff', fontSize: typography.size.sm, fontFamily: typography.family.bold },
     card: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,
       padding: spacing['4'],
       marginBottom: spacing['4'],
-      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.06)',
+      ...shadows.card,
     },
     cardTopo: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: spacing['2'] },
-    cardTitulo: { flex: 1, fontSize: typography.size.lg, fontWeight: typography.weight.bold, color: colors.text.primary, marginRight: spacing['2'] },
+    cardTitulo: { flex: 1, fontSize: typography.size.lg, fontFamily: typography.family.bold, color: colors.text.primary, marginRight: spacing['2'] },
     pontosTag: { backgroundColor: colors.accent.filhoBg, borderRadius: radii.md, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'] },
-    pontosTexto: { fontSize: typography.size.sm, fontWeight: typography.weight.bold, color: colors.accent.filho },
+    pontosTexto: { fontSize: typography.size.sm, fontFamily: typography.family.bold, color: colors.accent.filho },
     descricao: { fontSize: typography.size.sm, color: colors.text.secondary, marginBottom: spacing['2'], lineHeight: 20 },
     meta: { fontSize: typography.size.xs, color: colors.text.muted },
     tagEvidencia: {
@@ -226,21 +226,21 @@ function makeStyles(colors: ThemeColors) {
       alignSelf: 'flex-start',
       marginTop: spacing['2'],
     },
-    tagEvidenciaTexto: { fontSize: typography.size.xs, color: colors.semantic.warning, fontWeight: typography.weight.semibold },
+    tagEvidenciaTexto: { fontSize: typography.size.xs, color: colors.semantic.warning, fontFamily: typography.family.semibold },
     evidenciaBox: { marginBottom: spacing['4'] },
-    evidenciaLabel: { fontSize: typography.size.xs, fontWeight: typography.weight.semibold, color: colors.text.secondary, marginBottom: spacing['2'] },
+    evidenciaLabel: { fontSize: typography.size.xs, fontFamily: typography.family.semibold, color: colors.text.secondary, marginBottom: spacing['2'] },
     evidenciaImg: { width: '100%', height: 220, borderRadius: radii.xl },
     notaRejeicaoBox: { backgroundColor: colors.semantic.errorBg, borderRadius: radii.xl, padding: spacing['3'], marginBottom: spacing['4'] },
-    notaRejeicaoLabel: { fontSize: typography.size.xs, fontWeight: typography.weight.bold, color: colors.semantic.error, marginBottom: spacing['1'] },
+    notaRejeicaoLabel: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.semantic.error, marginBottom: spacing['1'] },
     notaRejeicaoTexto: { fontSize: typography.size.sm, color: colors.text.primary, marginBottom: spacing['2'] },
     notaRejeicaoHint: { fontSize: typography.size.xs, color: colors.text.muted, fontStyle: 'italic' },
     erroTexto: { color: colors.semantic.error, fontSize: typography.size.sm, textAlign: 'center', marginBottom: spacing['3'], marginTop: spacing['2'] },
     botaoConcluir: { backgroundColor: colors.accent.filho, borderRadius: radii.xl, paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['2'] },
     botaoDesabilitado: { opacity: 0.6 },
-    botaoConcluirTexto: { color: '#fff', fontSize: typography.size.md, fontWeight: typography.weight.bold },
+    botaoConcluirTexto: { color: '#fff', fontSize: typography.size.md, fontFamily: typography.family.bold },
     aguardandoBox: { backgroundColor: colors.accent.filhoBg, borderRadius: radii.xl, padding: spacing['3'], alignItems: 'center', marginTop: spacing['2'] },
-    aguardandoTexto: { fontSize: typography.size.sm, color: colors.accent.filho, fontWeight: typography.weight.semibold },
+    aguardandoTexto: { fontSize: typography.size.sm, color: colors.accent.filho, fontFamily: typography.family.semibold },
     aprovadoBox: { backgroundColor: colors.semantic.successBg, borderRadius: radii.xl, padding: spacing['3'], alignItems: 'center', marginTop: spacing['2'] },
-    aprovadoTexto: { fontSize: typography.size.sm, color: colors.semantic.success, fontWeight: typography.weight.semibold, textAlign: 'center' },
+    aprovadoTexto: { fontSize: typography.size.sm, color: colors.semantic.success, fontFamily: typography.family.semibold, textAlign: 'center' },
   });
 }

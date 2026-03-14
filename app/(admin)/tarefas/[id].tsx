@@ -22,7 +22,7 @@ import {
 } from '@lib/tarefas';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, spacing, typography } from '@/constants/theme';
+import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 
@@ -250,7 +250,7 @@ function makeStyles(colors: ThemeColors) {
       borderRadius: radii.xl,
       padding: spacing['4'],
       marginBottom: spacing['5'],
-      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.06)',
+      ...shadows.card,
     },
     cardTopo: {
       flexDirection: 'row',
@@ -258,9 +258,9 @@ function makeStyles(colors: ThemeColors) {
       justifyContent: 'space-between',
       marginBottom: spacing['2'],
     },
-    cardTitulo: { flex: 1, fontSize: typography.size.lg, fontWeight: typography.weight.bold, color: colors.text.primary, marginRight: spacing['2'] },
+    cardTitulo: { flex: 1, fontSize: typography.size.lg, fontFamily: typography.family.bold, color: colors.text.primary, marginRight: spacing['2'] },
     pontosTag: { backgroundColor: colors.accent.adminBg, borderRadius: radii.md, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'] },
-    pontosTexto: { fontSize: typography.size.sm, fontWeight: typography.weight.bold, color: colors.accent.admin },
+    pontosTexto: { fontSize: typography.size.sm, fontFamily: typography.family.bold, color: colors.accent.admin },
     descricao: { fontSize: typography.size.sm, color: colors.text.secondary, marginBottom: spacing['2'], lineHeight: 20 },
     meta: { fontSize: typography.size.xs, color: colors.text.muted },
     tagEvidencia: {
@@ -271,10 +271,10 @@ function makeStyles(colors: ThemeColors) {
       alignSelf: 'flex-start',
       marginTop: spacing['2'],
     },
-    tagEvidenciaTexto: { fontSize: typography.size.xs, color: colors.semantic.warning, fontWeight: typography.weight.semibold },
+    tagEvidenciaTexto: { fontSize: typography.size.xs, color: colors.semantic.warning, fontFamily: typography.family.semibold },
     secaoTitulo: {
       fontSize: typography.size.xs,
-      fontWeight: typography.weight.bold,
+      fontFamily: typography.family.bold,
       color: colors.text.secondary,
       textTransform: 'uppercase',
       letterSpacing: 0.6,
@@ -286,12 +286,12 @@ function makeStyles(colors: ThemeColors) {
       borderRadius: radii.lg,
       padding: spacing['3'],
       marginBottom: spacing['3'],
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)',
+      ...shadows.card,
     },
     atribTopo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing['2'] },
-    filhoNome: { fontSize: typography.size.md, fontWeight: typography.weight.semibold, color: colors.text.primary },
+    filhoNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary },
     statusTag: { borderRadius: radii.sm, paddingVertical: 3, paddingHorizontal: spacing['2'] },
-    statusTexto: { fontSize: typography.size.xs, fontWeight: typography.weight.semibold },
+    statusTexto: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
     evidenciaImg: { width: '100%', height: 200, borderRadius: radii.lg, marginBottom: spacing['2'] },
     notaRejeicaoBox: {
       backgroundColor: colors.semantic.errorBg,
@@ -299,7 +299,7 @@ function makeStyles(colors: ThemeColors) {
       padding: spacing['3'],
       marginBottom: spacing['2'],
     },
-    notaRejeicaoLabel: { fontSize: typography.size.xs, fontWeight: typography.weight.bold, color: colors.semantic.error, marginBottom: 3 },
+    notaRejeicaoLabel: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.semantic.error, marginBottom: 3 },
     notaRejeicaoTexto: { fontSize: typography.size.sm, color: colors.text.primary },
     acoesBox: { marginTop: spacing['2'] },
     inputNota: {
@@ -318,11 +318,11 @@ function makeStyles(colors: ThemeColors) {
     botoesValidar: { flexDirection: 'row', gap: spacing['2'] },
     botaoAcao: { flex: 1, borderRadius: radii.md, paddingVertical: spacing['2'], alignItems: 'center' },
     botaoCancelar: { borderWidth: 1, borderColor: colors.border.default },
-    botaoCancelarTexto: { color: colors.text.secondary, fontWeight: typography.weight.semibold, fontSize: typography.size.sm },
+    botaoCancelarTexto: { color: colors.text.secondary, fontFamily: typography.family.semibold, fontSize: typography.size.sm },
     botaoRejeitar: { backgroundColor: colors.semantic.error },
-    botaoRejeitarTexto: { color: '#fff', fontWeight: typography.weight.bold, fontSize: typography.size.sm },
+    botaoRejeitarTexto: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.sm },
     botaoAprovar: { backgroundColor: colors.semantic.success },
-    botaoAprovarTexto: { color: '#fff', fontWeight: typography.weight.bold, fontSize: typography.size.sm },
+    botaoAprovarTexto: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.sm },
     botaoDesabilitado: { opacity: 0.5 },
     erroAtrib: { color: colors.semantic.error, fontSize: typography.size.xs, marginTop: spacing['2'] },
   });

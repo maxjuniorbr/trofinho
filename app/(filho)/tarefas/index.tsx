@@ -18,7 +18,7 @@ import {
 } from '@lib/tarefas';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, spacing, typography } from '@/constants/theme';
+import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 
 type Filtro = 'pendente' | 'aguardando_validacao' | 'historico';
@@ -168,7 +168,7 @@ function makeStyles(colors: ThemeColors) {
       backgroundColor: colors.accent.filhoBg,
     },
     filtroBtnAtivo: { backgroundColor: colors.accent.filho },
-    filtroTexto: { fontSize: typography.size.xs, fontWeight: typography.weight.semibold, color: colors.text.secondary },
+    filtroTexto: { fontSize: typography.size.xs, fontFamily: typography.family.semibold, color: colors.text.secondary },
     filtroTextoAtivo: { color: '#fff' },
     centro: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing['6'] },
     erroTexto: { color: colors.semantic.error, fontSize: typography.size.md, textAlign: 'center', marginBottom: spacing['3'] },
@@ -179,21 +179,21 @@ function makeStyles(colors: ThemeColors) {
       paddingVertical: spacing['2'],
       paddingHorizontal: spacing['4'],
     },
-    botaoRetentarTexto: { color: colors.accent.filho, fontSize: typography.size.sm, fontWeight: typography.weight.medium },
+    botaoRetentarTexto: { color: colors.accent.filho, fontSize: typography.size.sm, fontFamily: typography.family.medium },
     vazio: { fontSize: typography.size.md, color: colors.text.muted, textAlign: 'center' },
     lista: { padding: spacing['4'], gap: spacing['3'] },
     card: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,
       padding: spacing['4'],
-      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.06)',
+      ...shadows.card,
     },
     cardTopo: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: spacing['2'] },
-    cardTitulo: { flex: 1, fontSize: typography.size.md, fontWeight: typography.weight.semibold, color: colors.text.primary, marginRight: spacing['2'] },
+    cardTitulo: { flex: 1, fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary, marginRight: spacing['2'] },
     pontosTag: { backgroundColor: colors.accent.filhoBg, borderRadius: radii.sm, paddingVertical: 3, paddingHorizontal: spacing['2'] },
-    pontosTexto: { fontSize: typography.size.xs, fontWeight: typography.weight.bold, color: colors.accent.filho },
+    pontosTexto: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.accent.filho },
     cardPrazo: { fontSize: typography.size.xs, color: colors.text.muted, marginBottom: spacing['2'] },
     statusTag: { borderRadius: radii.sm, paddingVertical: 3, paddingHorizontal: spacing['2'], alignSelf: 'flex-start' },
-    statusTexto: { fontSize: typography.size.xs, fontWeight: typography.weight.semibold },
+    statusTexto: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
   });
 }

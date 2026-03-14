@@ -28,7 +28,7 @@ import {
 } from '@lib/saldos';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, spacing, typography } from '@/constants/theme';
+import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 
@@ -340,19 +340,19 @@ function makeStyles(colors: ThemeColors) {
       borderRadius: radii.xl,
       padding: spacing['4'],
       alignItems: 'center',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+      ...shadows.card,
     },
-    saldoLabel: { color: 'rgba(255,255,255,0.85)', fontSize: typography.size.xs, fontWeight: typography.weight.semibold, marginBottom: 3 },
-    saldoValor: { color: '#fff', fontSize: typography.size['4xl'], fontWeight: typography.weight.extrabold },
+    saldoLabel: { color: 'rgba(255,255,255,0.85)', fontSize: typography.size.xs, fontFamily: typography.family.semibold, marginBottom: 3 },
+    saldoValor: { color: '#fff', fontSize: typography.size['4xl'], fontFamily: typography.family.extrabold },
     saldoPts: { color: 'rgba(255,255,255,0.8)', fontSize: typography.size.xs, marginTop: 2 },
     boxConfig: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,
       padding: spacing['4'],
       marginBottom: spacing['3'],
-      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)',
+      ...shadows.card,
     },
-    boxConfigTitulo: { fontSize: typography.size.md, fontWeight: typography.weight.bold, color: colors.text.primary, marginBottom: spacing['1'] },
+    boxConfigTitulo: { fontSize: typography.size.md, fontFamily: typography.family.bold, color: colors.text.primary, marginBottom: spacing['1'] },
     boxConfigTexto: { fontSize: typography.size.sm, color: colors.text.secondary, marginBottom: spacing['3'] },
     acoesBtns: { flexDirection: 'row', gap: spacing['2'] },
     btnAcao: {
@@ -361,8 +361,8 @@ function makeStyles(colors: ThemeColors) {
       paddingVertical: spacing['2'],
       paddingHorizontal: spacing['3'],
     },
-    btnAcaoTexto: { fontSize: typography.size.sm, fontWeight: typography.weight.semibold, color: colors.accent.admin },
-    sucTexto: { color: colors.semantic.success, fontSize: typography.size.sm, fontWeight: typography.weight.semibold, marginTop: spacing['2'] },
+    btnAcaoTexto: { fontSize: typography.size.sm, fontFamily: typography.family.semibold, color: colors.accent.admin },
+    sucTexto: { color: colors.semantic.success, fontSize: typography.size.sm, fontFamily: typography.family.semibold, marginTop: spacing['2'] },
     btnPenalizar: {
       backgroundColor: colors.semantic.errorBg,
       borderRadius: radii.lg,
@@ -370,8 +370,8 @@ function makeStyles(colors: ThemeColors) {
       alignItems: 'center',
       marginBottom: spacing['5'],
     },
-    btnPenalizarTexto: { color: colors.semantic.error, fontWeight: typography.weight.bold, fontSize: typography.size.sm },
-    secaoTitulo: { fontSize: typography.size.md, fontWeight: typography.weight.bold, color: colors.text.primary, marginBottom: spacing['3'] },
+    btnPenalizarTexto: { color: colors.semantic.error, fontFamily: typography.family.bold, fontSize: typography.size.sm },
+    secaoTitulo: { fontSize: typography.size.md, fontFamily: typography.family.bold, color: colors.text.primary, marginBottom: spacing['3'] },
     vazio: { color: colors.text.muted, fontSize: typography.size.sm, textAlign: 'center', marginTop: spacing['2'] },
     movItem: {
       flexDirection: 'row',
@@ -383,10 +383,10 @@ function makeStyles(colors: ThemeColors) {
     },
     movEmoji: { fontSize: 22, marginRight: spacing['3'] },
     movInfo: { flex: 1 },
-    movLabel: { fontSize: typography.size.sm, fontWeight: typography.weight.semibold, color: colors.text.primary },
+    movLabel: { fontSize: typography.size.sm, fontFamily: typography.family.semibold, color: colors.text.primary },
     movDesc: { fontSize: typography.size.xs, color: colors.text.secondary, marginTop: 1 },
     movData: { fontSize: typography.size.xs, color: colors.text.muted, marginTop: 2 },
-    movValor: { fontSize: typography.size.md, fontWeight: typography.weight.bold },
+    movValor: { fontSize: typography.size.md, fontFamily: typography.family.bold },
     creditoTxt: { color: colors.semantic.success },
     debitoTxt: { color: colors.semantic.error },
     // Modal
@@ -399,8 +399,8 @@ function makeStyles(colors: ThemeColors) {
       paddingBottom: spacing['12'],
       gap: spacing['3'],
     },
-    modalTitulo: { fontSize: typography.size.lg, fontWeight: typography.weight.bold, color: colors.text.primary },
-    label: { fontSize: typography.size.xs, fontWeight: typography.weight.semibold, color: colors.text.secondary },
+    modalTitulo: { fontSize: typography.size.lg, fontFamily: typography.family.bold, color: colors.text.primary },
+    label: { fontSize: typography.size.xs, fontFamily: typography.family.semibold, color: colors.text.secondary },
     input: {
       backgroundColor: colors.bg.canvas,
       borderRadius: radii.md,
@@ -421,14 +421,14 @@ function makeStyles(colors: ThemeColors) {
       alignItems: 'center',
     },
     periodoAtivo: { backgroundColor: colors.accent.adminBg, borderColor: colors.accent.admin },
-    periodoTexto: { fontSize: typography.size.sm, color: colors.text.secondary, fontWeight: typography.weight.medium },
-    periodoTextoAtivo: { color: colors.accent.admin, fontWeight: typography.weight.bold },
+    periodoTexto: { fontSize: typography.size.sm, color: colors.text.secondary, fontFamily: typography.family.medium },
+    periodoTextoAtivo: { color: colors.accent.admin, fontFamily: typography.family.bold },
     errModal: { color: colors.semantic.error, fontSize: typography.size.xs },
     modalBtns: { flexDirection: 'row', gap: spacing['3'] },
     btnCancelar: { flex: 1, borderWidth: 1, borderColor: colors.border.default, borderRadius: radii.lg, paddingVertical: spacing['3'], alignItems: 'center' },
-    btnCancelarTexto: { color: colors.text.secondary, fontWeight: typography.weight.semibold },
+    btnCancelarTexto: { color: colors.text.secondary, fontFamily: typography.family.semibold },
     btnConfirmar: { flex: 1, backgroundColor: colors.accent.admin, borderRadius: radii.lg, paddingVertical: spacing['3'], alignItems: 'center' },
-    btnConfirmarTexto: { color: '#fff', fontWeight: typography.weight.bold, fontSize: typography.size.md },
+    btnConfirmarTexto: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.md },
     btnDesabilitado: { opacity: 0.5 },
   });
 }
