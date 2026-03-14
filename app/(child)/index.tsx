@@ -41,6 +41,7 @@ export default function FilhoHomeScreen() {
   const [piggyBank,    setPiggyBank]    = useState(0);
 
   const hasPending = pendingCount > 0;
+  const pendingTaskLabel = pendingCount === 1 ? 'tarefa pendente' : 'tarefas pendentes';
 
   const heroOpacity    = useRef(new Animated.Value(0)).current;
   const heroY          = useRef(new Animated.Value(20)).current;
@@ -176,7 +177,7 @@ export default function FilhoHomeScreen() {
             <Text style={[styles.tarefasTitle, { color: colors.text.primary }]}>Minhas Tarefas</Text>
             <Text style={[styles.tarefasSub, { color: colors.text.secondary }]}>
               {hasPending
-                ? `${pendingCount} ${pendingCount === 1 ? 'tarefa pendente' : 'tarefas pendentes'}`
+                ? `${pendingCount} ${pendingTaskLabel}`
                 : 'Tudo em dia!'}
             </Text>
           </View>

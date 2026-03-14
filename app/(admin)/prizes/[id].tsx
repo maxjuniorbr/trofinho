@@ -66,7 +66,7 @@ export default function AdminPrizeDetailScreen() {
     const cost = Number.parseInt(costStr, 10);
     if (Number.isNaN(cost) || cost <= 0) return setFormError('Custo em pontos deve ser um número maior que zero.');
     setSaving(true);
-    const { error } = await updatePrize(id!, { nome: name.trim(), descricao: description.trim() || null, custo_pontos: cost });
+    const { error } = await updatePrize(id, { nome: name.trim(), descricao: description.trim() || null, custo_pontos: cost });
     setSaving(false);
     if (error) return setFormError(error);
     setSuccess('Prêmio atualizado!');
@@ -78,7 +78,7 @@ export default function AdminPrizeDetailScreen() {
     setTogglingActive(true);
     setFormError(null);
     setSuccess(null);
-    const { error } = prize.ativo ? await deactivatePrize(id!) : await reactivatePrize(id!);
+    const { error } = prize.ativo ? await deactivatePrize(id) : await reactivatePrize(id);
     setTogglingActive(false);
     if (error) return setFormError(error);
     loadData();

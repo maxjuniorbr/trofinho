@@ -137,7 +137,7 @@ export default function ChildBalanceScreen() {
             </Pressable>
 
             <Text style={styles.sectionTitle}>Histórico</Text>
-            {!hasTransactions ? <Text style={styles.emptyText}>Nenhuma movimentação ainda.</Text> : null}
+            {hasTransactions ? null : <Text style={styles.emptyText}>Nenhuma movimentação ainda.</Text>}
           </>
         }
         renderItem={({ item }) => (

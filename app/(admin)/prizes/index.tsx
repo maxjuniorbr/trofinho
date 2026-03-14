@@ -46,8 +46,9 @@ export default function AdminPrizesScreen() {
   const hasError = Boolean(error);
   const shouldShowEmptyState = loading || hasError || prizes.length === 0;
   const emptyStateMessage = 'Nenhum prêmio cadastrado.\nToque em "+ Novo" para criar o primeiro prêmio.';
+  const inactivePlural = inactive.length === 1 ? '' : 's';
   const inactiveSummary = inactive.length > 0
-    ? ` · ${inactive.length} inativo${inactive.length !== 1 ? 's' : ''}`
+    ? ` · ${inactive.length} inativo${inactivePlural}`
     : '';
 
   return (
@@ -83,7 +84,7 @@ export default function AdminPrizesScreen() {
           contentContainerStyle={styles.lista}
           ListHeaderComponent={
             <Text style={styles.resumo}>
-              {active.length} ativo{active.length !== 1 ? 's' : ''}
+              {active.length} ativo{active.length === 1 ? '' : 's'}
               {inactiveSummary}
             </Text>
           }
@@ -96,7 +97,7 @@ export default function AdminPrizesScreen() {
               ]}
               onPress={() => router.push(`/(admin)/prizes/${item.id}` as never)}
               accessibilityRole="button"
-              accessibilityLabel={`${item.nome}, ${item.custo_pontos} pontos${!item.ativo ? ', inativo' : ''}`}
+              accessibilityLabel={`${item.nome}, ${item.custo_pontos} pontos${item.ativo ? '' : ', inativo'}`}
             >
               <View style={styles.cardTopo}>
                 <Text style={[styles.cardNome, !item.ativo && styles.textoInativo]}>{item.nome}</Text>

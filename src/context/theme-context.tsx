@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useColorScheme } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
 import { darkColors, lightColors, type ThemeColors } from '@/constants/theme';
+import { deviceStorage } from '@lib/device-storage';
 
 const STORE_KEY = 'trofinho_color_scheme';
 type ColorScheme = 'light' | 'dark' | 'system';
@@ -19,22 +19,32 @@ type ThemeProviderProps = Readonly<{
   children: React.ReactNode;
 }>;
 
+function isColorScheme(value: string | null): value is ColorScheme {
+  return value === 'light' || value === 'dark' || value === 'system';
+}
+
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const systemScheme = useColorScheme();
   const [currentScheme, setCurrentScheme] = useState<ColorScheme>('system');
 
   // Load persisted preference once on mount
   useEffect(() => {
-    void SecureStore.getItemAsync(STORE_KEY).then((stored) => {
-      if (stored === 'light' || stored === 'dark' || stored === 'system') {
+    let isMounted = true;
+
+    deviceStorage.getItem(STORE_KEY).then((stored) => {
+      if (isMounted && isColorScheme(stored)) {
         setCurrentScheme(stored);
       }
-    });
+    }).catch(() => undefined);
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const setScheme = useCallback((nextScheme: ColorScheme) => {
     setCurrentScheme(nextScheme);
-    void SecureStore.setItemAsync(STORE_KEY, nextScheme);
+    deviceStorage.setItem(STORE_KEY, nextScheme).catch(() => undefined);
   }, []);
 
   const isDark = useMemo(() => {
