@@ -1,4 +1,6 @@
 import { StyleSheet, View, Text, ActivityIndicator, Pressable } from 'react-native';
+import { useTheme } from '@/context/theme-context';
+import { radii, spacing, typography } from '@/constants/theme';
 
 type Props = Readonly<{
   loading?: boolean;
@@ -19,13 +21,14 @@ export default function AsyncListState({
   emptyMessage = 'Nada encontrado.',
   onRetry,
 }: Props) {
+  const { colors } = useTheme();
   const hasRetry = typeof onRetry === 'function';
 
   if (loading) {
     return (
       <View style={styles.container} accessibilityRole="progressbar">
-        <ActivityIndicator size="large" color="#4F46E5" />
-        <Text style={styles.texto}>Carregando…</Text>
+        <ActivityIndicator size="large" color={colors.brand.vivid} />
+        <Text style={[styles.texto, { color: colors.text.secondary }]}>Carregando…</Text>
       </View>
     );
   }
@@ -34,11 +37,12 @@ export default function AsyncListState({
     return (
       <View style={styles.container}>
         <Text style={styles.emoji}>⚠️</Text>
-        <Text style={styles.texto} accessibilityRole="alert">{error}</Text>
+        <Text style={[styles.texto, { color: colors.text.secondary }]} accessibilityRole="alert">{error}</Text>
         {hasRetry ? (
           <Pressable
             style={({ pressed }) => [
               styles.botao,
+              { backgroundColor: colors.brand.vivid },
               pressed && { opacity: 0.85 },
             ]}
             onPress={onRetry}
@@ -56,7 +60,7 @@ export default function AsyncListState({
     return (
       <View style={styles.container}>
         <Text style={styles.emoji}>📭</Text>
-        <Text style={styles.texto}>{emptyMessage}</Text>
+        <Text style={[styles.texto, { color: colors.text.secondary }]}>{emptyMessage}</Text>
       </View>
     );
   }
@@ -69,32 +73,28 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 48,
-    gap: 12,
+    paddingHorizontal: spacing['8'],
+    paddingVertical: spacing['12'],
+    gap: spacing['3'],
   },
-  emoji: {
-    fontSize: 40,
-  },
+  emoji: { fontSize: 40 },
   texto: {
-    fontSize: 15,
-    color: '#6B7280',
+    fontSize: typography.size.sm,
     textAlign: 'center',
     lineHeight: 22,
   },
   botao: {
-    backgroundColor: '#4F46E5',
-    borderRadius: 10,
+    borderRadius: radii.md,
     borderCurve: 'continuous',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    marginTop: 4,
+    paddingVertical: spacing['3'],
+    paddingHorizontal: spacing['5'],
+    marginTop: spacing['1'],
     minHeight: 44,
     justifyContent: 'center',
   },
   botaoTexto: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: typography.size.sm,
+    fontFamily: typography.family.semibold,
   },
 });
