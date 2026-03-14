@@ -6,11 +6,11 @@ export function formatarData(date: Date | string): string {
 
 /** Parses a dd/mm/yyyy string into a Date or returns null if invalid. */
 export function parsearData(value: string): Date | null {
-  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
   if (!match) return null;
   const [, dd, mm, yyyy] = match;
   const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
-  if (isNaN(d.getTime())) return null;
+  if (Number.isNaN(d.getTime())) return null;
   return d;
 }
 

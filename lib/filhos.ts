@@ -53,6 +53,10 @@ export async function cadastrarFilho(
   });
 
   if (rpcError) {
+    await supabase.rpc('limpar_auth_user_orfao', {
+      p_user_id: userId,
+    });
+
     return { error: traduzirErroCadastroFilho(rpcError.message) };
   }
 
