@@ -45,3 +45,6 @@ supabase/.temp
 # generated native folders
 /ios
 /android
+
+# local agent skills
+/.agents/
