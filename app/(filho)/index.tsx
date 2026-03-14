@@ -20,32 +20,53 @@ export default function FilhoHomeScreen() {
   const [cofrinho, setCofrinho] = useState(0);
 
   const carregar = useCallback(async () => {
-    const p = await buscarPerfil();
-    setProfile(p);
+    setCarregando(true);
 
-    if (p?.familia_id) {
-      const { data: fam } = await supabase
-        .from('familias')
-        .select('nome')
-        .eq('id', p.familia_id)
-        .single();
-      setFamilia(fam);
+    try {
+      const p = await buscarPerfil();
+      setProfile(p);
+
+      if (p?.familia_id) {
+        const { data: fam } = await supabase
+          .from('familias')
+          .select('nome')
+          .eq('id', p.familia_id)
+          .single();
+        setFamilia(fam);
+      } else {
+        setFamilia(null);
+      }
+
+      const { data: atribuicoes } = await listarAtribuicoesFilho();
+      setPendentes(atribuicoes.filter((a) => a.status === 'pendente').length);
+
+      const { data: s } = await buscarSaldo();
+      setSaldoLivre(s?.saldo_livre ?? 0);
+      setCofrinho(s?.cofrinho ?? 0);
+    } catch {
+      setFamilia(null);
+      setPendentes(0);
+      setSaldoLivre(0);
+      setCofrinho(0);
+    } finally {
+      setCarregando(false);
     }
-
-    const { data: atribuicoes } = await listarAtribuicoesFilho();
-    setPendentes(atribuicoes.filter((a) => a.status === 'pendente').length);
-
-    const { data: s } = await buscarSaldo();
-    setSaldoLivre(s?.saldo_livre ?? 0);
-    setCofrinho(s?.cofrinho ?? 0);
-    setCarregando(false);
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      void carregar();
+      carregar();
     }, [carregar])
   );
+
+  const tarefasPendentesTexto = (() => {
+    if (pendentes === 0) {
+      return 'Nenhuma tarefa pendente no momento.';
+    }
+
+    const tarefaLabel = pendentes === 1 ? 'tarefa pendente' : 'tarefas pendentes';
+    return `${pendentes} ${tarefaLabel} esperando por você!`;
+  })();
 
   async function handleSair() {
     setSaindo(true);
@@ -83,9 +104,7 @@ export default function FilhoHomeScreen() {
           )}
         </View>
         <Text style={styles.cardTexto}>
-          {pendentes > 0
-            ? `${pendentes} tarefa${pendentes > 1 ? 's' : ''} pendente${pendentes > 1 ? 's' : ''} esperando por você!`
-            : 'Nenhuma tarefa pendente no momento.'}
+          {tarefasPendentesTexto}
         </Text>
         <Text style={styles.cardLink}>Ver tarefas →</Text>
       </TouchableOpacity>

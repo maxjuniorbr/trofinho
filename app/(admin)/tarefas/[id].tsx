@@ -42,15 +42,22 @@ export default function TarefaDetalheAdminScreen() {
     if (!id) return;
     setCarregando(true);
     setErro(null);
-    const { data, error } = await buscarTarefaComAtribuicoes(id);
-    if (error) setErro(error);
-    else setTarefa(data);
-    setCarregando(false);
+
+    try {
+      const { data, error } = await buscarTarefaComAtribuicoes(id);
+      if (error) setErro(error);
+      else setTarefa(data);
+    } catch {
+      setErro('Não foi possível carregar a tarefa agora.');
+      setTarefa(null);
+    } finally {
+      setCarregando(false);
+    }
   }, [id]);
 
   useFocusEffect(
     useCallback(() => {
-      void carregar();
+      carregar();
     }, [carregar])
   );
 

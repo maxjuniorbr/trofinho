@@ -23,6 +23,27 @@ AS $$
   SELECT id FROM public.filhos WHERE usuario_id = auth.uid() LIMIT 1;
 $$;
 
+CREATE OR REPLACE FUNCTION public.bucket_evidencias_id()
+RETURNS TEXT
+LANGUAGE SQL
+IMMUTABLE
+AS $$
+  SELECT 'evidencias';
+$$;
+
+DO $$
+BEGIN
+  CREATE TYPE public.atribuicao_status AS ENUM (
+    'pendente',
+    'aguardando_validacao',
+    'aprovada',
+    'rejeitada'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END;
+$$;
+
 -- ─── TABELA: tarefas ──────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS public.tarefas (
@@ -46,8 +67,7 @@ CREATE TABLE IF NOT EXISTS public.atribuicoes (
   id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   tarefa_id     UUID        NOT NULL REFERENCES public.tarefas (id) ON DELETE CASCADE,
   filho_id      UUID        NOT NULL REFERENCES public.filhos  (id) ON DELETE CASCADE,
-  status        TEXT        NOT NULL DEFAULT 'pendente'
-                            CHECK (status IN ('pendente','aguardando_validacao','aprovada','rejeitada')),
+  status        public.atribuicao_status NOT NULL DEFAULT 'pendente',
   evidencia_url TEXT,
   nota_rejeicao TEXT,
   concluida_em  TIMESTAMPTZ,
@@ -89,14 +109,14 @@ CREATE POLICY "tarefas_insert_admin"
   ON public.tarefas FOR INSERT
   WITH CHECK (
     familia_id = public.minha_familia_id()
-    AND public.meu_papel() = 'admin'
+    AND public.usuario_e_admin()
   );
 
 CREATE POLICY "tarefas_update_admin"
   ON public.tarefas FOR UPDATE
   USING (
     familia_id = public.minha_familia_id()
-    AND public.meu_papel() = 'admin'
+    AND public.usuario_e_admin()
   );
 
 -- ─── POLICIES: atribuicoes ────────────────────────────────
@@ -105,7 +125,7 @@ CREATE POLICY "tarefas_update_admin"
 CREATE POLICY "atribuicoes_select_admin"
   ON public.atribuicoes FOR SELECT
   USING (
-    public.meu_papel() = 'admin'
+    public.usuario_e_admin()
     AND EXISTS (
       SELECT 1 FROM public.tarefas t
       WHERE t.id = tarefa_id
@@ -122,7 +142,7 @@ CREATE POLICY "atribuicoes_select_filho"
 CREATE POLICY "atribuicoes_insert_admin"
   ON public.atribuicoes FOR INSERT
   WITH CHECK (
-    public.meu_papel() = 'admin'
+    public.usuario_e_admin()
     AND EXISTS (
       SELECT 1 FROM public.tarefas t
       WHERE t.id = tarefa_id
@@ -146,7 +166,7 @@ CREATE POLICY "atribuicoes_update_filho"
 CREATE POLICY "atribuicoes_update_admin"
   ON public.atribuicoes FOR UPDATE
   USING (
-    public.meu_papel() = 'admin'
+    public.usuario_e_admin()
     AND EXISTS (
       SELECT 1 FROM public.tarefas t
       WHERE t.id = tarefa_id
@@ -163,7 +183,7 @@ CREATE POLICY "saldos_select_filho"
 CREATE POLICY "saldos_select_admin"
   ON public.saldos FOR SELECT
   USING (
-    public.meu_papel() = 'admin'
+    public.usuario_e_admin()
     AND EXISTS (
       SELECT 1 FROM public.filhos f
       WHERE f.id = filho_id
@@ -187,12 +207,9 @@ DECLARE
   v_pontos         INTEGER;
   v_tarefa_familia UUID;
 BEGIN
-  v_caller_id := auth.uid();
-  IF v_caller_id IS NULL THEN
-    RAISE EXCEPTION 'Usuário não autenticado';
-  END IF;
+  v_caller_id := public.usuario_autenticado_id();
 
-  IF public.meu_papel() != 'admin' THEN
+  IF NOT public.usuario_e_admin() THEN
     RAISE EXCEPTION 'Apenas admins podem aprovar tarefas';
   END IF;
 
@@ -230,15 +247,15 @@ $$;
 -- ─── STORAGE: bucket evidencias ───────────────────────────
 
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('evidencias', 'evidencias', true)
+VALUES (public.bucket_evidencias_id(), public.bucket_evidencias_id(), true)
 ON CONFLICT (id) DO NOTHING;
 
 CREATE POLICY "evidencias_insert_authenticated"
   ON storage.objects FOR INSERT
   TO authenticated
-  WITH CHECK (bucket_id = 'evidencias');
+  WITH CHECK (bucket_id = public.bucket_evidencias_id());
 
 CREATE POLICY "evidencias_select_authenticated"
   ON storage.objects FOR SELECT
   TO authenticated
-  USING (bucket_id = 'evidencias');
+  USING (bucket_id = public.bucket_evidencias_id());

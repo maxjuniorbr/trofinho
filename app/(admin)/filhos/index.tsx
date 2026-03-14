@@ -21,17 +21,80 @@ export default function AdminFilhosScreen() {
   const carregar = useCallback(async () => {
     setCarregando(true);
     setErro(null);
-    const { data, error } = await listarFilhos();
-    if (error) setErro(error);
-    else setFilhos(data);
-    setCarregando(false);
+
+    try {
+      const { data, error } = await listarFilhos();
+
+      if (error) setErro(error);
+      else setFilhos(data);
+    } catch {
+      setErro('Não foi possível carregar os filhos agora.');
+      setFilhos([]);
+    } finally {
+      setCarregando(false);
+    }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      void carregar();
+      carregar();
     }, [carregar])
   );
+
+  function renderConteudo() {
+    if (carregando) {
+      return (
+        <View style={styles.centro}>
+          <ActivityIndicator size="large" color="#4F46E5" />
+        </View>
+      );
+    }
+
+    if (erro) {
+      return (
+        <View style={styles.centro}>
+          <Text style={styles.erroTexto}>{erro}</Text>
+          <TouchableOpacity style={styles.botaoRetentar} onPress={carregar}>
+            <Text style={styles.botaoRetentarTexto}>Tentar novamente</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    if (filhos.length === 0) {
+      return (
+        <View style={styles.centro}>
+          <Text style={styles.vazio}>Nenhum filho cadastrado.</Text>
+          <Text style={styles.vazioSub}>
+            Toque em "+ Novo" para cadastrar o primeiro filho.
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <FlatList
+        data={filhos}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.lista}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarLetra}>
+                {item.nome.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <View style={styles.cardInfo}>
+              <Text style={styles.cardNome}>{item.nome}</Text>
+              <Text style={styles.cardStatus}>
+                {item.usuario_id ? '✓ Conta vinculada' : '⚠ Sem conta'}
+              </Text>
+            </View>
+          </View>
+        )}
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -50,46 +113,7 @@ export default function AdminFilhosScreen() {
         </TouchableOpacity>
       </View>
 
-      {carregando ? (
-        <View style={styles.centro}>
-          <ActivityIndicator size="large" color="#4F46E5" />
-        </View>
-      ) : erro ? (
-        <View style={styles.centro}>
-          <Text style={styles.erroTexto}>{erro}</Text>
-          <TouchableOpacity style={styles.botaoRetentar} onPress={carregar}>
-            <Text style={styles.botaoRetentarTexto}>Tentar novamente</Text>
-          </TouchableOpacity>
-        </View>
-      ) : filhos.length === 0 ? (
-        <View style={styles.centro}>
-          <Text style={styles.vazio}>Nenhum filho cadastrado.</Text>
-          <Text style={styles.vazioSub}>
-            Toque em "+ Novo" para cadastrar o primeiro filho.
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={filhos}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.lista}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarLetra}>
-                  {item.nome.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-              <View style={styles.cardInfo}>
-                <Text style={styles.cardNome}>{item.nome}</Text>
-                <Text style={styles.cardStatus}>
-                  {item.usuario_id ? '✓ Conta vinculada' : '⚠ Sem conta'}
-                </Text>
-              </View>
-            </View>
-          )}
-        />
-      )}
+      {renderConteudo()}
     </View>
   );
 }

@@ -42,7 +42,7 @@ CREATE POLICY "atribuicoes_update_admin"
   ON public.atribuicoes
   FOR UPDATE
   USING (
-    public.meu_papel() = 'admin'
+    public.usuario_e_admin()
     AND status = 'aguardando_validacao'
     AND EXISTS (
       SELECT 1
@@ -52,7 +52,7 @@ CREATE POLICY "atribuicoes_update_admin"
     )
   )
   WITH CHECK (
-    public.meu_papel() = 'admin'
+    public.usuario_e_admin()
     AND status = 'rejeitada'
     AND EXISTS (
       SELECT 1
@@ -76,12 +76,9 @@ DECLARE
   v_familia_id UUID;
   v_filho_id   UUID;
 BEGIN
-  v_caller_id := auth.uid();
-  IF v_caller_id IS NULL THEN
-    RAISE EXCEPTION 'Usuário não autenticado';
-  END IF;
+  v_caller_id := public.usuario_autenticado_id();
 
-  IF public.meu_papel() != 'admin' THEN
+  IF NOT public.usuario_e_admin() THEN
     RAISE EXCEPTION 'Apenas admins podem cadastrar filhos';
   END IF;
 

@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { signOut, buscarPerfil, type UserProfile } from '@lib/auth';
 import { supabase } from '@lib/supabase';
@@ -21,40 +21,73 @@ export default function AdminHomeScreen() {
   const [totalPontos, setTotalPontos] = useState(0);
 
   const carregar = useCallback(async () => {
-    const p = await buscarPerfil();
-    setProfile(p);
+    setCarregando(true);
 
-    if (p?.familia_id) {
-      const { data: fam } = await supabase
-        .from('familias')
-        .select('nome')
-        .eq('id', p.familia_id)
-        .single();
-      setFamilia(fam);
+    try {
+      const p = await buscarPerfil();
+      setProfile(p);
+
+      if (p?.familia_id) {
+        const { data: fam } = await supabase
+          .from('familias')
+          .select('nome')
+          .eq('id', p.familia_id)
+          .single();
+        setFamilia(fam);
+      } else {
+        setFamilia(null);
+      }
+
+      const { data: tarefas } = await listarTarefasAdmin();
+      const total = tarefas.reduce(
+        (acc, t) =>
+          acc +
+          t.atribuicoes.filter((a) => a.status === 'aguardando_validacao').length,
+        0
+      );
+      setQtdValidar(total);
+
+      const { data: filhos } = await listarFilhos();
+      setQtdFilhos(filhos.length);
+
+      const { data: saldos } = await listarSaldosAdmin();
+      setTotalPontos(saldos.reduce((acc, s) => acc + s.saldo_livre + s.cofrinho, 0));
+    } catch {
+      setFamilia(null);
+      setQtdValidar(0);
+      setQtdFilhos(0);
+      setTotalPontos(0);
+    } finally {
+      setCarregando(false);
     }
-
-    const { data: tarefas } = await listarTarefasAdmin();
-    const total = tarefas.reduce(
-      (acc, t) =>
-        acc +
-        t.atribuicoes.filter((a) => a.status === 'aguardando_validacao').length,
-      0
-    );
-    setQtdValidar(total);
-
-    const { data: filhos } = await listarFilhos();
-    setQtdFilhos(filhos.length);
-
-    const { data: saldos } = await listarSaldosAdmin();
-    setTotalPontos(saldos.reduce((acc, s) => acc + s.saldo_livre + s.cofrinho, 0));
-    setCarregando(false);
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      void carregar();
+      carregar();
     }, [carregar])
   );
+
+  const tarefasPendentesTexto = (() => {
+    if (qtdValidar === 0) {
+      return 'Crie tarefas e acompanhe o progresso dos filhos.';
+    }
+
+    const tarefaLabel = qtdValidar === 1 ? 'tarefa' : 'tarefas';
+    return `${qtdValidar} ${tarefaLabel} aguardando validação.`;
+  })();
+
+  const filhosTexto = (() => {
+    if (qtdFilhos === 0) {
+      return 'Cadastre os filhos da família.';
+    }
+
+    if (qtdFilhos === 1) {
+      return '1 filho cadastrado.';
+    }
+
+    return `${qtdFilhos} filhos cadastrados.`;
+  })();
 
   async function handleSair() {
     setSaindo(true);
@@ -93,9 +126,7 @@ export default function AdminHomeScreen() {
           )}
         </View>
         <Text style={styles.cardTexto}>
-          {qtdValidar > 0
-            ? `${qtdValidar} tarefa${qtdValidar > 1 ? 's' : ''} aguardando validação.`
-            : 'Crie tarefas e acompanhe o progresso dos filhos.'}
+          {tarefasPendentesTexto}
         </Text>
         <Text style={styles.cardLink}>Ver tarefas →</Text>
       </TouchableOpacity>
@@ -113,9 +144,7 @@ export default function AdminHomeScreen() {
           )}
         </View>
         <Text style={styles.cardTexto}>
-          {qtdFilhos === 0
-            ? 'Cadastre os filhos da família.'
-            : `${qtdFilhos} filho${qtdFilhos > 1 ? 's' : ''} cadastrado${qtdFilhos > 1 ? 's' : ''}.`}
+          {filhosTexto}
         </Text>
         <Text style={styles.cardLink}>Gerenciar filhos →</Text>
       </TouchableOpacity>

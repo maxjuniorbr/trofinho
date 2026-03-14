@@ -8,8 +8,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback } from 'react';
-import { useRouter } from 'expo-router';
-import { useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { listarSaldosAdmin, type SaldoComFilho } from '@lib/saldos';
 
 export default function SaldosAdminScreen() {
@@ -19,12 +18,16 @@ export default function SaldosAdminScreen() {
 
   const carregar = useCallback(async () => {
     setCarregando(true);
-    const { data } = await listarSaldosAdmin();
-    setItens(data);
-    setCarregando(false);
+
+    try {
+      const { data } = await listarSaldosAdmin();
+      setItens(data);
+    } finally {
+      setCarregando(false);
+    }
   }, []);
 
-  useFocusEffect(useCallback(() => { void carregar(); }, [carregar]));
+  useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
 
   if (carregando) {
     return (

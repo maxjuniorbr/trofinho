@@ -55,6 +55,16 @@ AS $$
   SELECT papel FROM public.usuarios WHERE id = auth.uid() LIMIT 1;
 $$;
 
+CREATE OR REPLACE FUNCTION public.usuario_e_admin()
+RETURNS BOOLEAN
+LANGUAGE SQL
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT public.meu_papel() = 'admin';
+$$;
+
 -- ─── ROW LEVEL SECURITY ─────────────────────────────────────
 
 ALTER TABLE public.familias ENABLE ROW LEVEL SECURITY;
@@ -70,7 +80,7 @@ CREATE POLICY "familias_select_own"
 
 -- ─── POLICIES: usuarios ──────────────────────────────────────
 
--- Todo usuário lê o próprio perfil
+-- Cada usuário lê o próprio perfil
 CREATE POLICY "usuarios_select_self"
   ON public.usuarios
   FOR SELECT
@@ -82,7 +92,7 @@ CREATE POLICY "usuarios_select_familia_admin"
   FOR SELECT
   USING (
     familia_id = public.minha_familia_id()
-    AND public.meu_papel() = 'admin'
+    AND public.usuario_e_admin()
   );
 
 -- Usuário atualiza o próprio perfil
@@ -103,7 +113,7 @@ CREATE POLICY "filhos_insert_admin"
   FOR INSERT
   WITH CHECK (
     familia_id = public.minha_familia_id()
-    AND public.meu_papel() = 'admin'
+    AND public.usuario_e_admin()
   );
 
 CREATE POLICY "filhos_update_admin"
@@ -111,7 +121,7 @@ CREATE POLICY "filhos_update_admin"
   FOR UPDATE
   USING (
     familia_id = public.minha_familia_id()
-    AND public.meu_papel() = 'admin'
+    AND public.usuario_e_admin()
   );
 
 CREATE POLICY "filhos_delete_admin"
@@ -119,5 +129,5 @@ CREATE POLICY "filhos_delete_admin"
   FOR DELETE
   USING (
     familia_id = public.minha_familia_id()
-    AND public.meu_papel() = 'admin'
+    AND public.usuario_e_admin()
   );

@@ -33,15 +33,22 @@ export default function FilhoTarefaDetalheScreen() {
     if (!id) return;
     setCarregando(true);
     setErro(null);
-    const { data, error } = await buscarAtribuicaoFilho(id);
-    if (error) setErro(error);
-    else setAtribuicao(data);
-    setCarregando(false);
+
+    try {
+      const { data, error } = await buscarAtribuicaoFilho(id);
+      if (error) setErro(error);
+      else setAtribuicao(data);
+    } catch {
+      setErro('Não foi possível carregar a tarefa agora.');
+      setAtribuicao(null);
+    } finally {
+      setCarregando(false);
+    }
   }, [id]);
 
   useFocusEffect(
     useCallback(() => {
-      void carregar();
+      carregar();
     }, [carregar])
   );
 
