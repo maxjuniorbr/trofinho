@@ -147,8 +147,8 @@ export default function AdminResgatesScreen() {
                 ) : null}
                 <View style={[styles.card, isPendente && styles.cardPendente]}>
                   <View style={styles.cardTopo}>
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Text style={styles.cardNome}>{item.premios.nome}</Text>
+                    <View style={{ flex: 1, gap: spacing['1'] }}>
+                    <Text style={[styles.premioNome, { color: colors.text.primary }]}>{item.premios.nome}</Text>
                       <Text style={styles.cardFilho}>👤 {item.filhos.nome}</Text>
                     </View>
                     <View>
@@ -208,16 +208,18 @@ function makeStyles(colors: ThemeColors) {
     },
     cardPendente: { borderLeftWidth: 3, borderLeftColor: colors.semantic.warning },
     cardTopo: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing['2'] },
-    cardNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary },
+    premioNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
     cardFilho: { fontSize: typography.size.xs, color: colors.text.secondary },
-    statusBadge: { borderRadius: radii.md, borderCurve: 'continuous', paddingHorizontal: spacing['2'], paddingVertical: 3, alignSelf: 'flex-end' },
-    statusTexto: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
+    alertaIcone: { fontSize: 24, marginBottom: spacing['2'] },
+    statusBadge: { borderRadius: radii.md, borderCurve: 'continuous', paddingHorizontal: spacing['2'], paddingVertical: spacing['1'], alignSelf: 'flex-end' },
+    statusTexto: { fontSize: typography.size.xs, fontFamily: typography.family.bold },
     cardData: { fontSize: typography.size.xs, color: colors.text.muted, textAlign: 'right', marginTop: spacing['1'] },
     cardPontos: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.accent.admin },
+    dataSolicitacao: { fontSize: typography.size.xs, color: colors.text.muted },
     acoesRow: { flexDirection: 'row', gap: spacing['2'], marginTop: spacing['1'] },
-    botaoConfirmar: { flex: 1, backgroundColor: colors.semantic.success, borderRadius: radii.lg, borderCurve: 'continuous', paddingVertical: spacing['2'], alignItems: 'center' },
+    botaoConfirmar: { flex: 1, backgroundColor: colors.semantic.success, borderRadius: radii.lg, borderCurve: 'continuous', paddingVertical: spacing['2'], alignItems: 'center', minHeight: 44 },
     botaoConfirmarTexto: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.sm },
-    botaoCancelar: { flex: 1, borderRadius: radii.lg, borderCurve: 'continuous', borderWidth: 1.5, borderColor: colors.semantic.error, paddingVertical: spacing['2'], alignItems: 'center' },
+    botaoCancelar: { flex: 1, borderRadius: radii.lg, borderCurve: 'continuous', borderWidth: 1.5, borderColor: colors.semantic.error, paddingVertical: spacing['2'], alignItems: 'center', minHeight: 44 },
     botaoCancelarTexto: { color: colors.semantic.error, fontFamily: typography.family.bold, fontSize: typography.size.sm },
     botaoDesabilitado: { opacity: 0.5 },
   });

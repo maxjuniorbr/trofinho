@@ -95,14 +95,14 @@ function makeStyles(colors: ThemeColors) {
     container: { flex: 1 },
     botaoNova: { borderRadius: radii.sm, paddingVertical: spacing['1'] + 2, paddingHorizontal: spacing['3'] },
     botaoNovaTexto: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
-    lista: { padding: spacing['4'], paddingBottom: spacing['10'], gap: 10 },
+    lista: { padding: spacing['4'], paddingBottom: spacing['10'], gap: spacing['3'] },
     card: { borderRadius: radii.lg, borderWidth: 1, padding: spacing['4'] },
     cardTopo: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing['2'] },
     cardTitulo: { flex: 1, fontSize: typography.size.md, fontFamily: typography.family.semibold, marginRight: spacing['2'] },
-    pontosTag: { borderRadius: radii.full, paddingHorizontal: spacing['2'], paddingVertical: 3 },
+    pontosTag: { borderRadius: radii.full, paddingHorizontal: spacing['2'], paddingVertical: spacing['1'] },
     pontosTexto: { fontSize: typography.size.xs, fontFamily: typography.family.bold },
     cardPrazo: { fontSize: typography.size.xs, marginBottom: spacing['2'] },
-    cardStats: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+    cardStats: { flexDirection: 'row', gap: spacing['2'], flexWrap: 'wrap' },
     statTexto: { fontSize: typography.size.xs },
   });
 }

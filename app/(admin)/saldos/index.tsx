@@ -67,10 +67,10 @@ function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
     lista: { padding: spacing['5'], paddingBottom: spacing['12'] },
-    card: { flexDirection: 'row', alignItems: 'center', borderRadius: radii.lg, borderWidth: 1, padding: spacing['4'], marginBottom: 10 },
+    card: { flexDirection: 'row', alignItems: 'center', borderRadius: radii.lg, borderWidth: 1, padding: spacing['4'], marginBottom: spacing['3'] },
     info: { flex: 1, marginLeft: spacing['3'] },
     nome: { fontSize: typography.size.md, fontFamily: typography.family.bold },
-    detalhe: { fontSize: typography.size.sm, marginTop: 3 },
+    detalhe: { fontSize: typography.size.sm, marginTop: spacing['1'] },
     seta: { fontSize: 22 },
   });
 }

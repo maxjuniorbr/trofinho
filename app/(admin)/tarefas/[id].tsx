@@ -266,7 +266,7 @@ function makeStyles(colors: ThemeColors) {
     tagEvidencia: {
       backgroundColor: colors.semantic.warningBg,
       borderRadius: radii.sm,
-      paddingVertical: 3,
+      paddingVertical: spacing['1'],
       paddingHorizontal: spacing['2'],
       alignSelf: 'flex-start',
       marginTop: spacing['2'],
@@ -290,7 +290,7 @@ function makeStyles(colors: ThemeColors) {
     },
     atribTopo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing['2'] },
     filhoNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary },
-    statusTag: { borderRadius: radii.sm, paddingVertical: 3, paddingHorizontal: spacing['2'] },
+    statusTag: { borderRadius: radii.sm, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'] },
     statusTexto: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
     evidenciaImg: { width: '100%', height: 200, borderRadius: radii.lg, marginBottom: spacing['2'] },
     notaRejeicaoBox: {
@@ -299,7 +299,7 @@ function makeStyles(colors: ThemeColors) {
       padding: spacing['3'],
       marginBottom: spacing['2'],
     },
-    notaRejeicaoLabel: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.semantic.error, marginBottom: 3 },
+    notaRejeicaoLabel: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.semantic.error, marginBottom: spacing['1'] },
     notaRejeicaoTexto: { fontSize: typography.size.sm, color: colors.text.primary },
     acoesBox: { marginTop: spacing['2'] },
     inputNota: {

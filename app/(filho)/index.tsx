@@ -245,8 +245,8 @@ function makeStyles(colors: ThemeColors) {
     // Hero
     hero:            { alignItems: 'center', marginBottom: spacing['4'] },
     heroSub:         { fontFamily: typography.family.bold, fontSize: typography.size.sm },
-    heroTitle:       { fontFamily: typography.family.black, fontSize: typography.size['3xl'], marginTop: 2, textAlign: 'center' },
-    heroFamily:      { fontFamily: typography.family.semibold, fontSize: typography.size.sm, marginTop: 4 },
+    heroTitle:       { fontFamily: typography.family.black, fontSize: typography.size['3xl'], marginTop: spacing['1'], textAlign: 'center' },
+    heroFamily:      { fontFamily: typography.family.semibold, fontSize: typography.size.sm, marginTop: spacing['1'] },
 
     // Mascote
     mascotContainer: { alignItems: 'center', marginBottom: spacing['6'] },
@@ -270,8 +270,8 @@ function makeStyles(colors: ThemeColors) {
     tarefasEmoji:    { fontSize: 28 },
     tarefasBody:     { flex: 1 },
     tarefasTitle:    { fontFamily: typography.family.bold, fontSize: typography.size.md },
-    tarefasSub:      { fontFamily: typography.family.medium, fontSize: typography.size.xs, marginTop: 2 },
-    pendenteBadge:   { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+    tarefasSub:      { fontFamily: typography.family.medium, fontSize: typography.size.xs, marginTop: spacing['1'] },
+    pendenteBadge:   { width: 24, height: 24, borderRadius: radii.full, alignItems: 'center', justifyContent: 'center' },
     pendenteBadgeText: { color: '#fff', fontFamily: typography.family.black, fontSize: typography.size.xs },
 
     // Quick grid
@@ -285,7 +285,7 @@ function makeStyles(colors: ThemeColors) {
     quickLabel:      { fontFamily: typography.family.bold, fontSize: typography.size.xs, textAlign: 'center' },
 
     // Sair
-    sairBtn:         { borderWidth: 1, borderRadius: radii.md, paddingVertical: spacing['3'], paddingHorizontal: spacing['8'], alignSelf: 'center' },
+    sairBtn:         { borderWidth: 1, borderRadius: radii.md, paddingVertical: spacing['3'], paddingHorizontal: spacing['8'], alignSelf: 'center', minHeight: 48, justifyContent: 'center' },
     sairTexto:       { fontFamily: typography.family.medium, fontSize: typography.size.sm },
   });
 }
