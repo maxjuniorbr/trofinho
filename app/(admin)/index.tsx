@@ -7,6 +7,7 @@ import { supabase } from '@lib/supabase';
 import { listarTarefasAdmin } from '@lib/tarefas';
 import { listarFilhos } from '@lib/filhos';
 import { listarSaldosAdmin } from '@lib/saldos';
+import { contarResgatesPendentes } from '@lib/premios';
 
 type Familia = { nome: string };
 
@@ -19,6 +20,7 @@ export default function AdminHomeScreen() {
   const [qtdValidar, setQtdValidar] = useState(0);
   const [qtdFilhos, setQtdFilhos] = useState(0);
   const [totalPontos, setTotalPontos] = useState(0);
+  const [qtdResgatesPendentes, setQtdResgatesPendentes] = useState(0);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -52,11 +54,15 @@ export default function AdminHomeScreen() {
 
       const { data: saldos } = await listarSaldosAdmin();
       setTotalPontos(saldos.reduce((acc, s) => acc + s.saldo_livre + s.cofrinho, 0));
+
+      const { data: qtdPendentes } = await contarResgatesPendentes();
+      setQtdResgatesPendentes(qtdPendentes);
     } catch {
       setFamilia(null);
       setQtdValidar(0);
       setQtdFilhos(0);
       setTotalPontos(0);
+      setQtdResgatesPendentes(0);
     } finally {
       setCarregando(false);
     }
@@ -87,6 +93,22 @@ export default function AdminHomeScreen() {
     }
 
     return `${qtdFilhos} filhos cadastrados.`;
+  })();
+
+  const resgatesTexto = (() => {
+    if (qtdResgatesPendentes === 0) {
+      return 'Confirme os resgates solicitados pelos filhos.';
+    }
+    const plural = qtdResgatesPendentes === 1 ? 'resgate' : 'resgates';
+    return `${qtdResgatesPendentes} ${plural} aguardando confirmação.`;
+  })();
+
+  const resgatesAccessLabel = (() => {
+    if (qtdResgatesPendentes === 0) {
+      return 'Resgates. Nenhum pendente';
+    }
+    const plural = qtdResgatesPendentes === 1 ? 'pendente' : 'pendentes';
+    return `Resgates. ${qtdResgatesPendentes} ${plural}`;
   })();
 
   async function handleSair() {
@@ -167,6 +189,39 @@ export default function AdminHomeScreen() {
             : 'Gerencie valorização e penalizações dos filhos.'}
         </Text>
         <Text style={styles.cardLink}>Ver saldos →</Text>
+      </Pressable>
+
+      <Pressable
+        style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}
+        onPress={() => router.push('/(admin)/premios' as never)}
+        accessibilityRole="button"
+        accessibilityLabel="Prêmios"
+      >
+        <View style={styles.cardTopo}>
+          <Text style={styles.cardTitulo}>🎁 Prêmios</Text>
+        </View>
+        <Text style={styles.cardTexto}>
+          Gerencie o catálogo de prêmios da família.
+        </Text>
+        <Text style={styles.cardLink}>Ver prêmios →</Text>
+      </Pressable>
+
+      <Pressable
+        style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}
+        onPress={() => router.push('/(admin)/resgates' as never)}
+        accessibilityRole="button"
+        accessibilityLabel={resgatesAccessLabel}
+      >
+        <View style={styles.cardTopo}>
+          <Text style={styles.cardTitulo}>🛍️ Resgates</Text>
+          {qtdResgatesPendentes > 0 && (
+            <View style={[styles.badge, { backgroundColor: '#F59E0B' }]}>
+              <Text style={styles.badgeTexto}>{qtdResgatesPendentes}</Text>
+            </View>
+          )}
+        </View>
+        <Text style={styles.cardTexto}>{resgatesTexto}</Text>
+        <Text style={styles.cardLink}>Ver resgates →</Text>
       </Pressable>
 
       <Pressable
