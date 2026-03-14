@@ -46,7 +46,7 @@ export default function NovoFilhoScreen() {
         <Text style={[styles.sucessoTexto, { color: colors.text.secondary }]}>
           Compartilhe as credenciais com {nome}:{'\n\n'}
           <Text style={{ color: colors.accent.admin, fontFamily: typography.family.bold }}>E-mail: {email}</Text>
-          {'\'\n'}
+          {'\n'}
           <Text style={{ color: colors.accent.admin, fontFamily: typography.family.bold }}>Senha: {senha}</Text>
         </Text>
         <Pressable style={[styles.botaoConcluir, { backgroundColor: colors.accent.admin }]} onPress={() => router.back()}>
@@ -118,7 +118,7 @@ function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     scrollContent: { padding: spacing['5'], paddingBottom: spacing['10'] },
     infoBox: { borderRadius: radii.md, borderWidth: 1, padding: spacing['3'], marginBottom: spacing['4'] },
-    infoTexto: { fontSize: typography.size.sm, lineHeight: 20 },
+    infoTexto: { fontSize: typography.size.sm, lineHeight: typography.lineHeight.sm },
     label: { fontSize: typography.size.sm, fontFamily: typography.family.semibold, marginBottom: spacing['1'], marginTop: spacing['4'] },
     input: { borderWidth: 1, borderRadius: radii.md, paddingHorizontal: spacing['4'], paddingVertical: spacing['3'], fontSize: typography.size.md },
     erroTexto: { fontSize: typography.size.sm, marginTop: spacing['3'], textAlign: 'center' },
@@ -127,8 +127,8 @@ function makeStyles(colors: ThemeColors) {
     sucessoContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing['8'] },
     sucessoEmoji: { fontSize: 56, marginBottom: spacing['4'] },
     sucessoTitulo: { fontSize: typography.size['2xl'], fontFamily: typography.family.bold, marginBottom: spacing['3'] },
-    sucessoTexto: { fontSize: typography.size.md, textAlign: 'center', lineHeight: 24, marginBottom: spacing['8'] },
-    botaoConcluir: { borderRadius: radii.md, paddingVertical: spacing['3'], paddingHorizontal: spacing['8'] },
+    sucessoTexto: { fontSize: typography.size.md, textAlign: 'center', lineHeight: typography.lineHeight.md, marginBottom: spacing['8'] },
+    botaoConcluir: { borderRadius: radii.md, paddingVertical: spacing['3'], paddingHorizontal: spacing['8'], minHeight: 48, justifyContent: 'center' },
     botaoConcluirTexto: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
   });
 }
