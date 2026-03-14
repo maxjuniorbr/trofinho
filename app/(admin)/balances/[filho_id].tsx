@@ -203,9 +203,9 @@ export default function ChildBalanceAdminScreen() {
             </Pressable>
 
             <Text style={styles.secaoTitulo}>Histórico</Text>
-            {!hasTransactions ? (
+            {hasTransactions ? null : (
               <Text style={styles.vazio}>Nenhuma movimentação ainda.</Text>
-            ) : null}
+            )}
           </>
         }
         renderItem={({ item }) => (

@@ -303,7 +303,7 @@ function generateRandomSuffix(): string {
       .join('');
   }
 
-  return `${Date.now().toString(16)}${Math.random().toString(16).slice(2, 10)}`;
+  throw new Error('crypto.getRandomValues is not available in this environment');
 }
 
 function inferImageExtension(imageUri: string): string {
