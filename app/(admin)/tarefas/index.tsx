@@ -18,6 +18,8 @@ export default function AdminTarefasScreen() {
   const [tarefas, setTarefas] = useState<TarefaListItem[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const hasErro = Boolean(erro);
+  const shouldShowEmptyState = carregando || hasErro || tarefas.length === 0;
 
   const carregar = useCallback(async () => {
     setCarregando(true); setErro(null);
@@ -44,7 +46,7 @@ export default function AdminTarefasScreen() {
         }
       />
 
-      {(carregando || erro || tarefas.length === 0) ? (
+      {shouldShowEmptyState ? (
         <EmptyState loading={carregando} error={erro} empty={tarefas.length === 0} emptyMessage={'Nenhuma tarefa criada ainda.\nToque em "+ Nova" para criar a primeira tarefa.'} onRetry={carregar} />
       ) : (
         <FlatList
@@ -73,9 +75,9 @@ export default function AdminTarefasScreen() {
                     <Text style={[styles.statTexto, { color: colors.text.muted }]}>Sem atribuições</Text>
                   ) : (
                     <>
-                      {pendentes > 0 && <Badge label={`${pendentes} pendente${pendentes > 1 ? 's' : ''}`} variant="warning" />}
-                      {aguardando > 0 && <Badge label={`${aguardando} validar`} variant="info" />}
-                      {aprovadas > 0 && <Badge label={`${aprovadas} aprovada${aprovadas > 1 ? 's' : ''}`} variant="success" />}
+                      {pendentes > 0 ? <Badge label={`${pendentes} pendente${pendentes > 1 ? 's' : ''}`} variant="warning" /> : null}
+                      {aguardando > 0 ? <Badge label={`${aguardando} validar`} variant="info" /> : null}
+                      {aprovadas > 0 ? <Badge label={`${aprovadas} aprovada${aprovadas > 1 ? 's' : ''}`} variant="success" /> : null}
                     </>
                   )}
                 </View>

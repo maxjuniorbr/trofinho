@@ -27,6 +27,9 @@ export default function RegisterScreen() {
   const [confirmaSenha, setConfirmaSenha] = useState('');
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
+  const shouldShowError = Boolean(erro);
+  const submitLabel = carregando ? 'Criando conta…' : 'Criar conta';
+  const backToLoginLabel = '← Voltar ao login';
 
   function validar(): string | null {
     const emailValue = email.trim();
@@ -119,17 +122,29 @@ export default function RegisterScreen() {
             accessibilityLabel="Campo de confirmar senha"
           />
 
-          {erro ? <Text style={[styles.erro, { color: colors.semantic.error }]} accessibilityRole="alert">{erro}</Text> : null}
+          {shouldShowError ? (
+            <Text style={[styles.erro, { color: colors.semantic.error }]} accessibilityRole="alert">
+              {erro}
+            </Text>
+          ) : null}
 
           <Pressable
-            style={({ pressed }) => [styles.botao, { backgroundColor: colors.accent.admin, opacity: carregando ? 0.55 : pressed ? 0.82 : 1 }]}
+            style={({ pressed }) => {
+              let opacity = 1;
+
+              if (carregando) {
+                opacity = 0.55;
+              } else if (pressed) {
+                opacity = 0.82;
+              }
+
+              return [styles.botao, { backgroundColor: colors.accent.admin, opacity }];
+            }}
             onPress={handleCriarConta}
             disabled={carregando}
             accessibilityRole="button"
           >
-            <Text style={[styles.botaoTexto, { color: colors.text.inverse }]}>
-              {carregando ? 'Criando conta…' : 'Criar conta'}
-            </Text>
+            <Text style={[styles.botaoTexto, { color: colors.text.inverse }]}>{submitLabel}</Text>
           </Pressable>
 
           <Pressable
@@ -138,7 +153,9 @@ export default function RegisterScreen() {
             disabled={carregando}
             accessibilityRole="button"
           >
-            <Text style={[styles.botaoSecundarioTexto, { color: colors.text.secondary }]}>← Voltar ao login</Text>
+            <Text style={[styles.botaoSecundarioTexto, { color: colors.text.secondary }]}>
+              {backToLoginLabel}
+            </Text>
           </Pressable>
         </View>
       </ScrollView>

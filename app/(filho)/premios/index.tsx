@@ -31,6 +31,11 @@ export default function FilhoPremiosScreen() {
   const [resgatando, setResgatando] = useState<string | null>(null);
   const [erroResgate, setErroResgate] = useState<string | null>(null);
   const [sucesso, setSucesso] = useState<string | null>(null);
+  const hasErroResgate = Boolean(erroResgate);
+  const hasSucesso = Boolean(sucesso);
+  const hasErro = Boolean(erro);
+  const shouldShowEmptyState = carregando || hasErro || premios.length === 0;
+  const emptyStateMessage = 'Nenhum prêmio disponível no momento.\nPergunte ao responsável!';
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -71,14 +76,14 @@ export default function FilhoPremiosScreen() {
     <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
       <StatusBar style={colors.statusBar} />
 
-      {carregando || erro || premios.length === 0 ? (
+      {shouldShowEmptyState ? (
         <EmptyState
           loading={carregando}
-          error={erro ? erro ?? 'Nenhum prêmio disponível no momento.\nPergunte ao responsável!' : null}
+          error={erro}
           empty={!carregando && !erro}
-          emptyMessage={erro ?? 'Nenhum prêmio disponível no momento.\nPergunte ao responsável!'}
+          emptyMessage={emptyStateMessage}
           onRetry={carregar}
-          />
+        />
       ) : (
         <FlatList
           data={premios}
@@ -91,8 +96,8 @@ export default function FilhoPremiosScreen() {
                 <Text style={styles.saldoLabel}>Seu saldo disponível</Text>
                 <Text style={styles.saldoValor}>💰 {saldoLivre} pts</Text>
               </View>
-              {erroResgate ? <Text style={styles.erroTexto}>{erroResgate}</Text> : null}
-              {sucesso ? <Text style={styles.sucessoTexto}>{sucesso}</Text> : null}
+              {hasErroResgate ? <Text style={styles.erroTexto}>{erroResgate}</Text> : null}
+              {hasSucesso ? <Text style={styles.sucessoTexto}>{sucesso}</Text> : null}
             </>
           }
           renderItem={({ item }) => {

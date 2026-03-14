@@ -43,6 +43,12 @@ export default function AdminPremiosScreen() {
 
   const ativos = premios.filter((p) => p.ativo);
   const inativos = premios.filter((p) => !p.ativo);
+  const hasErro = Boolean(erro);
+  const shouldShowEmptyState = carregando || hasErro || premios.length === 0;
+  const emptyStateMessage = 'Nenhum prêmio cadastrado.\nToque em "+ Novo" para criar o primeiro prêmio.';
+  const resumoInativos = inativos.length > 0
+    ? ` · ${inativos.length} inativo${inativos.length !== 1 ? 's' : ''}`
+    : '';
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
@@ -59,14 +65,14 @@ export default function AdminPremiosScreen() {
         }
       />
 
-      {carregando || erro || premios.length === 0 ? (
+      {shouldShowEmptyState ? (
         <EmptyState
           loading={carregando}
-          error={erro ? erro ?? 'Nenhum prêmio cadastrado.\nToque em "+ Novo" para criar o primeiro prêmio.' : null}
+          error={erro}
           empty={!carregando && !erro}
-          emptyMessage={erro ?? 'Nenhum prêmio cadastrado.\nToque em "+ Novo" para criar o primeiro prêmio.'}
+          emptyMessage={emptyStateMessage}
           onRetry={carregar}
-          />
+        />
       ) : (
         <FlatList
           data={premios}
@@ -76,7 +82,7 @@ export default function AdminPremiosScreen() {
           ListHeaderComponent={
             <Text style={styles.resumo}>
               {ativos.length} ativo{ativos.length !== 1 ? 's' : ''}
-              {inativos.length > 0 ? ` · ${inativos.length} inativo${inativos.length !== 1 ? 's' : ''}` : ''}
+              {resumoInativos}
             </Text>
           }
           renderItem={({ item }) => (

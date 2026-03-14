@@ -13,13 +13,15 @@ interface ScreenHeaderProps {
   role?: 'admin' | 'filho';
 }
 
+type ReadonlyScreenHeaderProps = Readonly<ScreenHeaderProps>;
+
 export function ScreenHeader({
   title,
   onBack,
   backLabel = '← Voltar',
   rightAction,
   role = 'admin',
-}: ScreenHeaderProps) {
+}: ReadonlyScreenHeaderProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const accent = role === 'filho' ? colors.accent.filho : colors.accent.admin;

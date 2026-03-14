@@ -25,6 +25,8 @@ export default function LoginScreen() {
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
+  const shouldShowError = Boolean(erro);
+  const submitLabel = carregando ? 'Entrando…' : 'Entrar';
 
   function validar(): string | null {
     const emailValue = email.trim();
@@ -46,7 +48,9 @@ export default function LoginScreen() {
 
     if (error) { setErro(error.message); return; }
     if (!profile) { router.replace('/(auth)/onboarding'); return; }
-    router.replace(profile.papel === 'admin' ? '/(admin)/' : '/(filho)/');
+
+    const destination = profile.papel === 'admin' ? '/(admin)/' : '/(filho)/';
+    router.replace(destination);
   }
 
   return (
@@ -95,26 +99,41 @@ export default function LoginScreen() {
             accessibilityLabel="Campo de senha"
           />
 
-          {erro ? <Text style={[styles.erro, { color: colors.semantic.error }]} accessibilityRole="alert">{erro}</Text> : null}
+          {shouldShowError ? (
+            <Text style={[styles.erro, { color: colors.semantic.error }]} accessibilityRole="alert">
+              {erro}
+            </Text>
+          ) : null}
 
           <Pressable
-            style={({ pressed }) => [
-              styles.botao,
-              { backgroundColor: colors.accent.admin, opacity: carregando ? 0.55 : pressed ? 0.82 : 1 },
-            ]}
+            style={({ pressed }) => {
+              let opacity = 1;
+
+              if (carregando) {
+                opacity = 0.55;
+              } else if (pressed) {
+                opacity = 0.82;
+              }
+
+              return [
+                styles.botao,
+                { backgroundColor: colors.accent.admin, opacity },
+              ];
+            }}
             onPress={handleEntrar}
             disabled={carregando}
             accessibilityRole="button"
-            accessibilityLabel={carregando ? 'Entrando' : 'Entrar'}
+            accessibilityLabel={carregando ? 'Entrando' : submitLabel}
             accessibilityState={{ disabled: carregando, busy: carregando }}
           >
-            <Text style={[styles.botaoTexto, { color: colors.text.inverse }]}>
-              {carregando ? 'Entrando…' : 'Entrar'}
-            </Text>
+            <Text style={[styles.botaoTexto, { color: colors.text.inverse }]}>{submitLabel}</Text>
           </Pressable>
 
           <Pressable
-            style={({ pressed }) => [styles.botaoSecundario, { opacity: pressed ? 0.65 : 1 }]}
+            style={({ pressed }) => [
+              styles.botaoSecundario,
+              { opacity: pressed ? 0.65 : 1 },
+            ]}
             onPress={() => router.push('/(auth)/register')}
             disabled={carregando}
             accessibilityRole="button"

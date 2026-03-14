@@ -21,6 +21,7 @@ export default function NovoFilhoScreen() {
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [sucesso, setSucesso] = useState(false);
+  const shouldShowError = Boolean(erro);
 
   async function handleCadastrar() {
     setErro(null);
@@ -97,7 +98,9 @@ export default function NovoFilhoScreen() {
           </View>
         ))}
 
-        {erro && <Text style={[styles.erroTexto, { color: colors.semantic.error }]}>{erro}</Text>}
+        {shouldShowError ? (
+          <Text style={[styles.erroTexto, { color: colors.semantic.error }]}>{erro}</Text>
+        ) : null}
 
         <Pressable
           style={[styles.botaoCadastrar, { backgroundColor: colors.accent.admin, opacity: enviando ? 0.55 : 1 }]}

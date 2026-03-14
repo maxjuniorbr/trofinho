@@ -128,7 +128,11 @@ export default function TarefaDetalheAdminScreen() {
           {tarefa.descricao ? (
             <Text style={styles.descricao}>{tarefa.descricao}</Text>
           ) : null}
-          <Text style={styles.meta}>{tarefa.timebox_inicio} → {tarefa.timebox_fim}</Text>
+          <Text style={styles.meta}>
+            {tarefa.timebox_inicio}
+            {' \u2192 '}
+            {tarefa.timebox_fim}
+          </Text>
           {tarefa.exige_evidencia && (
             <View style={styles.tagEvidencia}>
               <Text style={styles.tagEvidenciaTexto}>📷 Exige foto</Text>

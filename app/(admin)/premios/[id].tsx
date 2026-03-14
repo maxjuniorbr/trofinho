@@ -103,6 +103,14 @@ export default function AdminPremioDetalheScreen() {
     );
   }
 
+  let toggleAtivoLabel = 'Reativar prêmio';
+
+  if (alterandoAtivo) {
+    toggleAtivoLabel = 'Aguarde…';
+  } else if (premio.ativo) {
+    toggleAtivoLabel = 'Desativar prêmio';
+  }
+
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg.canvas }} behavior={process.env.EXPO_OS === 'ios' ? 'padding' : 'height'}>
       <StatusBar style={colors.statusBar} />
@@ -157,7 +165,7 @@ export default function AdminPremioDetalheScreen() {
           disabled={alterandoAtivo}
         >
           <Text style={[styles.botaoSecundarioTexto, !premio.ativo && { color: colors.semantic.success }]}>
-            {alterandoAtivo ? 'Aguarde…' : premio.ativo ? 'Desativar prêmio' : 'Reativar prêmio'}
+            {toggleAtivoLabel}
           </Text>
         </Pressable>
       </ScrollView>
