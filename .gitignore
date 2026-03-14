@@ -48,5 +48,8 @@ supabase/.temp
 
 # local agent skills
 /.agents/
+
+# VS Code
+.vscode/
 skills-lock.json
 *.code-workspace
