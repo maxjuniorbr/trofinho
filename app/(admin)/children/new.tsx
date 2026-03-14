@@ -6,13 +6,12 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { registerChild } from '@lib/children';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
 import { useTheme } from '@/context/theme-context';
-import type { ThemeColors } from '@/constants/theme';
 import { radii, spacing, typography } from '@/constants/theme';
 
 export default function NewChildScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const styles = useMemo(() => makeStyles(), []);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -114,7 +113,7 @@ export default function NewChildScreen() {
   );
 }
 
-function makeStyles(colors: ThemeColors) {
+function makeStyles() {
   return StyleSheet.create({
     scrollContent: { padding: spacing['5'], paddingBottom: spacing['10'] },
     infoBox: { borderRadius: radii.md, borderWidth: 1, padding: spacing['3'], marginBottom: spacing['4'] },
