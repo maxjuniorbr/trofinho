@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { signIn } from '@lib/auth';
+import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -21,8 +22,10 @@ export default function LoginScreen() {
   const [carregando, setCarregando] = useState(false);
 
   function validar(): string | null {
-    if (!email.trim()) return 'Informe seu e-mail.';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'E-mail inválido.';
+    const emailValue = email.trim();
+
+    if (!emailValue) return 'Informe seu e-mail.';
+    if (!isValidEmail(emailValue)) return 'E-mail inválido.';
     if (!senha) return 'Informe sua senha.';
     if (senha.length < 6) return 'A senha deve ter ao menos 6 caracteres.';
     return null;
@@ -83,6 +86,7 @@ export default function LoginScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            maxLength={MAX_EMAIL_LENGTH}
             editable={!carregando}
           />
 

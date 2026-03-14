@@ -40,21 +40,112 @@ export default function FilhoTarefasScreen() {
   const carregar = useCallback(async () => {
     setCarregando(true);
     setErro(null);
-    const { data, error } = await listarAtribuicoesFilho();
-    if (error) setErro(error);
-    else setAtribuicoes(data);
-    setCarregando(false);
+
+    try {
+      const { data, error } = await listarAtribuicoesFilho();
+      if (error) setErro(error);
+      else setAtribuicoes(data);
+    } catch {
+      setErro('Não foi possível carregar suas tarefas agora.');
+      setAtribuicoes([]);
+    } finally {
+      setCarregando(false);
+    }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      void carregar();
+      carregar();
     }, [carregar])
   );
 
   const filtradas = atribuicoes.filter((a) =>
     pertenceFiltro(a.status, filtro)
   );
+
+  const mensagemVazio = (() => {
+    if (filtro === 'pendente') {
+      return 'Nenhuma tarefa pendente.';
+    }
+
+    if (filtro === 'aguardando_validacao') {
+      return 'Nada aguardando validação.';
+    }
+
+    return 'Nenhuma tarefa concluída ainda.';
+  })();
+
+  function renderConteudo() {
+    if (carregando) {
+      return (
+        <View style={styles.centro}>
+          <ActivityIndicator size="large" color="#0EA5E9" />
+        </View>
+      );
+    }
+
+    if (erro) {
+      return (
+        <View style={styles.centro}>
+          <Text style={styles.erroTexto}>{erro}</Text>
+          <TouchableOpacity style={styles.botaoRetentar} onPress={carregar}>
+            <Text style={styles.botaoRetentarTexto}>Tentar novamente</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    if (filtradas.length === 0) {
+      return (
+        <View style={styles.centro}>
+          <Text style={styles.vazio}>{mensagemVazio}</Text>
+        </View>
+      );
+    }
+
+    return (
+      <FlatList
+        data={filtradas}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.lista}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() =>
+              router.push(`/(filho)/tarefas/${item.id}` as never)
+            }
+          >
+            <View style={styles.cardTopo}>
+              <Text style={styles.cardTitulo} numberOfLines={2}>
+                {item.tarefas.titulo}
+              </Text>
+              <View style={styles.pontosTag}>
+                <Text style={styles.pontosTexto}>{item.tarefas.pontos} pts</Text>
+              </View>
+            </View>
+            <Text style={styles.cardPrazo}>
+              Prazo: {item.tarefas.timebox_fim}
+            </Text>
+            <View
+              style={[
+                styles.statusTag,
+                { backgroundColor: corStatus(item.status) + '20' },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.statusTexto,
+                  { color: corStatus(item.status) },
+                ]}
+              >
+                {labelStatus(item.status)}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -88,69 +179,7 @@ export default function FilhoTarefasScreen() {
         ))}
       </View>
 
-      {carregando ? (
-        <View style={styles.centro}>
-          <ActivityIndicator size="large" color="#0EA5E9" />
-        </View>
-      ) : erro ? (
-        <View style={styles.centro}>
-          <Text style={styles.erroTexto}>{erro}</Text>
-          <TouchableOpacity style={styles.botaoRetentar} onPress={carregar}>
-            <Text style={styles.botaoRetentarTexto}>Tentar novamente</Text>
-          </TouchableOpacity>
-        </View>
-      ) : filtradas.length === 0 ? (
-        <View style={styles.centro}>
-          <Text style={styles.vazio}>
-            {filtro === 'pendente'
-              ? 'Nenhuma tarefa pendente.'
-              : filtro === 'aguardando_validacao'
-              ? 'Nada aguardando validação.'
-              : 'Nenhuma tarefa concluída ainda.'}
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={filtradas}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.lista}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.card}
-              onPress={() =>
-                router.push(`/(filho)/tarefas/${item.id}` as never)
-              }
-            >
-              <View style={styles.cardTopo}>
-                <Text style={styles.cardTitulo} numberOfLines={2}>
-                  {item.tarefas.titulo}
-                </Text>
-                <View style={styles.pontosTag}>
-                  <Text style={styles.pontosTexto}>{item.tarefas.pontos} pts</Text>
-                </View>
-              </View>
-              <Text style={styles.cardPrazo}>
-                Prazo: {item.tarefas.timebox_fim}
-              </Text>
-              <View
-                style={[
-                  styles.statusTag,
-                  { backgroundColor: corStatus(item.status) + '20' },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.statusTexto,
-                    { color: corStatus(item.status) },
-                  ]}
-                >
-                  {labelStatus(item.status)}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          )}
-        />
-      )}
+      {renderConteudo()}
     </View>
   );
 }

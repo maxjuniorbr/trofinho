@@ -21,11 +21,42 @@ CREATE INDEX IF NOT EXISTS idx_movimentacoes_created   ON public.movimentacoes (
 
 -- ─── COLUNAS EXTRAS EM saldos ─────────────────────────────
 
+DO $$
+BEGIN
+  CREATE TYPE public.periodo_valorizacao AS ENUM (
+    'diario',
+    'semanal',
+    'mensal'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END;
+$$;
+
 ALTER TABLE public.saldos
   ADD COLUMN IF NOT EXISTS indice_valorizacao   NUMERIC(5,2) NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS periodo_valorizacao  TEXT         NOT NULL DEFAULT 'mensal'
-                             CHECK (periodo_valorizacao IN ('diario','semanal','mensal')),
+  ADD COLUMN IF NOT EXISTS periodo_valorizacao  public.periodo_valorizacao NOT NULL DEFAULT 'mensal',
   ADD COLUMN IF NOT EXISTS data_ultima_valorizacao DATE;
+
+CREATE OR REPLACE FUNCTION public.validar_filho_da_familia(
+  p_filho_id UUID,
+  p_familia_id UUID
+)
+RETURNS VOID
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM public.filhos f
+    WHERE f.id = p_filho_id AND f.familia_id = p_familia_id
+  ) THEN
+    RAISE EXCEPTION 'Filho não pertence a esta família';
+  END IF;
+END;
+$$;
 
 -- ─── RLS: movimentacoes ───────────────────────────────────
 
@@ -38,7 +69,7 @@ CREATE POLICY "movimentacoes_select_filho"
 CREATE POLICY "movimentacoes_select_admin"
   ON public.movimentacoes FOR SELECT
   USING (
-    public.meu_papel() = 'admin'
+    public.usuario_e_admin()
     AND EXISTS (
       SELECT 1 FROM public.filhos f
        WHERE f.id = filho_id
@@ -62,12 +93,9 @@ DECLARE
   v_tarefa_familia UUID;
   v_titulo         TEXT;
 BEGIN
-  v_caller_id := auth.uid();
-  IF v_caller_id IS NULL THEN
-    RAISE EXCEPTION 'Usuário não autenticado';
-  END IF;
+  v_caller_id := public.usuario_autenticado_id();
 
-  IF public.meu_papel() != 'admin' THEN
+  IF NOT public.usuario_e_admin() THEN
     RAISE EXCEPTION 'Apenas admins podem aprovar tarefas';
   END IF;
 
@@ -116,9 +144,7 @@ AS $$
 DECLARE
   v_saldo_livre INTEGER;
 BEGIN
-  IF auth.uid() IS NULL THEN
-    RAISE EXCEPTION 'Usuário não autenticado';
-  END IF;
+  PERFORM public.usuario_autenticado_id();
 
   -- Apenas o próprio filho pode transferir
   IF public.meu_filho_id() != p_filho_id THEN
@@ -162,23 +188,15 @@ DECLARE
   v_indice         NUMERIC(5,2);
   v_ganho          INTEGER;
 BEGIN
-  IF auth.uid() IS NULL THEN
-    RAISE EXCEPTION 'Usuário não autenticado';
-  END IF;
+  PERFORM public.usuario_autenticado_id();
 
-  IF public.meu_papel() != 'admin' THEN
+  IF NOT public.usuario_e_admin() THEN
     RAISE EXCEPTION 'Apenas admins podem aplicar valorização';
   END IF;
 
   v_familia_id := public.minha_familia_id();
 
-  -- Verifica que o filho pertence à família do admin
-  IF NOT EXISTS (
-    SELECT 1 FROM public.filhos f
-    WHERE f.id = p_filho_id AND f.familia_id = v_familia_id
-  ) THEN
-    RAISE EXCEPTION 'Filho não pertence a esta família';
-  END IF;
+  PERFORM public.validar_filho_da_familia(p_filho_id, v_familia_id);
 
   SELECT cofrinho, indice_valorizacao
     INTO v_cofrinho, v_indice
@@ -225,22 +243,15 @@ DECLARE
   v_familia_id UUID;
   v_saldo_livre INTEGER;
 BEGIN
-  IF auth.uid() IS NULL THEN
-    RAISE EXCEPTION 'Usuário não autenticado';
-  END IF;
+  PERFORM public.usuario_autenticado_id();
 
-  IF public.meu_papel() != 'admin' THEN
+  IF NOT public.usuario_e_admin() THEN
     RAISE EXCEPTION 'Apenas admins podem aplicar penalização';
   END IF;
 
   v_familia_id := public.minha_familia_id();
 
-  IF NOT EXISTS (
-    SELECT 1 FROM public.filhos f
-    WHERE f.id = p_filho_id AND f.familia_id = v_familia_id
-  ) THEN
-    RAISE EXCEPTION 'Filho não pertence a esta família';
-  END IF;
+  PERFORM public.validar_filho_da_familia(p_filho_id, v_familia_id);
 
   IF p_valor <= 0 THEN
     RAISE EXCEPTION 'Valor deve ser maior que zero';
@@ -275,7 +286,7 @@ $$;
 CREATE OR REPLACE FUNCTION public.configurar_valorizacao(
   p_filho_id UUID,
   p_indice   NUMERIC,
-  p_periodo  TEXT
+  p_periodo  public.periodo_valorizacao
 )
 RETURNS VOID
 LANGUAGE plpgsql
@@ -285,29 +296,18 @@ AS $$
 DECLARE
   v_familia_id UUID;
 BEGIN
-  IF auth.uid() IS NULL THEN
-    RAISE EXCEPTION 'Usuário não autenticado';
-  END IF;
+  PERFORM public.usuario_autenticado_id();
 
-  IF public.meu_papel() != 'admin' THEN
+  IF NOT public.usuario_e_admin() THEN
     RAISE EXCEPTION 'Apenas admins podem configurar valorização';
   END IF;
 
   v_familia_id := public.minha_familia_id();
 
-  IF NOT EXISTS (
-    SELECT 1 FROM public.filhos f
-    WHERE f.id = p_filho_id AND f.familia_id = v_familia_id
-  ) THEN
-    RAISE EXCEPTION 'Filho não pertence a esta família';
-  END IF;
+  PERFORM public.validar_filho_da_familia(p_filho_id, v_familia_id);
 
   IF p_indice < 0 OR p_indice > 100 THEN
     RAISE EXCEPTION 'Índice deve estar entre 0 e 100';
-  END IF;
-
-  IF p_periodo NOT IN ('diario','semanal','mensal') THEN
-    RAISE EXCEPTION 'Período inválido';
   END IF;
 
   INSERT INTO public.saldos (filho_id, indice_valorizacao, periodo_valorizacao)

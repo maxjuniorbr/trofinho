@@ -12,13 +12,13 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback } from 'react';
-import { useRouter } from 'expo-router';
-import { useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import {
   buscarSaldo,
   listarMovimentacoes,
   transferirParaCofrinho,
   emojiTipo,
+  labelPeriodoValorizacao,
   labelTipo,
   isCredito,
   type Saldo,
@@ -40,25 +40,34 @@ export default function SaldoFilhoScreen() {
   const [enviando, setEnviando] = useState(false);
 
   const carregar = useCallback(async () => {
-    const id = await buscarMeuFilhoId();
-    setFilhoId(id);
-    if (!id) { setCarregando(false); return; }
+    setCarregando(true);
 
-    const [{ data: s }, { data: m }] = await Promise.all([
-      buscarSaldo(id),
-      listarMovimentacoes(id),
-    ]);
-    setSaldo(s);
-    setMovs(m);
-    setCarregando(false);
+    try {
+      const id = await buscarMeuFilhoId();
+      setFilhoId(id);
+      if (!id) {
+        setSaldo(null);
+        setMovs([]);
+        return;
+      }
+
+      const [{ data: s }, { data: m }] = await Promise.all([
+        buscarSaldo(id),
+        listarMovimentacoes(id),
+      ]);
+      setSaldo(s);
+      setMovs(m);
+    } finally {
+      setCarregando(false);
+    }
   }, []);
 
-  useFocusEffect(useCallback(() => { void carregar(); }, [carregar]));
+  useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
 
   async function handleTransferir() {
     setErrModal(null);
-    const v = parseInt(valorStr, 10);
-    if (!valorStr || isNaN(v) || v <= 0) return setErrModal('Informe um valor válido.');
+    const v = Number.parseInt(valorStr, 10);
+    if (!valorStr || Number.isNaN(v) || v <= 0) return setErrModal('Informe um valor válido.');
     if (!saldo || v > saldo.saldo_livre) return setErrModal('Saldo livre insuficiente.');
     if (!filhoId) return;
 
@@ -69,7 +78,7 @@ export default function SaldoFilhoScreen() {
     if (error) { setErrModal(error); return; }
     setModalAberto(false);
     setValorStr('');
-    void carregar();
+    await carregar();
   }
 
   if (carregando) {
@@ -82,6 +91,10 @@ export default function SaldoFilhoScreen() {
 
   const saldoLivre = saldo?.saldo_livre ?? 0;
   const cofrinho = saldo?.cofrinho ?? 0;
+  const periodoValorizacao = saldo ? labelPeriodoValorizacao(saldo.periodo_valorizacao) : null;
+  const ultimaValorizacaoTexto = saldo?.data_ultima_valorizacao
+    ? ` · última em ${new Date(saldo.data_ultima_valorizacao).toLocaleDateString('pt-BR')}`
+    : '';
 
   return (
     <View style={styles.container}>
@@ -119,15 +132,8 @@ export default function SaldoFilhoScreen() {
             {(saldo?.indice_valorizacao ?? 0) > 0 && (
               <View style={styles.valBox}>
                 <Text style={styles.valTexto}>
-                  📈 Seu cofrinho rende {saldo!.indice_valorizacao}% ao{' '}
-                  {saldo!.periodo_valorizacao === 'diario'
-                    ? 'dia'
-                    : saldo!.periodo_valorizacao === 'semanal'
-                    ? 'semana'
-                    : 'mês'}
-                  {saldo?.data_ultima_valorizacao
-                    ? ` · última em ${new Date(saldo.data_ultima_valorizacao).toLocaleDateString('pt-BR')}`
-                    : ''}
+                  📈 Seu cofrinho rende {saldo!.indice_valorizacao}% ao {periodoValorizacao}
+                  {ultimaValorizacaoTexto}
                 </Text>
               </View>
             )}
@@ -236,7 +242,7 @@ const styles = StyleSheet.create({
     padding: 18,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.10,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
   },
