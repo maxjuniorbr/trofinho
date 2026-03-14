@@ -18,3 +18,11 @@ export function parsearData(value: string): Date | null {
 export function toDateString(date: Date): string {
   return date.toISOString().split('T')[0];
 }
+
+/** Returns a time-of-day greeting in pt-BR. */
+export function saudacao(): string {
+  const hora = new Date().getHours();
+  if (hora < 12) return 'Bom dia';
+  if (hora < 18) return 'Boa tarde';
+  return 'Boa noite';
+}

@@ -15,6 +15,7 @@ import { signOut, buscarPerfil, type UserProfile } from '@lib/auth';
 import { supabase } from '@lib/supabase';
 import { listarAtribuicoesFilho } from '@lib/tarefas';
 import { buscarSaldo } from '@lib/saldos';
+import { saudacao } from '@lib/utils';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -112,7 +113,7 @@ export default function FilhoHomeScreen() {
       <Animated.View
         style={[styles.hero, { opacity: heroOpacity, transform: [{ translateY: heroY }] }]}
       >
-        <Text style={[styles.heroSub, { color: colors.text.secondary }]}>Bom dia 🏆</Text>
+        <Text style={[styles.heroSub, { color: colors.text.secondary }]}>{saudacao()} 🏆</Text>
         <Text style={[styles.heroTitle, { color: colors.text.primary }]}>
           Olá, {profile?.nome ?? 'Campeão'}!
         </Text>

@@ -158,7 +158,7 @@ function makeStyles(colors: ThemeColors) {
     label: { fontSize: typography.size.sm, fontFamily: typography.family.semibold, marginBottom: spacing['1'], marginTop: spacing['4'] },
     input: { borderWidth: 1, borderRadius: radii.md, paddingHorizontal: spacing['4'], paddingVertical: spacing['3'], fontSize: typography.size.md },
     erro: { fontSize: typography.size.sm, marginTop: spacing['3'], textAlign: 'center' },
-    botao: { borderRadius: radii.md, paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['6'], minHeight: 52 },
+    botao: { borderRadius: radii.md, paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['6'], minHeight: 48 },
     botaoTexto: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
     botaoVoltar: { paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['2'], minHeight: 44 },
     botaoVoltarTexto: { fontSize: typography.size.md },

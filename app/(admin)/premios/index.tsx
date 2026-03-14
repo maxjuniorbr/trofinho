@@ -145,7 +145,7 @@ function makeStyles(colors: ThemeColors) {
       backgroundColor: colors.bg.muted,
       borderRadius: radii.md,
       paddingHorizontal: spacing['2'],
-      paddingVertical: 2,
+      paddingVertical: spacing['1'],
     },
     badgeInativoTexto: { fontSize: typography.size.xs, color: colors.text.muted, fontFamily: typography.family.semibold },
     botaoNova: { borderRadius: radii.sm, paddingVertical: spacing['2'], paddingHorizontal: spacing['3'], minHeight: 36 },
