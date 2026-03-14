@@ -38,7 +38,7 @@ export default function AdminTarefasScreen() {
       <ScreenHeader
         title="Tarefas"
         onBack={() => router.back()}
-        backLabel="← Início"
+        backLabel="Início"
         rightAction={
           <Pressable onPress={() => router.push('/(admin)/tarefas/nova')} style={[styles.botaoNova, { backgroundColor: colors.accent.admin }]}>
             <Text style={[styles.botaoNovaTexto, { color: colors.text.inverse }]}>+ Nova</Text>
@@ -93,10 +93,10 @@ export default function AdminTarefasScreen() {
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
-    botaoNova: { borderRadius: radii.sm, paddingVertical: spacing['1'] + 2, paddingHorizontal: spacing['3'] },
+    botaoNova: { borderRadius: radii.sm, paddingVertical: spacing['2'], paddingHorizontal: spacing['3'], minHeight: 36 },
     botaoNovaTexto: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
     lista: { padding: spacing['4'], paddingBottom: spacing['10'], gap: spacing['3'] },
-    card: { borderRadius: radii.lg, borderWidth: 1, padding: spacing['4'] },
+    card: { borderRadius: radii.xl, borderWidth: 1, padding: spacing['4'] },
     cardTopo: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing['2'] },
     cardTitulo: { flex: 1, fontSize: typography.size.md, fontFamily: typography.family.semibold, marginRight: spacing['2'] },
     pontosTag: { borderRadius: radii.full, paddingHorizontal: spacing['2'], paddingVertical: spacing['1'] },

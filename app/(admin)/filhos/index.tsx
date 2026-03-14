@@ -47,7 +47,7 @@ export default function AdminFilhosScreen() {
       <ScreenHeader
         title="Filhos"
         onBack={() => router.back()}
-        backLabel="← Início"
+        backLabel="Início"
         rightAction={
           <Pressable onPress={() => router.push('/(admin)/filhos/novo')} style={[styles.botaoNovo, { backgroundColor: colors.accent.admin }]}>
             <Text style={[styles.botaoNovoTexto, { color: colors.text.inverse }]}>+ Novo</Text>
@@ -90,10 +90,10 @@ export default function AdminFilhosScreen() {
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
-    botaoNovo: { borderRadius: radii.sm, paddingVertical: spacing['1'] + 2, paddingHorizontal: spacing['3'] },
+    botaoNovo: { borderRadius: radii.sm, paddingVertical: spacing['2'], paddingHorizontal: spacing['3'], minHeight: 36 },
     botaoNovoTexto: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
     lista: { padding: spacing['4'], gap: spacing['3'] },
-    card: { borderRadius: radii.lg, borderWidth: 1, padding: spacing['3'], flexDirection: 'row', alignItems: 'center' },
+    card: { borderRadius: radii.xl, borderWidth: 1, padding: spacing['3'], flexDirection: 'row', alignItems: 'center' },
     cardInfo: { flex: 1, marginLeft: spacing['3'] },
     cardNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
     cardStatus: { fontSize: typography.size.xs, marginTop: spacing['1'] },

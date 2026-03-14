@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   texto: {
     fontSize: typography.size.sm,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: typography.lineHeight.sm,
   },
   botao: {
     borderRadius: radii.md,

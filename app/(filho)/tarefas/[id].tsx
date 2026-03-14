@@ -99,7 +99,7 @@ export default function FilhoTarefaDetalheScreen() {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />
-        <ScreenHeader title="Detalhe" onBack={() => router.back()} backLabel="← Tarefas" />
+        <ScreenHeader title="Detalhe" onBack={() => router.back()} backLabel="Tarefas" role="filho" />
         <EmptyState error={erro ?? 'Tarefa não encontrada.'} onRetry={carregar} />
       </View>
     );
@@ -111,7 +111,7 @@ export default function FilhoTarefaDetalheScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader title="Detalhe" onBack={() => router.back()} backLabel="← Tarefas" />
+      <ScreenHeader title="Detalhe" onBack={() => router.back()} backLabel="Tarefas" role="filho" />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Status badge */}
@@ -235,7 +235,7 @@ function makeStyles(colors: ThemeColors) {
     notaRejeicaoTexto: { fontSize: typography.size.sm, color: colors.text.primary, marginBottom: spacing['2'] },
     notaRejeicaoHint: { fontSize: typography.size.xs, color: colors.text.muted, fontStyle: 'italic' },
     erroTexto: { color: colors.semantic.error, fontSize: typography.size.sm, textAlign: 'center', marginBottom: spacing['3'], marginTop: spacing['2'] },
-    botaoConcluir: { backgroundColor: colors.accent.filho, borderRadius: radii.xl, paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['2'] },
+    botaoConcluir: { backgroundColor: colors.accent.filho, borderRadius: radii.xl, paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['2'], minHeight: 48 },
     botaoDesabilitado: { opacity: 0.6 },
     botaoConcluirTexto: { color: '#fff', fontSize: typography.size.md, fontFamily: typography.family.bold },
     aguardandoBox: { backgroundColor: colors.accent.filhoBg, borderRadius: radii.xl, padding: spacing['3'], alignItems: 'center', marginTop: spacing['2'] },
