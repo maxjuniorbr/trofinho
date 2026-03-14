@@ -20,6 +20,10 @@ export default function AdminLayout() {
       <Stack.Screen name="filhos/novo" options={{ title: 'Cadastrar Filho' }} />
       <Stack.Screen name="saldos/index" options={{ title: 'Saldos' }} />
       <Stack.Screen name="saldos/[filho_id]" options={{ title: 'Saldo do Filho' }} />
+      <Stack.Screen name="premios/index" options={{ title: 'Prêmios' }} />
+      <Stack.Screen name="premios/novo" options={{ title: 'Novo Prêmio' }} />
+      <Stack.Screen name="premios/[id]" options={{ title: 'Detalhes do Prêmio' }} />
+      <Stack.Screen name="resgates/index" options={{ title: 'Resgates' }} />
     </Stack>
   );
 }

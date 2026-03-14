@@ -16,6 +16,8 @@ export default function FilhoLayout() {
       <Stack.Screen name="tarefas/index" options={{ title: 'Minhas Tarefas' }} />
       <Stack.Screen name="tarefas/[id]" options={{ title: 'Detalhes da Tarefa' }} />
       <Stack.Screen name="saldo" options={{ title: 'Meu Saldo' }} />
+      <Stack.Screen name="premios/index" options={{ title: 'Catálogo de Prêmios' }} />
+      <Stack.Screen name="resgates/index" options={{ title: 'Meus Resgates' }} />
     </Stack>
   );
 }
