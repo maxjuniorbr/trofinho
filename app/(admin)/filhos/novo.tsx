@@ -59,7 +59,7 @@ export default function NovoFilhoScreen() {
   return (
     <KeyboardAvoidingView
       style={[{ flex: 1, backgroundColor: colors.bg.canvas }]}
-      behavior={process.env.EXPO_OS === 'ios' ? 'padding' : 'height'}
+      behavior="padding"
     >
       <StatusBar style={colors.statusBar} />
       <ScreenHeader title="Novo Filho" onBack={() => router.back()} />
