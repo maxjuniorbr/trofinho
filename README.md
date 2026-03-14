@@ -49,9 +49,19 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=SEU_ANON_KEY_AQUI
 
 ### 3. Preparar o banco
 
-Para manter o schema alinhado com o app atual, aplique os arquivos de `supabase/migrations/` em ordem.
+Para manter o schema alinhado com o app atual, suba o ambiente local do Supabase e aplique as migrations:
 
-Se você estiver usando o ambiente local do Supabase, prefira as migrations da pasta `supabase/migrations/`.
+```bash
+npm run db:start
+npm run db:reset
+```
+
+Comandos úteis:
+
+```bash
+npm run db:status
+npm run db:studio
+```
 
 > `supabase/schema.sql` cobre apenas o marco inicial e não representa sozinho o estado atual do projeto.
 
@@ -117,22 +127,36 @@ trofinho/
 │   ├── index.tsx           # Redirect para login
 │   ├── (auth)/
 │   │   ├── _layout.tsx
-│   │   └── login.tsx       # Tela de Login
+│   │   ├── login.tsx
+│   │   ├── onboarding.tsx
+│   │   └── register.tsx
 │   ├── (admin)/
 │   │   ├── _layout.tsx
-│   │   └── index.tsx       # Home Admin
+│   │   ├── index.tsx
+│   │   ├── filhos/
+│   │   ├── tarefas/
+│   │   └── saldos/
 │   └── (filho)/
 │       ├── _layout.tsx
-│       └── index.tsx       # Home Filho
+│       ├── index.tsx
+│       ├── saldo.tsx
+│       └── tarefas/
 ├── lib/
-│   └── supabase.ts         # Cliente Supabase inicializado
+│   ├── auth.ts
+│   ├── filhos.ts
+│   ├── saldos.ts
+│   ├── supabase.ts
+│   ├── tarefas.ts
+│   └── validation.ts
 ├── src/
-│   ├── components/         # Componentes compartilhados
-│   └── constants/          # Cores, tamanhos etc.
+│   └── components/         # Componentes compartilhados
 ├── supabase/
-│   └── schema.sql          # Schema inicial do banco
+│   ├── migrations/         # Fonte de verdade do banco
+│   ├── seed.sql
+│   └── schema.sql          # Snapshot inicial
 ├── assets/                 # Ícones e splash screen
 ├── app.config.js           # Configuração do Expo (lê .env.local)
+├── .sonarcloud.properties  # Ajustes do SonarCloud autoscan
 ├── .env.example            # Variáveis necessárias (sem valores)
 └── .env.local              # ⚠️ NÃO commitar — credenciais reais
 ```
@@ -147,13 +171,19 @@ trofinho/
 | `npm run android` | Abre no Android (emulador ou dispositivo) |
 | `npm run ios` | Abre no iOS (somente macOS) |
 | `npm run web` | Abre no navegador |
+| `npm run tunnel` | Inicia o Expo em modo tunnel |
 | `npm run typecheck` | Valida o TypeScript sem gerar build |
+| `npm run db:start` | Sobe o Supabase local |
+| `npm run db:stop` | Para o Supabase local |
+| `npm run db:reset` | Recria o banco local e reaplica as migrations |
+| `npm run db:status` | Mostra o status dos serviços locais |
+| `npm run db:studio` | Exibe a URL do Supabase Studio local |
 
 ---
 
-## Marcos de desenvolvimento
+## Funcionalidades atuais
 
-- [x] **Marco 1** — Fundação: projeto inicializado, navegação funcionando, Supabase configurado
-- [ ] **Marco 2** — Autenticação: login/cadastro com Supabase Auth
-- [ ] **Marco 3** — Tarefas: CRUD de tarefas, envio de foto, validação
-- [ ] **Marco 4** — Pontos e Prêmios: saldo, cofrinho com valorização, resgate
+- Autenticação com login, cadastro e onboarding de família
+- Área admin para gerenciar filhos, tarefas e saldos
+- Área filho para concluir tarefas e acompanhar saldo/cofrinho
+- Fluxos de evidência, aprovação, penalização e valorização via Supabase
