@@ -4,11 +4,11 @@ import {
   View,
   TouchableOpacity,
   FlatList,
-  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { AsyncListState } from '@/components/AsyncListState';
 import {
   listarTarefasAdmin,
   type TarefaListItem,
@@ -53,33 +53,16 @@ export default function AdminTarefasScreen() {
   );
 
   function renderConteudo() {
-    if (carregando) {
+    if (carregando || erro || tarefas.length === 0) {
       return (
-        <View style={styles.centro}>
-          <ActivityIndicator size="large" color="#4F46E5" />
-        </View>
-      );
-    }
-
-    if (erro) {
-      return (
-        <View style={styles.centro}>
-          <Text style={styles.erroTexto}>{erro}</Text>
-          <TouchableOpacity style={styles.botaoRetentar} onPress={carregar}>
-            <Text style={styles.botaoRetentarTexto}>Tentar novamente</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-
-    if (tarefas.length === 0) {
-      return (
-        <View style={styles.centro}>
-          <Text style={styles.vazio}>Nenhuma tarefa criada.</Text>
-          <Text style={styles.vazioSub}>
-            Toque em "+ Nova" para criar a primeira tarefa.
-          </Text>
-        </View>
+        <AsyncListState
+          isLoading={carregando}
+          error={erro}
+          isEmpty={tarefas.length === 0}
+          emptyTitle="Nenhuma tarefa criada."
+          emptySubtitle='Toque em "+ Nova" para criar a primeira tarefa.'
+          onRetry={carregar}
+        />
       );
     }
 
@@ -195,18 +178,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   botaoNovaTexto: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  centro: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  erroTexto: { color: '#EF4444', fontSize: 15, textAlign: 'center', marginBottom: 12 },
-  botaoRetentar: {
-    borderWidth: 1,
-    borderColor: '#4F46E5',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  botaoRetentarTexto: { color: '#4F46E5', fontSize: 14, fontWeight: '500' },
-  vazio: { fontSize: 16, fontWeight: '600', color: '#374151', marginBottom: 8 },
-  vazioSub: { fontSize: 14, color: '#9CA3AF', textAlign: 'center' },
   lista: { padding: 16, gap: 12 },
   card: {
     backgroundColor: '#fff',

@@ -4,11 +4,11 @@ import {
   View,
   TouchableOpacity,
   FlatList,
-  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { AsyncListState } from '@/components/AsyncListState';
 import { listarFilhos } from '@lib/filhos';
 import type { Filho } from '@lib/tarefas';
 
@@ -42,33 +42,16 @@ export default function AdminFilhosScreen() {
   );
 
   function renderConteudo() {
-    if (carregando) {
+    if (carregando || erro || filhos.length === 0) {
       return (
-        <View style={styles.centro}>
-          <ActivityIndicator size="large" color="#4F46E5" />
-        </View>
-      );
-    }
-
-    if (erro) {
-      return (
-        <View style={styles.centro}>
-          <Text style={styles.erroTexto}>{erro}</Text>
-          <TouchableOpacity style={styles.botaoRetentar} onPress={carregar}>
-            <Text style={styles.botaoRetentarTexto}>Tentar novamente</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-
-    if (filhos.length === 0) {
-      return (
-        <View style={styles.centro}>
-          <Text style={styles.vazio}>Nenhum filho cadastrado.</Text>
-          <Text style={styles.vazioSub}>
-            Toque em "+ Novo" para cadastrar o primeiro filho.
-          </Text>
-        </View>
+        <AsyncListState
+          isLoading={carregando}
+          error={erro}
+          isEmpty={filhos.length === 0}
+          emptyTitle="Nenhum filho cadastrado."
+          emptySubtitle='Toque em "+ Novo" para cadastrar o primeiro filho.'
+          onRetry={carregar}
+        />
       );
     }
 
@@ -141,18 +124,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   botaoNovoTexto: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  centro: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  erroTexto: { color: '#EF4444', fontSize: 15, textAlign: 'center', marginBottom: 12 },
-  botaoRetentar: {
-    borderWidth: 1,
-    borderColor: '#4F46E5',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  botaoRetentarTexto: { color: '#4F46E5', fontSize: 14, fontWeight: '500' },
-  vazio: { fontSize: 16, fontWeight: '600', color: '#374151', marginBottom: 8 },
-  vazioSub: { fontSize: 14, color: '#9CA3AF', textAlign: 'center' },
   lista: { padding: 16, gap: 10 },
   card: {
     backgroundColor: '#fff',
