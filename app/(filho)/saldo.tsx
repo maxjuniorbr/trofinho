@@ -10,7 +10,7 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import {
   buscarSaldo,
@@ -24,15 +24,21 @@ import {
   type Movimentacao,
 } from '@lib/saldos';
 import { buscarMeuFilhoId } from '@lib/filhos';
+import { useTheme } from '@/context/theme-context';
+import type { ThemeColors } from '@/constants/theme';
+import { radii, spacing, typography } from '@/constants/theme';
+import { ScreenHeader } from '@/components/ui/screen-header';
 
 export default function SaldoFilhoScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const [filhoId, setFilhoId] = useState<string | null>(null);
   const [saldo, setSaldo] = useState<Saldo | null>(null);
   const [movs, setMovs] = useState<Movimentacao[]>([]);
   const [carregando, setCarregando] = useState(true);
 
-  // Modal transferência
   const [modalAberto, setModalAberto] = useState(false);
   const [valorStr, setValorStr] = useState('');
   const [errModal, setErrModal] = useState<string | null>(null);
@@ -40,16 +46,10 @@ export default function SaldoFilhoScreen() {
 
   const carregar = useCallback(async () => {
     setCarregando(true);
-
     try {
       const id = await buscarMeuFilhoId();
       setFilhoId(id);
-      if (!id) {
-        setSaldo(null);
-        setMovs([]);
-        return;
-      }
-
+      if (!id) { setSaldo(null); setMovs([]); return; }
       const [{ data: s }, { data: m }] = await Promise.all([
         buscarSaldo(id),
         listarMovimentacoes(id),
@@ -69,11 +69,9 @@ export default function SaldoFilhoScreen() {
     if (!valorStr || Number.isNaN(v) || v <= 0) return setErrModal('Informe um valor válido.');
     if (!saldo || v > saldo.saldo_livre) return setErrModal('Saldo livre insuficiente.');
     if (!filhoId) return;
-
     setEnviando(true);
     const { error } = await transferirParaCofrinho(filhoId, v);
     setEnviando(false);
-
     if (error) { setErrModal(error); return; }
     setModalAberto(false);
     setValorStr('');
@@ -82,8 +80,9 @@ export default function SaldoFilhoScreen() {
 
   if (carregando) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#4F46E5" />
+      <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
+        <StatusBar style={colors.statusBar} />
+        <ActivityIndicator size="large" color={colors.accent.filho} />
       </View>
     );
   }
@@ -96,16 +95,9 @@ export default function SaldoFilhoScreen() {
     : '';
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="auto" />
-
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()}>
-          <Text style={styles.voltar}>← Voltar</Text>
-        </Pressable>
-        <Text style={styles.titulo}>Meu Saldo</Text>
-        <View style={{ minWidth: 60 }} />
-      </View>
+    <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
+      <StatusBar style={colors.statusBar} />
+      <ScreenHeader title="Meu Saldo" onBack={() => router.back()} />
 
       <FlatList
         data={movs}
@@ -113,21 +105,19 @@ export default function SaldoFilhoScreen() {
         contentContainerStyle={styles.lista}
         ListHeaderComponent={
           <>
-            {/* Cards de saldo */}
             <View style={styles.cardsRow}>
-              <View style={[styles.saldoCard, { backgroundColor: '#4F46E5' }]}>
+              <View style={[styles.saldoCard, { backgroundColor: colors.accent.filho }]}>
                 <Text style={styles.saldoLabel}>💰 Saldo livre</Text>
                 <Text style={styles.saldoValor}>{saldoLivre}</Text>
                 <Text style={styles.saldoPts}>pontos</Text>
               </View>
-              <View style={[styles.saldoCard, { backgroundColor: '#F59E0B' }]}>
+              <View style={[styles.saldoCard, { backgroundColor: colors.semantic.warning }]}>
                 <Text style={styles.saldoLabel}>🐷 Cofrinho</Text>
                 <Text style={styles.saldoValor}>{cofrinho}</Text>
                 <Text style={styles.saldoPts}>pontos</Text>
               </View>
             </View>
 
-            {/* Info valorização */}
             {(saldo?.indice_valorizacao ?? 0) > 0 && (
               <View style={styles.valBox}>
                 <Text style={styles.valTexto}>
@@ -137,7 +127,6 @@ export default function SaldoFilhoScreen() {
               </View>
             )}
 
-            {/* Botão transferir */}
             <Pressable
               style={[styles.btnTransferir, saldoLivre === 0 && styles.btnDesabilitado]}
               onPress={() => { setModalAberto(true); setValorStr(''); setErrModal(null); }}
@@ -147,9 +136,7 @@ export default function SaldoFilhoScreen() {
             </Pressable>
 
             <Text style={styles.secaoTitulo}>Histórico</Text>
-            {movs.length === 0 && (
-              <Text style={styles.vazio}>Nenhuma movimentação ainda.</Text>
-            )}
+            {movs.length === 0 && <Text style={styles.vazio}>Nenhuma movimentação ainda.</Text>}
           </>
         }
         renderItem={({ item }) => (
@@ -159,9 +146,7 @@ export default function SaldoFilhoScreen() {
               <Text style={styles.movLabel}>{labelTipo(item.tipo)}</Text>
               <Text style={styles.movDesc} numberOfLines={1}>{item.descricao}</Text>
               <Text style={styles.movData}>
-                {new Date(item.created_at).toLocaleDateString('pt-BR', {
-                  day: '2-digit', month: 'short', year: 'numeric',
-                })}
+                {new Date(item.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
               </Text>
             </View>
             <Text style={[styles.movValor, isCredito(item.tipo) ? styles.credito : styles.debito]}>
@@ -171,7 +156,6 @@ export default function SaldoFilhoScreen() {
         )}
       />
 
-      {/* Modal transferência */}
       <Modal visible={modalAberto} transparent animationType="slide">
         <KeyboardAvoidingView
           style={styles.modalOverlay}
@@ -180,34 +164,31 @@ export default function SaldoFilhoScreen() {
           <View style={styles.modalBox}>
             <Text style={styles.modalTitulo}>🐷 Guardar no cofrinho</Text>
             <Text style={styles.modalSub}>
-              Saldo livre disponível: <Text style={{ fontWeight: '700' }}>{saldoLivre}</Text> pts
+              Saldo livre disponível: <Text style={{ fontWeight: typography.weight.bold }}>{saldoLivre}</Text> pts
             </Text>
             <TextInput
               style={styles.modalInput}
               value={valorStr}
               onChangeText={setValorStr}
               placeholder="Quantos pontos?"
+              placeholderTextColor={colors.text.muted}
               keyboardType="number-pad"
               maxLength={6}
               autoFocus
             />
             {errModal && <Text style={styles.errModal}>{errModal}</Text>}
             <View style={styles.modalBtns}>
-              <Pressable
-                style={styles.btnCancelar}
-                onPress={() => setModalAberto(false)}
-              >
+              <Pressable style={styles.btnCancelar} onPress={() => setModalAberto(false)}>
                 <Text style={styles.btnCancelarTexto}>Cancelar</Text>
               </Pressable>
               <Pressable
-                style={[styles.btnConfirmar, enviando && styles.btnDesabilitado]}
+                style={[styles.btnConfirmar, enviando && { opacity: 0.6 }]}
                 onPress={handleTransferir}
                 disabled={enviando}
               >
                 {enviando
                   ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.btnConfirmarTexto}>Guardar</Text>
-                }
+                  : <Text style={styles.btnConfirmarTexto}>Guardar</Text>}
               </Pressable>
             </View>
           </View>
@@ -217,103 +198,91 @@ export default function SaldoFilhoScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5F3FF' },
-  container: { flex: 1, backgroundColor: '#F5F3FF' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 56,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  voltar: { color: '#4F46E5', fontSize: 15, fontWeight: '500' },
-  titulo: { fontSize: 18, fontWeight: '700', color: '#111827' },
-  lista: { padding: 20, paddingBottom: 48 },
-  cardsRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
-  saldoCard: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 18,
-    alignItems: 'center',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-  },
-  saldoLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '600', marginBottom: 4 },
-  saldoValor: { color: '#fff', fontSize: 36, fontWeight: '800' },
-  saldoPts: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 2 },
-  valBox: {
-    backgroundColor: '#ECFDF5',
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 12,
-  },
-  valTexto: { color: '#065F46', fontSize: 13 },
-  btnTransferir: {
-    backgroundColor: '#F59E0B',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  btnDesabilitado: { opacity: 0.4 },
-  btnTransferirTexto: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  secaoTitulo: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 12 },
-  vazio: { color: '#9CA3AF', fontSize: 14, textAlign: 'center', marginTop: 8 },
-  movItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 8,
-  },
-  movEmoji: { fontSize: 22, marginRight: 12 },
-  movInfo: { flex: 1 },
-  movLabel: { fontSize: 14, fontWeight: '600', color: '#111827' },
-  movDesc: { fontSize: 12, color: '#6B7280', marginTop: 1 },
-  movData: { fontSize: 11, color: '#9CA3AF', marginTop: 2 },
-  movValor: { fontSize: 16, fontWeight: '700' },
-  credito: { color: '#10B981' },
-  debito: { color: '#EF4444' },
-  // Modal
-  modalOverlay: {
-    flex: 1, justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  modalBox: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 28,
-    paddingBottom: 48,
-  },
-  modalTitulo: { fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 6 },
-  modalSub: { fontSize: 14, color: '#374151', marginBottom: 16 },
-  modalInput: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    textAlign: 'center',
-  },
-  errModal: { color: '#EF4444', fontSize: 13, textAlign: 'center', marginTop: 8 },
-  modalBtns: { flexDirection: 'row', gap: 12, marginTop: 20 },
-  btnCancelar: {
-    flex: 1, borderWidth: 1, borderColor: '#D1D5DB',
-    borderRadius: 12, paddingVertical: 13, alignItems: 'center',
-  },
-  btnCancelarTexto: { color: '#6B7280', fontWeight: '600' },
-  btnConfirmar: {
-    flex: 1, backgroundColor: '#F59E0B',
-    borderRadius: 12, paddingVertical: 13, alignItems: 'center',
-  },
-  btnConfirmarTexto: { color: '#fff', fontWeight: '700', fontSize: 15 },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    container: { flex: 1 },
+    lista: { padding: spacing['5'], paddingBottom: spacing['12'] },
+    cardsRow: { flexDirection: 'row', gap: spacing['3'], marginBottom: spacing['3'] },
+    saldoCard: {
+      flex: 1,
+      borderRadius: radii.xl,
+      padding: spacing['4'],
+      alignItems: 'center',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+    },
+    saldoLabel: { color: 'rgba(255,255,255,0.85)', fontSize: typography.size.xs, fontWeight: typography.weight.semibold, marginBottom: spacing['1'] },
+    saldoValor: { color: '#fff', fontSize: typography.size['4xl'], fontWeight: typography.weight.extrabold },
+    saldoPts: { color: 'rgba(255,255,255,0.8)', fontSize: typography.size.xs, marginTop: 2 },
+    valBox: { backgroundColor: colors.semantic.successBg, borderRadius: radii.lg, padding: spacing['2'], marginBottom: spacing['3'] },
+    valTexto: { color: colors.semantic.success, fontSize: typography.size.xs },
+    btnTransferir: {
+      backgroundColor: colors.semantic.warning,
+      borderRadius: radii.xl,
+      paddingVertical: spacing['3'],
+      alignItems: 'center',
+      marginBottom: spacing['6'],
+    },
+    btnDesabilitado: { opacity: 0.4 },
+    btnTransferirTexto: { color: '#fff', fontWeight: typography.weight.bold, fontSize: typography.size.md },
+    secaoTitulo: { fontSize: typography.size.md, fontWeight: typography.weight.bold, color: colors.text.primary, marginBottom: spacing['3'] },
+    vazio: { color: colors.text.muted, fontSize: typography.size.sm, textAlign: 'center', marginTop: spacing['2'] },
+    movItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.bg.surface,
+      borderRadius: radii.lg,
+      padding: spacing['3'],
+      marginBottom: spacing['2'],
+    },
+    movEmoji: { fontSize: 22, marginRight: spacing['3'] },
+    movInfo: { flex: 1 },
+    movLabel: { fontSize: typography.size.sm, fontWeight: typography.weight.semibold, color: colors.text.primary },
+    movDesc: { fontSize: typography.size.xs, color: colors.text.secondary, marginTop: 1 },
+    movData: { fontSize: typography.size.xs, color: colors.text.muted, marginTop: 2 },
+    movValor: { fontSize: typography.size.md, fontWeight: typography.weight.bold },
+    credito: { color: colors.semantic.success },
+    debito: { color: colors.semantic.error },
+    modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+    modalBox: {
+      backgroundColor: colors.bg.surface,
+      borderTopLeftRadius: radii.xl,
+      borderTopRightRadius: radii.xl,
+      padding: 28,
+      paddingBottom: spacing['12'],
+      gap: spacing['4'],
+    },
+    modalTitulo: { fontSize: typography.size.lg, fontWeight: typography.weight.bold, color: colors.text.primary },
+    modalSub: { fontSize: typography.size.sm, color: colors.text.secondary },
+    modalInput: {
+      borderWidth: 1,
+      borderColor: colors.border.default,
+      borderRadius: radii.lg,
+      paddingHorizontal: spacing['3'],
+      paddingVertical: spacing['3'],
+      fontSize: typography.size['2xl'],
+      fontWeight: typography.weight.bold,
+      color: colors.text.primary,
+      textAlign: 'center',
+    },
+    errModal: { color: colors.semantic.error, fontSize: typography.size.xs, textAlign: 'center' },
+    modalBtns: { flexDirection: 'row', gap: spacing['3'] },
+    btnCancelar: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.border.default,
+      borderRadius: radii.xl,
+      paddingVertical: spacing['3'],
+      alignItems: 'center',
+    },
+    btnCancelarTexto: { color: colors.text.secondary, fontWeight: typography.weight.semibold },
+    btnConfirmar: {
+      flex: 1,
+      backgroundColor: colors.semantic.warning,
+      borderRadius: radii.xl,
+      paddingVertical: spacing['3'],
+      alignItems: 'center',
+    },
+    btnConfirmarTexto: { color: '#fff', fontWeight: typography.weight.bold, fontSize: typography.size.md },
+  });
+}

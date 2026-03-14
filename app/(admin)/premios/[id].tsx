@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import {
   buscarPremio,
@@ -18,16 +18,21 @@ import {
   reativarPremio,
   type Premio,
 } from '@lib/premios';
+import { useTheme } from '@/context/theme-context';
+import type { ThemeColors } from '@/constants/theme';
+import { radii, spacing, typography } from '@/constants/theme';
+import { ScreenHeader } from '@/components/ui/screen-header';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export default function AdminPremioDetalheScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [premio, setPremio] = useState<Premio | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-
-  // Campos de edição
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [custoStr, setCustoStr] = useState('');
@@ -52,29 +57,17 @@ export default function AdminPremioDetalheScreen() {
     setCarregando(false);
   }, [id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      carregar();
-    }, [carregar])
-  );
+  useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
 
   async function handleSalvar() {
     setErroForm(null);
     setSucesso(null);
-
     if (!nome.trim()) return setErroForm('Informe o nome do prêmio.');
     const custo = Number.parseInt(custoStr, 10);
-    if (Number.isNaN(custo) || custo <= 0)
-      return setErroForm('Custo em pontos deve ser um número maior que zero.');
-
+    if (Number.isNaN(custo) || custo <= 0) return setErroForm('Custo em pontos deve ser um número maior que zero.');
     setSalvando(true);
-    const { error } = await atualizarPremio(id!, {
-      nome: nome.trim(),
-      descricao: descricao.trim() || null,
-      custo_pontos: custo,
-    });
+    const { error } = await atualizarPremio(id!, { nome: nome.trim(), descricao: descricao.trim() || null, custo_pontos: custo });
     setSalvando(false);
-
     if (error) return setErroForm(error);
     setSucesso('Prêmio atualizado!');
     carregar();
@@ -85,11 +78,7 @@ export default function AdminPremioDetalheScreen() {
     setAlterandoAtivo(true);
     setErroForm(null);
     setSucesso(null);
-
-    const { error } = premio.ativo
-      ? await desativarPremio(id!)
-      : await reativarPremio(id!);
-
+    const { error } = premio.ativo ? await desativarPremio(id!) : await reativarPremio(id!);
     setAlterandoAtivo(false);
     if (error) return setErroForm(error);
     carregar();
@@ -97,39 +86,28 @@ export default function AdminPremioDetalheScreen() {
 
   if (carregando) {
     return (
-      <View style={styles.loading} accessibilityRole="progressbar">
-        <ActivityIndicator size="large" color="#4F46E5" />
+      <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
+        <StatusBar style={colors.statusBar} />
+        <ActivityIndicator size="large" color={colors.accent.admin} />
       </View>
     );
   }
 
   if (erro || !premio) {
     return (
-      <View style={styles.loading}>
-        <Text style={styles.erroTexto} accessibilityRole="alert">
-          {erro ?? 'Prêmio não encontrado.'}
-        </Text>
-        <Pressable
-          style={({ pressed }) => [styles.botaoSecundario, pressed && { opacity: 0.85 }]}
-          onPress={carregar}
-          accessibilityRole="button"
-          accessibilityLabel="Tentar novamente"
-        >
-          <Text style={styles.botaoSecundarioTexto}>Tentar novamente</Text>
-        </Pressable>
+      <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
+        <StatusBar style={colors.statusBar} />
+        <ScreenHeader title="Prêmio" onBack={() => router.back()} />
+        <EmptyState error={erro ?? 'Prêmio não encontrado.'} onRetry={carregar} />
       </View>
     );
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-      >
-        <StatusBar style="auto" />
-
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg.canvas }} behavior={process.env.EXPO_OS === 'ios' ? 'padding' : 'height'}>
+      <StatusBar style={colors.statusBar} />
+      <ScreenHeader title="Editar Prêmio" onBack={() => router.back()} />
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         {!premio.ativo && (
           <View style={styles.avisoInativo}>
             <Text style={styles.avisoInativoTexto}>
@@ -140,14 +118,7 @@ export default function AdminPremioDetalheScreen() {
 
         <View style={styles.campo}>
           <Text style={styles.label}>Nome *</Text>
-          <TextInput
-            style={styles.input}
-            value={nome}
-            onChangeText={setNome}
-            placeholderTextColor="#9CA3AF"
-            returnKeyType="next"
-            accessibilityLabel="Nome do prêmio"
-          />
+          <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholderTextColor={colors.text.muted} returnKeyType="next" />
         </View>
 
         <View style={styles.campo}>
@@ -157,75 +128,36 @@ export default function AdminPremioDetalheScreen() {
             value={descricao}
             onChangeText={setDescricao}
             placeholder="Detalhes opcionais…"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.text.muted}
             multiline
             numberOfLines={3}
             textAlignVertical="top"
-            accessibilityLabel="Descrição do prêmio"
           />
         </View>
 
         <View style={styles.campo}>
           <Text style={styles.label}>Custo em pontos *</Text>
-          <TextInput
-            style={styles.input}
-            value={custoStr}
-            onChangeText={setCustoStr}
-            keyboardType="numeric"
-            returnKeyType="done"
-            accessibilityLabel="Custo em pontos"
-          />
+          <TextInput style={styles.input} value={custoStr} onChangeText={setCustoStr} keyboardType="numeric" returnKeyType="done" placeholderTextColor={colors.text.muted} />
         </View>
 
-        {erroForm ? (
-          <Text style={styles.erroTexto} accessibilityRole="alert">{erroForm}</Text>
-        ) : null}
-
-        {sucesso ? (
-          <Text style={styles.sucessoTexto}>{sucesso}</Text>
-        ) : null}
+        {erroForm ? <Text style={styles.erroTexto}>{erroForm}</Text> : null}
+        {sucesso ? <Text style={styles.sucessoTexto}>{sucesso}</Text> : null}
 
         <Pressable
-          style={({ pressed }) => [
-            styles.botao,
-            salvando && styles.botaoDesabilitado,
-            pressed && !salvando && { opacity: 0.85 },
-          ]}
+          style={({ pressed }) => [styles.botao, salvando && styles.botaoDesabilitado, pressed && !salvando && { opacity: 0.85 }]}
           onPress={handleSalvar}
           disabled={salvando}
-          accessibilityRole="button"
-          accessibilityLabel={salvando ? 'Salvando' : 'Salvar alterações'}
-          accessibilityState={{ disabled: salvando, busy: salvando }}
         >
-          <Text style={styles.botaoTexto}>
-            {salvando ? 'Salvando…' : 'Salvar alterações'}
-          </Text>
+          <Text style={styles.botaoTexto}>{salvando ? 'Salvando…' : 'Salvar alterações'}</Text>
         </Pressable>
 
         <Pressable
-          style={({ pressed }) => [
-            styles.botaoSecundario,
-            alterandoAtivo && styles.botaoDesabilitado,
-            pressed && !alterandoAtivo && { opacity: 0.85 },
-          ]}
+          style={({ pressed }) => [styles.botaoSecundario, alterandoAtivo && styles.botaoDesabilitado, pressed && !alterandoAtivo && { opacity: 0.85 }]}
           onPress={handleToggleAtivo}
           disabled={alterandoAtivo}
-          accessibilityRole="button"
-          accessibilityLabel={
-            alterandoAtivo
-              ? 'Aguarde'
-              : premio.ativo
-              ? 'Desativar prêmio'
-              : 'Reativar prêmio'
-          }
-          accessibilityState={{ disabled: alterandoAtivo, busy: alterandoAtivo }}
         >
-          <Text style={[styles.botaoSecundarioTexto, !premio.ativo && { color: '#10B981' }]}>
-            {alterandoAtivo
-              ? 'Aguarde…'
-              : premio.ativo
-              ? 'Desativar prêmio'
-              : 'Reativar prêmio'}
+          <Text style={[styles.botaoSecundarioTexto, !premio.ativo && { color: colors.semantic.success }]}>
+            {alterandoAtivo ? 'Aguarde…' : premio.ativo ? 'Desativar prêmio' : 'Reativar prêmio'}
           </Text>
         </Pressable>
       </ScrollView>
@@ -233,90 +165,39 @@ export default function AdminPremioDetalheScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  loading: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F5F3FF',
-    gap: 16,
-    padding: 24,
-  },
-  container: {
-    padding: 24,
-    gap: 20,
-    backgroundColor: '#F5F3FF',
-    flexGrow: 1,
-  },
-  avisoInativo: {
-    backgroundColor: '#FEF3C7',
-    borderRadius: 10,
-    borderCurve: 'continuous',
-    padding: 12,
-  },
-  avisoInativoTexto: {
-    fontSize: 13,
-    color: '#92400E',
-    textAlign: 'center',
-  },
-  campo: { gap: 6 },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  input: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    borderCurve: 'continuous',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#111827',
-  },
-  inputMultilinha: {
-    minHeight: 80,
-    paddingTop: 12,
-  },
-  erroTexto: {
-    color: '#EF4444',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  sucessoTexto: {
-    color: '#10B981',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  botao: {
-    backgroundColor: '#4F46E5',
-    borderRadius: 12,
-    borderCurve: 'continuous',
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  botaoDesabilitado: {
-    backgroundColor: '#A5B4FC',
-  },
-  botaoTexto: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  botaoSecundario: {
-    borderRadius: 12,
-    borderCurve: 'continuous',
-    borderWidth: 1.5,
-    borderColor: '#EF4444',
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  botaoSecundarioTexto: {
-    color: '#EF4444',
-    fontWeight: '700',
-    fontSize: 16,
-  },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing['6'] },
+    scroll: { padding: spacing['6'], gap: spacing['5'], flexGrow: 1 },
+    avisoInativo: { backgroundColor: colors.semantic.warningBg, borderRadius: radii.lg, borderCurve: 'continuous', padding: spacing['3'] },
+    avisoInativoTexto: { fontSize: typography.size.xs, color: colors.semantic.warning, textAlign: 'center' },
+    campo: { gap: spacing['2'] },
+    label: { fontSize: typography.size.xs, fontWeight: typography.weight.semibold, color: colors.text.secondary },
+    input: {
+      backgroundColor: colors.bg.surface,
+      borderRadius: radii.lg,
+      borderCurve: 'continuous',
+      borderWidth: 1,
+      borderColor: colors.border.default,
+      paddingHorizontal: spacing['3'],
+      paddingVertical: spacing['3'],
+      fontSize: typography.size.md,
+      color: colors.text.primary,
+    },
+    inputMultilinha: { minHeight: 80, paddingTop: spacing['3'] },
+    erroTexto: { color: colors.semantic.error, fontSize: typography.size.sm, fontWeight: typography.weight.medium },
+    sucessoTexto: { color: colors.semantic.success, fontSize: typography.size.sm, fontWeight: typography.weight.semibold },
+    botao: { backgroundColor: colors.accent.admin, borderRadius: radii.xl, borderCurve: 'continuous', paddingVertical: spacing['3'], alignItems: 'center', marginTop: spacing['1'] },
+    botaoDesabilitado: { opacity: 0.55 },
+    botaoTexto: { color: '#fff', fontWeight: typography.weight.bold, fontSize: typography.size.md },
+    botaoSecundario: {
+      borderRadius: radii.xl,
+      borderCurve: 'continuous',
+      borderWidth: 1.5,
+      borderColor: colors.semantic.error,
+      paddingVertical: spacing['3'],
+      alignItems: 'center',
+    },
+    botaoSecundarioTexto: { color: colors.semantic.error, fontWeight: typography.weight.bold, fontSize: typography.size.md },
+  });
+}

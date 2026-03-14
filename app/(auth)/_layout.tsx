@@ -1,14 +1,17 @@
 import { Stack } from 'expo-router';
+import { useTheme } from '@/context/theme-context';
 
 export default function AuthLayout() {
+  const { colors } = useTheme();
+
   return (
     <Stack
       screenOptions={{
         headerShown: true,
         headerBackTitle: 'Voltar',
-        headerTintColor: '#4F46E5',
-        headerTitleStyle: { color: '#1E1B4B' },
-        headerStyle: { backgroundColor: '#F5F7FF' },
+        headerTintColor: colors.accent.admin,
+        headerTitleStyle: { color: colors.text.primary, fontWeight: '600' },
+        headerStyle: { backgroundColor: colors.bg.canvas },
         headerShadowVisible: false,
       }}
     >
