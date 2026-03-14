@@ -5,41 +5,41 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Avatar } from '@/components/ui/avatar';
-import { listarFilhos } from '@lib/filhos';
-import { listarSaldosAdmin, type SaldoComFilho } from '@lib/saldos';
-import type { Filho } from '@lib/tarefas';
+import { listChildren } from '@lib/children';
+import { listAdminBalances, type BalanceWithChild } from '@lib/balances';
+import type { Child } from '@lib/tasks';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 
-export default function AdminFilhosScreen() {
+export default function AdminChildrenScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [filhos, setFilhos] = useState<Filho[]>([]);
-  const [saldosMap, setSaldosMap] = useState<Map<string, SaldoComFilho>>(new Map());
-  const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [children, setChildren] = useState<Child[]>([]);
+  const [balancesMap, setBalancesMap] = useState<Map<string, BalanceWithChild>>(new Map());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const carregar = useCallback(async () => {
-    setCarregando(true); setErro(null);
+  const loadData = useCallback(async () => {
+    setLoading(true); setError(null);
     try {
-      const [{ data: filhosData, error: erroFilhos }, { data: saldosData, error: erroSaldos }] =
-        await Promise.all([listarFilhos(), listarSaldosAdmin()]);
-      if (erroFilhos) {
-        setErro(erroFilhos);
+      const [{ data: childrenData, error: childrenError }, { data: balancesData, error: balancesError }] =
+        await Promise.all([listChildren(), listAdminBalances()]);
+      if (childrenError) {
+        setError(childrenError);
       } else {
-        setFilhos(filhosData);
-        if (!erroSaldos) {
-          setSaldosMap(new Map(saldosData.map((s) => [s.filho_id, s])));
+        setChildren(childrenData);
+        if (!balancesError) {
+          setBalancesMap(new Map(balancesData.map((s) => [s.filho_id, s])));
         }
       }
-    } catch { setErro('Não foi possível carregar os filhos agora.'); setFilhos([]); }
-    finally { setCarregando(false); }
+    } catch { setError('Não foi possível carregar os filhos agora.'); setChildren([]); }
+    finally { setLoading(false); }
   }, []);
 
-  useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
@@ -49,21 +49,21 @@ export default function AdminFilhosScreen() {
         onBack={() => router.back()}
         backLabel="Início"
         rightAction={
-          <Pressable onPress={() => router.push('/(admin)/filhos/novo')} style={[styles.botaoNovo, { backgroundColor: colors.accent.admin }]}>
+          <Pressable onPress={() => router.push('/(admin)/children/new')} style={[styles.botaoNovo, { backgroundColor: colors.accent.admin }]}>
             <Text style={[styles.botaoNovoTexto, { color: colors.text.inverse }]}>+ Novo</Text>
           </Pressable>
         }
       />
 
-      {(carregando || erro || filhos.length === 0) ? (
-        <EmptyState loading={carregando} error={erro} empty={filhos.length === 0} emptyMessage={'Nenhum filho cadastrado.\nToque em "+ Novo" para cadastrar o primeiro filho.'} onRetry={carregar} />
+      {(loading || error || children.length === 0) ? (
+        <EmptyState loading={loading} error={error} empty={children.length === 0} emptyMessage={'Nenhum filho cadastrado.\nToque em "+ Novo" para cadastrar o primeiro filho.'} onRetry={loadData} />
       ) : (
         <FlatList
-          data={filhos}
+          data={children}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
           renderItem={({ item }) => {
-            const saldo = saldosMap.get(item.id);
+            const balance = balancesMap.get(item.id);
             return (
               <View style={[styles.card, shadows.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
                 <Avatar name={item.nome} size={44} />
@@ -72,9 +72,9 @@ export default function AdminFilhosScreen() {
                   <Text style={[styles.cardStatus, { color: item.usuario_id ? colors.semantic.success : colors.semantic.warning }]}>
                     {item.usuario_id ? '✓ Conta vinculada' : '⚠ Sem conta'}
                   </Text>
-                  {saldo ? (
+                  {balance ? (
                     <Text style={[styles.cardSaldo, { color: colors.text.secondary }]}>
-                      💰 {saldo.saldo_livre} livre · 🐷 {saldo.cofrinho} cofrinho
+                      💰 {balance.saldo_livre} livre · 🐷 {balance.cofrinho} cofrinho
                     </Text>
                   ) : null}
                 </View>

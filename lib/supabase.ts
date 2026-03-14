@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
 
-// Lê as variáveis de ambiente injetadas pelo Expo via .env.local
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -12,24 +11,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-/**
- * Adaptador de storage usando expo-secure-store em dispositivos nativos
- * e localStorage em ambientes web (ex: Expo Web).
- */
 function getWebStorage(): Storage | null {
-  if (process.env.EXPO_OS !== 'web') {
-    return null;
-  }
+  if (process.env.EXPO_OS !== 'web') return null;
 
   const webWindow = globalThis.window;
-  if (!webWindow) {
-    return null;
-  }
-
-  return webWindow.localStorage;
+  return webWindow ? webWindow.localStorage : null;
 }
 
-const ExpoSecureStoreAdapter = {
+const SecureStoreAdapter = {
   getItem: (key: string) => {
     if (process.env.EXPO_OS === 'web') {
       return Promise.resolve(getWebStorage()?.getItem(key) ?? null);
@@ -54,10 +43,9 @@ const ExpoSecureStoreAdapter = {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: ExpoSecureStoreAdapter,
+    storage: SecureStoreAdapter,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
   },
 });
-

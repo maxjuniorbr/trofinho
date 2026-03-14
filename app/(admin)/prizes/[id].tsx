@@ -12,79 +12,79 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import {
-  buscarPremio,
-  atualizarPremio,
-  desativarPremio,
-  reativarPremio,
-  type Premio,
-} from '@lib/premios';
+  getPrize,
+  updatePrize,
+  deactivatePrize,
+  reactivatePrize,
+  type Prize,
+} from '@lib/prizes';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 
-export default function AdminPremioDetalheScreen() {
+export default function AdminPrizeDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [premio, setPremio] = useState<Premio | null>(null);
-  const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
-  const [nome, setNome] = useState('');
-  const [descricao, setDescricao] = useState('');
-  const [custoStr, setCustoStr] = useState('');
-  const [salvando, setSalvando] = useState(false);
-  const [erroForm, setErroForm] = useState<string | null>(null);
-  const [sucesso, setSucesso] = useState<string | null>(null);
-  const [alterandoAtivo, setAlterandoAtivo] = useState(false);
+  const [prize, setPrize] = useState<Prize | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [costStr, setCostStr] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [togglingActive, setTogglingActive] = useState(false);
 
-  const carregar = useCallback(async () => {
+  const loadData = useCallback(async () => {
     if (!id) return;
-    setCarregando(true);
-    setErro(null);
-    const { data, error } = await buscarPremio(id);
+    setLoading(true);
+    setError(null);
+    const { data, error } = await getPrize(id);
     if (error) {
-      setErro(error);
+      setError(error);
     } else if (data) {
-      setPremio(data);
-      setNome(data.nome);
-      setDescricao(data.descricao ?? '');
-      setCustoStr(String(data.custo_pontos));
+      setPrize(data);
+      setName(data.nome);
+      setDescription(data.descricao ?? '');
+      setCostStr(String(data.custo_pontos));
     }
-    setCarregando(false);
+    setLoading(false);
   }, [id]);
 
-  useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
-  async function handleSalvar() {
-    setErroForm(null);
-    setSucesso(null);
-    if (!nome.trim()) return setErroForm('Informe o nome do prêmio.');
-    const custo = Number.parseInt(custoStr, 10);
-    if (Number.isNaN(custo) || custo <= 0) return setErroForm('Custo em pontos deve ser um número maior que zero.');
-    setSalvando(true);
-    const { error } = await atualizarPremio(id!, { nome: nome.trim(), descricao: descricao.trim() || null, custo_pontos: custo });
-    setSalvando(false);
-    if (error) return setErroForm(error);
-    setSucesso('Prêmio atualizado!');
-    carregar();
+  async function handleSave() {
+    setFormError(null);
+    setSuccess(null);
+    if (!name.trim()) return setFormError('Informe o nome do prêmio.');
+    const cost = Number.parseInt(costStr, 10);
+    if (Number.isNaN(cost) || cost <= 0) return setFormError('Custo em pontos deve ser um número maior que zero.');
+    setSaving(true);
+    const { error } = await updatePrize(id!, { nome: name.trim(), descricao: description.trim() || null, custo_pontos: cost });
+    setSaving(false);
+    if (error) return setFormError(error);
+    setSuccess('Prêmio atualizado!');
+    loadData();
   }
 
-  async function handleToggleAtivo() {
-    if (!premio) return;
-    setAlterandoAtivo(true);
-    setErroForm(null);
-    setSucesso(null);
-    const { error } = premio.ativo ? await desativarPremio(id!) : await reativarPremio(id!);
-    setAlterandoAtivo(false);
-    if (error) return setErroForm(error);
-    carregar();
+  async function handleToggleActive() {
+    if (!prize) return;
+    setTogglingActive(true);
+    setFormError(null);
+    setSuccess(null);
+    const { error } = prize.ativo ? await deactivatePrize(id!) : await reactivatePrize(id!);
+    setTogglingActive(false);
+    if (error) return setFormError(error);
+    loadData();
   }
 
-  if (carregando) {
+  if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />
@@ -93,22 +93,22 @@ export default function AdminPremioDetalheScreen() {
     );
   }
 
-  if (erro || !premio) {
+  if (error || !prize) {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />
         <ScreenHeader title="Prêmio" onBack={() => router.back()} />
-        <EmptyState error={erro ?? 'Prêmio não encontrado.'} onRetry={carregar} />
+        <EmptyState error={error ?? 'Prêmio não encontrado.'} onRetry={loadData} />
       </View>
     );
   }
 
-  let toggleAtivoLabel = 'Reativar prêmio';
+  let toggleActiveLabel = 'Reativar prêmio';
 
-  if (alterandoAtivo) {
-    toggleAtivoLabel = 'Aguarde…';
-  } else if (premio.ativo) {
-    toggleAtivoLabel = 'Desativar prêmio';
+  if (togglingActive) {
+    toggleActiveLabel = 'Aguarde…';
+  } else if (prize.ativo) {
+    toggleActiveLabel = 'Desativar prêmio';
   }
 
   return (
@@ -116,7 +116,7 @@ export default function AdminPremioDetalheScreen() {
       <StatusBar style={colors.statusBar} />
       <ScreenHeader title="Editar Prêmio" onBack={() => router.back()} />
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        {!premio.ativo && (
+        {!prize.ativo && (
           <View style={styles.avisoInativo}>
             <Text style={styles.avisoInativoTexto}>
               Este prêmio está inativo e não aparece para os filhos.
@@ -126,15 +126,15 @@ export default function AdminPremioDetalheScreen() {
 
         <View style={styles.campo}>
           <Text style={styles.label}>Nome *</Text>
-          <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholderTextColor={colors.text.muted} returnKeyType="next" />
+          <TextInput style={styles.input} value={name} onChangeText={setName} placeholderTextColor={colors.text.muted} returnKeyType="next" />
         </View>
 
         <View style={styles.campo}>
           <Text style={styles.label}>Descrição</Text>
           <TextInput
             style={[styles.input, styles.inputMultilinha]}
-            value={descricao}
-            onChangeText={setDescricao}
+            value={description}
+            onChangeText={setDescription}
             placeholder="Detalhes opcionais…"
             placeholderTextColor={colors.text.muted}
             multiline
@@ -145,27 +145,27 @@ export default function AdminPremioDetalheScreen() {
 
         <View style={styles.campo}>
           <Text style={styles.label}>Custo em pontos *</Text>
-          <TextInput style={styles.input} value={custoStr} onChangeText={setCustoStr} keyboardType="numeric" returnKeyType="done" placeholderTextColor={colors.text.muted} />
+          <TextInput style={styles.input} value={costStr} onChangeText={setCostStr} keyboardType="numeric" returnKeyType="done" placeholderTextColor={colors.text.muted} />
         </View>
 
-        {erroForm ? <Text style={styles.erroTexto}>{erroForm}</Text> : null}
-        {sucesso ? <Text style={styles.sucessoTexto}>{sucesso}</Text> : null}
+        {formError ? <Text style={styles.erroTexto}>{formError}</Text> : null}
+        {success ? <Text style={styles.sucessoTexto}>{success}</Text> : null}
 
         <Pressable
-          style={({ pressed }) => [styles.botao, salvando && styles.botaoDesabilitado, pressed && !salvando && { opacity: 0.85 }]}
-          onPress={handleSalvar}
-          disabled={salvando}
+          style={({ pressed }) => [styles.botao, saving && styles.botaoDesabilitado, pressed && !saving && { opacity: 0.85 }]}
+          onPress={handleSave}
+          disabled={saving}
         >
-          <Text style={styles.botaoTexto}>{salvando ? 'Salvando…' : 'Salvar alterações'}</Text>
+          <Text style={styles.botaoTexto}>{saving ? 'Salvando…' : 'Salvar alterações'}</Text>
         </Pressable>
 
         <Pressable
-          style={({ pressed }) => [styles.botaoSecundario, alterandoAtivo && styles.botaoDesabilitado, pressed && !alterandoAtivo && { opacity: 0.85 }]}
-          onPress={handleToggleAtivo}
-          disabled={alterandoAtivo}
+          style={({ pressed }) => [styles.botaoSecundario, togglingActive && styles.botaoDesabilitado, pressed && !togglingActive && { opacity: 0.85 }]}
+          onPress={handleToggleActive}
+          disabled={togglingActive}
         >
-          <Text style={[styles.botaoSecundarioTexto, !premio.ativo && { color: colors.semantic.success }]}>
-            {toggleAtivoLabel}
+          <Text style={[styles.botaoSecundarioTexto, !prize.ativo && { color: colors.semantic.success }]}>
+            {toggleActiveLabel}
           </Text>
         </Pressable>
       </ScrollView>

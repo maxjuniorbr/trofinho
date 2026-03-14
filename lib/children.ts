@@ -1,16 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from './supabase';
-import type { Filho } from './tarefas';
+import type { Child } from './tasks';
 
-// ─── Tipos ────────────────────────────────────────────────
-
-export type FilhoComSaldo = Filho & {
+export type ChildWithBalance = Child & {
   usuarios: { nome: string } | null;
 };
 
-// ─── Cliente temporário (não substitui a sessão do admin) ─
-
-function criarClienteTemp() {
+function createTempClient() {
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
   return createClient(url, anonKey, {
@@ -22,24 +18,20 @@ function criarClienteTemp() {
   });
 }
 
-// ─── Cadastrar filho ──────────────────────────────────────
-// 1. Cria conta auth com client temporário (admin fica logado)
-// 2. Chama RPC SECURITY DEFINER para criar usuarios + filhos
-
-export async function cadastrarFilho(
-  nome: string,
+export async function registerChild(
+  name: string,
   email: string,
-  senhaTemporaria: string
+  tempPassword: string
 ): Promise<{ error: string | null }> {
-  const tempClient = criarClienteTemp();
+  const tempClient = createTempClient();
 
   const { data, error: signUpError } = await tempClient.auth.signUp({
     email,
-    password: senhaTemporaria,
+    password: tempPassword,
   });
 
   if (signUpError) {
-    return { error: traduzirErroSignUp(signUpError.message) };
+    return { error: translateSignUpError(signUpError.message) };
   }
 
   const userId = data.user?.id;
@@ -49,7 +41,7 @@ export async function cadastrarFilho(
 
   const { error: rpcError } = await supabase.rpc('criar_filho_na_familia', {
     filho_user_id: userId,
-    filho_nome: nome,
+    filho_nome: name,
   });
 
   if (rpcError) {
@@ -57,16 +49,14 @@ export async function cadastrarFilho(
       p_user_id: userId,
     });
 
-    return { error: traduzirErroCadastroFilho(rpcError.message) };
+    return { error: translateChildRegistrationError(rpcError.message) };
   }
 
   return { error: null };
 }
 
-// ─── Listar filhos da família ─────────────────────────────
-
-export async function listarFilhos(): Promise<{
-  data: Filho[];
+export async function listChildren(): Promise<{
+  data: Child[];
   error: string | null;
 }> {
   const { data, error } = await supabase
@@ -75,12 +65,10 @@ export async function listarFilhos(): Promise<{
     .order('nome');
 
   if (error) return { data: [], error: error.message };
-  return { data: (data ?? []) as Filho[], error: null };
+  return { data: (data ?? []) as Child[], error: null };
 }
 
-// ─── ID do filho autenticado ────────────────────────────
-
-export async function buscarMeuFilhoId(): Promise<string | null> {
+export async function getMyChildId(): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
@@ -93,9 +81,7 @@ export async function buscarMeuFilhoId(): Promise<string | null> {
   return data?.id ?? null;
 }
 
-// ─── Utilitários ─────────────────────────────────────────
-
-function traduzirErroSignUp(msg: string): string {
+function translateSignUpError(msg: string): string {
   if (msg.includes('User already registered')) return 'Este e-mail já possui uma conta.';
   if (msg.includes('Password should be at least')) return 'A senha deve ter ao menos 6 caracteres.';
   if (msg.includes('Unable to validate email')) return 'E-mail inválido.';
@@ -103,7 +89,7 @@ function traduzirErroSignUp(msg: string): string {
   return msg;
 }
 
-function traduzirErroCadastroFilho(msg: string): string {
+function translateChildRegistrationError(msg: string): string {
   if (msg.includes('Usuário já pertence a uma família')) {
     return 'Esta conta já está vinculada a uma família.';
   }

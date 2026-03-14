@@ -3,51 +3,51 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { ScreenHeader } from '@/components/ui/screen-header';
-import { cadastrarFilho } from '@lib/filhos';
+import { registerChild } from '@lib/children';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, spacing, typography } from '@/constants/theme';
 
-export default function NovoFilhoScreen() {
+export default function NewChildScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [nome, setNome] = useState('');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
-  const [confirmarSenha, setConfirmarSenha] = useState('');
-  const [enviando, setEnviando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
-  const [sucesso, setSucesso] = useState(false);
-  const shouldShowError = Boolean(erro);
+  const [tempPassword, setTempPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const shouldShowError = Boolean(error);
 
-  async function handleCadastrar() {
-    setErro(null);
+  async function handleRegister() {
+    setError(null);
     const emailValue = email.trim().toLowerCase();
-    if (!nome.trim()) return setErro('Informe o nome do filho.');
-    if (!isValidEmail(emailValue)) return setErro('E-mail inválido.');
-    if (senha.length < 6) return setErro('A senha temporária deve ter ao menos 6 caracteres.');
-    if (senha !== confirmarSenha) return setErro('As senhas não coincidem.');
-    setEnviando(true);
-    const { error } = await cadastrarFilho(nome.trim(), emailValue, senha);
-    setEnviando(false);
-    if (error) { setErro(error); return; }
-    setSucesso(true);
+    if (!name.trim()) return setError('Informe o nome do filho.');
+    if (!isValidEmail(emailValue)) return setError('E-mail inválido.');
+    if (tempPassword.length < 6) return setError('A senha temporária deve ter ao menos 6 caracteres.');
+    if (tempPassword !== confirmPassword) return setError('As senhas não coincidem.');
+    setSubmitting(true);
+    const { error } = await registerChild(name.trim(), emailValue, tempPassword);
+    setSubmitting(false);
+    if (error) { setError(error); return; }
+    setSuccess(true);
   }
 
-  if (sucesso) {
+  if (success) {
     return (
       <View style={[styles.sucessoContainer, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />
         <Text style={styles.sucessoEmoji}>🎉</Text>
         <Text style={[styles.sucessoTitulo, { color: colors.text.primary }]}>Filho cadastrado!</Text>
         <Text style={[styles.sucessoTexto, { color: colors.text.secondary }]}>
-          Compartilhe as credenciais com {nome}:{'\n\n'}
+          Compartilhe as credenciais com {name}:{'\n\n'}
           <Text style={{ color: colors.accent.admin, fontFamily: typography.family.bold }}>E-mail: {email}</Text>
           {'\n'}
-          <Text style={{ color: colors.accent.admin, fontFamily: typography.family.bold }}>Senha: {senha}</Text>
+          <Text style={{ color: colors.accent.admin, fontFamily: typography.family.bold }}>Senha: {tempPassword}</Text>
         </Text>
         <Pressable style={[styles.botaoConcluir, { backgroundColor: colors.accent.admin }]} onPress={() => router.back()}>
           <Text style={[styles.botaoConcluirTexto, { color: colors.text.inverse }]}>Concluir</Text>
@@ -76,10 +76,10 @@ export default function NovoFilhoScreen() {
         </View>
 
         {[
-          { label: 'Nome *', value: nome, setter: setNome, placeholder: 'Nome do filho', maxLength: 60, autoCapitalize: 'words' as const, keyboardType: undefined, secure: false },
+          { label: 'Nome *', value: name, setter: setName, placeholder: 'Nome do filho', maxLength: 60, autoCapitalize: 'words' as const, keyboardType: undefined, secure: false },
           { label: 'E-mail *', value: email, setter: setEmail, placeholder: 'email@exemplo.com', maxLength: MAX_EMAIL_LENGTH, autoCapitalize: 'none' as const, keyboardType: 'email-address' as const, secure: false },
-          { label: 'Senha temporária *', value: senha, setter: setSenha, placeholder: 'Mínimo 6 caracteres', maxLength: 40, autoCapitalize: 'none' as const, keyboardType: undefined, secure: true },
-          { label: 'Confirmar senha *', value: confirmarSenha, setter: setConfirmarSenha, placeholder: 'Repita a senha', maxLength: 40, autoCapitalize: 'none' as const, keyboardType: undefined, secure: true },
+          { label: 'Senha temporária *', value: tempPassword, setter: setTempPassword, placeholder: 'Mínimo 6 caracteres', maxLength: 40, autoCapitalize: 'none' as const, keyboardType: undefined, secure: true },
+          { label: 'Confirmar senha *', value: confirmPassword, setter: setConfirmPassword, placeholder: 'Repita a senha', maxLength: 40, autoCapitalize: 'none' as const, keyboardType: undefined, secure: true },
         ].map(({ label, value, setter, placeholder, maxLength, autoCapitalize, keyboardType, secure }) => (
           <View key={label}>
             <Text style={[styles.label, { color: colors.text.secondary }]}>{label}</Text>
@@ -99,15 +99,15 @@ export default function NovoFilhoScreen() {
         ))}
 
         {shouldShowError ? (
-          <Text style={[styles.erroTexto, { color: colors.semantic.error }]}>{erro}</Text>
+          <Text style={[styles.erroTexto, { color: colors.semantic.error }]}>{error}</Text>
         ) : null}
 
         <Pressable
-          style={[styles.botaoCadastrar, { backgroundColor: colors.accent.admin, opacity: enviando ? 0.55 : 1 }]}
-          onPress={handleCadastrar}
-          disabled={enviando}
+          style={[styles.botaoCadastrar, { backgroundColor: colors.accent.admin, opacity: submitting ? 0.55 : 1 }]}
+          onPress={handleRegister}
+          disabled={submitting}
         >
-          {enviando ? <ActivityIndicator color={colors.text.inverse} /> : <Text style={[styles.botaoCadastrarTexto, { color: colors.text.inverse }]}>Cadastrar filho</Text>}
+          {submitting ? <ActivityIndicator color={colors.text.inverse} /> : <Text style={[styles.botaoCadastrarTexto, { color: colors.text.inverse }]}>Cadastrar filho</Text>}
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>

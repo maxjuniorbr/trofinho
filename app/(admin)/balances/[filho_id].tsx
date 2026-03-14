@@ -13,121 +13,121 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import {
-  buscarSaldo,
-  listarMovimentacoes,
-  aplicarPenalizacao,
-  configurarValorizacao,
-  aplicarValorizacao,
-  emojiTipo,
-  labelTipo,
-  labelPeriodoValorizacao,
-  isCredito,
-  type Saldo,
-  type Movimentacao,
-  type PeriodoValorizacao,
-} from '@lib/saldos';
+  getBalance,
+  listTransactions,
+  applyPenalty,
+  configureAppreciation,
+  applyAppreciation,
+  getTransactionTypeEmoji,
+  getTransactionTypeLabel,
+  getAppreciationPeriodLabel,
+  isCredit,
+  type Balance,
+  type Transaction,
+  type AppreciationPeriod,
+} from '@lib/balances';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 
-type ModalTipo = 'penalizar' | 'valorizacao_config' | null;
+type ModalType = 'penalizar' | 'valorizacao_config' | null;
 
-const PERIODOS: { label: string; value: PeriodoValorizacao }[] = [
+const PERIODOS: { label: string; value: AppreciationPeriod }[] = [
   { label: 'Dia', value: 'diario' },
   { label: 'Semana', value: 'semanal' },
   { label: 'Mês', value: 'mensal' },
 ];
 
-export default function SaldoFilhoAdminScreen() {
+export default function ChildBalanceAdminScreen() {
   const { filho_id, nome } = useLocalSearchParams<{ filho_id: string; nome: string }>();
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [saldo, setSaldo] = useState<Saldo | null>(null);
-  const [movs, setMovs] = useState<Movimentacao[]>([]);
-  const [carregando, setCarregando] = useState(true);
+  const [balance, setBalance] = useState<Balance | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [modalTipo, setModalTipo] = useState<ModalTipo>(null);
-  const [penValorStr, setPenValorStr] = useState('');
-  const [penDesc, setPenDesc] = useState('');
-  const [cfgIndice, setCfgIndice] = useState('0');
-  const [cfgPeriodo, setCfgPeriodo] = useState<PeriodoValorizacao>('mensal');
-  const [enviando, setEnviando] = useState(false);
-  const [errModal, setErrModal] = useState<string | null>(null);
-  const [sucModal, setSucModal] = useState<string | null>(null);
+  const [modalType, setModalType] = useState<ModalType>(null);
+  const [penaltyAmount, setPenaltyAmount] = useState('');
+  const [penaltyDescription, setPenaltyDescription] = useState('');
+  const [cfgRate, setCfgRate] = useState('0');
+  const [cfgPeriod, setCfgPeriod] = useState<AppreciationPeriod>('mensal');
+  const [saving, setSaving] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [modalSuccess, setModalSuccess] = useState<string | null>(null);
 
-  const carregar = useCallback(async () => {
+  const loadData = useCallback(async () => {
     if (!filho_id) return;
-    setCarregando(true);
+    setLoading(true);
     try {
       const [{ data: s }, { data: m }] = await Promise.all([
-        buscarSaldo(filho_id),
-        listarMovimentacoes(filho_id),
+        getBalance(filho_id),
+        listTransactions(filho_id),
       ]);
-      setSaldo(s);
-      setMovs(m);
+      setBalance(s);
+      setTransactions(m);
       if (s) {
-        setCfgIndice(String(s.indice_valorizacao));
-        setCfgPeriodo(s.periodo_valorizacao);
+        setCfgRate(String(s.indice_valorizacao));
+        setCfgPeriod(s.periodo_valorizacao);
       }
     } finally {
-      setCarregando(false);
+      setLoading(false);
     }
   }, [filho_id]);
 
-  useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
-  function abrirModal(t: ModalTipo) {
-    setErrModal(null);
-    setSucModal(null);
-    setPenValorStr('');
-    setPenDesc('');
-    setModalTipo(t);
+  function openModal(t: ModalType) {
+    setModalError(null);
+    setModalSuccess(null);
+    setPenaltyAmount('');
+    setPenaltyDescription('');
+    setModalType(t);
   }
 
-  async function handleValorizacao() {
+  async function handleApplyAppreciation() {
     if (!filho_id) return;
-    setEnviando(true);
-    setErrModal(null);
-    setSucModal(null);
-    const { data: ganho, error } = await aplicarValorizacao(filho_id);
-    setEnviando(false);
-    if (error) { setErrModal(error); return; }
-    setSucModal(`+${ganho} pontos creditados no cofrinho!`);
-    await carregar();
+    setSaving(true);
+    setModalError(null);
+    setModalSuccess(null);
+    const { data: ganho, error } = await applyAppreciation(filho_id);
+    setSaving(false);
+    if (error) { setModalError(error); return; }
+    setModalSuccess(`+${ganho} pontos creditados no cofrinho!`);
+    await loadData();
   }
 
-  async function handlePenalizar() {
-    setErrModal(null);
-    const v = Number.parseInt(penValorStr, 10);
-    if (!penValorStr || Number.isNaN(v) || v <= 0) return setErrModal('Informe um valor válido.');
-    if (!penDesc.trim()) return setErrModal('Informe a descrição.');
+  async function handleApplyPenalty() {
+    setModalError(null);
+    const v = Number.parseInt(penaltyAmount, 10);
+    if (!penaltyAmount || Number.isNaN(v) || v <= 0) return setModalError('Informe um valor válido.');
+    if (!penaltyDescription.trim()) return setModalError('Informe a descrição.');
     if (!filho_id) return;
-    setEnviando(true);
-    const { error } = await aplicarPenalizacao(filho_id, v, penDesc.trim());
-    setEnviando(false);
-    if (error) { setErrModal(error); return; }
-    setModalTipo(null);
-    await carregar();
+    setSaving(true);
+    const { error } = await applyPenalty(filho_id, v, penaltyDescription.trim());
+    setSaving(false);
+    if (error) { setModalError(error); return; }
+    setModalType(null);
+    await loadData();
   }
 
-  async function handleSalvarConfig() {
-    setErrModal(null);
-    const idx = Number.parseFloat(cfgIndice.replace(',', '.'));
-    if (Number.isNaN(idx) || idx < 0 || idx > 100) return setErrModal('Índice deve estar entre 0 e 100.');
+  async function handleConfigure() {
+    setModalError(null);
+    const idx = Number.parseFloat(cfgRate.replace(',', '.'));
+    if (Number.isNaN(idx) || idx < 0 || idx > 100) return setModalError('Índice deve estar entre 0 e 100.');
     if (!filho_id) return;
-    setEnviando(true);
-    const { error } = await configurarValorizacao(filho_id, idx, cfgPeriodo);
-    setEnviando(false);
-    if (error) { setErrModal(error); return; }
-    setModalTipo(null);
-    await carregar();
+    setSaving(true);
+    const { error } = await configureAppreciation(filho_id, idx, cfgPeriod);
+    setSaving(false);
+    if (error) { setModalError(error); return; }
+    setModalType(null);
+    await loadData();
   }
 
-  if (carregando) {
+  if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />
@@ -136,15 +136,15 @@ export default function SaldoFilhoAdminScreen() {
     );
   }
 
-  const saldoLivre = saldo?.saldo_livre ?? 0;
-  const cofrinho = saldo?.cofrinho ?? 0;
-  const periodoAtual = saldo ? labelPeriodoValorizacao(saldo.periodo_valorizacao) : null;
-  const hasConfigSuccess = Boolean(sucModal);
-  const hasModalError = Boolean(errModal);
-  const hasMovimentacoes = movs.length > 0;
-  const hasValorizacaoConfigurada = (saldo?.indice_valorizacao ?? 0) > 0;
-  const ultimaValorizacaoTexto = saldo?.data_ultima_valorizacao
-    ? ` · última em ${new Date(saldo.data_ultima_valorizacao).toLocaleDateString('pt-BR')}`
+  const saldoLivre = balance?.saldo_livre ?? 0;
+  const cofrinho = balance?.cofrinho ?? 0;
+  const periodoAtual = balance ? getAppreciationPeriodLabel(balance.periodo_valorizacao) : null;
+  const hasConfigSuccess = Boolean(modalSuccess);
+  const hasModalError = Boolean(modalError);
+  const hasTransactions = transactions.length > 0;
+  const hasAppreciationConfigured = (balance?.indice_valorizacao ?? 0) > 0;
+  const ultimaValorizacaoTexto = balance?.data_ultima_valorizacao
+    ? ` · última em ${new Date(balance.data_ultima_valorizacao).toLocaleDateString('pt-BR')}`
     : '';
 
   return (
@@ -153,7 +153,7 @@ export default function SaldoFilhoAdminScreen() {
       <ScreenHeader title={nome ?? 'Filho'} onBack={() => router.back()} />
 
       <FlatList
-        data={movs}
+        data={transactions}
         keyExtractor={(m) => m.id}
         contentContainerStyle={styles.lista}
         ListHeaderComponent={
@@ -173,47 +173,47 @@ export default function SaldoFilhoAdminScreen() {
 
             <View style={styles.boxConfig}>
               <Text style={styles.boxConfigTitulo}>📈 Valorização do cofrinho</Text>
-              {hasValorizacaoConfigurada ? (
+              {hasAppreciationConfigured ? (
                 <Text style={styles.boxConfigTexto}>
-                  {saldo!.indice_valorizacao}% ao {periodoAtual}{ultimaValorizacaoTexto}
+                  {balance!.indice_valorizacao}% ao {periodoAtual}{ultimaValorizacaoTexto}
                 </Text>
               ) : (
                 <Text style={styles.boxConfigTexto}>Não configurada</Text>
               )}
               <View style={styles.acoesBtns}>
-                <Pressable style={styles.btnAcao} onPress={() => abrirModal('valorizacao_config')}>
+                <Pressable style={styles.btnAcao} onPress={() => openModal('valorizacao_config')}>
                   <Text style={styles.btnAcaoTexto}>Configurar</Text>
                 </Pressable>
-                {hasValorizacaoConfigurada ? (
+                {hasAppreciationConfigured ? (
                   <Pressable
                     style={[styles.btnAcao, { backgroundColor: colors.semantic.successBg }]}
-                    onPress={handleValorizacao}
-                    disabled={enviando}
+                    onPress={handleApplyAppreciation}
+                    disabled={saving}
                   >
                     <Text style={[styles.btnAcaoTexto, { color: colors.semantic.success }]}>
-                      {enviando ? '…' : 'Aplicar agora'}
+                      {saving ? '…' : 'Aplicar agora'}
                     </Text>
                   </Pressable>
                 ) : null}
               </View>
-              {hasConfigSuccess ? <Text style={styles.sucTexto}>{sucModal}</Text> : null}
+              {hasConfigSuccess ? <Text style={styles.sucTexto}>{modalSuccess}</Text> : null}
             </View>
 
-            <Pressable style={styles.btnPenalizar} onPress={() => abrirModal('penalizar')}>
+            <Pressable style={styles.btnPenalizar} onPress={() => openModal('penalizar')}>
               <Text style={styles.btnPenalizarTexto}>⚠️ Aplicar penalização</Text>
             </Pressable>
 
             <Text style={styles.secaoTitulo}>Histórico</Text>
-            {!hasMovimentacoes ? (
+            {!hasTransactions ? (
               <Text style={styles.vazio}>Nenhuma movimentação ainda.</Text>
             ) : null}
           </>
         }
         renderItem={({ item }) => (
           <View style={styles.movItem}>
-            <Text style={styles.movEmoji}>{emojiTipo(item.tipo)}</Text>
+            <Text style={styles.movEmoji}>{getTransactionTypeEmoji(item.tipo)}</Text>
             <View style={styles.movInfo}>
-              <Text style={styles.movLabel}>{labelTipo(item.tipo)}</Text>
+              <Text style={styles.movLabel}>{getTransactionTypeLabel(item.tipo)}</Text>
               <Text style={styles.movDesc} numberOfLines={1}>{item.descricao}</Text>
               <Text style={styles.movData}>
                 {new Date(item.created_at).toLocaleDateString('pt-BR', {
@@ -221,15 +221,14 @@ export default function SaldoFilhoAdminScreen() {
                 })}
               </Text>
             </View>
-            <Text style={[styles.movValor, isCredito(item.tipo) ? styles.creditoTxt : styles.debitoTxt]}>
-              {isCredito(item.tipo) ? '+' : '-'}{item.valor}
+            <Text style={[styles.movValor, isCredit(item.tipo) ? styles.creditoTxt : styles.debitoTxt]}>
+              {isCredit(item.tipo) ? '+' : '-'}{item.valor}
             </Text>
           </View>
         )}
       />
 
-      {/* Modal penalização */}
-      <Modal visible={modalTipo === 'penalizar'} transparent animationType="slide">
+      <Modal visible={modalType === 'penalizar'} transparent animationType="slide">
         <KeyboardAvoidingView
           style={styles.modalOverlay}
           behavior="padding"
@@ -239,8 +238,8 @@ export default function SaldoFilhoAdminScreen() {
             <Text style={styles.label}>Valor (pontos) *</Text>
             <TextInput
               style={styles.input}
-              value={penValorStr}
-              onChangeText={setPenValorStr}
+              value={penaltyAmount}
+              onChangeText={setPenaltyAmount}
               placeholder="Ex: 10"
               placeholderTextColor={colors.text.muted}
               keyboardType="number-pad"
@@ -249,24 +248,24 @@ export default function SaldoFilhoAdminScreen() {
             <Text style={styles.label}>Motivo *</Text>
             <TextInput
               style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
-              value={penDesc}
-              onChangeText={setPenDesc}
+              value={penaltyDescription}
+              onChangeText={setPenaltyDescription}
               placeholder="Descreva o motivo…"
               placeholderTextColor={colors.text.muted}
               multiline
               maxLength={200}
             />
-            {hasModalError ? <Text style={styles.errModal}>{errModal}</Text> : null}
+            {hasModalError ? <Text style={styles.errModal}>{modalError}</Text> : null}
             <View style={styles.modalBtns}>
-              <Pressable style={styles.btnCancelar} onPress={() => setModalTipo(null)}>
+              <Pressable style={styles.btnCancelar} onPress={() => setModalType(null)}>
                 <Text style={styles.btnCancelarTexto}>Cancelar</Text>
               </Pressable>
               <Pressable
-                style={[styles.btnConfirmar, { backgroundColor: colors.semantic.error }, enviando && styles.btnDesabilitado]}
-                onPress={handlePenalizar}
-                disabled={enviando}
+                style={[styles.btnConfirmar, { backgroundColor: colors.semantic.error }, saving && styles.btnDesabilitado]}
+                onPress={handleApplyPenalty}
+                disabled={saving}
               >
-                {enviando
+                {saving
                   ? <ActivityIndicator color="#fff" />
                   : <Text style={styles.btnConfirmarTexto}>Penalizar</Text>}
               </Pressable>
@@ -275,8 +274,7 @@ export default function SaldoFilhoAdminScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Modal config valorização */}
-      <Modal visible={modalTipo === 'valorizacao_config'} transparent animationType="slide">
+      <Modal visible={modalType === 'valorizacao_config'} transparent animationType="slide">
         <KeyboardAvoidingView
           style={styles.modalOverlay}
           behavior="padding"
@@ -286,8 +284,8 @@ export default function SaldoFilhoAdminScreen() {
             <Text style={styles.label}>Índice (%) *</Text>
             <TextInput
               style={styles.input}
-              value={cfgIndice}
-              onChangeText={setCfgIndice}
+              value={cfgRate}
+              onChangeText={setCfgRate}
               placeholder="Ex: 5"
               placeholderTextColor={colors.text.muted}
               keyboardType="decimal-pad"
@@ -298,26 +296,26 @@ export default function SaldoFilhoAdminScreen() {
               {PERIODOS.map((p) => (
                 <Pressable
                   key={p.value}
-                  style={[styles.periodoBotao, cfgPeriodo === p.value && styles.periodoAtivo]}
-                  onPress={() => setCfgPeriodo(p.value)}
+                  style={[styles.periodoBotao, cfgPeriod === p.value && styles.periodoAtivo]}
+                  onPress={() => setCfgPeriod(p.value)}
                 >
-                  <Text style={[styles.periodoTexto, cfgPeriodo === p.value && styles.periodoTextoAtivo]}>
+                  <Text style={[styles.periodoTexto, cfgPeriod === p.value && styles.periodoTextoAtivo]}>
                     {p.label}
                   </Text>
                 </Pressable>
               ))}
             </View>
-            {hasModalError ? <Text style={styles.errModal}>{errModal}</Text> : null}
+            {hasModalError ? <Text style={styles.errModal}>{modalError}</Text> : null}
             <View style={styles.modalBtns}>
-              <Pressable style={styles.btnCancelar} onPress={() => setModalTipo(null)}>
+              <Pressable style={styles.btnCancelar} onPress={() => setModalType(null)}>
                 <Text style={styles.btnCancelarTexto}>Cancelar</Text>
               </Pressable>
               <Pressable
-                style={[styles.btnConfirmar, enviando && styles.btnDesabilitado]}
-                onPress={handleSalvarConfig}
-                disabled={enviando}
+                style={[styles.btnConfirmar, saving && styles.btnDesabilitado]}
+                onPress={handleConfigure}
+                disabled={saving}
               >
-                {enviando
+                {saving
                   ? <ActivityIndicator color="#fff" />
                   : <Text style={styles.btnConfirmarTexto}>Salvar</Text>}
               </Pressable>
@@ -393,7 +391,6 @@ function makeStyles(colors: ThemeColors) {
     movValor: { fontSize: typography.size.md, fontFamily: typography.family.bold },
     creditoTxt: { color: colors.semantic.success },
     debitoTxt: { color: colors.semantic.error },
-    // Modal
     modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
     modalBox: {
       backgroundColor: colors.bg.surface,

@@ -5,32 +5,32 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Badge } from '@/components/ui/badge';
-import { listarTarefasAdmin, type TarefaListItem } from '@lib/tarefas';
+import { listAdminTasks, type TaskListItem } from '@lib/tasks';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 
-export default function AdminTarefasScreen() {
+export default function AdminTasksScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [tarefas, setTarefas] = useState<TarefaListItem[]>([]);
-  const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
-  const hasErro = Boolean(erro);
-  const shouldShowEmptyState = carregando || hasErro || tarefas.length === 0;
+  const [tasks, setTasks] = useState<TaskListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const hasError = Boolean(error);
+  const shouldShowEmptyState = loading || hasError || tasks.length === 0;
 
-  const carregar = useCallback(async () => {
-    setCarregando(true); setErro(null);
+  const loadData = useCallback(async () => {
+    setLoading(true); setError(null);
     try {
-      const { data, error } = await listarTarefasAdmin();
-      if (error) setErro(error); else setTarefas(data);
-    } catch { setErro('Não foi possível carregar as tarefas agora.'); setTarefas([]); }
-    finally { setCarregando(false); }
+      const { data, error } = await listAdminTasks();
+      if (error) setError(error); else setTasks(data);
+    } catch { setError('Não foi possível carregar as tarefas agora.'); setTasks([]); }
+    finally { setLoading(false); }
   }, []);
 
-  useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
@@ -40,17 +40,17 @@ export default function AdminTarefasScreen() {
         onBack={() => router.back()}
         backLabel="Início"
         rightAction={
-          <Pressable onPress={() => router.push('/(admin)/tarefas/nova')} style={[styles.botaoNova, { backgroundColor: colors.accent.admin }]}>
+          <Pressable onPress={() => router.push('/(admin)/tasks/new')} style={[styles.botaoNova, { backgroundColor: colors.accent.admin }]}>
             <Text style={[styles.botaoNovaTexto, { color: colors.text.inverse }]}>+ Nova</Text>
           </Pressable>
         }
       />
 
       {shouldShowEmptyState ? (
-        <EmptyState loading={carregando} error={erro} empty={tarefas.length === 0} emptyMessage={'Nenhuma tarefa criada ainda.\nToque em "+ Nova" para criar a primeira tarefa.'} onRetry={carregar} />
+        <EmptyState loading={loading} error={error} empty={tasks.length === 0} emptyMessage={'Nenhuma tarefa criada ainda.\nToque em "+ Nova" para criar a primeira tarefa.'} onRetry={loadData} />
       ) : (
         <FlatList
-          data={tarefas}
+          data={tasks}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
           renderItem={({ item }) => {
@@ -61,7 +61,7 @@ export default function AdminTarefasScreen() {
             return (
               <Pressable
                 style={({ pressed }) => [styles.card, shadows.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle, opacity: pressed ? 0.9 : 1 }]}
-                onPress={() => router.push(`/(admin)/tarefas/${item.id}` as never)}
+                onPress={() => router.push(`/(admin)/tasks/${item.id}` as never)}
               >
                 <View style={styles.cardTopo}>
                   <Text style={[styles.cardTitulo, { color: colors.text.primary }]} numberOfLines={2}>{item.titulo}</Text>
