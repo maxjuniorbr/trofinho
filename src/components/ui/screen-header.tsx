@@ -1,8 +1,9 @@
 import React, { type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/theme-context';
-import { spacing, typography } from '@/constants/theme';
+import { radii, spacing, typography } from '@/constants/theme';
 
 interface ScreenHeaderProps {
   title: string;
@@ -18,28 +19,36 @@ type ReadonlyScreenHeaderProps = Readonly<ScreenHeaderProps>;
 export function ScreenHeader({
   title,
   onBack,
-  backLabel = '← Voltar',
+  backLabel = 'Voltar',
   rightAction,
   role = 'admin',
 }: ReadonlyScreenHeaderProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const accent = role === 'filho' ? colors.accent.filho : colors.accent.admin;
+  const displayLabel = backLabel.replace(/^←\s*/, '');
 
   return (
     <View
       style={[
         styles.container,
         {
-          paddingTop: insets.top + spacing['3'],
+          paddingTop: insets.top + spacing['2'],
           backgroundColor: colors.bg.surface,
           borderBottomColor: colors.border.subtle,
         },
       ]}
     >
       {onBack ? (
-        <Pressable onPress={onBack} style={styles.side} hitSlop={8}>
-          <Text style={[styles.backLabel, { color: accent }]}>{backLabel}</Text>
+        <Pressable
+          onPress={onBack}
+          style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel={`Voltar para ${displayLabel}`}
+        >
+          <Ionicons name="chevron-back" size={26} color={accent} />
+          <Text style={[styles.backLabel, { color: accent }]}>{displayLabel}</Text>
         </Pressable>
       ) : (
         <View style={styles.side} />
@@ -61,21 +70,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingBottom: spacing['3'],
-    paddingHorizontal: spacing['5'],
+    paddingBottom: spacing['2'],
+    paddingHorizontal: spacing['2'],
     borderBottomWidth: 1,
   },
   side: {
-    minWidth: 70,
+    minWidth: 80,
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minWidth: 80,
+    minHeight: 44,
+    borderRadius: radii.md,
+    paddingRight: spacing['2'],
   },
   title: {
     fontSize: typography.size.lg,
-    fontWeight: typography.weight.bold,
+    fontFamily: typography.family.bold,
     flex: 1,
     textAlign: 'center',
   },
   backLabel: {
-    fontSize: typography.size.md,
-    fontWeight: typography.weight.medium,
+    fontSize: typography.size.sm,
+    fontFamily: typography.family.semibold,
+    marginLeft: 2,
   },
 });

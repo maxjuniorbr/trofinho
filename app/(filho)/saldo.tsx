@@ -162,7 +162,7 @@ export default function SaldoFilhoScreen() {
       <Modal visible={modalAberto} transparent animationType="slide">
         <KeyboardAvoidingView
           style={styles.modalOverlay}
-          behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
+          behavior="padding"
         >
           <View style={styles.modalBox}>
             <Text style={styles.modalTitulo}>🐷 Guardar no cofrinho</Text>

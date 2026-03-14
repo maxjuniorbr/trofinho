@@ -40,7 +40,7 @@ export default function NovoPremioScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg.canvas }} behavior={process.env.EXPO_OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg.canvas }} behavior="padding">
       <StatusBar style={colors.statusBar} />
       <ScreenHeader title="Novo Prêmio" onBack={() => router.back()} />
       <ScrollView

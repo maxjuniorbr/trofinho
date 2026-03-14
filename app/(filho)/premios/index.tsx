@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   listarPremiosAtivos,
@@ -21,8 +21,10 @@ import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { gradients, radii, shadows, spacing, typography } from '@/constants/theme';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ScreenHeader } from '@/components/ui/screen-header';
 
 export default function FilhoPremiosScreen() {
+  const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
@@ -77,6 +79,7 @@ export default function FilhoPremiosScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
       <StatusBar style={colors.statusBar} />
+      <ScreenHeader title="Meus Prêmios" onBack={() => router.back()} backLabel="Início" role="filho" />
 
       {shouldShowEmptyState ? (
         <EmptyState
