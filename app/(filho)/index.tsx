@@ -1,16 +1,31 @@
-import { StyleSheet, Text, View, Pressable, ActivityIndicator, ScrollView } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  Pressable,
+  ActivityIndicator,
+  ScrollView,
+} from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { signOut, buscarPerfil, type UserProfile } from '@lib/auth';
 import { supabase } from '@lib/supabase';
 import { listarAtribuicoesFilho } from '@lib/tarefas';
 import { buscarSaldo } from '@lib/saldos';
+import { useTheme } from '@/context/theme-context';
+import type { ThemeColors } from '@/constants/theme';
+import { radii, spacing, typography } from '@/constants/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Familia = { nome: string };
 
 export default function FilhoHomeScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
+
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [familia, setFamilia] = useState<Familia | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -21,25 +36,17 @@ export default function FilhoHomeScreen() {
 
   const carregar = useCallback(async () => {
     setCarregando(true);
-
     try {
       const p = await buscarPerfil();
       setProfile(p);
-
       if (p?.familia_id) {
-        const { data: fam } = await supabase
-          .from('familias')
-          .select('nome')
-          .eq('id', p.familia_id)
-          .single();
+        const { data: fam } = await supabase.from('familias').select('nome').eq('id', p.familia_id).single();
         setFamilia(fam);
       } else {
         setFamilia(null);
       }
-
       const { data: atribuicoes } = await listarAtribuicoesFilho();
       setPendentes(atribuicoes.filter((a) => a.status === 'pendente').length);
-
       const { data: s } = await buscarSaldo();
       setSaldoLivre(s?.saldo_livre ?? 0);
       setCofrinho(s?.cofrinho ?? 0);
@@ -53,20 +60,11 @@ export default function FilhoHomeScreen() {
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      carregar();
-    }, [carregar])
-  );
+  useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
 
-  const tarefasPendentesTexto = (() => {
-    if (pendentes === 0) {
-      return 'Nenhuma tarefa pendente no momento.';
-    }
-
-    const tarefaLabel = pendentes === 1 ? 'tarefa pendente' : 'tarefas pendentes';
-    return `${pendentes} ${tarefaLabel} esperando por você!`;
-  })();
+  const tarefasPendentesTexto = pendentes === 0
+    ? 'Nenhuma tarefa pendente no momento.'
+    : `${pendentes} ${pendentes === 1 ? 'tarefa pendente' : 'tarefas pendentes'} esperando por você!`;
 
   async function handleSair() {
     setSaindo(true);
@@ -75,20 +73,21 @@ export default function FilhoHomeScreen() {
 
   if (carregando) {
     return (
-      <View style={styles.loading} accessibilityRole="progressbar">
-        <ActivityIndicator size="large" color="#0EA5E9" />
+      <View style={[styles.loading, { backgroundColor: colors.bg.canvas }]}>
+        <StatusBar style={colors.statusBar} />
+        <ActivityIndicator size="large" color={colors.accent.filho} />
       </View>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <StatusBar style="auto" />
+    <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + spacing['6'] }]} style={{ backgroundColor: colors.bg.canvas }}>
+      <StatusBar style={colors.statusBar} />
 
       <View style={styles.header}>
         <Text style={styles.emoji}>⭐</Text>
         <Text style={styles.familia}>{familia?.nome ?? '—'}</Text>
-        <Text style={styles.boas_vindas}>Olá, {profile?.nome ?? 'Filho'}!</Text>
+        <Text style={styles.boasVindas}>Olá, {profile?.nome ?? 'Filho'}!</Text>
       </View>
 
       <Pressable
@@ -105,9 +104,7 @@ export default function FilhoHomeScreen() {
             </View>
           )}
         </View>
-        <Text style={styles.cardTexto}>
-          {tarefasPendentesTexto}
-        </Text>
+        <Text style={styles.cardTexto}>{tarefasPendentesTexto}</Text>
         <Text style={styles.cardLink}>Ver tarefas →</Text>
       </Pressable>
 
@@ -152,23 +149,16 @@ export default function FilhoHomeScreen() {
         <View style={styles.cardTopo}>
           <Text style={styles.cardTitulo}>🛍️ Meus Resgates</Text>
         </View>
-        <Text style={styles.cardTexto}>
-          Acompanhe o status dos seus resgates.
-        </Text>
+        <Text style={styles.cardTexto}>Acompanhe o status dos seus resgates.</Text>
         <Text style={styles.cardLink}>Ver resgates →</Text>
       </Pressable>
 
       <Pressable
-        style={({ pressed }) => [
-          styles.botaoSair,
-          saindo && styles.botaoDesabilitado,
-          pressed && !saindo && { opacity: 0.7 },
-        ]}
+        style={({ pressed }) => [styles.botaoSair, saindo && styles.botaoDesabilitado, pressed && !saindo && { opacity: 0.7 }]}
         onPress={handleSair}
         disabled={saindo}
         accessibilityRole="button"
         accessibilityLabel={saindo ? 'Saindo' : 'Sair'}
-        accessibilityState={{ disabled: saindo, busy: saindo }}
       >
         <Text style={styles.botaoSairTexto}>{saindo ? 'Saindo…' : 'Sair'}</Text>
       </Pressable>
@@ -176,85 +166,52 @@ export default function FilhoHomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F0F9FF' },
-  container: {
-    flexGrow: 1,
-    backgroundColor: '#F0F9FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  emoji: { fontSize: 48 },
-  familia: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#0EA5E9',
-    marginTop: 12,
-  },
-  boas_vindas: {
-    fontSize: 16,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    borderCurve: 'continuous',
-    padding: 24,
-    width: '100%',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
-    marginBottom: 32,
-  },
-  cardTopo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  cardTitulo: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0EA5E9',
-    flex: 1,
-  },
-  badge: {
-    backgroundColor: '#EF4444',
-    borderRadius: 12,
-    borderCurve: 'continuous',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    minWidth: 24,
-    alignItems: 'center',
-  },
-  badgeTexto: { color: '#fff', fontSize: 12, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  cardTexto: {
-    fontSize: 15,
-    color: '#374151',
-    lineHeight: 22,
-  },
-  cardLink: {
-    fontSize: 14,
-    color: '#0EA5E9',
-    fontWeight: '600',
-    marginTop: 10,
-  },
-  botaoSair: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    borderCurve: 'continuous',
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    minHeight: 44,
-  },
-  botaoDesabilitado: { opacity: 0.5 },
-  botaoSairTexto: {
-    color: '#6B7280',
-    fontSize: 15,
-    fontWeight: '500',
-  },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    container: {
+      flexGrow: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: spacing['6'],
+    },
+    header: { alignItems: 'center', marginBottom: spacing['8'] },
+    emoji: { fontSize: 48 },
+    familia: { fontSize: typography.size['2xl'], fontWeight: typography.weight.bold, color: colors.accent.filho, marginTop: spacing['3'] },
+    boasVindas: { fontSize: typography.size.md, color: colors.text.secondary, marginTop: spacing['1'] },
+    card: {
+      backgroundColor: colors.bg.surface,
+      borderRadius: radii.xl,
+      borderCurve: 'continuous',
+      padding: spacing['6'],
+      width: '100%',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+      marginBottom: spacing['4'],
+    },
+    cardTopo: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing['2'] },
+    cardTitulo: { fontSize: typography.size.sm, fontWeight: typography.weight.bold, color: colors.accent.filho, flex: 1 },
+    badge: {
+      backgroundColor: colors.semantic.error,
+      borderRadius: radii.full,
+      borderCurve: 'continuous',
+      paddingHorizontal: spacing['2'],
+      paddingVertical: 2,
+      minWidth: 24,
+      alignItems: 'center',
+    },
+    badgeTexto: { color: '#fff', fontSize: typography.size.xs, fontWeight: typography.weight.bold },
+    cardTexto: { fontSize: typography.size.md, color: colors.text.primary, lineHeight: 22 },
+    cardLink: { fontSize: typography.size.sm, color: colors.accent.filho, fontWeight: typography.weight.semibold, marginTop: spacing['2'] },
+    botaoSair: {
+      borderWidth: 1,
+      borderColor: colors.border.default,
+      borderRadius: radii.xl,
+      borderCurve: 'continuous',
+      paddingVertical: spacing['3'],
+      paddingHorizontal: spacing['8'],
+      minHeight: 44,
+    },
+    botaoDesabilitado: { opacity: 0.5 },
+    botaoSairTexto: { color: colors.text.secondary, fontSize: typography.size.md, fontWeight: typography.weight.medium },
+  });
+}

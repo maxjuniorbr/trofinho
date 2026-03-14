@@ -1,21 +1,18 @@
-import {
-  StyleSheet,
-  Text,
-  View,
-  Pressable,
-  TextInput,
-  ScrollView,
-  KeyboardAvoidingView,
-  ActivityIndicator,
-} from 'react-native';
+import { StyleSheet, Text, View, Pressable, TextInput, ScrollView, KeyboardAvoidingView, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'expo-router';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { cadastrarFilho } from '@lib/filhos';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
+import { useTheme } from '@/context/theme-context';
+import type { ThemeColors } from '@/constants/theme';
+import { radii, spacing, typography } from '@/constants/theme';
 
 export default function NovoFilhoScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -28,41 +25,31 @@ export default function NovoFilhoScreen() {
   async function handleCadastrar() {
     setErro(null);
     const emailValue = email.trim().toLowerCase();
-
     if (!nome.trim()) return setErro('Informe o nome do filho.');
     if (!isValidEmail(emailValue)) return setErro('E-mail inválido.');
     if (senha.length < 6) return setErro('A senha temporária deve ter ao menos 6 caracteres.');
     if (senha !== confirmarSenha) return setErro('As senhas não coincidem.');
-
     setEnviando(true);
     const { error } = await cadastrarFilho(nome.trim(), emailValue, senha);
     setEnviando(false);
-
-    if (error) {
-      setErro(error);
-      return;
-    }
-
+    if (error) { setErro(error); return; }
     setSucesso(true);
   }
 
   if (sucesso) {
     return (
-      <View style={styles.sucessoContainer}>
-        <StatusBar style="auto" />
+      <View style={[styles.sucessoContainer, { backgroundColor: colors.bg.canvas }]}>
+        <StatusBar style={colors.statusBar} />
         <Text style={styles.sucessoEmoji}>🎉</Text>
-        <Text style={styles.sucessoTitulo}>Filho cadastrado!</Text>
-        <Text style={styles.sucessoTexto}>
+        <Text style={[styles.sucessoTitulo, { color: colors.text.primary }]}>Filho cadastrado!</Text>
+        <Text style={[styles.sucessoTexto, { color: colors.text.secondary }]}>
           Compartilhe as credenciais com {nome}:{'\n\n'}
-          <Text style={styles.credencial}>E-mail: {email}</Text>
+          <Text style={{ color: colors.accent.admin, fontWeight: '700' }}>E-mail: {email}</Text>
           {'\n'}
-          <Text style={styles.credencial}>Senha: {senha}</Text>
+          <Text style={{ color: colors.accent.admin, fontWeight: '700' }}>Senha: {senha}</Text>
         </Text>
-        <Pressable
-          style={styles.botaoConcluir}
-          onPress={() => router.back()}
-        >
-          <Text style={styles.botaoConcluirTexto}>Concluir</Text>
+        <Pressable style={[styles.botaoConcluir, { backgroundColor: colors.accent.admin }]} onPress={() => router.back()}>
+          <Text style={[styles.botaoConcluirTexto, { color: colors.text.inverse }]}>Concluir</Text>
         </Pressable>
       </View>
     );
@@ -70,173 +57,75 @@ export default function NovoFilhoScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
+      style={[{ flex: 1, backgroundColor: colors.bg.canvas }]}
+      behavior={process.env.EXPO_OS === 'ios' ? 'padding' : 'height'}
     >
-      <StatusBar style="auto" />
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()}>
-          <Text style={styles.voltar}>← Voltar</Text>
-        </Pressable>
-        <Text style={styles.titulo}>Novo Filho</Text>
-        <View style={{ minWidth: 60 }} />
-      </View>
+      <StatusBar style={colors.statusBar} />
+      <ScreenHeader title="Novo Filho" onBack={() => router.back()} />
 
       <ScrollView
-        style={styles.scroll}
+        style={{ backgroundColor: colors.bg.canvas }}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTexto}>
-            O sistema criará uma conta para o filho com as credenciais informadas.
-            Compartilhe o e-mail e a senha temporária para que ele possa entrar no app.
+        <View style={[styles.infoBox, { backgroundColor: colors.accent.adminBg, borderColor: colors.border.subtle }]}>
+          <Text style={[styles.infoTexto, { color: colors.text.secondary }]}>
+            O sistema criará uma conta para o filho. Compartilhe o e-mail e senha temporária para o primeiro acesso.
           </Text>
         </View>
 
-        <Text style={styles.label}>Nome *</Text>
-        <TextInput
-          style={styles.input}
-          value={nome}
-          onChangeText={setNome}
-          placeholder="Nome do filho"
-          maxLength={60}
-          autoCapitalize="words"
-        />
+        {[
+          { label: 'Nome *', value: nome, setter: setNome, placeholder: 'Nome do filho', maxLength: 60, autoCapitalize: 'words' as const, keyboardType: undefined, secure: false },
+          { label: 'E-mail *', value: email, setter: setEmail, placeholder: 'email@exemplo.com', maxLength: MAX_EMAIL_LENGTH, autoCapitalize: 'none' as const, keyboardType: 'email-address' as const, secure: false },
+          { label: 'Senha temporária *', value: senha, setter: setSenha, placeholder: 'Mínimo 6 caracteres', maxLength: 40, autoCapitalize: 'none' as const, keyboardType: undefined, secure: true },
+          { label: 'Confirmar senha *', value: confirmarSenha, setter: setConfirmarSenha, placeholder: 'Repita a senha', maxLength: 40, autoCapitalize: 'none' as const, keyboardType: undefined, secure: true },
+        ].map(({ label, value, setter, placeholder, maxLength, autoCapitalize, keyboardType, secure }) => (
+          <View key={label}>
+            <Text style={[styles.label, { color: colors.text.secondary }]}>{label}</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.bg.surface, borderColor: colors.border.default, color: colors.text.primary }]}
+              value={value}
+              onChangeText={setter}
+              placeholder={placeholder}
+              placeholderTextColor={colors.text.muted}
+              maxLength={maxLength}
+              autoCapitalize={autoCapitalize}
+              keyboardType={keyboardType}
+              autoCorrect={false}
+              secureTextEntry={secure}
+            />
+          </View>
+        ))}
 
-        <Text style={styles.label}>E-mail *</Text>
-        <TextInput
-          style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-          placeholder="email@exemplo.com"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          maxLength={MAX_EMAIL_LENGTH}
-        />
-
-        <Text style={styles.label}>Senha temporária *</Text>
-        <TextInput
-          style={styles.input}
-          value={senha}
-          onChangeText={setSenha}
-          placeholder="Mínimo 6 caracteres"
-          secureTextEntry
-          maxLength={40}
-        />
-
-        <Text style={styles.label}>Confirmar senha *</Text>
-        <TextInput
-          style={styles.input}
-          value={confirmarSenha}
-          onChangeText={setConfirmarSenha}
-          placeholder="Repita a senha"
-          secureTextEntry
-          maxLength={40}
-        />
-
-        {erro && <Text style={styles.erroTexto}>{erro}</Text>}
+        {erro && <Text style={[styles.erroTexto, { color: colors.semantic.error }]}>{erro}</Text>}
 
         <Pressable
-          style={[styles.botaoCadastrar, enviando && styles.botaoDesabilitado]}
+          style={[styles.botaoCadastrar, { backgroundColor: colors.accent.admin, opacity: enviando ? 0.55 : 1 }]}
           onPress={handleCadastrar}
           disabled={enviando}
         >
-          {enviando ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.botaoCadastrarTexto}>Cadastrar filho</Text>
-          )}
+          {enviando ? <ActivityIndicator color={colors.text.inverse} /> : <Text style={[styles.botaoCadastrarTexto, { color: colors.text.inverse }]}>Cadastrar filho</Text>}
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 56,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  voltar: { color: '#4F46E5', fontSize: 15, fontWeight: '500' },
-  titulo: { fontSize: 18, fontWeight: '700', color: '#111827' },
-  scroll: { flex: 1, backgroundColor: '#F5F3FF' },
-  scrollContent: { padding: 20, paddingBottom: 48 },
-  infoBox: {
-    backgroundColor: '#EEF2FF',
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 8,
-  },
-  infoTexto: { fontSize: 13, color: '#4338CA', lineHeight: 19 },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 6,
-    marginTop: 16,
-  },
-  input: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: '#111827',
-  },
-  erroTexto: {
-    color: '#EF4444',
-    fontSize: 14,
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  botaoCadastrar: {
-    backgroundColor: '#4F46E5',
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 24,
-  },
-  botaoDesabilitado: { opacity: 0.6 },
-  botaoCadastrarTexto: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  // Tela de sucesso
-  sucessoContainer: {
-    flex: 1,
-    backgroundColor: '#F5F3FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-  },
-  sucessoEmoji: { fontSize: 64, marginBottom: 16 },
-  sucessoTitulo: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 16,
-  },
-  sucessoTexto: {
-    fontSize: 15,
-    color: '#374151',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 32,
-  },
-  credencial: { fontWeight: '700', color: '#4F46E5' },
-  botaoConcluir: {
-    backgroundColor: '#4F46E5',
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 40,
-  },
-  botaoConcluirTexto: { color: '#fff', fontSize: 16, fontWeight: '700' },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    scrollContent: { padding: spacing['5'], paddingBottom: spacing['10'] },
+    infoBox: { borderRadius: radii.md, borderWidth: 1, padding: spacing['3'], marginBottom: spacing['4'] },
+    infoTexto: { fontSize: typography.size.sm, lineHeight: 20 },
+    label: { fontSize: typography.size.sm, fontWeight: typography.weight.semibold, marginBottom: spacing['1'], marginTop: spacing['4'] },
+    input: { borderWidth: 1, borderRadius: radii.md, paddingHorizontal: spacing['4'], paddingVertical: spacing['3'], fontSize: typography.size.md },
+    erroTexto: { fontSize: typography.size.sm, marginTop: spacing['3'], textAlign: 'center' },
+    botaoCadastrar: { borderRadius: radii.md, paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['6'], minHeight: 52 },
+    botaoCadastrarTexto: { fontSize: typography.size.md, fontWeight: typography.weight.semibold },
+    sucessoContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing['8'] },
+    sucessoEmoji: { fontSize: 56, marginBottom: spacing['4'] },
+    sucessoTitulo: { fontSize: typography.size['2xl'], fontWeight: typography.weight.bold, marginBottom: spacing['3'] },
+    sucessoTexto: { fontSize: typography.size.md, textAlign: 'center', lineHeight: 24, marginBottom: spacing['8'] },
+    botaoConcluir: { borderRadius: radii.md, paddingVertical: spacing['3'], paddingHorizontal: spacing['8'] },
+    botaoConcluirTexto: { fontSize: typography.size.md, fontWeight: typography.weight.semibold },
+  });
+}

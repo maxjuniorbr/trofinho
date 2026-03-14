@@ -5,9 +5,8 @@ import {
   FlatList,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useFocusEffect } from 'expo-router';
-import AsyncListState from '@/components/AsyncListState';
 import {
   listarResgatesFilho,
   labelStatusResgate,
@@ -15,13 +14,16 @@ import {
   corStatusResgate,
   type ResgateComPremio,
 } from '@lib/premios';
-
-function formatarData(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
-}
+import { useTheme } from '@/context/theme-context';
+import type { ThemeColors } from '@/constants/theme';
+import { radii, spacing, typography } from '@/constants/theme';
+import { EmptyState } from '@/components/ui/empty-state';
+import { formatarData } from '@lib/utils';
 
 export default function FilhoResgatesScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const [resgates, setResgates] = useState<ResgateComPremio[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -41,107 +43,66 @@ export default function FilhoResgatesScreen() {
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      carregar();
-    }, [carregar])
-  );
-
-  function renderConteudo() {
-    if (carregando || erro || resgates.length === 0) {
-      return (
-        <AsyncListState
-          loading={carregando}
-          error={erro}
-          empty={resgates.length === 0}
-          emptyMessage={'Nenhum resgate realizado ainda.\nVá ao catálogo e troque seus pontos!'}
-          onRetry={carregar}
-        />
-      );
-    }
-
-    return (
-      <FlatList
-        data={resgates}
-        keyExtractor={(item) => item.id}
-        contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={styles.lista}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={styles.cardTopo}>
-              <Text style={styles.cardNome}>{item.premios.nome}</Text>
-              <View style={[styles.statusBadge, { backgroundColor: corStatusResgate(item.status) + '22' }]}>
-                <Text style={[styles.statusTexto, { color: corStatusResgate(item.status) }]}>
-                  {emojiStatusResgate(item.status)} {labelStatusResgate(item.status)}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.cardRodape}>
-              <Text style={styles.cardPontos}>🏆 {item.pontos_debitados} pts</Text>
-              <Text style={styles.cardData}>{formatarData(item.created_at)}</Text>
-            </View>
-          </View>
-        )}
-      />
-    );
-  }
+  useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="auto" />
-      {renderConteudo()}
+    <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
+      <StatusBar style={colors.statusBar} />
+
+      {carregando || erro || resgates.length === 0 ? (
+        <EmptyState
+          loading={carregando}
+          error={erro ? erro ?? 'Nenhum resgate realizado ainda.\nVá ao catálogo e troque seus pontos!' : null}
+          empty={!carregando && !erro}
+          emptyMessage={erro ?? 'Nenhum resgate realizado ainda.\nVá ao catálogo e troque seus pontos!'}
+          onRetry={carregar}
+          />
+      ) : (
+        <FlatList
+          data={resgates}
+          keyExtractor={(item) => item.id}
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={styles.lista}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <View style={styles.cardTopo}>
+                <Text style={styles.cardNome}>{item.premios.nome}</Text>
+                <View style={[styles.statusBadge, { backgroundColor: corStatusResgate(item.status) + '22' }]}>
+                  <Text style={[styles.statusTexto, { color: corStatusResgate(item.status) }]}>
+                    {emojiStatusResgate(item.status)} {labelStatusResgate(item.status)}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.cardRodape}>
+                <Text style={styles.cardPontos}>🏆 {item.pontos_debitados} pts</Text>
+                <Text style={styles.cardData}>{formatarData(new Date(item.created_at))}</Text>
+              </View>
+            </View>
+          )}
+        />
+      )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F0F9FF' },
-  lista: {
-    padding: 16,
-    gap: 10,
-    paddingBottom: 40,
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    borderCurve: 'continuous',
-    padding: 16,
-    gap: 10,
-    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)',
-  },
-  cardTopo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  cardNome: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E1B4B',
-    flex: 1,
-  },
-  statusBadge: {
-    borderRadius: 8,
-    borderCurve: 'continuous',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  statusTexto: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  cardRodape: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  cardPontos: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0EA5E9',
-  },
-  cardData: {
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1 },
+    lista: { padding: spacing['4'], gap: spacing['2'], paddingBottom: spacing['10'] },
+    card: {
+      backgroundColor: colors.bg.surface,
+      borderRadius: radii.xl,
+      borderCurve: 'continuous',
+      padding: spacing['4'],
+      gap: spacing['2'],
+      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)',
+    },
+    cardTopo: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
+    cardNome: { fontSize: typography.size.md, fontWeight: typography.weight.semibold, color: colors.text.primary, flex: 1 },
+    statusBadge: { borderRadius: radii.md, borderCurve: 'continuous', paddingHorizontal: spacing['2'], paddingVertical: 3 },
+    statusTexto: { fontSize: typography.size.xs, fontWeight: typography.weight.semibold },
+    cardRodape: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    cardPontos: { fontSize: typography.size.xs, fontWeight: typography.weight.bold, color: colors.accent.filho },
+    cardData: { fontSize: typography.size.xs, color: colors.text.muted },
+  });
+}
