@@ -148,5 +148,6 @@ function makeStyles(colors: ThemeColors) {
     badgeInativoTexto: { fontSize: typography.size.xs, color: colors.text.muted, fontFamily: typography.family.semibold },
     botaoNova: { borderRadius: radii.sm, paddingVertical: spacing['1'] + 2, paddingHorizontal: spacing['3'] },
     botaoNovaTexto: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
+    botaoNovoTexto: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
   });
 }

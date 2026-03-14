@@ -191,11 +191,12 @@ function makeStyles(colors: ThemeColors) {
       paddingVertical: spacing['3'],
       fontSize: typography.size.md,
       color: colors.text.primary,
+      minHeight: 48,
     },
     inputMultilinha: { minHeight: 80, paddingTop: spacing['3'] },
     erroTexto: { color: colors.semantic.error, fontSize: typography.size.sm, fontFamily: typography.family.medium },
     sucessoTexto: { color: colors.semantic.success, fontSize: typography.size.sm, fontFamily: typography.family.semibold },
-    botao: { backgroundColor: colors.accent.admin, borderRadius: radii.xl, borderCurve: 'continuous', paddingVertical: spacing['3'], alignItems: 'center', marginTop: spacing['1'] },
+    botao: { backgroundColor: colors.accent.admin, borderRadius: radii.xl, borderCurve: 'continuous', paddingVertical: spacing['3'], alignItems: 'center', marginTop: spacing['1'], minHeight: 48 },
     botaoDesabilitado: { opacity: 0.55 },
     botaoTexto: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.md },
     botaoSecundario: {
@@ -205,6 +206,7 @@ function makeStyles(colors: ThemeColors) {
       borderColor: colors.semantic.error,
       paddingVertical: spacing['3'],
       alignItems: 'center',
+      minHeight: 48,
     },
     botaoSecundarioTexto: { color: colors.semantic.error, fontFamily: typography.family.bold, fontSize: typography.size.md },
   });

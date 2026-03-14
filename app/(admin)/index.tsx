@@ -279,8 +279,8 @@ function makeStyles(colors: ThemeColors) {
     hero:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing['5'] },
     heroText:      { flex: 1, paddingRight: spacing['4'] },
     heroSub:       { fontFamily: typography.family.bold, fontSize: typography.size.sm },
-    heroTitle:     { fontFamily: typography.family.black, fontSize: typography.size['2xl'], marginTop: 2 },
-    heroFamily:    { fontFamily: typography.family.semibold, fontSize: typography.size.sm, marginTop: 2 },
+    heroTitle:     { fontFamily: typography.family.black, fontSize: typography.size['2xl'], marginTop: spacing['1'] },
+    heroFamily:    { fontFamily: typography.family.semibold, fontSize: typography.size.sm, marginTop: spacing['1'] },
 
     // Stats
     statsRow:      { flexDirection: 'row', gap: spacing['3'], marginBottom: spacing['6'] },
@@ -289,7 +289,7 @@ function makeStyles(colors: ThemeColors) {
       padding: spacing['3'], alignItems: 'center',
     },
     statValue:     { fontFamily: typography.family.black, fontSize: typography.size.xl },
-    statLabel:     { fontFamily: typography.family.semibold, fontSize: typography.size.xs, marginTop: 2 },
+    statLabel:     { fontFamily: typography.family.semibold, fontSize: typography.size.xs, marginTop: spacing['1'] },
 
     // Sections
     section:       { marginBottom: spacing['6'] },
@@ -297,7 +297,7 @@ function makeStyles(colors: ThemeColors) {
     sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
     sectionTitle:  { fontFamily: typography.family.bold, fontSize: typography.size.md },
     sectionLink:   { fontFamily: typography.family.bold, fontSize: typography.size.sm },
-    countBadge:    { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+    countBadge:    { width: 24, height: 24, borderRadius: radii.full, alignItems: 'center', justifyContent: 'center' },
     countBadgeText:{ color: '#fff', fontFamily: typography.family.black, fontSize: typography.size.xs },
 
     // Children scroll
@@ -317,7 +317,7 @@ function makeStyles(colors: ThemeColors) {
     navCardEmoji:  { fontSize: 28 },
     navCardBody:   { flex: 1 },
     navCardTitle:  { fontFamily: typography.family.bold, fontSize: typography.size.md },
-    navCardSub:    { fontFamily: typography.family.medium, fontSize: typography.size.xs, marginTop: 2 },
+    navCardSub:    { fontFamily: typography.family.medium, fontSize: typography.size.xs, marginTop: spacing['1'] },
 
     // Quick grid
     quickGrid:     { flexDirection: 'row', flexWrap: 'wrap', gap: spacing['3'] },
@@ -329,11 +329,11 @@ function makeStyles(colors: ThemeColors) {
     },
     quickEmoji:    { fontSize: 24 },
     quickLabel:    { fontFamily: typography.family.bold, fontSize: typography.size.xs, textAlign: 'center' },
-    quickBadge:    { position: 'absolute', top: 6, right: 6, minWidth: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+    quickBadge:    { position: 'absolute', top: spacing['2'], right: spacing['2'], minWidth: 20, height: 20, borderRadius: radii.full, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing['1'] },
     quickBadgeText:{ color: '#fff', fontFamily: typography.family.black, fontSize: 10 },
 
     // Sair
-    sairBtn:       { borderWidth: 1, borderRadius: radii.md, paddingVertical: spacing['3'], alignItems: 'center', alignSelf: 'center', paddingHorizontal: spacing['8'], marginTop: spacing['2'] },
+    sairBtn:       { borderWidth: 1, borderRadius: radii.md, paddingVertical: spacing['3'], alignItems: 'center', alignSelf: 'center', paddingHorizontal: spacing['8'], marginTop: spacing['2'], minHeight: 48 },
     sairTexto:     { fontFamily: typography.family.medium, fontSize: typography.size.sm },
   });
 }

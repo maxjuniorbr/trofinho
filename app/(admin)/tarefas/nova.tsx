@@ -69,7 +69,7 @@ export default function NovaTarefaScreen() {
   }
 
   function renderListaFilhos() {
-    if (carregandoFilhos) return <ActivityIndicator color={colors.accent.admin} style={{ marginVertical: 12 }} />;
+    if (carregandoFilhos) return <ActivityIndicator color={colors.accent.admin} style={{ marginVertical: spacing['3'] }} />;
     if (filhos.length === 0) return <Text style={[styles.semFilhos, { color: colors.text.muted }]}>Nenhum filho cadastrado.</Text>;
     return filhos.map((f) => {
       const sel = filhosSelecionados.has(f.id);
@@ -152,19 +152,19 @@ function makeStyles(colors: ThemeColors) {
     label: { fontSize: typography.size.sm, fontFamily: typography.family.semibold, marginBottom: spacing['1'], marginTop: spacing['4'] },
     input: { borderWidth: 1, borderRadius: radii.md, paddingHorizontal: spacing['4'], paddingVertical: spacing['3'], fontSize: typography.size.md },
     inputMultiline: { minHeight: 80, textAlignVertical: 'top' },
-    linha: { flexDirection: 'row', gap: 8, marginTop: spacing['2'] },
+    linha: { flexDirection: 'row', gap: spacing['2'], marginTop: spacing['2'] },
     linhaItem: { flex: 1 },
     dateBtn: { borderWidth: 1, borderRadius: radii.md, paddingVertical: spacing['3'], paddingHorizontal: spacing['4'] },
     dateBtnTexto: { fontSize: typography.size.md },
     switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: spacing['4'], marginTop: spacing['4'], borderTopWidth: 1 },
     secaoTitulo: { fontSize: typography.size.md, fontFamily: typography.family.bold, marginTop: spacing['5'], marginBottom: spacing['3'] },
-    filhosList: { gap: 8 },
+    filhosList: { gap: spacing['2'] },
     filhoItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderRadius: radii.md, padding: spacing['3'] },
     filhoNome: { fontSize: typography.size.md, fontFamily: typography.family.medium },
     filhoCheck: { fontSize: typography.size.lg },
     semFilhos: { fontSize: typography.size.sm, textAlign: 'center', marginVertical: spacing['4'] },
     erroTexto: { fontSize: typography.size.sm, marginTop: spacing['4'], textAlign: 'center' },
-    botaoCriar: { borderRadius: radii.md, paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['6'], minHeight: 52 },
+    botaoCriar: { borderRadius: radii.md, paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['6'], minHeight: 56 },
     botaoCriarTexto: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
   });
 }

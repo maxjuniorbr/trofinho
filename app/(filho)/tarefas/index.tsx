@@ -147,6 +147,8 @@ function makeStyles(colors: ThemeColors) {
       borderRadius: radii.md,
       alignItems: 'center',
       backgroundColor: colors.accent.filhoBg,
+      minHeight: 44,
+      justifyContent: 'center',
     },
     filtroBtnAtivo: { backgroundColor: colors.accent.filho },
     filtroTexto: { fontSize: typography.size.xs, fontFamily: typography.family.semibold, color: colors.text.secondary },
@@ -160,10 +162,10 @@ function makeStyles(colors: ThemeColors) {
     },
     cardTopo: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: spacing['2'] },
     cardTitulo: { flex: 1, fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary, marginRight: spacing['2'] },
-    pontosTag: { backgroundColor: colors.accent.filhoBg, borderRadius: radii.sm, paddingVertical: 3, paddingHorizontal: spacing['2'] },
+    pontosTag: { backgroundColor: colors.accent.filhoBg, borderRadius: radii.sm, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'] },
     pontosTexto: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.accent.filho },
     cardPrazo: { fontSize: typography.size.xs, color: colors.text.muted, marginBottom: spacing['2'] },
-    statusTag: { borderRadius: radii.sm, paddingVertical: 3, paddingHorizontal: spacing['2'], alignSelf: 'flex-start' },
+    statusTag: { borderRadius: radii.sm, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'], alignSelf: 'flex-start' },
     statusTexto: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
   });
 }

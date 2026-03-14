@@ -221,7 +221,7 @@ function makeStyles(colors: ThemeColors) {
     tagEvidencia: {
       backgroundColor: colors.semantic.warningBg,
       borderRadius: radii.sm,
-      paddingVertical: 3,
+      paddingVertical: spacing['1'],
       paddingHorizontal: spacing['2'],
       alignSelf: 'flex-start',
       marginTop: spacing['2'],

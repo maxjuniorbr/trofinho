@@ -255,7 +255,7 @@ const cardEstilos = StyleSheet.create({
   },
   statusRow: {
     borderRadius: radii.sm,
-    paddingVertical: 3,
+    paddingVertical: spacing['1'],
     paddingHorizontal: spacing['2'],
     alignSelf: 'flex-start',
   },
@@ -269,6 +269,8 @@ const cardEstilos = StyleSheet.create({
     paddingVertical: spacing['2'],
     alignItems: 'center',
     marginTop: spacing['1'],
+    minHeight: 44,
+    justifyContent: 'center',
   },
   botaoDesabilitado: { opacity: 0.5 },
   botaoTexto: {
