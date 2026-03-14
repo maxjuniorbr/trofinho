@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, type ViewProps } from 'react-native';
+import { StyleSheet, View, type ViewStyle, type ViewProps } from 'react-native';
 import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing } from '@/constants/theme';
 
@@ -19,7 +19,7 @@ type ReadonlyCardProps = Readonly<CardProps>;
 
 export function Card({ elevated = false, noPadding = false, glow = false, style, children, ...rest }: ReadonlyCardProps) {
   const { colors } = useTheme();
-  let shadowStyle = styles.baseShadow;
+  let shadowStyle: ViewStyle = styles.baseShadow;
   if (glow) shadowStyle = styles.glowShadow;
   else if (elevated) shadowStyle = styles.elevatedShadow;
 
