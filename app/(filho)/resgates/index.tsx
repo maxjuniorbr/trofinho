@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import {
   listarResgatesFilho,
   labelStatusResgate,
@@ -18,9 +18,11 @@ import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { formatarData } from '@lib/utils';
 
 export default function FilhoResgatesScreen() {
+  const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
@@ -51,6 +53,7 @@ export default function FilhoResgatesScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
       <StatusBar style={colors.statusBar} />
+      <ScreenHeader title="Meus Resgates" onBack={() => router.back()} backLabel="Início" role="filho" />
 
       {shouldShowEmptyState ? (
         <EmptyState

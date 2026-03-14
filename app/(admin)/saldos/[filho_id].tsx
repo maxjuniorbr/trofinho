@@ -232,7 +232,7 @@ export default function SaldoFilhoAdminScreen() {
       <Modal visible={modalTipo === 'penalizar'} transparent animationType="slide">
         <KeyboardAvoidingView
           style={styles.modalOverlay}
-          behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
+          behavior="padding"
         >
           <View style={styles.modalBox}>
             <Text style={styles.modalTitulo}>⚠️ Penalização — {nome}</Text>
@@ -279,7 +279,7 @@ export default function SaldoFilhoAdminScreen() {
       <Modal visible={modalTipo === 'valorizacao_config'} transparent animationType="slide">
         <KeyboardAvoidingView
           style={styles.modalOverlay}
-          behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
+          behavior="padding"
         >
           <View style={styles.modalBox}>
             <Text style={styles.modalTitulo}>📈 Configurar valorização</Text>
