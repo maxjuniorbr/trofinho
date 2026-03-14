@@ -13,8 +13,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { cadastrarFilho } from '@lib/filhos';
-
-const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
 
 export default function NovoFilhoScreen() {
   const router = useRouter();
@@ -29,14 +28,15 @@ export default function NovoFilhoScreen() {
 
   async function handleCadastrar() {
     setErro(null);
+    const emailValue = email.trim().toLowerCase();
 
     if (!nome.trim()) return setErro('Informe o nome do filho.');
-    if (!REGEX_EMAIL.test(email)) return setErro('E-mail inválido.');
+    if (!isValidEmail(emailValue)) return setErro('E-mail inválido.');
     if (senha.length < 6) return setErro('A senha temporária deve ter ao menos 6 caracteres.');
     if (senha !== confirmarSenha) return setErro('As senhas não coincidem.');
 
     setEnviando(true);
-    const { error } = await cadastrarFilho(nome.trim(), email.trim().toLowerCase(), senha);
+    const { error } = await cadastrarFilho(nome.trim(), emailValue, senha);
     setEnviando(false);
 
     if (error) {
@@ -114,7 +114,7 @@ export default function NovoFilhoScreen() {
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
-          maxLength={120}
+          maxLength={MAX_EMAIL_LENGTH}
         />
 
         <Text style={styles.label}>Senha temporária *</Text>

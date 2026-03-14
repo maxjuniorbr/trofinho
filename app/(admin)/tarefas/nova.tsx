@@ -60,8 +60,8 @@ export default function NovaTarefaScreen() {
     setErro(null);
 
     if (!titulo.trim()) return setErro('Informe o título da tarefa.');
-    const pontosNum = parseInt(pontos, 10);
-    if (isNaN(pontosNum) || pontosNum <= 0)
+    const pontosNum = Number.parseInt(pontos, 10);
+    if (Number.isNaN(pontosNum) || pontosNum <= 0)
       return setErro('Pontos deve ser um número maior que zero.');
     if (!REGEX_DATA.test(inicio)) return setErro('Data início inválida. Use AAAA-MM-DD.');
     if (!REGEX_DATA.test(fim)) return setErro('Data fim inválida. Use AAAA-MM-DD.');
@@ -83,6 +83,42 @@ export default function NovaTarefaScreen() {
 
     if (error) return setErro(error);
     router.back();
+  }
+
+  function renderListaFilhos() {
+    if (carregandoFilhos) {
+      return <ActivityIndicator color="#4F46E5" style={{ marginVertical: 12 }} />;
+    }
+
+    if (filhos.length === 0) {
+      return (
+        <Text style={styles.semFilhos}>
+          Nenhum filho cadastrado. Cadastre um filho na tela de filhos antes
+          de criar tarefas.
+        </Text>
+      );
+    }
+
+    return filhos.map((f) => {
+      const selecionado = filhosSelecionados.has(f.id);
+      return (
+        <TouchableOpacity
+          key={f.id}
+          style={[styles.filhoItem, selecionado && styles.filhoSelecionado]}
+          onPress={() => toggleFilho(f.id)}
+        >
+          <Text
+            style={[
+              styles.filhoNome,
+              selecionado && styles.filhoNomeSelecionado,
+            ]}
+          >
+            {f.nome}
+          </Text>
+          <Text style={styles.filhoCheck}>{selecionado ? '✓' : '○'}</Text>
+        </TouchableOpacity>
+      );
+    });
   }
 
   return (
@@ -169,35 +205,7 @@ export default function NovaTarefaScreen() {
         <Text style={[styles.label, { marginTop: 8 }]}>
           Atribuir a *
         </Text>
-        {carregandoFilhos ? (
-          <ActivityIndicator color="#4F46E5" style={{ marginVertical: 12 }} />
-        ) : filhos.length === 0 ? (
-          <Text style={styles.semFilhos}>
-            Nenhum filho cadastrado. Cadastre um filho na tela de filhos antes
-            de criar tarefas.
-          </Text>
-        ) : (
-          filhos.map((f) => {
-            const selecionado = filhosSelecionados.has(f.id);
-            return (
-              <TouchableOpacity
-                key={f.id}
-                style={[styles.filhoItem, selecionado && styles.filhoSelecionado]}
-                onPress={() => toggleFilho(f.id)}
-              >
-                <Text
-                  style={[
-                    styles.filhoNome,
-                    selecionado && styles.filhoNomeSelecionado,
-                  ]}
-                >
-                  {f.nome}
-                </Text>
-                <Text style={styles.filhoCheck}>{selecionado ? '✓' : '○'}</Text>
-              </TouchableOpacity>
-            );
-          })
-        )}
+        {renderListaFilhos()}
 
         {erro && <Text style={styles.erroTexto}>{erro}</Text>}
 

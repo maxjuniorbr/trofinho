@@ -33,17 +33,119 @@ export default function AdminTarefasScreen() {
   const carregar = useCallback(async () => {
     setCarregando(true);
     setErro(null);
-    const { data, error } = await listarTarefasAdmin();
-    if (error) setErro(error);
-    else setTarefas(data);
-    setCarregando(false);
+
+    try {
+      const { data, error } = await listarTarefasAdmin();
+      if (error) setErro(error);
+      else setTarefas(data);
+    } catch {
+      setErro('Não foi possível carregar as tarefas agora.');
+      setTarefas([]);
+    } finally {
+      setCarregando(false);
+    }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      void carregar();
+      carregar();
     }, [carregar])
   );
+
+  function renderConteudo() {
+    if (carregando) {
+      return (
+        <View style={styles.centro}>
+          <ActivityIndicator size="large" color="#4F46E5" />
+        </View>
+      );
+    }
+
+    if (erro) {
+      return (
+        <View style={styles.centro}>
+          <Text style={styles.erroTexto}>{erro}</Text>
+          <TouchableOpacity style={styles.botaoRetentar} onPress={carregar}>
+            <Text style={styles.botaoRetentarTexto}>Tentar novamente</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    if (tarefas.length === 0) {
+      return (
+        <View style={styles.centro}>
+          <Text style={styles.vazio}>Nenhuma tarefa criada.</Text>
+          <Text style={styles.vazioSub}>
+            Toque em "+ Nova" para criar a primeira tarefa.
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <FlatList
+        data={tarefas}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.lista}
+        renderItem={({ item }) => {
+          const { pendentes, aguardando, aprovadas, total } =
+            resumoAtribuicoes(item.atribuicoes);
+          return (
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() =>
+                router.push(`/(admin)/tarefas/${item.id}` as never)
+              }
+            >
+              <View style={styles.cardTopo}>
+                <Text style={styles.cardTitulo} numberOfLines={2}>
+                  {item.titulo}
+                </Text>
+                <View style={styles.pontosTag}>
+                  <Text style={styles.pontosTexto}>
+                    {item.pontos} pts
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.cardPrazo}>
+                Prazo: {item.timebox_fim}
+              </Text>
+              <View style={styles.cardStats}>
+                {total === 0 ? (
+                  <Text style={styles.statTexto}>Sem atribuições</Text>
+                ) : (
+                  <>
+                    {pendentes > 0 && (
+                      <View style={[styles.statTag, { backgroundColor: '#FEF3C7' }]}>
+                        <Text style={[styles.statTagTexto, { color: '#92400E' }]}>
+                          {pendentes} pendente{pendentes > 1 ? 's' : ''}
+                        </Text>
+                      </View>
+                    )}
+                    {aguardando > 0 && (
+                      <View style={[styles.statTag, { backgroundColor: '#DBEAFE' }]}>
+                        <Text style={[styles.statTagTexto, { color: '#1E40AF' }]}>
+                          {aguardando} validar
+                        </Text>
+                      </View>
+                    )}
+                    {aprovadas > 0 && (
+                      <View style={[styles.statTag, { backgroundColor: '#D1FAE5' }]}>
+                        <Text style={[styles.statTagTexto, { color: '#065F46' }]}>
+                          {aprovadas} aprovada{aprovadas > 1 ? 's' : ''}
+                        </Text>
+                      </View>
+                    )}
+                  </>
+                )}
+              </View>
+            </TouchableOpacity>
+          );
+        }}
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -62,86 +164,7 @@ export default function AdminTarefasScreen() {
         </TouchableOpacity>
       </View>
 
-      {carregando ? (
-        <View style={styles.centro}>
-          <ActivityIndicator size="large" color="#4F46E5" />
-        </View>
-      ) : erro ? (
-        <View style={styles.centro}>
-          <Text style={styles.erroTexto}>{erro}</Text>
-          <TouchableOpacity style={styles.botaoRetentar} onPress={carregar}>
-            <Text style={styles.botaoRetentarTexto}>Tentar novamente</Text>
-          </TouchableOpacity>
-        </View>
-      ) : tarefas.length === 0 ? (
-        <View style={styles.centro}>
-          <Text style={styles.vazio}>Nenhuma tarefa criada.</Text>
-          <Text style={styles.vazioSub}>
-            Toque em "+ Nova" para criar a primeira tarefa.
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={tarefas}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.lista}
-          renderItem={({ item }) => {
-            const { pendentes, aguardando, aprovadas, total } =
-              resumoAtribuicoes(item.atribuicoes);
-            return (
-              <TouchableOpacity
-                style={styles.card}
-                onPress={() =>
-                  router.push(`/(admin)/tarefas/${item.id}` as never)
-                }
-              >
-                <View style={styles.cardTopo}>
-                  <Text style={styles.cardTitulo} numberOfLines={2}>
-                    {item.titulo}
-                  </Text>
-                  <View style={styles.pontosTag}>
-                    <Text style={styles.pontosTexto}>
-                      {item.pontos} pts
-                    </Text>
-                  </View>
-                </View>
-                <Text style={styles.cardPrazo}>
-                  Prazo: {item.timebox_fim}
-                </Text>
-                <View style={styles.cardStats}>
-                  {total === 0 ? (
-                    <Text style={styles.statTexto}>Sem atribuições</Text>
-                  ) : (
-                    <>
-                      {pendentes > 0 && (
-                        <View style={[styles.statTag, { backgroundColor: '#FEF3C7' }]}>
-                          <Text style={[styles.statTagTexto, { color: '#92400E' }]}>
-                            {pendentes} pendente{pendentes > 1 ? 's' : ''}
-                          </Text>
-                        </View>
-                      )}
-                      {aguardando > 0 && (
-                        <View style={[styles.statTag, { backgroundColor: '#DBEAFE' }]}>
-                          <Text style={[styles.statTagTexto, { color: '#1E40AF' }]}>
-                            {aguardando} validar
-                          </Text>
-                        </View>
-                      )}
-                      {aprovadas > 0 && (
-                        <View style={[styles.statTag, { backgroundColor: '#D1FAE5' }]}>
-                          <Text style={[styles.statTagTexto, { color: '#065F46' }]}>
-                            {aprovadas} aprovada{aprovadas > 1 ? 's' : ''}
-                          </Text>
-                        </View>
-                      )}
-                    </>
-                  )}
-                </View>
-              </TouchableOpacity>
-            );
-          }}
-        />
-      )}
+      {renderConteudo()}
     </View>
   );
 }

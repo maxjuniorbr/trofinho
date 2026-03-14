@@ -37,27 +37,34 @@ export default function RootLayout() {
     if (!pronto) return;
 
     const inAuth = segments[0] === '(auth)';
+    const seg1 = segments[1 as keyof typeof segments] as string | undefined;
 
     if (profile === null) {
-      // Sem sessão → login
-      if (!inAuth) router.replace('/(auth)/login');
-    } else if (profile === undefined) {
-      // Ainda carregando — aguarda
-    } else if (!profile.familia_id) {
-      // Autenticado mas sem família
-      const seg1 = segments[1 as keyof typeof segments] as string | undefined;
-      if (seg1 !== 'onboarding') router.replace('/(auth)/onboarding');
-    } else {
-      // Autenticado com família
-      if (inAuth) {
-        router.replace(profile.papel === 'admin' ? '/(admin)/' : '/(filho)/');
-      }
+      if (inAuth) return;
+
+      router.replace('/(auth)/login');
+      return;
+    }
+
+    if (profile === undefined) return;
+
+    if (!profile.familia_id) {
+      if (seg1 === 'onboarding') return;
+
+      router.replace('/(auth)/onboarding');
+      return;
+    }
+
+    if (inAuth) {
+      router.replace(profile.papel === 'admin' ? '/(admin)/' : '/(filho)/');
     }
   }, [pronto, profile, segments]);
 
   // Esconde splash screen quando pronto
   useEffect(() => {
-    if (pronto) SplashScreen.hideAsync();
+    if (!pronto) return;
+
+    SplashScreen.hideAsync();
   }, [pronto]);
 
   return (

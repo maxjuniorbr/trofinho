@@ -19,11 +19,16 @@ if (!supabaseUrl || !supabaseAnonKey) {
  * e localStorage em ambientes web (ex: Expo Web).
  */
 function getWebStorage(): Storage | null {
-  if (Platform.OS !== 'web' || typeof window === 'undefined') {
+  if (Platform.OS !== 'web') {
     return null;
   }
 
-  return window.localStorage;
+  const webWindow = globalThis.window;
+  if (!webWindow) {
+    return null;
+  }
+
+  return webWindow.localStorage;
 }
 
 const ExpoSecureStoreAdapter = {

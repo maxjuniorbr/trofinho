@@ -9,12 +9,10 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback } from 'react';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useFocusEffect } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import {
   buscarSaldo,
   listarMovimentacoes,
@@ -22,15 +20,17 @@ import {
   aplicarPenalizacao,
   configurarValorizacao,
   emojiTipo,
+  labelPeriodoValorizacao,
   labelTipo,
   isCredito,
+  type PeriodoValorizacao,
   type Saldo,
   type Movimentacao,
 } from '@lib/saldos';
 
 type ModalTipo = 'penalizar' | 'valorizacao_config' | null;
 
-const PERIODOS: Array<{ label: string; value: 'diario' | 'semanal' | 'mensal' }> = [
+const PERIODOS: Array<{ label: string; value: PeriodoValorizacao }> = [
   { label: 'Diário', value: 'diario' },
   { label: 'Semanal', value: 'semanal' },
   { label: 'Mensal', value: 'mensal' },
@@ -56,25 +56,29 @@ export default function SaldoFilhoAdminScreen() {
 
   // Config valorização
   const [cfgIndice, setCfgIndice] = useState('');
-  const [cfgPeriodo, setCfgPeriodo] = useState<'diario' | 'semanal' | 'mensal'>('mensal');
+  const [cfgPeriodo, setCfgPeriodo] = useState<PeriodoValorizacao>('mensal');
 
   const carregar = useCallback(async () => {
     if (!filho_id) return;
     setCarregando(true);
-    const [{ data: s }, { data: m }] = await Promise.all([
-      buscarSaldo(filho_id),
-      listarMovimentacoes(filho_id),
-    ]);
-    setSaldo(s);
-    setMovs(m);
-    if (s) {
-      setCfgIndice(String(s.indice_valorizacao));
-      setCfgPeriodo(s.periodo_valorizacao);
+
+    try {
+      const [{ data: s }, { data: m }] = await Promise.all([
+        buscarSaldo(filho_id),
+        listarMovimentacoes(filho_id),
+      ]);
+      setSaldo(s);
+      setMovs(m);
+      if (s) {
+        setCfgIndice(String(s.indice_valorizacao));
+        setCfgPeriodo(s.periodo_valorizacao);
+      }
+    } finally {
+      setCarregando(false);
     }
-    setCarregando(false);
   }, [filho_id]);
 
-  useFocusEffect(useCallback(() => { void carregar(); }, [carregar]));
+  useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
 
   function abrirModal(t: ModalTipo) {
     setErrModal(null);
@@ -93,13 +97,13 @@ export default function SaldoFilhoAdminScreen() {
     setEnviando(false);
     if (error) { setErrModal(error); return; }
     setSucModal(`+${ganho} pontos creditados no cofrinho!`);
-    void carregar();
+    await carregar();
   }
 
   async function handlePenalizar() {
     setErrModal(null);
-    const v = parseInt(penValorStr, 10);
-    if (!penValorStr || isNaN(v) || v <= 0) return setErrModal('Informe um valor válido.');
+    const v = Number.parseInt(penValorStr, 10);
+    if (!penValorStr || Number.isNaN(v) || v <= 0) return setErrModal('Informe um valor válido.');
     if (!penDesc.trim()) return setErrModal('Informe a descrição.');
     if (!filho_id) return;
 
@@ -108,13 +112,13 @@ export default function SaldoFilhoAdminScreen() {
     setEnviando(false);
     if (error) { setErrModal(error); return; }
     setModalTipo(null);
-    void carregar();
+    await carregar();
   }
 
   async function handleSalvarConfig() {
     setErrModal(null);
-    const idx = parseFloat(cfgIndice.replace(',', '.'));
-    if (isNaN(idx) || idx < 0 || idx > 100) return setErrModal('Índice deve estar entre 0 e 100.');
+    const idx = Number.parseFloat(cfgIndice.replace(',', '.'));
+    if (Number.isNaN(idx) || idx < 0 || idx > 100) return setErrModal('Índice deve estar entre 0 e 100.');
     if (!filho_id) return;
 
     setEnviando(true);
@@ -122,7 +126,7 @@ export default function SaldoFilhoAdminScreen() {
     setEnviando(false);
     if (error) { setErrModal(error); return; }
     setModalTipo(null);
-    void carregar();
+    await carregar();
   }
 
   if (carregando) {
@@ -135,6 +139,10 @@ export default function SaldoFilhoAdminScreen() {
 
   const saldoLivre = saldo?.saldo_livre ?? 0;
   const cofrinho = saldo?.cofrinho ?? 0;
+  const periodoAtual = saldo ? labelPeriodoValorizacao(saldo.periodo_valorizacao) : null;
+  const ultimaValorizacaoTexto = saldo?.data_ultima_valorizacao
+    ? ` · última em ${new Date(saldo.data_ultima_valorizacao).toLocaleDateString('pt-BR')}`
+    : '';
 
   return (
     <View style={styles.container}>
@@ -173,15 +181,8 @@ export default function SaldoFilhoAdminScreen() {
               <Text style={styles.boxConfigTitulo}>📈 Valorização do cofrinho</Text>
               {(saldo?.indice_valorizacao ?? 0) > 0 ? (
                 <Text style={styles.boxConfigTexto}>
-                  {saldo!.indice_valorizacao}% ao{' '}
-                  {saldo!.periodo_valorizacao === 'diario'
-                    ? 'dia'
-                    : saldo!.periodo_valorizacao === 'semanal'
-                    ? 'semana'
-                    : 'mês'}
-                  {saldo?.data_ultima_valorizacao
-                    ? ` · última em ${new Date(saldo.data_ultima_valorizacao).toLocaleDateString('pt-BR')}`
-                    : ''}
+                  {saldo!.indice_valorizacao}% ao {periodoAtual}
+                  {ultimaValorizacaoTexto}
                 </Text>
               ) : (
                 <Text style={styles.boxConfigTexto}>Não configurada</Text>
@@ -364,7 +365,7 @@ const styles = StyleSheet.create({
   cardsRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   saldoCard: {
     flex: 1, borderRadius: 16, padding: 18, alignItems: 'center',
-    shadowColor: '#000', shadowOpacity: 0.10, shadowRadius: 8, elevation: 3,
+    shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, elevation: 3,
   },
   saldoLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '600', marginBottom: 4 },
   saldoValor: { color: '#fff', fontSize: 36, fontWeight: '800' },

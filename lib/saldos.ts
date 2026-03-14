@@ -9,12 +9,14 @@ export type TipoMovimentacao =
   | 'valorizacao'
   | 'penalizacao';
 
+export type PeriodoValorizacao = 'diario' | 'semanal' | 'mensal';
+
 export interface Saldo {
   filho_id: string;
   saldo_livre: number;
   cofrinho: number;
   indice_valorizacao: number;
-  periodo_valorizacao: 'diario' | 'semanal' | 'mensal';
+  periodo_valorizacao: PeriodoValorizacao;
   data_ultima_valorizacao: string | null;
   updated_at: string;
 }
@@ -59,6 +61,16 @@ export function emojiTipo(tipo: TipoMovimentacao): string {
 
 export function isCredito(tipo: TipoMovimentacao): boolean {
   return tipo === 'credito' || tipo === 'valorizacao';
+}
+
+export function labelPeriodoValorizacao(periodo: PeriodoValorizacao): string {
+  const map: Record<PeriodoValorizacao, string> = {
+    diario: 'dia',
+    semanal: 'semana',
+    mensal: 'mês',
+  };
+
+  return map[periodo];
 }
 
 // ─── Funções ─────────────────────────────────────────────
@@ -148,7 +160,7 @@ export async function aplicarPenalizacao(
 export async function configurarValorizacao(
   filhoId: string,
   indice: number,
-  periodo: 'diario' | 'semanal' | 'mensal'
+  periodo: PeriodoValorizacao
 ): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('configurar_valorizacao', {
     p_filho_id: filhoId,
