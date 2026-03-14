@@ -92,11 +92,11 @@ function makeStyles(colors: ThemeColors) {
     container: { flex: 1 },
     botaoNovo: { borderRadius: radii.sm, paddingVertical: spacing['1'] + 2, paddingHorizontal: spacing['3'] },
     botaoNovoTexto: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
-    lista: { padding: spacing['4'], gap: 10 },
+    lista: { padding: spacing['4'], gap: spacing['3'] },
     card: { borderRadius: radii.lg, borderWidth: 1, padding: spacing['3'], flexDirection: 'row', alignItems: 'center' },
     cardInfo: { flex: 1, marginLeft: spacing['3'] },
     cardNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
     cardStatus: { fontSize: typography.size.xs, marginTop: spacing['1'] },
-    cardSaldo: { fontSize: typography.size.xs, marginTop: 2 },
+    cardSaldo: { fontSize: typography.size.xs, marginTop: spacing['1'] },
   });
 }

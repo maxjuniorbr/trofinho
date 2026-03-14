@@ -105,7 +105,7 @@ function makeStyles(colors: ThemeColors) {
     },
     cardTopo: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
     cardNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary, flex: 1 },
-    statusBadge: { borderRadius: radii.md, borderCurve: 'continuous', paddingHorizontal: spacing['2'], paddingVertical: 3 },
+    statusBadge: { borderRadius: radii.md, borderCurve: 'continuous', paddingHorizontal: spacing['2'], paddingVertical: spacing['1'] },
     statusTexto: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
     cardRodape: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     cardPontos: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.accent.filho },
