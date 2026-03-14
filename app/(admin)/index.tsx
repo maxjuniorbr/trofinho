@@ -21,7 +21,6 @@ import { listChildren } from '@lib/children';
 import type { Child } from '@lib/tasks';
 import { countPendingRedemptions } from '@lib/prizes';
 import { useTheme } from '@/context/theme-context';
-import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { Avatar } from '@/components/ui/avatar';
 import { PointsDisplay } from '@/components/ui/points-display';
@@ -33,7 +32,7 @@ export default function AdminHomeScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const styles = useMemo(() => makeStyles(), []);
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [family, setFamily] = useState<Family | null>(null);
@@ -264,7 +263,7 @@ export default function AdminHomeScreen() {
   );
 }
 
-function makeStyles(colors: ThemeColors) {
+function makeStyles() {
   return StyleSheet.create({
     loading:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
     container:     { flexGrow: 1, paddingHorizontal: spacing.screen, paddingBottom: spacing['12'] },

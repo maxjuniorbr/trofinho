@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -15,7 +14,6 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import { signIn } from '@lib/auth';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
 import { useTheme } from '@/context/theme-context';
-import type { ThemeColors } from '@/constants/theme';
 import { gradients, radii, shadows, spacing, typography } from '@/constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -25,7 +23,7 @@ const mascotImage = require('../../assets/trofinho-mascot.png') as number;
 export default function LoginScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const styles = useMemo(() => makeStyles(), []);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -234,7 +232,7 @@ export default function LoginScreen() {
   );
 }
 
-function makeStyles(colors: ThemeColors) {
+function makeStyles() {
   return StyleSheet.create({
     flex:      { flex: 1 },
     container: {

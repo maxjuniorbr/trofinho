@@ -9,13 +9,12 @@ import { listChildren } from '@lib/children';
 import { listAdminBalances, type BalanceWithChild } from '@lib/balances';
 import type { Child } from '@lib/tasks';
 import { useTheme } from '@/context/theme-context';
-import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 
 export default function AdminChildrenScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const styles = useMemo(() => makeStyles(), []);
 
   const [children, setChildren] = useState<Child[]>([]);
   const [balancesMap, setBalancesMap] = useState<Map<string, BalanceWithChild>>(new Map());
@@ -87,7 +86,7 @@ export default function AdminChildrenScreen() {
   );
 }
 
-function makeStyles(colors: ThemeColors) {
+function makeStyles() {
   return StyleSheet.create({
     container: { flex: 1 },
     botaoNovo: { borderRadius: radii.sm, paddingVertical: spacing['2'], paddingHorizontal: spacing['3'], minHeight: 36 },
