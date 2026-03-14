@@ -29,8 +29,8 @@ export const lightColors = {
   },
   text: {
     primary:   '#111827',   // hsl(220 20% 8%) — same as dark canvas
-    secondary: '#4B5563',
-    muted:     '#9CA3AF',
+    secondary: '#4B5563',   // 5.4:1 contrast on white
+    muted:     '#6B7280',   // 4.54:1 contrast on white (WCAG AA min)
     inverse:   '#FFFFFF',
     onBrand:   '#2a2410',   // hsl(46 20% 10%) — from design-studio
   },
@@ -84,7 +84,7 @@ export const darkColors = {
   text: {
     primary:   '#ede8e0',   // hsl(40 10% 92%) — studio --foreground
     secondary: '#a8acb8',   // hsl(220 10% 70%)
-    muted:     '#8a8f99',   // hsl(220 10% 60%) — studio --muted-foreground
+    muted:     '#9CA3AF',   // WCAG AA compliant on dark surface
     inverse:   '#111827',
     onBrand:   '#2a2410',   // hsl(46 20% 10%) — studio --primary-foreground
   },
@@ -178,14 +178,24 @@ export const typography = {
     black:     'Nunito_900Black',
   },
   size: {
-    xs:    11,
-    sm:    13,
-    md:    15,
-    lg:    17,
+    xs:    12,
+    sm:    14,
+    md:    16,
+    lg:    18,
     xl:    20,
     '2xl': 24,
     '3xl': 30,
     '4xl': 36,
+  },
+  lineHeight: {
+    xs:    16,
+    sm:    20,
+    md:    24,
+    lg:    28,
+    xl:    28,
+    '2xl': 32,
+    '3xl': 36,
+    '4xl': 40,
   },
   weight: {
     regular:   '400' as const,
@@ -198,20 +208,22 @@ export const typography = {
 } as const;
 
 export const spacing = {
-  '1':  4,
-  '2':  8,
-  '3': 12,
-  '4': 16,
-  '5': 20,
-  '6': 24,
-  '8': 32,
-  '10':40,
-  '12':48,
-  // Semantic aliases (from design-studio)
-  screen: 24,  // standard horizontal screen padding
-  card:   20,  // internal card padding
-  section:24,  // gap between major sections
-  item:   12,  // gap between list items
+  '1':   4,
+  '2':   8,
+  '3':  12,
+  '4':  16,
+  '5':  20,
+  '6':  24,
+  '8':  32,
+  '10': 40,
+  '12': 48,
+  '16': 64,
+  '20': 80,
+  // Semantic aliases mapped to base scale values
+  screen:  24, // spacing['6']
+  card:    16, // spacing['4']
+  section: 32, // spacing['8']
+  item:    12, // spacing['3']
 } as const;
 
 export const radii = {

@@ -19,8 +19,10 @@ type ReadonlyButtonProps = Readonly<ButtonProps>;
 
 type ButtonSizeTokens = Readonly<{
   fontSize: number;
+  lineHeight: number;
   paddingHorizontal: number;
   paddingVertical: number;
+  minHeight: number;
 }>;
 
 function getSizeTokens(size: Size): ButtonSizeTokens {
@@ -28,20 +30,26 @@ function getSizeTokens(size: Size): ButtonSizeTokens {
     case 'sm':
       return {
         fontSize: typography.size.sm,
-        paddingHorizontal: spacing['3'],
+        lineHeight: typography.lineHeight.sm,
+        paddingHorizontal: spacing['4'],
         paddingVertical: spacing['2'],
+        minHeight: 44,
       };
     case 'lg':
       return {
         fontSize: typography.size.lg,
-        paddingHorizontal: spacing['6'],
+        lineHeight: typography.lineHeight.lg,
+        paddingHorizontal: spacing['8'],
         paddingVertical: spacing['4'],
+        minHeight: 56,
       };
     default:
       return {
         fontSize: typography.size.md,
-        paddingHorizontal: spacing['5'],
+        lineHeight: typography.lineHeight.md,
+        paddingHorizontal: spacing['6'],
         paddingVertical: spacing['3'],
+        minHeight: 48,
       };
   }
 }
@@ -58,7 +66,7 @@ export function Button({
   const { colors } = useTheme();
 
   const isDisabled = disabled || loading;
-  const { fontSize, paddingHorizontal, paddingVertical } = getSizeTokens(size);
+  const { fontSize, lineHeight, paddingHorizontal, paddingVertical, minHeight } = getSizeTokens(size);
 
   const isPrimary = variant === 'primary';
 
@@ -128,18 +136,18 @@ export function Button({
           end={gradients.gold.end}
           style={[
             styles.gradientFill,
-            { paddingHorizontal, paddingVertical, borderRadius: radii.inner },
+            { paddingHorizontal, paddingVertical, minHeight, borderRadius: radii.inner },
           ]}
         >
           {loading
             ? <ActivityIndicator color={fg()} size="small" />
-            : <Text style={[styles.label, { color: fg(), fontSize, fontFamily: typography.family.bold }]}>{label}</Text>}
+            : <Text style={[styles.label, { color: fg(), fontSize, lineHeight, fontFamily: typography.family.bold }]}>{label}</Text>}
         </LinearGradient>
       ) : (
-        <View style={[styles.innerPad, { paddingHorizontal, paddingVertical }]}>
+        <View style={[styles.innerPad, { paddingHorizontal, paddingVertical, minHeight }]}>
           {loading
             ? <ActivityIndicator color={fg()} size="small" />
-            : <Text style={[styles.label, { color: fg(), fontSize, fontFamily: typography.family.semibold }]}>{label}</Text>}
+            : <Text style={[styles.label, { color: fg(), fontSize, lineHeight, fontFamily: typography.family.semibold }]}>{label}</Text>}
         </View>
       )}
     </Pressable>

@@ -25,6 +25,7 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
             backgroundColor: colors.bg.surface,
             color: colors.text.primary,
             borderColor: error ? colors.border.error : colors.border.default,
+            minHeight: 48,
           },
           style,
         ]}
