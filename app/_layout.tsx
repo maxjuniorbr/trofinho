@@ -12,7 +12,7 @@ import { supabase } from '@lib/supabase';
 import { getProfile, type UserProfile } from '@lib/auth';
 import { ThemeProvider } from '@/context/theme-context';
 
-void SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const router = useRouter();
@@ -78,7 +78,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!ready || !fontsLoaded) return;
-    void SplashScreen.hideAsync();
+    SplashScreen.hideAsync();
   }, [ready, fontsLoaded]);
 
   return (

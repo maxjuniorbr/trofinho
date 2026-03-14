@@ -147,12 +147,12 @@ function makeStyles(colors: ThemeColors) {
   });
 }
 
-type PrizeCardProps = {
+type PrizeCardProps = Readonly<{
   item: Prize;
   freeBalance: number;
   redeeming: string | null;
   onRedeem: (item: Prize) => void;
-};
+}>;
 
 function PrizeCard({ item, freeBalance, redeeming, onRedeem }: PrizeCardProps) {
   const { colors } = useTheme();
@@ -211,7 +211,7 @@ function PrizeCard({ item, freeBalance, redeeming, onRedeem }: PrizeCardProps) {
         onPress={() => onRedeem(item)}
         disabled={!hasBalance || redeeming !== null}
         accessibilityRole="button"
-        accessibilityLabel={!hasBalance ? `Saldo insuficiente para ${item.nome}` : `Resgatar ${item.nome}`}
+        accessibilityLabel={hasBalance ? `Resgatar ${item.nome}` : `Saldo insuficiente para ${item.nome}`}
         accessibilityState={{ disabled: !hasBalance || redeeming !== null }}
       >
         {isRedeeming ? (
