@@ -111,6 +111,7 @@ export default function RegisterScreen() {
             value={senha}
             onChangeText={(t) => { setSenha(t); limparErro(); }}
             secureTextEntry
+            maxLength={128}
             editable={!carregando}
           />
 
@@ -122,6 +123,7 @@ export default function RegisterScreen() {
             value={confirmaSenha}
             onChangeText={(t) => { setConfirmaSenha(t); limparErro(); }}
             secureTextEntry
+            maxLength={128}
             editable={!carregando}
           />
 

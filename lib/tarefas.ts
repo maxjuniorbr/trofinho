@@ -255,7 +255,8 @@ export async function concluirAtribuicao(
       evidencia_url: evidenciaUrl,
       concluida_em: new Date().toISOString(),
     })
-    .eq('id', atribuicaoId);
+    .eq('id', atribuicaoId)
+    .eq('status', 'pendente');
 
   if (error) return { error: error.message };
   return { error: null };
@@ -269,7 +270,10 @@ async function uploadEvidencia(
       res.arrayBuffer()
     );
 
-    const fileName = `evidencia_${Date.now()}.jpg`;
+    const hex = Array.from(crypto.getRandomValues(new Uint8Array(8)))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+    const fileName = `evidencia_${Date.now()}_${hex}.jpg`;
     const filePath = `public/${fileName}`;
 
     const { data, error } = await supabase.storage

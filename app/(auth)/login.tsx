@@ -98,6 +98,7 @@ export default function LoginScreen() {
             value={senha}
             onChangeText={(t) => { setSenha(t); setErro(''); }}
             secureTextEntry
+            maxLength={128}
             editable={!carregando}
           />
 
