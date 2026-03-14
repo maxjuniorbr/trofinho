@@ -213,6 +213,7 @@ export async function listarPremiosAtivos(): Promise<{
   const { data, error } = await supabase
     .from('premios')
     .select('*')
+    .eq('ativo', true)
     .order('custo_pontos');
 
   if (error) return { data: [], error: error.message };
