@@ -35,6 +35,8 @@ export default function ChildTaskDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [completing, setCompleting] = useState(false);
   const [completionError, setCompletionError] = useState<string | null>(null);
+  const [imgLoading, setImgLoading] = useState(true);
+  const [imgError, setImgError] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!id) return;
@@ -140,10 +142,32 @@ export default function ChildTaskDetailScreen() {
           )}
         </View>
 
-        {assignment.evidencia_url ? (
+        {assignment.evidencia_url && !imgError ? (
           <View style={styles.evidenceBox}>
             <Text style={styles.evidenceLabel}>Foto enviada:</Text>
-            <Image source={{ uri: assignment.evidencia_url }} style={styles.evidenceImg} resizeMode="cover" />
+            <View style={styles.evidenceImgWrapper}>
+              <Image
+                source={{ uri: assignment.evidencia_url }}
+                style={styles.evidenceImg}
+                resizeMode="cover"
+                onLoadStart={() => setImgLoading(true)}
+                onLoadEnd={() => setImgLoading(false)}
+                onError={() => { setImgLoading(false); setImgError(true); }}
+              />
+              {imgLoading ? (
+                <View style={styles.evidenceLoading}>
+                  <ActivityIndicator size="small" color={colors.accent.filho} />
+                </View>
+              ) : null}
+            </View>
+          </View>
+        ) : null}
+        {imgError && assignment.evidencia_url ? (
+          <View style={styles.evidenceBox}>
+            <Text style={styles.evidenceLabel}>Foto enviada:</Text>
+            <View style={[styles.evidenceImgWrapper, styles.evidenceFallback, { backgroundColor: colors.bg.muted }]}>
+              <Text style={[styles.evidenceFallbackText, { color: colors.text.muted }]}>Não foi possível carregar a imagem</Text>
+            </View>
           </View>
         ) : null}
 
@@ -226,7 +250,11 @@ function makeStyles(colors: ThemeColors) {
     evidenceTagText: { fontSize: typography.size.xs, color: colors.semantic.warning, fontFamily: typography.family.semibold },
     evidenceBox: { marginBottom: spacing['4'] },
     evidenceLabel: { fontSize: typography.size.xs, fontFamily: typography.family.semibold, color: colors.text.secondary, marginBottom: spacing['2'] },
-    evidenceImg: { width: '100%', height: 220, borderRadius: radii.xl },
+    evidenceImgWrapper: { width: '100%', height: 220, borderRadius: radii.xl, overflow: 'hidden' },
+    evidenceImg: { width: '100%', height: 220 },
+    evidenceLoading: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg.muted },
+    evidenceFallback: { alignItems: 'center', justifyContent: 'center' },
+    evidenceFallbackText: { fontSize: typography.size.sm, fontFamily: typography.family.medium, textAlign: 'center' },
     rejectionNoteBox: { backgroundColor: colors.semantic.errorBg, borderRadius: radii.xl, padding: spacing['3'], marginBottom: spacing['4'] },
     rejectionNoteLabel: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.semantic.error, marginBottom: spacing['1'] },
     rejectionNoteText: { fontSize: typography.size.sm, color: colors.text.primary, marginBottom: spacing['2'] },
