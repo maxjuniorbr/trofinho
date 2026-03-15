@@ -1,5 +1,6 @@
 import React, { type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
@@ -23,6 +24,7 @@ export function ScreenHeader({
   role = 'admin',
 }: ReadonlyScreenHeaderProps) {
   const { colors } = useTheme();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const accent = role === 'filho' ? colors.accent.filho : colors.accent.admin;
   const displayLabel = backLabel.replace(/^←\s*/, '');
@@ -40,7 +42,13 @@ export function ScreenHeader({
     >
       {onBack ? (
         <Pressable
-          onPress={onBack}
+          onPress={() => {
+            if (router.canGoBack()) {
+              onBack();
+            } else {
+              router.replace(role === 'filho' ? '/(child)/' : '/(admin)/');
+            }
+          }}
           style={({ pressed }) => [styles.backBtn, { backgroundColor: accent, opacity: pressed ? 0.7 : 1 }]}
           hitSlop={12}
           accessibilityRole="button"
