@@ -403,9 +403,9 @@ describe('tasks', () => {
       error: null,
     });
 
-    const result = await completeAssignment('assignment-1', `/tmp/${fileName}`);
+    const result = await completeAssignment('assignment-1', `/test/${fileName}`);
 
-    expect(fileConstructorMock).toHaveBeenCalledWith(`/tmp/${fileName}`);
+    expect(fileConstructorMock).toHaveBeenCalledWith(`/test/${fileName}`);
     expect(storageBucketMock.upload).toHaveBeenCalledWith(
       expect.stringMatching(/^family-1\/child-1\/evidencia_/),
       expect.any(ArrayBuffer),
@@ -427,7 +427,7 @@ describe('tasks', () => {
       error: { message: 'upload failed' },
     });
 
-    await expect(completeAssignment('assignment-1', '/tmp/photo.jpg')).resolves.toEqual({
+    await expect(completeAssignment('assignment-1', '/test/photo.jpg')).resolves.toEqual({
       error: 'upload failed',
     });
   });
@@ -438,7 +438,7 @@ describe('tasks', () => {
       .mockResolvedValueOnce({ data: { user: { id: 'user-1' } } })
       .mockResolvedValueOnce({ data: { user: { id: 'user-1' } } });
 
-    await expect(completeAssignment('assignment-1', '/tmp/photo.jpg')).resolves.toEqual({
+    await expect(completeAssignment('assignment-1', '/test/photo.jpg')).resolves.toEqual({
       error: 'Usuário não autenticado',
     });
 
@@ -446,7 +446,7 @@ describe('tasks', () => {
       .mockReturnValueOnce(createSingleQuery({ data: null, error: { message: 'profile failed' } }))
       .mockReturnValueOnce(createSingleQuery({ data: { id: 'child-1' }, error: null }));
 
-    await expect(completeAssignment('assignment-1', '/tmp/photo.jpg')).resolves.toEqual({
+    await expect(completeAssignment('assignment-1', '/test/photo.jpg')).resolves.toEqual({
       error: 'profile failed',
     });
 
@@ -454,7 +454,7 @@ describe('tasks', () => {
       .mockReturnValueOnce(createSingleQuery({ data: { familia_id: 'family-1' }, error: null }))
       .mockReturnValueOnce(createSingleQuery({ data: null, error: { message: 'child failed' } }));
 
-    await expect(completeAssignment('assignment-1', '/tmp/photo.jpg')).resolves.toEqual({
+    await expect(completeAssignment('assignment-1', '/test/photo.jpg')).resolves.toEqual({
       error: 'child failed',
     });
   });
@@ -478,7 +478,7 @@ describe('tasks', () => {
       error: null,
     });
 
-    await expect(completeAssignment('assignment-1', '/tmp/photo.jpg')).resolves.toEqual({ error: null });
+    await expect(completeAssignment('assignment-1', '/test/photo.jpg')).resolves.toEqual({ error: null });
     expect(storageBucketMock.upload).toHaveBeenCalledWith(
       expect.any(String),
       arrayBuffer,
@@ -504,11 +504,11 @@ describe('tasks', () => {
       })
       .mockRejectedValueOnce(new Error('network blew up'));
 
-    await expect(completeAssignment('assignment-1', '/tmp/photo.jpg')).resolves.toEqual({
+    await expect(completeAssignment('assignment-1', '/test/photo.jpg')).resolves.toEqual({
       error: 'Não foi possível ler a imagem selecionada',
     });
 
-    await expect(completeAssignment('assignment-1', '/tmp/photo.jpg')).resolves.toEqual({
+    await expect(completeAssignment('assignment-1', '/test/photo.jpg')).resolves.toEqual({
       error: 'network blew up',
     });
   });
@@ -524,7 +524,7 @@ describe('tasks', () => {
     fileArrayBufferMock.mockResolvedValue(new ArrayBuffer(8));
     storageBucketMock.upload.mockRejectedValueOnce({ message: 'structured error' });
 
-    await expect(completeAssignment('assignment-1', '/tmp/photo.jpg')).resolves.toEqual({
+    await expect(completeAssignment('assignment-1', '/test/photo.jpg')).resolves.toEqual({
       error: 'structured error',
     });
 
