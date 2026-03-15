@@ -1,124 +1,115 @@
-/** Trofinho – Design System Tokens
- *
- * Golden trophy identity: #F5C518 brand, warm-dark canvas, expressive palette.
- * Derived from trofinho-design-studio (Lovable/Tailwind) → translated to RN.
- * Admin role: violet accent  |  Filho role: sky-blue accent
- * Light + dark palettes; system default with optional user override.
- */
+/** Trofinho design tokens aligned with the pixel-polish-partner reference theme. */
 
 export const lightColors = {
   bg: {
-    canvas:  '#F0F2F5',   // hsl(220 10% 95%) — warm off-white
+    canvas:  '#F9FAFB',
     surface: '#FFFFFF',
-    elevated:'#F5F6F8',   // cards on canvas
-    muted:   '#E8EAF0',   // subtle pill backgrounds
+    elevated:'#EDF0F3',
+    muted:   '#EAEDF0',
   },
   brand: {
-    vivid:    '#F5C518',
-    dim:      '#C8860A',
-    subtle:   'rgba(245, 197, 24, 0.15)',
-    gradient: ['#F5C518', '#C8860A'] as const,
+    vivid:    '#FAC114',
+    dim:      '#C57B0D',
+    subtle:   'rgba(250, 193, 20, 0.10)',
+    gradient: ['#FAC114', '#C57B0D'] as const,
   },
   accent: {
-    admin:    '#6D28D9',
-    adminDim: '#4C1D95',
-    adminBg:  '#F5F3FF',
-    filho:    '#0284C7',
-    filhoDim: '#075985',
-    filhoBg:  '#F0F9FF',
+    admin:    '#1B284B',
+    adminDim: '#1B284B',
+    adminBg:  '#EDF0F3',
+    filho:    '#0DCCF2',
+    filhoDim: '#5AD8F2',
+    filhoBg:  'rgba(13, 204, 242, 0.10)',
   },
   text: {
-    primary:   '#111827',   // hsl(220 20% 8%) — same as dark canvas
-    secondary: '#4B5563',   // 5.4:1 contrast on white
-    muted:     '#6B7280',   // 4.54:1 contrast on white (WCAG AA min)
+    primary:   '#030711',
+    secondary: '#65758B',
+    muted:     '#65758B',
     inverse:   '#FFFFFF',
-    onBrand:   '#2a2410',   // hsl(46 20% 10%) — from design-studio
+    onBrand:   '#030711',
   },
   semantic: {
-    success:   '#16a34a',
-    successBg: '#dcfce7',
-    error:     '#DC2626',
-    errorBg:   '#FEF2F2',
-    warning:   '#D97706',
-    warningBg: '#FFFBEB',
-    info:      '#2563EB',
-    infoBg:    '#EFF6FF',
-    /** Darker foreground for text-on-status-bg (WCAG AA compliant) */
-    successText: '#166534',
-    errorText:   '#991B1B',
-    warningText: '#92400E',
-    infoText:    '#1E40AF',
+    success:   '#20C55D',
+    successBg: '#E4FBED',
+    error:     '#DC2828',
+    errorBg:   '#FDE7E7',
+    warning:   '#F59F0A',
+    warningBg: '#FFF6E5',
+    info:      '#308CE8',
+    infoBg:    '#E5F2FF',
+    successText: '#1A6636',
+    errorText:   '#7A1F1F',
+    warningText: '#8A5D0F',
+    infoText:    '#0F4D8A',
   },
   border: {
-    subtle:  '#E5E7EB',
-    default: '#D1D5DB',
-    focus:   '#F5C518',
-    error:   '#DC2626',
+    subtle:  '#E0E5EB',
+    default: '#E0E5EB',
+    focus:   '#FAC114',
+    error:   '#DC2828',
   },
   shadow: {
-    low:    '0 1px 4px rgba(0, 0, 0, 0.07)',
-    medium: '0 4px 12px rgba(0, 0, 0, 0.10)',
-    high:   '0 8px 24px rgba(0, 0, 0, 0.14)',
-    brand:  '0 4px 16px rgba(245, 197, 24, 0.28)',
+    low:    '0 1px 2px rgba(3, 7, 17, 0.04)',
+    medium: '0 4px 12px rgba(3, 7, 17, 0.08)',
+    high:   '0 8px 24px rgba(3, 7, 17, 0.12)',
+    brand:  '0 4px 16px rgba(250, 193, 20, 0.30)',
   },
   statusBar: 'dark' as const,
 } as const;
 
 export const darkColors = {
   bg: {
-    // Aligned with design-studio: hsl(220 20% 8/12/18/25%)
-    canvas:  '#111827',   // hsl(220 20% 8%)  — studio --background
-    surface: '#1a2233',   // hsl(220 20% 12%) — studio --surface
-    elevated:'#253042',   // hsl(220 20% 18%) — studio --surface-bright
-    muted:   '#2d3548',   // hsl(220 10% 25%) — studio --muted
+    canvas:  '#131720',
+    surface: '#1D212B',
+    elevated:'#2A303C',
+    muted:   '#262B36',
   },
   brand: {
-    vivid:    '#F5C518',   // hsl(46 92% 53%)  — studio --primary
-    dim:      '#C8860A',   // hsl(39 90% 41%)  — studio --primary-dark
-    subtle:   'rgba(245, 197, 24, 0.15)',
-    gradient: ['#F5C518', '#C8860A'] as const,
+    vivid:    '#FAC114',
+    dim:      '#C57B0D',
+    subtle:   'rgba(250, 193, 20, 0.10)',
+    gradient: ['#FAC114', '#C57B0D'] as const,
   },
   accent: {
-    admin:    '#A78BFA',
-    adminDim: '#7C3AED',
-    adminBg:  '#1a1428',
-    filho:    '#38BDF8',
-    filhoDim: '#0EA5E9',
-    filhoBg:  '#0d1e2e',
+    admin:    '#DBE6F0',
+    adminDim: '#2A303C',
+    adminBg:  '#2A303C',
+    filho:    '#0DCCF2',
+    filhoDim: '#6CD9EF',
+    filhoBg:  'rgba(13, 204, 242, 0.18)',
   },
   text: {
-    primary:   '#ede8e0',   // hsl(40 10% 92%) — studio --foreground
-    secondary: '#a8acb8',   // hsl(220 10% 70%)
-    muted:     '#9CA3AF',   // WCAG AA compliant on dark surface
-    inverse:   '#111827',
-    onBrand:   '#2a2410',   // hsl(46 20% 10%) — studio --primary-foreground
+    primary:   '#F1F5F9',
+    secondary: '#7B899D',
+    muted:     '#7B899D',
+    inverse:   '#FFFFFF',
+    onBrand:   '#030711',
   },
   semantic: {
-    success:   '#22c55e',   // hsl(142 70% 45%) — studio --success
-    successBg: '#1a2d22',   // pre-calculated on surface — no alpha bleeding
-    error:     '#ef4444',   // hsl(0 84% 60%)   — studio --destructive
-    errorBg:   '#2d1c1c',   // pre-calculated on surface
-    warning:   '#e6a817',   // hsl(39 90% 50%)  — studio --warning
-    warningBg: '#2d2819',   // pre-calculated on surface
-    info:      '#60A5FA',
-    infoBg:    '#1a2640',   // pre-calculated on surface
-    /** Lighter foreground for text-on-status-bg in dark mode */
-    successText: '#86efac',
-    errorText:   '#fca5a5',
-    warningText: '#fcd34d',
-    infoText:    '#93c5fd',
+    success:   '#20C55D',
+    successBg: '#173622',
+    error:     '#DC2828',
+    errorBg:   '#391313',
+    warning:   '#F59F0A',
+    warningBg: '#3D2C0F',
+    info:      '#308CE8',
+    infoBg:    '#132639',
+    successText: '#7EF1A8',
+    errorText:   '#F17E7E',
+    warningText: '#FFD080',
+    infoText:    '#8FC7FF',
   },
   border: {
-    subtle:  '#1f2b3d',   // hsl(220 20% 16%) — studio --border
-    default: '#253042',   // hsl(220 20% 18%)
-    focus:   '#F5C518',
-    error:   '#ef4444',
+    subtle:  '#303541',
+    default: '#303541',
+    focus:   '#FAC114',
+    error:   '#DC2828',
   },
   shadow: {
-    low:    '0 1px 4px rgba(0, 0, 0, 0.40)',
-    medium: '0 4px 12px rgba(0, 0, 0, 0.50)',
-    high:   '0 8px 24px rgba(0, 0, 0, 0.60)',
-    brand:  '0 4px 16px rgba(245, 197, 24, 0.20)',
+    low:    '0 1px 2px rgba(0, 0, 0, 0.20)',
+    medium: '0 4px 12px rgba(0, 0, 0, 0.30)',
+    high:   '0 8px 24px rgba(0, 0, 0, 0.40)',
+    brand:  '0 4px 16px rgba(250, 193, 20, 0.20)',
   },
   statusBar: 'light' as const,
 } as const;
@@ -136,7 +127,7 @@ export const shadows = {
   },
   /** Gold ambient glow — use on featured/active cards */
   goldGlow: {
-    shadowColor: '#F5C518',
+    shadowColor: '#FAC114',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
@@ -144,7 +135,7 @@ export const shadows = {
   },
   /** 3-D bottom shadow — use under primary gradient buttons */
   goldButton: {
-    shadowColor: '#966508',
+    shadowColor: '#C57B0D',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -162,17 +153,17 @@ export const shadows = {
 /** Gradient configs for expo-linear-gradient */
 export const gradients = {
   gold: {
-    colors: ['#F5C518', '#C8860A'] as const,
+    colors: ['#FAC114', '#C57B0D'] as const,
     start:  { x: 0.5, y: 0 },
     end:    { x: 0.5, y: 1 },
   },
   goldHorizontal: {
-    colors: ['#F5C518', '#C8860A'] as const,
+    colors: ['#FAC114', '#C57B0D'] as const,
     start:  { x: 0, y: 0.5 },
     end:    { x: 1, y: 0.5 },
   },
   surface: {
-    colors: ['#1e2a3a', '#151d2b'] as const,
+    colors: ['#2A303C', '#1D212B'] as const,
     start:  { x: 0.5, y: 0 },
     end:    { x: 0.5, y: 1 },
   },

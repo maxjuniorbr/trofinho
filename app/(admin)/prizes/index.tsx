@@ -9,12 +9,12 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Trophy } from 'lucide-react-native';
+import { Plus, Trophy } from 'lucide-react-native';
 import { listPrizes, type Prize } from '@lib/prizes';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
-import { ScreenHeader } from '@/components/ui/screen-header';
+import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 
 export default function AdminPrizesScreen() {
@@ -61,12 +61,11 @@ export default function AdminPrizesScreen() {
         onBack={() => router.back()}
         backLabel="Início"
         rightAction={
-          <Pressable
+          <HeaderIconButton
+            icon={Plus}
             onPress={() => router.push('/(admin)/prizes/new' as never)}
-            style={[styles.botaoNova, { backgroundColor: colors.accent.admin }]}
-          >
-            <Text style={[styles.botaoNovaTexto, { color: colors.text.inverse }]}>+</Text>
-          </Pressable>
+            accessibilityLabel="Criar prêmio"
+          />
         }
       />
 
@@ -156,7 +155,5 @@ function makeStyles(colors: ThemeColors) {
       paddingVertical: spacing['1'],
     },
     badgeInativoTexto: { fontSize: typography.size.xs, color: colors.text.muted, fontFamily: typography.family.semibold },
-    botaoNova: { alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: radii.md },
-    botaoNovaTexto: { fontSize: 22, fontFamily: typography.family.black, textAlign: 'center', includeFontPadding: false },
   });
 }

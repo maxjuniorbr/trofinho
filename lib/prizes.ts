@@ -63,9 +63,9 @@ export function getRedemptionStatusEmoji(status: RedemptionStatus): string {
 
 export function getRedemptionStatusColor(status: RedemptionStatus): string {
   const map: Record<RedemptionStatus, string> = {
-    pendente:   '#F59E0B',
-    confirmado: '#10B981',
-    cancelado:  '#EF4444',
+    pendente:   '#F59F0A',
+    confirmado: '#20C55D',
+    cancelado:  '#DC2828',
   };
   return map[status];
 }

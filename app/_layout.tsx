@@ -11,6 +11,7 @@ import { useFonts,
 } from '@expo-google-fonts/nunito';
 import { supabase } from '@lib/supabase';
 import { getProfile, type UserProfile } from '@lib/auth';
+import { createAuthStateHandler } from '@lib/auth-state';
 import { ThemeProvider, useTheme } from '@/context/theme-context';
 
 SplashScreen.preventAutoHideAsync();
@@ -28,23 +29,20 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
+    const authStateHandler = createAuthStateHandler({
+      getProfile,
+      onProfileChange: setProfile,
+      onReadyChange: setReady,
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        const hasActiveSession = event !== 'SIGNED_OUT' && Boolean(session);
-
-        if (!hasActiveSession) {
-          setProfile(null);
-          setReady(true);
-          return;
-        }
-
-        const p = await getProfile();
-        setProfile(p);
-        setReady(true);
-      }
+      authStateHandler.handleAuthStateChange,
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      authStateHandler.dispose();
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {

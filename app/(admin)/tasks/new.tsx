@@ -65,7 +65,7 @@ export default function NewTaskScreen() {
       return (
         <Pressable
           key={child.id}
-          style={[styles.filhoItem, { borderColor: sel ? colors.accent.admin : colors.border.default, backgroundColor: sel ? colors.accent.adminBg : colors.bg.surface }]}
+          style={[styles.filhoItem, { borderColor: sel ? colors.accent.adminDim : colors.border.default, backgroundColor: sel ? colors.accent.adminBg : colors.bg.surface }]}
           onPress={() => toggleChild(child.id)}
         >
           <Text style={[styles.filhoNome, { color: sel ? colors.accent.admin : colors.text.primary }]}>{child.nome}</Text>
@@ -84,7 +84,7 @@ export default function NewTaskScreen() {
         <Text style={[styles.sucessoTexto, { color: colors.text.secondary }]}>
           A tarefa foi criada e atribuída com sucesso.
         </Text>
-        <Pressable style={[styles.botaoConcluir, { backgroundColor: colors.accent.admin }]} onPress={() => router.back()}>
+        <Pressable style={[styles.botaoConcluir, { backgroundColor: colors.accent.adminDim }]} onPress={() => router.back()}>
           <Text style={[styles.botaoConcluirTexto, { color: colors.text.inverse }]}>Concluir</Text>
         </Pressable>
       </View>
@@ -109,14 +109,14 @@ export default function NewTaskScreen() {
         <Text style={[styles.label, { color: colors.text.secondary }]}>Frequência *</Text>
         <View style={styles.linha}>
           <Pressable
-            style={[styles.freqBtn, { borderColor: frequencia === 'unica' ? colors.accent.admin : colors.border.default, backgroundColor: frequencia === 'unica' ? colors.accent.adminBg : colors.bg.surface }]}
+            style={[styles.freqBtn, { borderColor: frequencia === 'unica' ? colors.accent.adminDim : colors.border.default, backgroundColor: frequencia === 'unica' ? colors.accent.adminBg : colors.bg.surface }]}
             onPress={() => setFrequencia('unica')}
           >
             <Text style={[styles.freqBtnTexto, { color: frequencia === 'unica' ? colors.accent.admin : colors.text.secondary }]}>Única</Text>
             <Text style={[styles.freqBtnDesc, { color: frequencia === 'unica' ? colors.accent.admin : colors.text.muted }]}>Realizada uma vez</Text>
           </Pressable>
           <Pressable
-            style={[styles.freqBtn, { borderColor: frequencia === 'diaria' ? colors.accent.admin : colors.border.default, backgroundColor: frequencia === 'diaria' ? colors.accent.adminBg : colors.bg.surface }]}
+            style={[styles.freqBtn, { borderColor: frequencia === 'diaria' ? colors.accent.adminDim : colors.border.default, backgroundColor: frequencia === 'diaria' ? colors.accent.adminBg : colors.bg.surface }]}
             onPress={() => setFrequencia('diaria')}
           >
             <Text style={[styles.freqBtnTexto, { color: frequencia === 'diaria' ? colors.accent.admin : colors.text.secondary }]}>Diária</Text>
@@ -126,7 +126,7 @@ export default function NewTaskScreen() {
 
         <View style={[styles.switchRow, { borderTopColor: colors.border.subtle }]}>
           <Text style={[styles.label, { color: colors.text.secondary, marginTop: 0 }]}>Exige foto como evidência</Text>
-          <Switch value={exigeEvidencia} onValueChange={setExigeEvidencia} trackColor={{ false: colors.border.default, true: colors.accent.admin }} thumbColor={colors.text.inverse} />
+          <Switch value={exigeEvidencia} onValueChange={setExigeEvidencia} trackColor={{ false: colors.border.default, true: colors.accent.adminDim }} thumbColor={colors.text.inverse} />
         </View>
 
         <Text style={[styles.secaoTitulo, { color: colors.text.primary }]}>Atribuir para *</Text>
@@ -137,7 +137,7 @@ export default function NewTaskScreen() {
         ) : null}
 
         <Pressable
-          style={[styles.botaoCriar, { backgroundColor: colors.accent.admin, opacity: submitting ? 0.55 : 1 }]}
+          style={[styles.botaoCriar, { backgroundColor: colors.accent.adminDim, opacity: submitting ? 0.55 : 1 }]}
           onPress={handleCreate}
           disabled={submitting}
         >

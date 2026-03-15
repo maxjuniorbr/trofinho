@@ -49,7 +49,7 @@ export default function NewPrizeScreen() {
         <Text style={[styles.sucessoTexto, { color: colors.text.secondary }]}>
           O prêmio já está disponível no catálogo.
         </Text>
-        <Pressable style={[styles.botaoConcluir, { backgroundColor: colors.accent.admin }]} onPress={() => router.back()}>
+        <Pressable style={[styles.botaoConcluir, { backgroundColor: colors.accent.adminDim }]} onPress={() => router.back()}>
           <Text style={[styles.botaoConcluirTexto, { color: colors.text.inverse }]}>Concluir</Text>
         </Pressable>
       </View>
@@ -93,7 +93,7 @@ function makeStyles(colors: ThemeColors) {
     scroll: { padding: spacing['6'], gap: spacing['5'], flexGrow: 1 },
     erro: { color: colors.semantic.error, fontSize: typography.size.sm, fontFamily: typography.family.medium },
     botao: {
-      backgroundColor: colors.accent.admin,
+      backgroundColor: colors.accent.adminDim,
       borderRadius: radii.xl,
       borderCurve: 'continuous',
       paddingVertical: spacing['3'],

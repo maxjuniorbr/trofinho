@@ -8,7 +8,7 @@ App mobile de educação financeira familiar. Pais criam tarefas com recompensas
 |---|---|
 | Mobile | React Native 0.81 + Expo SDK 54 |
 | Navegação | Expo Router v6 (file-based) |
-| Linguagem | TypeScript (strict mode) |
+| Linguagem | TypeScript (strict mode) |Melho
 | Backend | Supabase (PostgreSQL + Auth + Storage + RLS) |
 
 ## Pré-requisitos

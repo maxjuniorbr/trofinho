@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Haptics from 'expo-haptics';
+import { Plus } from 'lucide-react-native';
 import { lightColors } from '@/constants/theme';
 
 const routerMock = vi.hoisted(() => ({
@@ -29,7 +30,7 @@ import { Card } from './card';
 import { EmptyState } from './empty-state';
 import { Input } from './input';
 import { PointsDisplay } from './points-display';
-import { ScreenHeader } from './screen-header';
+import { HeaderIconButton, ScreenHeader } from './screen-header';
 
 function flattenStyle(style: unknown): Record<string, any> {
   return StyleSheet.flatten(style) as Record<string, any>;
@@ -227,6 +228,8 @@ describe('ui components', () => {
     expect(onBack).toHaveBeenCalled();
     expect(routerMock.replace).not.toHaveBeenCalled();
     expect(backButton.props.accessibilityLabel).toBe('Voltar para Voltar');
+    expect(flattenStyle(backButton.props.style({ pressed: false })).backgroundColor).toBe(lightColors.bg.muted);
+    expect(flattenStyle(backButton.props.style({ pressed: false })).width).toBe(40);
   });
 
   it('falls back to route replacement when the stack cannot go back', async () => {
@@ -254,5 +257,40 @@ describe('ui components', () => {
 
     const withoutBack = render(<ScreenHeader title="Sem voltar" />);
     expect(withoutBack.root.findAllByType(Pressable)).toHaveLength(0);
+  });
+
+  it('renders header icon buttons with the same visual treatment as the back button', () => {
+    const onPress = vi.fn();
+    const renderer = render(
+      <HeaderIconButton
+        icon={Plus}
+        onPress={onPress}
+        accessibilityLabel="Criar item"
+      />
+    );
+
+    const button = renderer.root.findByType(Pressable);
+    const style = flattenStyle(button.props.style({ pressed: false }));
+    const pressedStyle = flattenStyle(button.props.style({ pressed: true }));
+
+    expect(style.backgroundColor).toBe(lightColors.bg.muted);
+    expect(style.width).toBe(40);
+    expect(style.height).toBe(40);
+    expect(pressedStyle.transform).toEqual([{ scale: 0.95 }]);
+  });
+
+  it('supports accent header icon buttons when explicitly requested', () => {
+    const renderer = render(
+      <HeaderIconButton
+        icon={Plus}
+        onPress={() => undefined}
+        accessibilityLabel="Acao"
+        tone="accent"
+        role="filho"
+      />
+    );
+
+    const style = flattenStyle(renderer.root.findByType(Pressable).props.style({ pressed: false }));
+    expect(style.backgroundColor).toBe(lightColors.accent.filho);
   });
 });

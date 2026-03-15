@@ -16,6 +16,13 @@ vi.mock('../../../assets/trofinho-mascot.png', () => ({
   default: 1,
 }));
 
+vi.mock('expo-router', () => ({
+  useRouter: () => ({
+    canGoBack: () => true,
+    replace: vi.fn(),
+  }),
+}));
+
 import { AuthPrimaryButton } from './auth-primary-button';
 import { AuthShell } from './auth-shell';
 import { AuthTextField } from './auth-text-field';
@@ -127,5 +134,24 @@ describe('auth components', () => {
     const image = renderer.root.findByType(Image);
     expect(flattenStyle(image.props.style).width).toBe(100);
     expect(flattenStyle(image.props.style).height).toBe(100);
+  });
+
+  it('renders a custom muted header for compact auth screens', () => {
+    const renderer = render(
+      <AuthShell
+        headerTitle="Criar Conta"
+        onBack={() => undefined}
+        backLabel="Login"
+        title="Criar conta"
+        subtitle="Subtitulo"
+      >
+        <Text>Formulario</Text>
+      </AuthShell>
+    );
+
+    const buttons = renderer.root.findAllByType(Pressable);
+    expect(buttons[0]?.props.accessibilityLabel).toBe('Voltar para Login');
+    expect(flattenStyle(buttons[0]?.props.style({ pressed: false })).backgroundColor)
+      .toBe(lightColors.bg.muted);
   });
 });
