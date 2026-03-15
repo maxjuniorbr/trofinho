@@ -15,6 +15,7 @@ export default function AdminLayout() {
       <Stack.Screen name="prizes/new" />
       <Stack.Screen name="prizes/[id]" />
       <Stack.Screen name="redemptions/index" />
+      <Stack.Screen name="perfil" />
     </Stack>
   );
 }
