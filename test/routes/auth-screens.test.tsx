@@ -27,9 +27,9 @@ vi.mock('expo-router', () => ({
 
 vi.mock('@lib/auth', () => authMocks);
 
-import LoginScreen from './login';
-import OnboardingScreen from './onboarding';
-import RegisterScreen from './register';
+import LoginScreen from '../../app/(auth)/login';
+import OnboardingScreen from '../../app/(auth)/onboarding';
+import RegisterScreen from '../../app/(auth)/register';
 
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
