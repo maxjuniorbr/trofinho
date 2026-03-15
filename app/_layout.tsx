@@ -1,5 +1,6 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts,
   Nunito_500Medium,
@@ -10,13 +11,11 @@ import { useFonts,
 } from '@expo-google-fonts/nunito';
 import { supabase } from '@lib/supabase';
 import { getProfile, type UserProfile } from '@lib/auth';
-import { ThemeProvider } from '@/context/theme-context';
+import { ThemeProvider, useTheme } from '@/context/theme-context';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const router = useRouter();
-  const segments = useSegments();
   const [ready, setReady] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null | undefined>(undefined);
 
@@ -49,6 +48,31 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
+    if (!ready || !fontsLoaded) return;
+    SplashScreen.hideAsync();
+  }, [ready, fontsLoaded]);
+
+  return (
+    <ThemeProvider>
+      <RootNavigator ready={ready} fontsLoaded={fontsLoaded} profile={profile} />
+    </ThemeProvider>
+  );
+}
+
+function RootNavigator({
+  ready,
+  fontsLoaded,
+  profile,
+}: Readonly<{
+  ready: boolean;
+  fontsLoaded: boolean;
+  profile: UserProfile | null | undefined;
+}>) {
+  const router = useRouter();
+  const segments = useSegments();
+  const { colors } = useTheme();
+
+  useEffect(() => {
     if (!ready) return;
 
     const inAuth = segments[0] === '(auth)';
@@ -76,19 +100,20 @@ export default function RootLayout() {
     }
   }, [ready, profile, router, segments]);
 
-  useEffect(() => {
-    if (!ready || !fontsLoaded) return;
-    SplashScreen.hideAsync();
-  }, [ready, fontsLoaded]);
+  if (!ready || !fontsLoaded) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg.canvas }}>
+        <ActivityIndicator size="large" color={colors.brand.vivid} />
+      </View>
+    );
+  }
 
   return (
-    <ThemeProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(admin)" />
-        <Stack.Screen name="(child)" />
-      </Stack>
-    </ThemeProvider>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(admin)" />
+      <Stack.Screen name="(child)" />
+    </Stack>
   );
 }

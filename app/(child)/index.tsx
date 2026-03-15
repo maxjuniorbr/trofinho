@@ -64,19 +64,23 @@ export default function FilhoHomeScreen() {
     heroY.setValue(20);
     mascotScale.setValue(0.5);
     try {
-      const p = await getProfile();
+      const [p, { data: atribuicoes }, { data: s }] = await Promise.all([
+        getProfile(),
+        listChildAssignments(),
+        getBalance(),
+      ]);
+
       setProfile(p);
+      setPendingCount(atribuicoes.filter((a) => a.status === 'pendente').length);
+      setFreeBalance(s?.saldo_livre ?? 0);
+      setPiggyBank(s?.cofrinho ?? 0);
+
       if (p?.familia_id) {
         const { data: fam } = await supabase.from('familias').select('nome').eq('id', p.familia_id).single();
         setFamily(fam);
       } else {
         setFamily(null);
       }
-      const { data: atribuicoes } = await listChildAssignments();
-      setPendingCount(atribuicoes.filter((a) => a.status === 'pendente').length);
-      const { data: s } = await getBalance();
-      setFreeBalance(s?.saldo_livre ?? 0);
-      setPiggyBank(s?.cofrinho ?? 0);
     } catch {
       setFamily(null);
       setPendingCount(0);
@@ -111,6 +115,7 @@ export default function FilhoHomeScreen() {
       <Animated.View
         style={[styles.hero, { opacity: heroOpacity, transform: [{ translateY: heroY }] }]}
       >
+        <View style={styles.heroSideSlot} />
         <View style={styles.heroContent}>
           <Text style={[styles.heroSub, { color: colors.text.secondary }]}>{getGreeting()} 🏆</Text>
           <Text style={[styles.heroTitle, { color: colors.text.primary }]}>
@@ -120,18 +125,20 @@ export default function FilhoHomeScreen() {
             <Text style={[styles.heroFamily, { color: colors.accent.filho }]}>{family.nome}</Text>
           ) : null}
         </View>
-        <Pressable
-          onPress={handleSignOut}
-          disabled={loggingOut}
-          accessibilityRole="button"
-          accessibilityLabel={loggingOut ? 'Saindo' : 'Sair'}
-          style={({ pressed }) => [
-            styles.sairBtnHeader,
-            { borderColor: colors.border.default, opacity: (loggingOut || pressed) ? 0.5 : 1 },
-          ]}
-        >
-          <Text style={[styles.sairBtnHeaderText, { color: colors.text.secondary }]}>Sair</Text>
-        </Pressable>
+        <View style={styles.heroSideSlot}>
+          <Pressable
+            onPress={handleSignOut}
+            disabled={loggingOut}
+            accessibilityRole="button"
+            accessibilityLabel={loggingOut ? 'Saindo' : 'Sair'}
+            style={({ pressed }) => [
+              styles.sairBtnHeader,
+              { borderColor: colors.border.default, opacity: (loggingOut || pressed) ? 0.5 : 1 },
+            ]}
+          >
+            <Text style={[styles.sairBtnHeaderText, { color: colors.text.secondary }]}>Sair</Text>
+          </Pressable>
+        </View>
       </Animated.View>
 
       <Animated.View style={[styles.mascotContainer, { transform: [{ scale: mascotScale }] }]}>
@@ -236,8 +243,9 @@ function makeStyles() {
     loading:         { flex: 1, alignItems: 'center', justifyContent: 'center' },
     container:       { flexGrow: 1, alignItems: 'center', paddingHorizontal: spacing.screen, paddingBottom: spacing['12'] },
 
-    hero:            { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', width: '100%', marginBottom: spacing['4'] },
-    heroContent:     { flex: 1, alignItems: 'center' },
+    hero:            { flexDirection: 'row', alignItems: 'flex-start', width: '100%', marginBottom: spacing['4'] },
+    heroSideSlot:    { width: 72, alignItems: 'flex-end' },
+    heroContent:     { flex: 1, alignItems: 'center', paddingHorizontal: spacing['2'] },
     heroSub:         { fontFamily: typography.family.bold, fontSize: typography.size.sm },
     heroTitle:       { fontFamily: typography.family.black, fontSize: typography.size['3xl'], marginTop: spacing['1'], textAlign: 'center' },
     heroFamily:      { fontFamily: typography.family.semibold, fontSize: typography.size.sm, marginTop: spacing['1'] },
