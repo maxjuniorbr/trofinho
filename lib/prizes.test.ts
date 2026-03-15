@@ -12,6 +12,10 @@ vi.mock('./supabase', () => ({
   supabase: supabaseMock,
 }));
 
+vi.mock('@/constants/theme', () => ({
+  lightColors: {},
+}));
+
 import {
   cancelRedemption,
   confirmRedemption,
@@ -49,6 +53,7 @@ function createSingleQuery(result: QueryResult) {
 function createOrderQuery(result: QueryResult, callsBeforeResolve = 0) {
   const query = {
     eq: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockResolvedValue(result),
     order: vi.fn(),
     select: vi.fn().mockReturnThis(),
   };
@@ -57,7 +62,7 @@ function createOrderQuery(result: QueryResult, callsBeforeResolve = 0) {
     query.order.mockImplementationOnce(() => query);
   }
 
-  query.order.mockResolvedValueOnce(result);
+  query.order.mockReturnValueOnce(query);
 
   return query;
 }
@@ -80,7 +85,12 @@ describe('prizes', () => {
   it('returns redemption presentation helpers', () => {
     expect(getRedemptionStatusLabel('pendente')).toBe('Pendente');
     expect(getRedemptionStatusEmoji('confirmado')).toBe('✅');
-    expect(getRedemptionStatusColor('cancelado')).toBe('#DC2828');
+
+    const mockColors = {
+      semantic: { warning: '#F59F0A', success: '#20C55D', error: '#DC2828' },
+    } as Parameters<typeof getRedemptionStatusColor>[1];
+
+    expect(getRedemptionStatusColor('cancelado', mockColors)).toBe('#DC2828');
   });
 
   it('lists and fetches prizes', async () => {

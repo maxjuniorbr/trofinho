@@ -1,5 +1,4 @@
 import {
-  Animated,
   Image,
   Pressable,
   ScrollView,
@@ -8,8 +7,9 @@ import {
   View,
   ActivityIndicator,
 } from 'react-native';
+// Animations use plain Views — Reanimated requires a custom dev build
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import {
   ClipboardList,
@@ -19,7 +19,7 @@ import {
   LogOut,
 } from 'lucide-react-native';
 import { signOut, getProfile, type UserProfile } from '@lib/auth';
-import { supabase } from '@lib/supabase';
+import { getFamily, type Family } from '@lib/family';
 import { listChildAssignments } from '@lib/tasks';
 import { getBalance } from '@lib/balances';
 import { getGreeting } from '@lib/utils';
@@ -38,8 +38,6 @@ const CHILD_QUICK_ACTIONS: ReadonlyArray<{ icon: LucideIcon; label: string; rota
 ];
 
 
-type Family = { nome: string };
-
 export default function FilhoHomeScreen() {
   const router  = useRouter();
   const { colors } = useTheme();
@@ -57,26 +55,8 @@ export default function FilhoHomeScreen() {
   const hasPending = pendingCount > 0;
   const pendingTaskLabel = pendingCount === 1 ? 'tarefa pendente' : 'tarefas pendentes';
 
-  const heroOpacity    = useRef(new Animated.Value(0)).current;
-  const heroY          = useRef(new Animated.Value(20)).current;
-  const mascotScale    = useRef(new Animated.Value(0.5)).current;
-
-  useEffect(() => {
-    if (!loading) {
-      Animated.parallel([
-        Animated.timing(heroOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
-        Animated.spring(heroY, { toValue: 0, friction: 8, tension: 55, useNativeDriver: true }),
-        Animated.spring(mascotScale, { toValue: 1, friction: 5, tension: 60, useNativeDriver: true }),
-      ]).start();
-    }
-  }, [loading, heroOpacity, heroY, mascotScale]);
-
   const loadData = useCallback(async () => {
     setLoading(true);
-    // Reset animations for re-focus
-    heroOpacity.setValue(0);
-    heroY.setValue(20);
-    mascotScale.setValue(0.5);
     try {
       const [p, { data: atribuicoes }, { data: s }] = await Promise.all([
         getProfile(),
@@ -90,12 +70,13 @@ export default function FilhoHomeScreen() {
       setPiggyBank(s?.cofrinho ?? 0);
 
       if (p?.familia_id) {
-        const { data: fam } = await supabase.from('familias').select('nome').eq('id', p.familia_id).single();
+        const fam = await getFamily(p.familia_id);
         setFamily(fam);
       } else {
         setFamily(null);
       }
-    } catch {
+    } catch (err) {
+      console.warn('Erro ao carregar dados da home:', err);
       setFamily(null);
       setPendingCount(0);
       setFreeBalance(0);
@@ -103,7 +84,7 @@ export default function FilhoHomeScreen() {
     } finally {
       setLoading(false);
     }
-  }, [heroOpacity, heroY, mascotScale]);
+  }, []);
 
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
@@ -126,9 +107,7 @@ export default function FilhoHomeScreen() {
     >
       <StatusBar style={colors.statusBar} />
 
-      <Animated.View
-        style={[styles.hero, { opacity: heroOpacity, transform: [{ translateY: heroY }] }]}
-      >
+      <View style={styles.hero}>
         <Text style={[styles.heroSub, { color: colors.text.secondary }]}>{getGreeting()} 🏆</Text>
         <Text style={[styles.heroTitle, { color: colors.text.primary }]}>
           Olá, {profile?.nome ?? 'Campeão'}!
@@ -136,9 +115,9 @@ export default function FilhoHomeScreen() {
         {family ? (
           <Text style={[styles.heroFamily, { color: colors.accent.filho }]}>{family.nome}</Text>
         ) : null}
-      </Animated.View>
+      </View>
 
-      <Animated.View style={[styles.mascotContainer, { transform: [{ scale: mascotScale }] }]}>
+      <View style={styles.mascotContainer}>
         <Image
           source={hasPending ? mascotImage : celebratingImage}
           style={styles.mascotImage}
@@ -148,9 +127,9 @@ export default function FilhoHomeScreen() {
         <Text style={[styles.mascotCaption, { color: colors.text.secondary }]}>
           {hasPending ? 'Vamos conquistar o dia?' : 'Troféu conquistado! 🎉'}
         </Text>
-      </Animated.View>
+      </View>
 
-      <Animated.View style={[styles.balanceGrid, { opacity: heroOpacity }]}>
+      <View style={styles.balanceGrid}>
         <View
           style={[
             styles.balanceCard,
@@ -173,9 +152,9 @@ export default function FilhoHomeScreen() {
           <Text style={[styles.balanceLabel, { color: colors.text.secondary }]}>Cofrinho</Text>
           <PointsDisplay value={piggyBank} label="pontos" variant="amber" size="lg" />
         </View>
-      </Animated.View>
+      </View>
 
-      <Animated.View style={{ opacity: heroOpacity, width: '100%' }}>
+      <View style={{ width: '100%' }}>
         <Pressable
           style={({ pressed }) => [
             styles.tarefasCard,
@@ -203,13 +182,13 @@ export default function FilhoHomeScreen() {
           </View>
           {hasPending ? (
             <View style={[styles.pendenteBadge, { backgroundColor: colors.semantic.error }]}>
-              <Text style={styles.pendenteBadgeText}>{pendingCount}</Text>
+              <Text style={[styles.pendenteBadgeText, { color: colors.text.inverse }]}>{pendingCount}</Text>
             </View>
           ) : null}
         </Pressable>
-      </Animated.View>
+      </View>
 
-      <Animated.View style={[styles.quickGrid, { opacity: heroOpacity }]}>
+      <View style={styles.quickGrid}>
         {CHILD_QUICK_ACTIONS.map(({ icon: Icon, label, rota }) => (
           <Pressable
             key={rota}
@@ -229,7 +208,7 @@ export default function FilhoHomeScreen() {
             <Text style={[styles.quickLabel, { color: colors.text.primary }]}>{label}</Text>
           </Pressable>
         ))}
-      </Animated.View>
+      </View>
 
       <Pressable
         style={[styles.btnLogout, { borderColor: colors.semantic.error + '60', opacity: loggingOut ? 0.55 : 1 }]}
@@ -284,7 +263,7 @@ function makeStyles() {
     tarefasTitle:    { fontFamily: typography.family.bold, fontSize: typography.size.md },
     tarefasSub:      { fontFamily: typography.family.medium, fontSize: typography.size.xs, marginTop: spacing['1'] },
     pendenteBadge:   { width: 24, height: 24, borderRadius: radii.full, alignItems: 'center', justifyContent: 'center' },
-    pendenteBadgeText: { color: '#fff', fontFamily: typography.family.black, fontSize: typography.size.xs },
+    pendenteBadgeText: { fontFamily: typography.family.black, fontSize: typography.size.xs },
 
     quickGrid:       { flexDirection: 'row', flexWrap: 'wrap', gap: spacing['3'], width: '100%', marginBottom: spacing['6'] },
     quickCard:       {

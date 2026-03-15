@@ -1,15 +1,13 @@
 import {
-  Animated,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
   ActivityIndicator,
-  FlatList,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -19,15 +17,16 @@ import {
   Gift,
   ShoppingBag,
   Pencil,
+  ChevronRight,
 } from 'lucide-react-native';
 import { getProfile, type UserProfile } from '@lib/auth';
-import { supabase } from '@lib/supabase';
 import { listAdminTasks } from '@lib/tasks';
 import { listAdminBalances, type BalanceWithChild } from '@lib/balances';
 import { getGreeting } from '@lib/utils';
 import { listChildren } from '@lib/children';
 import type { Child } from '@lib/tasks';
 import { countPendingRedemptions } from '@lib/prizes';
+import { getFamily, type Family } from '@lib/family';
 import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { Avatar } from '@/components/ui/avatar';
@@ -50,7 +49,45 @@ const QUICK_ACTIONS: ReadonlyArray<{
   { icon: ShoppingBag,   label: 'Resgates', rota: '/(admin)/redemptions', badgeKey: 'redemptions', accent: 'neutral' },
 ];
 
-type Family = { nome: string };
+type AdminDashboardData = {
+  profile: UserProfile | null;
+  family: Family | null;
+  children: Child[];
+  balancesMap: Map<string, BalanceWithChild>;
+  pendingValidationCount: number;
+  pendingRedemptionCount: number;
+};
+
+async function loadAdminDashboard(): Promise<AdminDashboardData> {
+  const [p, { data: tarefas }, { data: childrenData }, { data: balancesData }, { data: redemptionCount }] = await Promise.all([
+    getProfile(),
+    listAdminTasks(),
+    listChildren(),
+    listAdminBalances(),
+    countPendingRedemptions(),
+  ]);
+
+  const pendingValidationCount = tarefas.reduce(
+    (acc, t) => acc + t.atribuicoes.filter((a) => a.status === 'aguardando_validacao').length,
+    0,
+  );
+
+  const balancesMap = new Map(balancesData.map((s) => [s.filho_id, s]));
+
+  let family: Family | null = null;
+  if (p?.familia_id) {
+    family = await getFamily(p.familia_id);
+  }
+
+  return {
+    profile: p,
+    family,
+    children: childrenData,
+    balancesMap,
+    pendingValidationCount,
+    pendingRedemptionCount: redemptionCount,
+  };
+}
 
 export default function AdminHomeScreen() {
   const router = useRouter();
@@ -67,42 +104,17 @@ export default function AdminHomeScreen() {
   const [pendingValidationCount, setPendingValidationCount] = useState(0);
   const [pendingRedemptionCount, setPendingRedemptionCount] = useState(0);
 
-  const headerOpacity = useRef(new Animated.Value(0)).current;
-  const headerY       = useRef(new Animated.Value(16)).current;
-
-  useEffect(() => {
-    if (!loading) {
-      Animated.parallel([
-        Animated.timing(headerOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
-        Animated.spring(headerY, { toValue: 0, friction: 8, tension: 55, useNativeDriver: true }),
-      ]).start();
-    }
-  }, [loading, headerOpacity, headerY]);
-
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [p, { data: tarefas }, { data: childrenData }, { data: balancesData }, { data: redemptionCount }] = await Promise.all([
-        getProfile(),
-        listAdminTasks(),
-        listChildren(),
-        listAdminBalances(),
-        countPendingRedemptions(),
-      ]);
-
-      setProfile(p);
-      setAvatarUri(p?.avatarUrl ?? null);
-      setPendingValidationCount(tarefas.reduce((acc, t) => acc + t.atribuicoes.filter((a) => a.status === 'aguardando_validacao').length, 0));
-      setChildren(childrenData);
-      setBalancesMap(new Map(balancesData.map((s) => [s.filho_id, s])));
-      setPendingRedemptionCount(redemptionCount);
-
-      if (p?.familia_id) {
-        const { data: fam } = await supabase.from('familias').select('nome').eq('id', p.familia_id).single();
-        setFamily(fam);
-      } else {
-        setFamily(null);
-      }
+      const data = await loadAdminDashboard();
+      setProfile(data.profile);
+      setAvatarUri(data.profile?.avatarUrl ?? null);
+      setFamily(data.family);
+      setChildren(data.children);
+      setBalancesMap(data.balancesMap);
+      setPendingValidationCount(data.pendingValidationCount);
+      setPendingRedemptionCount(data.pendingRedemptionCount);
     } catch {
       setFamily(null);
       setChildren([]);
@@ -134,9 +146,7 @@ export default function AdminHomeScreen() {
     >
       <StatusBar style={colors.statusBar} />
 
-      <Animated.View
-        style={[styles.hero, { opacity: headerOpacity, transform: [{ translateY: headerY }] }]}
-      >
+      <View style={styles.hero}>
         <View style={styles.heroText}>
           <Text style={[styles.heroSub, { color: colors.text.secondary }]}>{getGreeting()} 👋</Text>
           <Text style={[styles.heroTitle, { color: colors.text.primary }]}>
@@ -158,11 +168,9 @@ export default function AdminHomeScreen() {
             </View>
           </View>
         </Pressable>
-      </Animated.View>
+      </View>
 
-      <Animated.View
-        style={[styles.statsRow, { opacity: headerOpacity }]}
-      >
+      <View style={styles.statsRow}>
         <View style={[styles.statCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
           <Text style={[styles.statValue, { color: colors.accent.admin }]}>{children.length}</Text>
           <Text style={[styles.statLabel, { color: colors.text.secondary }]}>filhos</Text>
@@ -176,7 +184,7 @@ export default function AdminHomeScreen() {
             <Text style={[styles.statLabel, { color: colors.semantic.error }]}>pendentes</Text>
           </View>
         ) : null}
-      </Animated.View>
+      </View>
 
       {children.length > 0 ? (
         <View style={styles.section}>
@@ -190,33 +198,37 @@ export default function AdminHomeScreen() {
               <Text style={[styles.sectionLink, { color: colors.accent.admin }]}>Ver todos</Text>
             </Pressable>
           </View>
-          <FlatList
-            data={children}
-            keyExtractor={(item) => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.childrenList}
-            renderItem={({ item }) => {
+          <View style={styles.childrenList}>
+            {children.map((item) => {
               const saldo = balancesMap.get(item.id);
               const pts = saldo ? saldo.saldo_livre + saldo.cofrinho : 0;
               return (
                 <Pressable
-                  style={[styles.childCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}
+                  key={item.id}
+                  style={({ pressed }) => [
+                    styles.childCard,
+                    { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+                    shadows.card,
+                    pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
+                  ]}
                   onPress={() => router.push(`/(admin)/balances/${item.id}` as never)}
                   accessibilityRole="button"
                   accessibilityLabel={`${item.nome}, ${pts} pontos`}
                 >
                   <Avatar name={item.nome} size={48} />
-                  <Text style={[styles.childName, { color: colors.text.primary }]} numberOfLines={1}>
-                    {item.nome}
-                  </Text>
-                  <Text style={[styles.childPoints, { color: colors.brand.vivid }]}>
-                    {pts.toLocaleString('pt-BR')} pts
-                  </Text>
+                  <View style={styles.childBody}>
+                    <Text style={[styles.childName, { color: colors.text.primary }]} numberOfLines={1}>
+                      {item.nome}
+                    </Text>
+                    <Text style={[styles.childPoints, { color: colors.brand.vivid }]}>
+                      {pts.toLocaleString('pt-BR')} pts
+                    </Text>
+                  </View>
+                  <ChevronRight size={18} color={colors.text.secondary} strokeWidth={1.75} />
                 </Pressable>
               );
-            }}
-          />
+            })}
+          </View>
         </View>
       ) : null}
 
@@ -226,7 +238,7 @@ export default function AdminHomeScreen() {
             <View style={styles.sectionTitleRow}>
               <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Pendentes</Text>
               <View style={[styles.countBadge, { backgroundColor: colors.semantic.error }]}>
-                <Text style={styles.countBadgeText}>{pendingValidationCount}</Text>
+                <Text style={[styles.countBadgeText, { color: colors.text.inverse }]}>{pendingValidationCount}</Text>
               </View>
             </View>
             <Pressable
@@ -281,7 +293,7 @@ export default function AdminHomeScreen() {
                 <Text style={[styles.quickLabel, { color: colors.text.primary }]}>{label}</Text>
                 {badge > 0 ? (
                   <View style={[styles.quickBadge, { backgroundColor: colors.semantic.error }]}>
-                    <Text style={styles.quickBadgeText}>{badge}</Text>
+                    <Text style={[styles.quickBadgeText, { color: colors.text.inverse }]}>{badge}</Text>
                   </View>
                 ) : null}
               </Pressable>
@@ -327,14 +339,15 @@ function makeStyles() {
     sectionTitle:  { fontFamily: typography.family.bold, fontSize: typography.size.md },
     sectionLink:   { fontFamily: typography.family.bold, fontSize: typography.size.sm },
     countBadge:    { width: 24, height: 24, borderRadius: radii.full, alignItems: 'center', justifyContent: 'center' },
-    countBadgeText:{ color: '#fff', fontFamily: typography.family.black, fontSize: typography.size.xs },
+    countBadgeText:{ fontFamily: typography.family.black, fontSize: typography.size.xs },
 
     childrenList:  { gap: spacing['3'] },
     childCard:     {
-      width: 120, borderRadius: radii.inner, borderWidth: 1,
-      padding: spacing['3'], alignItems: 'center', gap: spacing['2'],
+      flexDirection: 'row', alignItems: 'center', gap: spacing['3'],
+      borderRadius: radii.inner, borderWidth: 1, padding: spacing['4'],
     },
-    childName:     { fontFamily: typography.family.bold, fontSize: typography.size.xs, textAlign: 'center' },
+    childBody:     { flex: 1, gap: spacing['1'] },
+    childName:     { fontFamily: typography.family.bold, fontSize: typography.size.sm },
     childPoints:   { fontFamily: typography.family.black, fontSize: typography.size.sm },
 
     navCard:       {
@@ -356,7 +369,7 @@ function makeStyles() {
     quickIconBox:  { width: 44, height: 44, borderRadius: radii.md, alignItems: 'center' as const, justifyContent: 'center' as const },
     quickLabel:    { fontFamily: typography.family.bold, fontSize: typography.size.xs, textAlign: 'center' },
     quickBadge:    { position: 'absolute', top: spacing['2'], right: spacing['2'], minWidth: 20, height: 20, borderRadius: radii.full, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing['1'] },
-    quickBadgeText:{ color: '#fff', fontFamily: typography.family.black, fontSize: 10 },
+    quickBadgeText:{ fontFamily: typography.family.black, fontSize: 10 },
 
   });
 }

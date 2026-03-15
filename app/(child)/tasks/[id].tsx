@@ -100,12 +100,12 @@ function StatusFooter({ assignment, completing, completionError, onComplete, col
           disabled={completing}
         >
           {completing
-            ? <ActivityIndicator color="#fff" />
+            ? <ActivityIndicator color={colors.text.inverse} />
             : <View style={styles.completeBtnInner}>
                 {task.exige_evidencia
-                  ? <Camera size={16} color="#fff" strokeWidth={2} />
-                  : <CheckCircle2 size={16} color="#fff" strokeWidth={2} />}
-                <Text style={styles.completeBtnText}>
+                  ? <Camera size={16} color={colors.text.inverse} strokeWidth={2} />
+                  : <CheckCircle2 size={16} color={colors.text.inverse} strokeWidth={2} />}
+                <Text style={[styles.completeBtnText, { color: colors.text.inverse }]}>
                   {task.exige_evidencia ? 'Tirar foto e concluir' : 'Concluir tarefa'}
                 </Text>
               </View>
@@ -249,8 +249,8 @@ export default function ChildTaskDetailScreen() {
       <ScreenHeader title="Detalhe" onBack={() => router.back()} backLabel="Tarefas" role="filho" />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(assignment.status) }]}>
-          <Text style={styles.statusBadgeText}>{getStatusLabel(assignment.status)}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(assignment.status, colors) }]}>
+          <Text style={[styles.statusBadgeText, { color: colors.text.inverse }]}>{getStatusLabel(assignment.status)}</Text>
         </View>
 
         <View style={styles.card}>
@@ -323,7 +323,7 @@ function makeStyles(colors: ThemeColors) {
       alignSelf: 'center',
       marginBottom: spacing['4'],
     },
-    statusBadgeText: { color: '#fff', fontSize: typography.size.sm, fontFamily: typography.family.bold },
+    statusBadgeText: { fontSize: typography.size.sm, fontFamily: typography.family.bold },
     card: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,
@@ -336,7 +336,7 @@ function makeStyles(colors: ThemeColors) {
     pointsTag: { backgroundColor: colors.accent.filhoBg, borderRadius: radii.md, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'] },
     pointsText: { fontSize: typography.size.sm, fontFamily: typography.family.bold, color: colors.accent.filho },
     description: { fontSize: typography.size.sm, color: colors.text.secondary, marginBottom: spacing['2'], lineHeight: 20 },
-    metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     meta: { fontSize: typography.size.xs, color: colors.text.muted },
     evidenceTag: {
       backgroundColor: colors.semantic.warningBg,
@@ -346,7 +346,7 @@ function makeStyles(colors: ThemeColors) {
       alignSelf: 'flex-start',
       marginTop: spacing['2'],
     },
-    evidenceTagRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    evidenceTagRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     evidenceTagText: { fontSize: typography.size.xs, color: colors.semantic.warningText, fontFamily: typography.family.semibold },
     evidenceBox: { marginBottom: spacing['4'] },
     evidenceLabel: { fontSize: typography.size.xs, fontFamily: typography.family.semibold, color: colors.text.secondary, marginBottom: spacing['2'] },
@@ -363,7 +363,7 @@ function makeStyles(colors: ThemeColors) {
     completeBtn: { backgroundColor: colors.accent.filho, borderRadius: radii.xl, paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['2'], minHeight: 48, justifyContent: 'center' },
     completeBtnInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     disabledBtn: { opacity: 0.6 },
-    completeBtnText: { color: '#fff', fontSize: typography.size.md, fontFamily: typography.family.bold },
+    completeBtnText: { fontSize: typography.size.md, fontFamily: typography.family.bold },
     statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     awaitingBox: { backgroundColor: colors.accent.filhoBg, borderRadius: radii.xl, padding: spacing['3'], alignItems: 'center', marginTop: spacing['2'] },
     awaitingText: { fontSize: typography.size.sm, color: colors.accent.filho, fontFamily: typography.family.semibold },

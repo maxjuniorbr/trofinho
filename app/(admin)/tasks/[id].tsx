@@ -14,13 +14,12 @@ import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { RefreshCw, Camera } from 'lucide-react-native';
 import {
   getTaskWithAssignments,
-  approveAssignment,
-  rejectAssignment,
   getStatusLabel,
   getStatusColor,
   type TaskDetail,
   type AssignmentWithChild,
 } from '@lib/tasks';
+import { useAssignmentActions } from '@/hooks/use-assignment-actions';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -61,7 +60,7 @@ function AssignmentCard({
   onImageStateChange,
 }: AssignmentCardProps) {
   const processing = action === 'processing';
-  const statusColor = getStatusColor(assignment.status);
+  const statusColor = getStatusColor(assignment.status, colors);
   const isRejecting = action === 'rejecting';
   const evidenceUrl = assignment.evidencia_url ?? undefined;
 
@@ -175,13 +174,6 @@ export default function TaskDetailAdminScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [assignmentActions, setAssignmentActions] = useState<
-    Record<string, 'rejecting' | 'processing' | null>
-  >({});
-  const [rejectionNotes, setRejectionNotes] = useState<Record<string, string>>({});
-  const [assignmentErrors, setAssignmentErrors] = useState<Record<string, string>>({});
-  const [imgStates, setImgStates] = useState<Record<string, 'loading' | 'loaded' | 'error'>>({});
-
   const loadData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
@@ -198,55 +190,9 @@ export default function TaskDetailAdminScreen() {
     }
   }, [id]);
 
+  const assignmentActions = useAssignmentActions(loadData);
+
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
-
-  async function handleApprove(assignment: AssignmentWithChild) {
-    setAssignmentActions((prev) => ({ ...prev, [assignment.id]: 'processing' }));
-    setAssignmentErrors((prev) => ({ ...prev, [assignment.id]: '' }));
-    const { error } = await approveAssignment(assignment.id);
-    if (error) {
-      setAssignmentErrors((prev) => ({ ...prev, [assignment.id]: error }));
-      setAssignmentActions((prev) => ({ ...prev, [assignment.id]: null }));
-    } else {
-      await loadData();
-      setAssignmentActions((prev) => ({ ...prev, [assignment.id]: null }));
-    }
-  }
-
-  async function handleReject(assignment: AssignmentWithChild) {
-    const note = rejectionNotes[assignment.id] ?? '';
-    if (!note.trim()) {
-      setAssignmentErrors((prev) => ({ ...prev, [assignment.id]: 'Informe o motivo da rejeição.' }));
-      return;
-    }
-    setAssignmentActions((prev) => ({ ...prev, [assignment.id]: 'processing' }));
-    setAssignmentErrors((prev) => ({ ...prev, [assignment.id]: '' }));
-    const { error } = await rejectAssignment(assignment.id, note.trim());
-    if (error) {
-      setAssignmentErrors((prev) => ({ ...prev, [assignment.id]: error }));
-      setAssignmentActions((prev) => ({ ...prev, [assignment.id]: null }));
-    } else {
-      await loadData();
-      setAssignmentActions((prev) => ({ ...prev, [assignment.id]: null }));
-      setRejectionNotes((prev) => ({ ...prev, [assignment.id]: '' }));
-    }
-  }
-
-  function startReject(assignmentId: string) {
-    setAssignmentActions((prev) => ({ ...prev, [assignmentId]: 'rejecting' }));
-  }
-
-  function cancelReject(assignmentId: string) {
-    setAssignmentActions((prev) => ({ ...prev, [assignmentId]: null }));
-  }
-
-  function changeNote(assignmentId: string, value: string) {
-    setRejectionNotes((prev) => ({ ...prev, [assignmentId]: value }));
-  }
-
-  function changeImgState(assignmentId: string, state: 'loading' | 'loaded' | 'error') {
-    setImgStates((prev) => ({ ...prev, [assignmentId]: state }));
-  }
 
   if (loading) {
     return (
@@ -308,26 +254,24 @@ export default function TaskDetailAdminScreen() {
         {task.atribuicoes.length === 0 ? (
           <Text style={styles.semAtrib}>Nenhum filho atribuído.</Text>
         ) : (
-          task.atribuicoes.map((assignment) => {
-            return (
-              <AssignmentCard
-                key={assignment.id}
-                assignment={assignment}
-                action={assignmentActions[assignment.id] ?? null}
-                note={rejectionNotes[assignment.id] ?? ''}
-                assignmentError={assignmentErrors[assignment.id] ?? ''}
-                imageState={imgStates[assignment.id]}
-                colors={colors}
-                styles={styles}
-                onApprove={() => handleApprove(assignment)}
-                onReject={() => handleReject(assignment)}
-                onStartReject={() => startReject(assignment.id)}
-                onCancelReject={() => cancelReject(assignment.id)}
-                onNoteChange={(value) => changeNote(assignment.id, value)}
-                onImageStateChange={(state) => changeImgState(assignment.id, state)}
-              />
-            );
-          })
+          task.atribuicoes.map((assignment) => (
+            <AssignmentCard
+              key={assignment.id}
+              assignment={assignment}
+              action={assignmentActions.getAction(assignment.id)}
+              note={assignmentActions.getNote(assignment.id)}
+              assignmentError={assignmentActions.getError(assignment.id)}
+              imageState={assignmentActions.getImgState(assignment.id)}
+              colors={colors}
+              styles={styles}
+              onApprove={() => assignmentActions.approve(assignment)}
+              onReject={() => assignmentActions.reject(assignment)}
+              onStartReject={() => assignmentActions.startReject(assignment.id)}
+              onCancelReject={() => assignmentActions.cancelReject(assignment.id)}
+              onNoteChange={(value) => assignmentActions.changeNote(assignment.id, value)}
+              onImageStateChange={(state) => assignmentActions.changeImgState(assignment.id, state)}
+            />
+          ))
         )}
       </ScrollView>
     </View>
@@ -356,7 +300,7 @@ function makeStyles(colors: ThemeColors) {
     pontosTag: { backgroundColor: colors.accent.adminBg, borderRadius: radii.md, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'] },
     pontosTexto: { fontSize: typography.size.sm, fontFamily: typography.family.bold, color: colors.accent.admin },
     descricao: { fontSize: typography.size.sm, color: colors.text.secondary, marginBottom: spacing['2'], lineHeight: 20 },
-    metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     meta: { fontSize: typography.size.xs, color: colors.text.muted },
     tagEvidencia: {
       backgroundColor: colors.semantic.warningBg,
@@ -366,7 +310,7 @@ function makeStyles(colors: ThemeColors) {
       alignSelf: 'flex-start',
       marginTop: spacing['2'],
     },
-    tagEvidenciaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    tagEvidenciaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     tagEvidenciaTexto: { fontSize: typography.size.xs, color: colors.semantic.warningText, fontFamily: typography.family.semibold },
     secaoTitulo: {
       fontSize: typography.size.xs,

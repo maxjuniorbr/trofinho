@@ -38,46 +38,23 @@ export function AuthShell({
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(variant), [variant]);
 
-  const mascotScale = useRef(new Animated.Value(0.4)).current;
-  const mascotRotate = useRef(new Animated.Value(-12)).current;
+  const mascotScale = useRef(new Animated.Value(0)).current;
+  const mascotRotate = useRef(new Animated.Value(0)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
-  const contentY = useRef(new Animated.Value(32)).current;
+  const contentY = useRef(new Animated.Value(24)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(mascotScale, {
-        toValue: 1,
-        delay: 100,
-        friction: 5,
-        tension: 60,
-        useNativeDriver: true,
-      }),
-      Animated.spring(mascotRotate, {
-        toValue: 0,
-        delay: 100,
-        friction: 6,
-        tension: 55,
-        useNativeDriver: true,
-      }),
-      Animated.timing(contentOpacity, {
-        toValue: 1,
-        duration: 500,
-        delay: 250,
-        useNativeDriver: true,
-      }),
-      Animated.spring(contentY, {
-        toValue: 0,
-        delay: 250,
-        friction: 8,
-        tension: 50,
-        useNativeDriver: true,
-      }),
+      Animated.spring(mascotScale, { toValue: 1, damping: 8, useNativeDriver: true }),
+      Animated.spring(mascotRotate, { toValue: 1, damping: 8, useNativeDriver: true }),
+      Animated.spring(contentOpacity, { toValue: 1, damping: 12, useNativeDriver: true }),
+      Animated.timing(contentY, { toValue: 0, duration: 400, useNativeDriver: true }),
     ]).start();
-  }, [contentOpacity, contentY, mascotRotate, mascotScale]);
+  }, [mascotScale, mascotRotate, contentOpacity, contentY]);
 
   const mascotRotateDeg = mascotRotate.interpolate({
-    inputRange: [-12, 0],
-    outputRange: ['-12deg', '0deg'],
+    inputRange: [0, 0.5, 1],
+    outputRange: ['-10deg', '5deg', '0deg'],
   });
 
   return (
@@ -104,10 +81,7 @@ export function AuthShell({
         <StatusBar style={colors.statusBar} />
 
         <Animated.View
-          style={[
-            styles.mascotWrapper,
-            { transform: [{ scale: mascotScale }, { rotate: mascotRotateDeg }] },
-          ]}
+          style={[styles.mascotWrapper, { transform: [{ scale: mascotScale }, { rotate: mascotRotateDeg }] }]}
         >
           <Image
             source={mascotImage}
@@ -118,10 +92,7 @@ export function AuthShell({
         </Animated.View>
 
         <Animated.View
-          style={[
-            styles.headline,
-            { opacity: contentOpacity, transform: [{ translateY: contentY }] },
-          ]}
+          style={[styles.headline, { opacity: contentOpacity, transform: [{ translateY: contentY }] }]}
         >
           <Text style={[styles.title, { color: colors.text.primary }]}>{title}</Text>
           <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
