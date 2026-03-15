@@ -175,7 +175,7 @@ export default function ChildBalanceAdminScreen() {
         ListHeaderComponent={
           <>
             <View style={styles.cardsRow}>
-              <View style={[styles.saldoCard, { backgroundColor: colors.accent.admin }]}>
+              <View style={[styles.saldoCard, { backgroundColor: colors.accent.adminDim }]}>
                 <View style={styles.saldoLabelRow}>
                   <Wallet size={14} color="rgba(255,255,255,0.85)" strokeWidth={2} />
                   <Text style={styles.saldoLabel}>Saldo livre</Text>
@@ -459,14 +459,14 @@ function makeStyles(colors: ThemeColors) {
       minHeight: 44,
       justifyContent: 'center',
     },
-    periodoAtivo: { backgroundColor: colors.accent.adminBg, borderColor: colors.accent.admin },
+    periodoAtivo: { backgroundColor: colors.accent.adminBg, borderColor: colors.accent.adminDim },
     periodoTexto: { fontSize: typography.size.sm, color: colors.text.secondary, fontFamily: typography.family.medium },
     periodoTextoAtivo: { color: colors.accent.admin, fontFamily: typography.family.bold },
     errModal: { color: colors.semantic.error, fontSize: typography.size.xs },
     modalBtns: { flexDirection: 'row', gap: spacing['3'] },
     btnCancelar: { flex: 1, borderWidth: 1, borderColor: colors.border.default, borderRadius: radii.lg, paddingVertical: spacing['3'], alignItems: 'center', minHeight: 48 },
     btnCancelarTexto: { color: colors.text.secondary, fontFamily: typography.family.semibold },
-    btnConfirmar: { flex: 1, backgroundColor: colors.accent.admin, borderRadius: radii.lg, paddingVertical: spacing['3'], alignItems: 'center', minHeight: 48 },
+    btnConfirmar: { flex: 1, backgroundColor: colors.accent.adminDim, borderRadius: radii.lg, paddingVertical: spacing['3'], alignItems: 'center', minHeight: 48 },
     btnConfirmarTexto: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.md },
     btnDesabilitado: { opacity: 0.5 },
   });

@@ -36,12 +36,18 @@ import { Badge } from '@/components/ui/badge';
 
 import type { LucideIcon } from 'lucide-react-native';
 
-const QUICK_ACTIONS: ReadonlyArray<{ icon: LucideIcon; label: string; rota: string; badgeKey: 'tasks' | 'redemptions' | 'none' }> = [
-  { icon: ClipboardList, label: 'Tarefas',  rota: '/(admin)/tasks',       badgeKey: 'tasks'       },
-  { icon: Users,         label: 'Filhos',   rota: '/(admin)/children',    badgeKey: 'none'        },
-  { icon: Wallet,        label: 'Saldos',   rota: '/(admin)/balances',    badgeKey: 'none'        },
-  { icon: Gift,          label: 'Prêmios',  rota: '/(admin)/prizes',      badgeKey: 'none'        },
-  { icon: ShoppingBag,   label: 'Resgates', rota: '/(admin)/redemptions', badgeKey: 'redemptions' },
+const QUICK_ACTIONS: ReadonlyArray<{
+  icon: LucideIcon;
+  label: string;
+  rota: string;
+  badgeKey: 'tasks' | 'redemptions' | 'none';
+  accent: 'neutral' | 'gold';
+}> = [
+  { icon: ClipboardList, label: 'Tarefas',  rota: '/(admin)/tasks',       badgeKey: 'tasks',       accent: 'neutral' },
+  { icon: Users,         label: 'Filhos',   rota: '/(admin)/children',    badgeKey: 'none',        accent: 'neutral' },
+  { icon: Wallet,        label: 'Saldos',   rota: '/(admin)/balances',    badgeKey: 'none',        accent: 'gold'    },
+  { icon: Gift,          label: 'Prêmios',  rota: '/(admin)/prizes',      badgeKey: 'none',        accent: 'neutral' },
+  { icon: ShoppingBag,   label: 'Resgates', rota: '/(admin)/redemptions', badgeKey: 'redemptions', accent: 'neutral' },
 ];
 
 type Family = { nome: string };
@@ -147,7 +153,7 @@ export default function AdminHomeScreen() {
         >
           <View style={styles.avatarWrapper}>
             <Avatar name={profile?.nome ?? 'A'} size={52} imageUri={avatarUri} />
-            <View style={[styles.editBadge, { backgroundColor: colors.accent.admin }]}>
+            <View style={[styles.editBadge, { backgroundColor: colors.accent.adminDim }]}>
               <Pencil size={10} color={colors.text.inverse} strokeWidth={2.5} />
             </View>
           </View>
@@ -158,7 +164,7 @@ export default function AdminHomeScreen() {
         style={[styles.statsRow, { opacity: headerOpacity }]}
       >
         <View style={[styles.statCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
-          <Text style={[styles.statValue, { color: colors.brand.vivid }]}>{children.length}</Text>
+          <Text style={[styles.statValue, { color: colors.accent.admin }]}>{children.length}</Text>
           <Text style={[styles.statLabel, { color: colors.text.secondary }]}>filhos</Text>
         </View>
         <View style={[styles.statCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
@@ -176,8 +182,12 @@ export default function AdminHomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Seus filhos</Text>
-            <Pressable onPress={() => router.push('/(admin)/children')} accessibilityRole="button">
-              <Text style={[styles.sectionLink, { color: colors.brand.vivid }]}>Ver todos</Text>
+            <Pressable
+              onPress={() => router.push('/(admin)/children')}
+              accessibilityRole="button"
+              hitSlop={12}
+            >
+              <Text style={[styles.sectionLink, { color: colors.accent.admin }]}>Ver todos</Text>
             </Pressable>
           </View>
           <FlatList
@@ -219,8 +229,12 @@ export default function AdminHomeScreen() {
                 <Text style={styles.countBadgeText}>{pendingValidationCount}</Text>
               </View>
             </View>
-            <Pressable onPress={() => router.push('/(admin)/tasks')} accessibilityRole="button">
-              <Text style={[styles.sectionLink, { color: colors.brand.vivid }]}>Ver todas</Text>
+            <Pressable
+              onPress={() => router.push('/(admin)/tasks')}
+              accessibilityRole="button"
+              hitSlop={12}
+            >
+              <Text style={[styles.sectionLink, { color: colors.accent.admin }]}>Ver todas</Text>
             </Pressable>
           </View>
           <Pressable
@@ -244,9 +258,10 @@ export default function AdminHomeScreen() {
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Ações rápidas</Text>
         <View style={styles.quickGrid}>
-          {QUICK_ACTIONS.map(({ icon: Icon, label, rota, badgeKey }) => {
+          {QUICK_ACTIONS.map(({ icon: Icon, label, rota, badgeKey, accent }) => {
             const badge = badgeKey === 'tasks' ? pendingValidationCount
               : badgeKey === 'redemptions' ? pendingRedemptionCount : 0;
+            const iconColor = accent === 'gold' ? colors.brand.vivid : colors.accent.admin;
             return (
               <Pressable
                 key={rota}
@@ -261,7 +276,7 @@ export default function AdminHomeScreen() {
                 accessibilityLabel={label}
               >
                 <View style={[styles.quickIconBox, { backgroundColor: colors.bg.elevated }]}>
-                  <Icon size={22} color={colors.accent.admin} strokeWidth={1.5} />
+                  <Icon size={22} color={iconColor} strokeWidth={1.5} />
                 </View>
                 <Text style={[styles.quickLabel, { color: colors.text.primary }]}>{label}</Text>
                 {badge > 0 ? (
@@ -306,11 +321,11 @@ function makeStyles() {
     statValue:     { fontFamily: typography.family.black, fontSize: typography.size.xl },
     statLabel:     { fontFamily: typography.family.semibold, fontSize: typography.size.xs, marginTop: spacing['1'] },
 
-    section:       { marginBottom: spacing['6'] },
-    sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing['3'] },
+    section:       { marginBottom: spacing['6'], gap: spacing['3'] },
+    sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
     sectionTitle:  { fontFamily: typography.family.bold, fontSize: typography.size.md },
-    sectionLink:   { fontFamily: typography.family.bold, fontSize: typography.size.sm, minHeight: 44, textAlignVertical: 'center' },
+    sectionLink:   { fontFamily: typography.family.bold, fontSize: typography.size.sm },
     countBadge:    { width: 24, height: 24, borderRadius: radii.full, alignItems: 'center', justifyContent: 'center' },
     countBadgeText:{ color: '#fff', fontFamily: typography.family.black, fontSize: typography.size.xs },
 

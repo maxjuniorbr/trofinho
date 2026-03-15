@@ -2,8 +2,8 @@ import { StyleSheet, Text, View, Pressable, FlatList, RefreshControl } from 'rea
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { RefreshCw } from 'lucide-react-native';
-import { ScreenHeader } from '@/components/ui/screen-header';
+import { Plus, RefreshCw } from 'lucide-react-native';
+import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Badge } from '@/components/ui/badge';
 import { listAdminTasks, type TaskListItem } from '@lib/tasks';
@@ -40,9 +40,11 @@ export default function AdminTasksScreen() {
         onBack={() => router.back()}
         backLabel="Início"
         rightAction={
-          <Pressable onPress={() => router.push('/(admin)/tasks/new')} style={[styles.botaoNova, { backgroundColor: colors.accent.admin }]}>
-            <Text style={[styles.botaoNovaTexto, { color: colors.text.inverse }]}>+</Text>
-          </Pressable>
+          <HeaderIconButton
+            icon={Plus}
+            onPress={() => router.push('/(admin)/tasks/new')}
+            accessibilityLabel="Criar tarefa"
+          />
         }
       />
 
@@ -101,8 +103,6 @@ export default function AdminTasksScreen() {
 function makeStyles() {
   return StyleSheet.create({
     container: { flex: 1 },
-    botaoNova: { alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: radii.md },
-    botaoNovaTexto: { fontSize: 22, fontFamily: typography.family.black, textAlign: 'center', includeFontPadding: false },
     lista: { padding: spacing['4'], paddingBottom: spacing['10'], gap: spacing['3'] },
     card: { borderRadius: radii.xl, borderWidth: 1, padding: spacing['4'] },
     cardTopo: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing['2'] },

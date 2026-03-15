@@ -444,12 +444,12 @@ export function getStatusLabel(status: AssignmentStatus): string {
 export function getStatusColor(status: AssignmentStatus): string {
   switch (status) {
     case 'pendente':
-      return '#F59E0B';
+      return '#F59F0A';
     case 'aguardando_validacao':
-      return '#3B82F6';
+      return '#308CE8';
     case 'aprovada':
-      return '#10B981';
+      return '#20C55D';
     case 'rejeitada':
-      return '#EF4444';
+      return '#DC2828';
   }
 }

@@ -59,6 +59,9 @@ export default function OnboardingScreen() {
 
   return (
     <AuthShell
+      headerTitle="Configurar Família"
+      onBack={handleBack}
+      backLabel="Login"
       title="Criar sua família"
       subtitle="Você será o administrador e poderá convidar os filhos depois."
     >
