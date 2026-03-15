@@ -271,8 +271,12 @@ export default function AdminHomeScreen() {
         <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Ações rápidas</Text>
         <View style={styles.quickGrid}>
           {QUICK_ACTIONS.map(({ icon: Icon, label, rota, badgeKey, accent }) => {
-            const badge = badgeKey === 'tasks' ? pendingValidationCount
-              : badgeKey === 'redemptions' ? pendingRedemptionCount : 0;
+            let badge = 0;
+            if (badgeKey === 'tasks') {
+              badge = pendingValidationCount;
+            } else if (badgeKey === 'redemptions') {
+              badge = pendingRedemptionCount;
+            }
             const iconColor = accent === 'gold' ? colors.brand.vivid : colors.accent.admin;
             return (
               <Pressable
