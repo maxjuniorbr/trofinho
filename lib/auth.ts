@@ -1,5 +1,5 @@
 import { localizeSupabaseError } from './api-error';
-import { readImageAsArrayBuffer, inferImageExtension, inferImageContentType } from './image-utils';
+import { readImageAsArrayBuffer, inferImageExtension, inferImageContentType, resizeImage } from './image-utils';
 import { supabase } from './supabase';
 
 const AVATAR_BUCKET = 'avatars';
@@ -126,8 +126,9 @@ export async function updateUserAvatar(
     }
 
     const userId = authData.user.id;
-    const extension = inferImageExtension(imageUri);
-    const buffer = await readImageAsArrayBuffer(imageUri);
+    const resizedUri = await resizeImage(imageUri);
+    const extension = inferImageExtension(resizedUri);
+    const buffer = await readImageAsArrayBuffer(resizedUri);
     const filePath = `${userId}/avatar.${extension}`;
 
     const { error: uploadError } = await supabase.storage
