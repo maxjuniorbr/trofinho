@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
+import { ScreenHeader } from '@/components/ui/screen-header';
 
 const mascotImage = loadMascotImage();
 
@@ -20,6 +21,9 @@ type AuthShellProps = Readonly<{
   subtitle: string;
   children: ReactNode;
   variant?: AuthShellVariant;
+  headerTitle?: string;
+  onBack?: () => void;
+  backLabel?: string;
 }>;
 
 export function AuthShell({
@@ -27,6 +31,9 @@ export function AuthShell({
   subtitle,
   children,
   variant = 'compact',
+  headerTitle,
+  onBack,
+  backLabel,
 }: AuthShellProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(variant), [variant]);
@@ -78,6 +85,16 @@ export function AuthShell({
       style={[styles.flex, { backgroundColor: colors.bg.canvas }]}
       behavior="padding"
     >
+      {headerTitle ? (
+        <ScreenHeader
+          title={headerTitle}
+          onBack={onBack}
+          backLabel={backLabel}
+          backTone="muted"
+          surface="canvas"
+          showBorder={false}
+        />
+      ) : null}
       <ScrollView
         style={[styles.flex, { backgroundColor: colors.bg.canvas }]}
         contentContainerStyle={styles.container}
@@ -146,9 +163,10 @@ function makeStyles(variant: AuthShellVariant) {
     container: {
       flexGrow: 1,
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: isHero ? 'center' : 'flex-start',
       paddingHorizontal: spacing.screen,
-      paddingVertical: spacing['10'],
+      paddingTop: isHero ? spacing['10'] : spacing['4'],
+      paddingBottom: spacing['10'],
     },
     mascotWrapper: {
       marginBottom: isHero ? spacing['6'] : spacing['4'],

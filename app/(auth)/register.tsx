@@ -56,6 +56,9 @@ export default function RegisterScreen() {
 
   return (
     <AuthShell
+      headerTitle="Criar Conta"
+      onBack={() => router.back()}
+      backLabel="Login"
       title="Criar conta"
       subtitle="Junte-se ao Trofinho e comece a conquistar!"
     >

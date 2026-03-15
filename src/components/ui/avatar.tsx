@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Image, StyleSheet, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { gradients, typography } from '@/constants/theme';
+import { useTheme } from '@/context/theme-context';
 
 interface AvatarProps {
   /** Full name — up to 2 initials extracted */
@@ -19,6 +20,7 @@ interface AvatarProps {
 type ReadonlyAvatarProps = Readonly<AvatarProps>;
 
 export function Avatar({ name, size = 44, solidColor, imageUri }: ReadonlyAvatarProps) {
+  const { colors } = useTheme();
   const borderRadius = size / 2;
   const [imgError, setImgError] = useState(false);
 
@@ -50,7 +52,7 @@ export function Avatar({ name, size = 44, solidColor, imageUri }: ReadonlyAvatar
         colors={[solidColor, solidColor]}
         style={[styles.base, { width: size, height: size, borderRadius }]}
       >
-        <Text style={[styles.initial, { fontSize }]}>{initials}</Text>
+        <Text style={[styles.initial, { color: colors.text.inverse, fontSize }]}>{initials}</Text>
       </LinearGradient>
     );
   }
@@ -62,7 +64,7 @@ export function Avatar({ name, size = 44, solidColor, imageUri }: ReadonlyAvatar
       end={gradients.gold.end}
       style={[styles.base, { width: size, height: size, borderRadius }]}
     >
-      <Text style={[styles.initial, { fontSize }]}>{initials}</Text>
+      <Text style={[styles.initial, { color: colors.text.onBrand, fontSize }]}>{initials}</Text>
     </LinearGradient>
   );
 }
@@ -76,7 +78,6 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   initial: {
-    color: '#2a2410',  // onBrand — dark amber text on gold gradient
     fontFamily: typography.family.black,
     fontWeight: typography.weight.black,
   },

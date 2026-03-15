@@ -166,7 +166,7 @@ function makeStyles(colors: ThemeColors) {
     avisoInativoTexto: { fontSize: typography.size.xs, color: colors.semantic.warning, textAlign: 'center' },
     erroTexto: { color: colors.semantic.error, fontSize: typography.size.sm, fontFamily: typography.family.medium },
     sucessoTexto: { color: colors.semantic.success, fontSize: typography.size.sm, fontFamily: typography.family.semibold },
-    botao: { backgroundColor: colors.accent.admin, borderRadius: radii.xl, borderCurve: 'continuous', paddingVertical: spacing['3'], alignItems: 'center', marginTop: spacing['1'], minHeight: 48 },
+    botao: { backgroundColor: colors.accent.adminDim, borderRadius: radii.xl, borderCurve: 'continuous', paddingVertical: spacing['3'], alignItems: 'center', marginTop: spacing['1'], minHeight: 48 },
     botaoDesabilitado: { opacity: 0.55 },
     botaoTexto: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.md },
     botaoSecundario: {

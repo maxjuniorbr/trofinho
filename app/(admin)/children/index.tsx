@@ -2,7 +2,8 @@ import { StyleSheet, Text, View, Pressable, FlatList, RefreshControl } from 'rea
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { ScreenHeader } from '@/components/ui/screen-header';
+import { Plus } from 'lucide-react-native';
+import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Avatar } from '@/components/ui/avatar';
 import { listChildren } from '@lib/children';
@@ -48,9 +49,11 @@ export default function AdminChildrenScreen() {
         onBack={() => router.back()}
         backLabel="Início"
         rightAction={
-          <Pressable onPress={() => router.push('/(admin)/children/new')} style={[styles.botaoNovo, { backgroundColor: colors.accent.admin }]}>
-            <Text style={[styles.botaoNovoTexto, { color: colors.text.inverse }]}>+</Text>
-          </Pressable>
+          <HeaderIconButton
+            icon={Plus}
+            onPress={() => router.push('/(admin)/children/new')}
+            accessibilityLabel="Cadastrar filho"
+          />
         }
       />
 
@@ -95,8 +98,6 @@ export default function AdminChildrenScreen() {
 function makeStyles() {
   return StyleSheet.create({
     container: { flex: 1 },
-    botaoNovo: { alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: radii.md },
-    botaoNovoTexto: { fontSize: 22, fontFamily: typography.family.black, textAlign: 'center', includeFontPadding: false },
     lista: { padding: spacing['4'], gap: spacing['3'] },
     card: { borderRadius: radii.xl, borderWidth: 1, padding: spacing['3'], flexDirection: 'row', alignItems: 'center' },
     cardInfo: { flex: 1, marginLeft: spacing['3'] },

@@ -48,7 +48,7 @@ export default function NewChildScreen() {
           {'\n'}
           <Text style={{ color: colors.accent.admin, fontFamily: typography.family.bold }}>Senha: {tempPassword}</Text>
         </Text>
-        <Pressable style={[styles.botaoConcluir, { backgroundColor: colors.accent.admin }]} onPress={() => router.back()}>
+        <Pressable style={[styles.botaoConcluir, { backgroundColor: colors.accent.adminDim }]} onPress={() => router.back()}>
           <Text style={[styles.botaoConcluirTexto, { color: colors.text.inverse }]}>Concluir</Text>
         </Pressable>
       </View>
@@ -102,7 +102,7 @@ export default function NewChildScreen() {
         ) : null}
 
         <Pressable
-          style={[styles.botaoCadastrar, { backgroundColor: colors.accent.admin, opacity: submitting ? 0.55 : 1 }]}
+          style={[styles.botaoCadastrar, { backgroundColor: colors.accent.adminDim, opacity: submitting ? 0.55 : 1 }]}
           onPress={handleRegister}
           disabled={submitting}
         >

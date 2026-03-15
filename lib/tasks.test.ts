@@ -121,10 +121,10 @@ describe('tasks', () => {
     expect(getStatusLabel('aprovada')).toBe('Aprovada');
     expect(getStatusLabel('rejeitada')).toBe('Rejeitada');
 
-    expect(getStatusColor('pendente')).toBe('#F59E0B');
-    expect(getStatusColor('aguardando_validacao')).toBe('#3B82F6');
-    expect(getStatusColor('aprovada')).toBe('#10B981');
-    expect(getStatusColor('rejeitada')).toBe('#EF4444');
+    expect(getStatusColor('pendente')).toBe('#F59F0A');
+    expect(getStatusColor('aguardando_validacao')).toBe('#308CE8');
+    expect(getStatusColor('aprovada')).toBe('#20C55D');
+    expect(getStatusColor('rejeitada')).toBe('#DC2828');
   });
 
   it('lists family children and admin tasks', async () => {
