@@ -36,6 +36,7 @@ yarn-error.*
 .claude/
 .vscode/
 .idea/
+*.code-workspace
 
 # Local Supabase
 supabase/.branches/
