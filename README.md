@@ -1,6 +1,6 @@
 # Trofinho
 
-Aplicativo mobile de educacao financeira familiar. Um adulto administra a familia, cadastra filhos, cria tarefas com pontuacao, acompanha saldos e gerencia premios. A crianca conclui tarefas, envia evidencia quando necessario, transfere pontos para o cofrinho e solicita resgates.
+Aplicativo mobile de educação financeira familiar. Um adulto administra a família, cadastra filhos, cria tarefas com pontuação, acompanha saldos e gerencia prêmios. A criança conclui tarefas, envia evidência quando necessário, transfere pontos para o cofrinho e solicita resgates.
 
 ## Stack
 
@@ -8,68 +8,68 @@ Aplicativo mobile de educacao financeira familiar. Um adulto administra a famili
 | --- | --- |
 | App mobile | React Native 0.81 |
 | Runtime | Expo SDK 54 |
-| Navegacao | Expo Router v6 |
+| Navegação | Expo Router v6 |
 | Linguagem | TypeScript em `strict` |
 | Backend | Supabase (`Auth`, Postgres, Storage, RLS) |
 | Testes | Vitest |
 
 ## Estado Atual Do Produto
 
-### Fluxo de autenticacao
+### Fluxo de autenticação
 
 - Login por e-mail e senha
 - Cadastro de adulto
-- Onboarding para criar a familia logo apos o cadastro
-- Persistencia de sessao em `expo-secure-store`
+- Onboarding para criar a família logo após o cadastro
+- Persistência de sessão em `expo-secure-store`
 
-### Area do administrador
+### Área do administrador
 
-- Home com resumo da familia, filhos, pendencias e acoes rapidas
+- Home com resumo da família, filhos, pendências e ações rápidas
 - Cadastro de filhos
-- Criacao de tarefas
-- Validacao e rejeicao de atribuicoes com motivo
-- Consulta de saldos e historico por filho
-- Configuracao e aplicacao manual de valorizacao do cofrinho
-- Aplicacao de penalizacao
-- Cadastro, edicao, ativacao e desativacao de premios
-- Acompanhamento e confirmacao/cancelamento de resgates
-- Edicao basica de perfil, avatar, senha, tema e preferencias locais de notificacao
+- Criação de tarefas
+- Validação e rejeição de atribuições com motivo
+- Consulta de saldos e histórico por filho
+- Configuração e aplicação manual de valorização do cofrinho
+- Aplicação de penalização
+- Cadastro, edição, ativação e desativação de prêmios
+- Acompanhamento e confirmação/cancelamento de resgates
+- Edição básica de perfil, avatar, senha, tema e preferências locais de notificação
 
-### Area da crianca
+### Área da criança
 
 - Home com resumo de tarefas e saldo
 - Lista de tarefas por status
-- Conclusao de tarefa com ou sem foto
-- Consulta de saldo livre, cofrinho e historico
-- Transferencia de pontos para o cofrinho
-- Lista de premios disponiveis
-- Solicitacao de resgates
-- Consulta do historico de resgates
+- Conclusão de tarefa com ou sem foto
+- Consulta de saldo livre, cofrinho e histórico
+- Transferência de pontos para o cofrinho
+- Lista de prêmios disponíveis
+- Solicitação de resgates
+- Consulta do histórico de resgates
 
 ## Arquitetura
 
-O projeto segue uma divisao simples e direta:
+O projeto segue uma divisão simples e direta:
 
-- `app/`: telas e composicao de rotas do Expo Router.
-- `lib/`: acesso a dados, integracao com Supabase, validacoes e regras de negocio reutilizaveis.
-- `src/components/`: componentes visuais reutilizaveis.
-- `src/constants/`: tokens do design system e utilitarios de apresentacao.
+- `app/`: telas e composição de rotas do Expo Router.
+- `lib/`: acesso a dados, integração com Supabase, validações e regras de negócio reutilizáveis.
+- `src/components/`: componentes visuais reutilizáveis.
+- `src/constants/`: tokens do design system e utilitários de apresentação.
 - `src/context/`: providers globais, hoje com tema.
 - `supabase/migrations/`: fonte de verdade do banco.
 
-### Organizacao de rotas
+### Organização de rotas
 
 - `app/(auth)`: login, cadastro e onboarding.
-- `app/(admin)`: experiencia do responsavel.
-- `app/(child)`: experiencia da crianca.
-- `app/_layout.tsx`: bootstrap do app, fontes, tema e redirecionamento por sessao/perfil.
+- `app/(admin)`: experiência do responsável.
+- `app/(child)`: experiência da criança.
+- `app/_layout.tsx`: bootstrap do app, fontes, tema e redirecionamento por sessão/perfil.
 
 ### Fluxo de dados
 
-- Componentes de tela chamam funcoes de `lib/*`.
+- Componentes de tela chamam funções de `lib/*`.
 - `lib/supabase.ts` centraliza o client do Supabase.
-- `lib/auth-state.ts` trata mudancas de autenticacao sem bloquear o listener do Supabase.
-- Tipos de apresentacao baseados em tema ficam em `src/constants/*`, nao em `lib/*`.
+- `lib/auth-state.ts` trata mudanças de autenticação sem bloquear o listener do Supabase.
+- Tipos de apresentação baseados em tema ficam em `src/constants/*`, não em `lib/*`.
 
 ## Estrutura De Pastas
 
@@ -117,19 +117,19 @@ supabase/
 
 Os tokens ficam em `src/constants/`:
 
-- `colors.ts`: paleta light/dark e estados semanticos.
-- `spacing.ts`: escala de espacamento.
-- `typography.ts`: familias, tamanhos e pesos.
-- `radius.ts`: raios padrao.
+- `colors.ts`: paleta light/dark e estados semânticos.
+- `spacing.ts`: escala de espaçamento.
+- `typography.ts`: famílias, tamanhos e pesos.
+- `radius.ts`: raios padrão.
 - `shadows.ts`: sombras, gradientes e easing.
 - `theme.ts`: barrel para compatibilidade de import.
-- `status.ts`: labels e cores de status para a camada de apresentacao.
+- `status.ts`: labels e cores de status para a camada de apresentação.
 
-Regra obrigatoria: nao criar cor, fonte, espacamento, radius ou sombra diretamente em componentes se o valor puder virar token.
+Regra obrigatória: não criar cor, fonte, espaçamento, radius ou sombra diretamente em componentes se o valor puder virar token.
 
-## Instalacao
+## Instalação
 
-### Pre-requisitos
+### Pré-requisitos
 
 - Node.js 18+
 - npm
@@ -164,7 +164,7 @@ npm run web
 npm run tunnel
 ```
 
-### Validacao
+### Validação
 
 ```bash
 npm run typecheck
@@ -182,45 +182,45 @@ npm run db:stop
 
 ## Build
 
-O repositorio nao versiona `eas.json` neste momento.
+O repositório não versiona `eas.json` neste momento.
 
 - Bundle web/local: `npx expo export --platform web`
 - Build nativo: configure o EAS antes de usar `npx eas build --platform android` ou `npx eas build --platform ios`
 
-Se a equipe decidir formalizar pipeline de build, o proximo passo recomendado e versionar `eas.json` e documentar perfis de ambiente.
+Se a equipe decidir formalizar pipeline de build, o próximo passo recomendado é versionar `eas.json` e documentar perfis de ambiente.
 
-## Convencoes De Codigo
+## Convenções De Código
 
-- Codigo-fonte para maquina em ingles: variaveis, funcoes, tipos, arquivos e nomes tecnicos.
-- Texto para pessoas em pt-BR: interface, erros, logs, comentarios, README e instrucoes.
-- Telas em `app/` nao devem concentrar acesso direto ao Supabase em novas implementacoes.
+- Código-fonte para máquina em inglês: variáveis, funções, tipos, arquivos e nomes técnicos.
+- Texto para pessoas em pt-BR: interface, erros, logs, comentários, README e instruções.
+- Telas em `app/` não devem concentrar acesso direto ao Supabase em novas implementações.
 - Regras visuais devem usar tokens de `src/constants/`.
 - Componentes compartilhados ficam em `src/components/`.
-- Comentarios so devem existir para restricao tecnica, regra de negocio ou decisao nao obvia.
-- Nao manter codigo morto ou hooks nao usados.
+- Comentários só devem existir para restrição técnica, regra de negócio ou decisão não óbvia.
+- Não manter código morto ou hooks não usados.
 
 ## Regras De Idioma
 
-- Interface, mensagens, logs e documentacao: pt-BR.
-- Codigo e API externa: ingles.
-- Termos do ecossistema podem permanecer em ingles quando isso melhora a clareza tecnica, como `hook`, `layout`, `router`, `storage` e `build`.
+- Interface, mensagens, logs e documentação: pt-BR.
+- Código e API externa: inglês.
+- Termos do ecossistema podem permanecer em inglês quando isso melhora a clareza técnica, como `hook`, `layout`, `router`, `storage` e `build`.
 
 ## Uso Do Supabase
 
 - `lib/supabase.ts` cria o client compartilhado.
-- Sessao fica persistida em `deviceStorage`, com suporte a chunking por limite do `SecureStore`.
-- RPCs concentram mutacoes criticas como criacao de familia, tarefas, valorizacao e resgates.
+- Sessão fica persistida em `deviceStorage`, com suporte a chunking por limite do `SecureStore`.
+- RPCs concentram mutações críticas como criação de família, tarefas, valorização e resgates.
 - O schema operacional deve ser mantido pelas migrations em `supabase/migrations/`.
-- Politicas de RLS fazem parte do desenho da aplicacao e nao devem ser contornadas pelo app.
+- Políticas de RLS fazem parte do desenho da aplicação e não devem ser contornadas pelo app.
 
 ## Uso Do Expo Router
 
-- As rotas sao file-based e separadas por grupo de acesso.
-- O projeto usa `headerShown: false` e cabecalho proprio com `ScreenHeader`.
-- `app/_layout.tsx` decide o fluxo inicial com base em sessao e perfil.
-- Ao criar novas telas, preserve a separacao `(auth)`, `(admin)` e `(child)`.
+- As rotas são file-based e separadas por grupo de acesso.
+- O projeto usa `headerShown: false` e cabeçalho próprio com `ScreenHeader`.
+- `app/_layout.tsx` decide o fluxo inicial com base em sessão e perfil.
+- Ao criar novas telas, preserve a separação `(auth)`, `(admin)` e `(child)`.
 
-## Verificacao Antes De Fechar Mudancas
+## Verificação Antes De Fechar Mudanças
 
 Sempre rode:
 
@@ -229,4 +229,4 @@ npm run typecheck
 npm test
 ```
 
-Em alteracoes com impacto visual, valide tambem manualmente no tema claro e escuro.
+Em alterações com impacto visual, valide também manualmente no tema claro e escuro.
