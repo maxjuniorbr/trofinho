@@ -26,6 +26,8 @@ import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 
+const WHITE = '#fff';
+
 type AssignmentCardProps = Readonly<{
   assignment: AssignmentWithChild;
   action: 'rejecting' | 'processing' | null;
@@ -61,8 +63,6 @@ function AssignmentCard({
   const statusColor = getStatusColor(assignment.status);
   const isRejecting = action === 'rejecting';
   const evidenceUrl = assignment.evidencia_url ?? undefined;
-  const shouldShowImage = Boolean(evidenceUrl) && imageState !== 'error';
-  const shouldShowImageFallback = Boolean(evidenceUrl) && imageState === 'error';
 
   return (
     <View style={styles.atribCard}>
@@ -75,29 +75,29 @@ function AssignmentCard({
         </View>
       </View>
 
-      {shouldShowImage ? (
-        <View style={styles.evidenciaImgWrapper}>
-          <Image
-            source={{ uri: evidenceUrl }}
-            style={styles.evidenciaImg}
-            resizeMode="cover"
-            onLoadStart={() => onImageStateChange('loading')}
-            onLoadEnd={() => onImageStateChange('loaded')}
-            onError={() => onImageStateChange('error')}
-          />
-          {(!imageState || imageState === 'loading') ? (
-            <View style={styles.evidenciaLoading}>
-              <ActivityIndicator size="small" color={colors.accent.admin} />
-            </View>
-          ) : null}
-        </View>
-      ) : null}
-
-      {shouldShowImageFallback ? (
-        <View style={[styles.evidenciaImgWrapper, styles.evidenciaFallback, { backgroundColor: colors.bg.muted }]}>
-          <Text style={[styles.evidenciaFallbackText, { color: colors.text.muted }]}>Não foi possível carregar a imagem</Text>
-        </View>
-      ) : null}
+      {evidenceUrl && (
+        imageState === 'error' ? (
+          <View style={[styles.evidenciaImgWrapper, styles.evidenciaFallback, { backgroundColor: colors.bg.muted }]}>
+            <Text style={[styles.evidenciaFallbackText, { color: colors.text.muted }]}>Não foi possível carregar a imagem</Text>
+          </View>
+        ) : (
+          <View style={styles.evidenciaImgWrapper}>
+            <Image
+              source={{ uri: evidenceUrl }}
+              style={styles.evidenciaImg}
+              resizeMode="cover"
+              onLoadStart={() => onImageStateChange('loading')}
+              onLoadEnd={() => onImageStateChange('loaded')}
+              onError={() => onImageStateChange('error')}
+            />
+            {imageState !== 'loaded' && (
+              <View style={styles.evidenciaLoading}>
+                <ActivityIndicator size="small" color={colors.accent.admin} />
+              </View>
+            )}
+          </View>
+        )
+      )}
 
       {assignment.nota_rejeicao ? (
         <View style={styles.notaRejeicaoBox}>
@@ -132,7 +132,7 @@ function AssignmentCard({
                   disabled={processing}
                 >
                   {processing
-                    ? <ActivityIndicator color="#fff" size="small" />
+                    ? <ActivityIndicator color={WHITE} size="small" />
                     : <Text style={styles.botaoRejeitarTexto}>Confirmar rejeição</Text>}
                 </Pressable>
               </View>
@@ -152,7 +152,7 @@ function AssignmentCard({
                 disabled={processing}
               >
                 {processing
-                  ? <ActivityIndicator color="#fff" size="small" />
+                  ? <ActivityIndicator color={WHITE} size="small" />
                   : <Text style={styles.botaoAprovarTexto}>Aprovar ✓</Text>}
               </Pressable>
             </View>
@@ -231,6 +231,22 @@ export default function TaskDetailAdminScreen() {
     }
   }
 
+  function startReject(assignmentId: string) {
+    setAssignmentActions((prev) => ({ ...prev, [assignmentId]: 'rejecting' }));
+  }
+
+  function cancelReject(assignmentId: string) {
+    setAssignmentActions((prev) => ({ ...prev, [assignmentId]: null }));
+  }
+
+  function changeNote(assignmentId: string, value: string) {
+    setRejectionNotes((prev) => ({ ...prev, [assignmentId]: value }));
+  }
+
+  function changeImgState(assignmentId: string, state: 'loading' | 'loaded' | 'error') {
+    setImgStates((prev) => ({ ...prev, [assignmentId]: state }));
+  }
+
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
@@ -296,10 +312,10 @@ export default function TaskDetailAdminScreen() {
                 styles={styles}
                 onApprove={() => handleApprove(assignment)}
                 onReject={() => handleReject(assignment)}
-                onStartReject={() => setAssignmentActions((prev) => ({ ...prev, [assignment.id]: 'rejecting' }))}
-                onCancelReject={() => setAssignmentActions((prev) => ({ ...prev, [assignment.id]: null }))}
-                onNoteChange={(value) => setRejectionNotes((prev) => ({ ...prev, [assignment.id]: value }))}
-                onImageStateChange={(state) => setImgStates((prev) => ({ ...prev, [assignment.id]: state }))}
+                onStartReject={() => startReject(assignment.id)}
+                onCancelReject={() => cancelReject(assignment.id)}
+                onNoteChange={(value) => changeNote(assignment.id, value)}
+                onImageStateChange={(state) => changeImgState(assignment.id, state)}
               />
             );
           })
@@ -393,9 +409,9 @@ function makeStyles(colors: ThemeColors) {
     botaoCancelar: { borderWidth: 1, borderColor: colors.border.default },
     botaoCancelarTexto: { color: colors.text.secondary, fontFamily: typography.family.semibold, fontSize: typography.size.sm },
     botaoRejeitar: { backgroundColor: colors.semantic.error },
-    botaoRejeitarTexto: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.sm },
+    botaoRejeitarTexto: { color: WHITE, fontFamily: typography.family.bold, fontSize: typography.size.sm },
     botaoAprovar: { backgroundColor: colors.semantic.success },
-    botaoAprovarTexto: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.sm },
+    botaoAprovarTexto: { color: WHITE, fontFamily: typography.family.bold, fontSize: typography.size.sm },
     botaoDesabilitado: { opacity: 0.5 },
     erroAtrib: { color: colors.semantic.error, fontSize: typography.size.xs, marginTop: spacing['2'] },
   });
