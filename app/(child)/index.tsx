@@ -11,6 +11,13 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
+import {
+  ClipboardList,
+  Gift,
+  ShoppingBag,
+  Wallet,
+  LogOut,
+} from 'lucide-react-native';
 import { signOut, getProfile, type UserProfile } from '@lib/auth';
 import { supabase } from '@lib/supabase';
 import { listChildAssignments } from '@lib/tasks';
@@ -20,9 +27,16 @@ import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PointsDisplay } from '@/components/ui/points-display';
+import { mascotImage, celebratingImage } from '@/constants/assets';
 
-const mascotImage       = require('../../assets/trofinho-mascot.png');
-const celebratingImage  = require('../../assets/trofinho-celebrating.png');
+import type { LucideIcon } from 'lucide-react-native';
+
+const CHILD_QUICK_ACTIONS: ReadonlyArray<{ icon: LucideIcon; label: string; rota: string }> = [
+  { icon: Gift,        label: 'Prêmios',  rota: '/(child)/prizes'      },
+  { icon: ShoppingBag, label: 'Resgates', rota: '/(child)/redemptions' },
+  { icon: Wallet,      label: 'Saldo',    rota: '/(child)/balance'     },
+];
+
 
 type Family = { nome: string };
 
@@ -170,13 +184,15 @@ export default function FilhoHomeScreen() {
               borderColor: hasPending ? colors.semantic.error + '50' : colors.border.subtle,
             },
             shadows.card,
-            pressed && { opacity: 0.85 },
+            pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
           ]}
           onPress={() => router.push('/(child)/tasks')}
           accessibilityRole="button"
           accessibilityLabel={hasPending ? `${pendingCount} tarefas pendentes` : 'Minhas Tarefas'}
         >
-          <Text style={styles.tarefasEmoji}>📋</Text>
+          <View style={[styles.tarefasIconBox, { backgroundColor: colors.accent.filhoBg }]}>
+            <ClipboardList size={22} color={colors.accent.filho} strokeWidth={1.5} />
+          </View>
           <View style={styles.tarefasBody}>
             <Text style={[styles.tarefasTitle, { color: colors.text.primary }]}>Minhas Tarefas</Text>
             <Text style={[styles.tarefasSub, { color: colors.text.secondary }]}>
@@ -194,24 +210,22 @@ export default function FilhoHomeScreen() {
       </Animated.View>
 
       <Animated.View style={[styles.quickGrid, { opacity: heroOpacity }]}>
-        {([
-          { emoji: '🎁', label: 'Prêmios',  rota: '/(child)/prizes'      as never },
-          { emoji: '🛍️', label: 'Resgates', rota: '/(child)/redemptions' as never },
-          { emoji: '💰', label: 'Saldo',    rota: '/(child)/balance'     as never },
-        ]).map(({ emoji, label, rota }) => (
+        {CHILD_QUICK_ACTIONS.map(({ icon: Icon, label, rota }) => (
           <Pressable
             key={rota}
             style={({ pressed }) => [
               styles.quickCard,
               { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
               shadows.card,
-              pressed && { opacity: 0.8 },
+              pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
             ]}
-            onPress={() => router.push(rota)}
+            onPress={() => router.push(rota as never)}
             accessibilityRole="button"
             accessibilityLabel={label}
           >
-            <Text style={styles.quickEmoji}>{emoji}</Text>
+            <View style={[styles.quickIconBox, { backgroundColor: colors.accent.filhoBg }]}>
+              <Icon size={22} color={colors.accent.filho} strokeWidth={1.5} />
+            </View>
             <Text style={[styles.quickLabel, { color: colors.text.primary }]}>{label}</Text>
           </Pressable>
         ))}
@@ -226,7 +240,12 @@ export default function FilhoHomeScreen() {
       >
         {loggingOut
           ? <ActivityIndicator color={colors.semantic.error} />
-          : <Text style={[styles.btnLogoutText, { color: colors.semantic.error }]}>Sair</Text>
+          : (
+            <View style={styles.btnLogoutInner}>
+              <LogOut size={16} color={colors.semantic.error} strokeWidth={2} />
+              <Text style={[styles.btnLogoutText, { color: colors.semantic.error }]}>Sair</Text>
+            </View>
+          )
         }
       </Pressable>
 
@@ -260,7 +279,7 @@ function makeStyles() {
       borderRadius: radii.outer, borderWidth: 1, padding: spacing['4'],
       width: '100%', marginBottom: spacing['4'],
     },
-    tarefasEmoji:    { fontSize: 28 },
+    tarefasIconBox:  { width: 44, height: 44, borderRadius: radii.md, alignItems: 'center' as const, justifyContent: 'center' as const },
     tarefasBody:     { flex: 1 },
     tarefasTitle:    { fontFamily: typography.family.bold, fontSize: typography.size.md },
     tarefasSub:      { fontFamily: typography.family.medium, fontSize: typography.size.xs, marginTop: spacing['1'] },
@@ -273,7 +292,7 @@ function makeStyles() {
       borderRadius: radii.inner, borderWidth: 1,
       paddingVertical: spacing['4'], alignItems: 'center', gap: spacing['1'],
     },
-    quickEmoji:      { fontSize: 24 },
+    quickIconBox:    { width: 44, height: 44, borderRadius: radii.md, alignItems: 'center' as const, justifyContent: 'center' as const },
     quickLabel:      { fontFamily: typography.family.bold, fontSize: typography.size.xs, textAlign: 'center' },
 
     btnLogout: {
@@ -281,6 +300,7 @@ function makeStyles() {
       paddingVertical: spacing['3'], alignItems: 'center',
       minHeight: 48, justifyContent: 'center', width: '100%',
     },
+    btnLogoutInner: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: spacing['2'] },
     btnLogoutText: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
   });
 }

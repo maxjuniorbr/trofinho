@@ -13,10 +13,18 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo, useCallback } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import { Sun, Moon, Smartphone, Camera, LogOut } from 'lucide-react-native';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Avatar } from '@/components/ui/avatar';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
+
+type ColorScheme = 'light' | 'dark' | 'system';
+const THEME_OPTIONS: ReadonlyArray<{ value: ColorScheme; label: string; Icon: typeof Sun }> = [
+  { value: 'light',  label: 'Claro',   Icon: Sun },
+  { value: 'dark',   label: 'Escuro',  Icon: Moon },
+  { value: 'system', label: 'Sistema', Icon: Smartphone },
+];
 import { supabase } from '@lib/supabase';
 import { deviceStorage } from '@lib/device-storage';
 import {
@@ -83,7 +91,7 @@ function normalizeNotificationPreferences(
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { colors } = useTheme();
+  const { colors, scheme, setScheme } = useTheme();
   const styles = useMemo(() => makeStyles(), []);
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -253,7 +261,7 @@ export default function ProfileScreen() {
             <View style={[styles.cameraBtn, { backgroundColor: colors.accent.admin }]}>
               {uploadingAvatar
                 ? <ActivityIndicator size="small" color={colors.text.inverse} />
-                : <Text style={[styles.cameraBtnIcon, { color: colors.text.inverse }]}>📷</Text>
+                : <Camera size={12} color={colors.text.inverse} strokeWidth={2.5} />
               }
             </View>
           </Pressable>
@@ -355,6 +363,41 @@ export default function ProfileScreen() {
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Aparência</Text>
+          <View style={styles.themeRow}>
+            {THEME_OPTIONS.map(({ value, label, Icon }) => {
+              const isActive = scheme === value;
+              return (
+                <Pressable
+                  key={value}
+                  style={[
+                    styles.themeOption,
+                    {
+                      backgroundColor: isActive ? colors.accent.admin : colors.bg.elevated,
+                      borderColor: isActive ? colors.accent.admin : colors.border.subtle,
+                    },
+                  ]}
+                  onPress={() => setScheme(value)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Tema ${label}`}
+                  accessibilityState={{ selected: isActive }}
+                >
+                  <Icon size={16} color={isActive ? colors.text.inverse : colors.text.secondary} strokeWidth={2} />
+                  <Text
+                    style={[
+                      styles.themeOptionLabel,
+                      { color: isActive ? colors.text.inverse : colors.text.secondary },
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={[styles.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
           <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Notificações</Text>
 
           {notificationOptions.map(({ key, label }, index) => (
@@ -386,7 +429,12 @@ export default function ProfileScreen() {
         >
           {loggingOut
             ? <ActivityIndicator color={colors.semantic.error} />
-            : <Text style={[styles.btnText, { color: colors.semantic.error }]}>Sair</Text>
+            : (
+              <View style={styles.btnLogoutInner}>
+                <LogOut size={16} color={colors.semantic.error} strokeWidth={2} />
+                <Text style={[styles.btnText, { color: colors.semantic.error }]}>Sair</Text>
+              </View>
+            )
           }
         </Pressable>
 
@@ -447,6 +495,20 @@ function makeStyles() {
       borderRadius: radii.md, borderWidth: 1,
       paddingVertical: spacing['3'], alignItems: 'center',
       minHeight: 48, justifyContent: 'center',
+    },
+    btnLogoutInner: {
+      flexDirection: 'row' as const, alignItems: 'center' as const, gap: spacing['2'],
+    },
+
+    themeRow: {
+      flexDirection: 'row' as const, gap: spacing['2'],
+    },
+    themeOption: {
+      flex: 1, flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const,
+      gap: spacing['2'], paddingVertical: spacing['3'], borderRadius: radii.md, borderWidth: 1,
+    },
+    themeOptionLabel: {
+      fontSize: typography.size.sm, fontFamily: typography.family.semibold,
     },
   });
 }

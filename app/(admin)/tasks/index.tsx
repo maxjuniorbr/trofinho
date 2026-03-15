@@ -2,6 +2,7 @@ import { StyleSheet, Text, View, Pressable, FlatList, RefreshControl } from 'rea
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { RefreshCw } from 'lucide-react-native';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Badge } from '@/components/ui/badge';
@@ -69,9 +70,14 @@ export default function AdminTasksScreen() {
                     <Text style={[styles.pontosTexto, { color: colors.brand.dim }]}>{item.pontos} pts</Text>
                   </View>
                 </View>
-                <Text style={[styles.cardPrazo, { color: colors.text.muted }]}>
-                  {item.frequencia === 'diaria' ? '🔁 Diária' : '1️⃣ Única'}
-                </Text>
+                <View style={styles.freqRow}>
+                  {item.frequencia === 'diaria' ? (
+                    <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
+                  ) : null}
+                  <Text style={[styles.cardPrazo, { color: colors.text.muted }]}>
+                    {item.frequencia === 'diaria' ? 'Diária' : 'Única'}
+                  </Text>
+                </View>
                 <View style={styles.cardStats}>
                   {total === 0 ? (
                     <Text style={[styles.statTexto, { color: colors.text.muted }]}>Sem atribuições</Text>
@@ -103,7 +109,8 @@ function makeStyles() {
     cardTitulo: { flex: 1, fontSize: typography.size.md, fontFamily: typography.family.semibold, marginRight: spacing['2'] },
     pontosTag: { borderRadius: radii.full, paddingHorizontal: spacing['2'], paddingVertical: spacing['1'] },
     pontosTexto: { fontSize: typography.size.xs, fontFamily: typography.family.bold },
-    cardPrazo: { fontSize: typography.size.xs, marginBottom: spacing['2'] },
+    freqRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: spacing['2'] },
+    cardPrazo: { fontSize: typography.size.xs },
     cardStats: { flexDirection: 'row', gap: spacing['2'], flexWrap: 'wrap' },
     statTexto: { fontSize: typography.size.xs },
   });
