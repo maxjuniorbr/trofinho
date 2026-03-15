@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import type { ThemeColors } from '@/constants/theme';
 
 export type Prize = {
   id: string;
@@ -31,13 +32,7 @@ export type RedemptionWithChildAndPrize = Redemption & {
   premios: { nome: string };
 };
 
-export type NewPrizeInput = {
-  nome: string;
-  descricao: string | null;
-  custo_pontos: number;
-};
-
-export type UpdatePrizeInput = {
+export type PrizeInput = {
   nome: string;
   descricao: string | null;
   custo_pontos: number;
@@ -61,16 +56,16 @@ export function getRedemptionStatusEmoji(status: RedemptionStatus): string {
   return map[status];
 }
 
-export function getRedemptionStatusColor(status: RedemptionStatus): string {
+export function getRedemptionStatusColor(status: RedemptionStatus, colors: ThemeColors): string {
   const map: Record<RedemptionStatus, string> = {
-    pendente:   '#F59F0A',
-    confirmado: '#20C55D',
-    cancelado:  '#DC2828',
+    pendente:   colors.semantic.warning,
+    confirmado: colors.semantic.success,
+    cancelado:  colors.semantic.error,
   };
   return map[status];
 }
 
-export async function listPrizes(): Promise<{
+export async function listPrizes(limit = 50): Promise<{
   data: Prize[];
   error: string | null;
 }> {
@@ -78,7 +73,8 @@ export async function listPrizes(): Promise<{
     .from('premios')
     .select('*')
     .order('ativo', { ascending: false })
-    .order('nome');
+    .order('nome')
+    .limit(limit);
 
   if (error) return { data: [], error: error.message };
   return { data: (data ?? []) as Prize[], error: null };
@@ -98,7 +94,7 @@ export async function getPrize(id: string): Promise<{
   return { data: data as Prize, error: null };
 }
 
-export async function createPrize(input: NewPrizeInput): Promise<{
+export async function createPrize(input: PrizeInput): Promise<{
   data: Prize | null;
   error: string | null;
 }> {
@@ -130,7 +126,7 @@ export async function createPrize(input: NewPrizeInput): Promise<{
 
 export async function updatePrize(
   id: string,
-  input: UpdatePrizeInput
+  input: PrizeInput
 ): Promise<{ error: string | null }> {
   const { error } = await supabase
     .from('premios')
@@ -172,7 +168,8 @@ export async function listRedemptions(): Promise<{
   const { data, error } = await supabase
     .from('resgates')
     .select('*, filhos(nome), premios(nome)')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(100);
 
   if (error) return { data: [], error: error.message };
   return { data: (data ?? []) as RedemptionWithChildAndPrize[], error: null };
@@ -204,7 +201,8 @@ export async function listActivePrizes(): Promise<{
     .from('premios')
     .select('*')
     .eq('ativo', true)
-    .order('custo_pontos');
+    .order('custo_pontos')
+    .limit(50);
 
   if (error) return { data: [], error: error.message };
   return { data: (data ?? []) as Prize[], error: null };
@@ -217,7 +215,8 @@ export async function listChildRedemptions(): Promise<{
   const { data, error } = await supabase
     .from('resgates')
     .select('*, premios(nome, custo_pontos)')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(100);
 
   if (error) return { data: [], error: error.message };
   return { data: (data ?? []) as RedemptionWithPrize[], error: null };

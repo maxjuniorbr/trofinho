@@ -24,6 +24,10 @@
       },
       "predictiveBackGestureEnabled": false
     },
+    "newArchEnabled": true,
+    "experiments": {
+      "reactCompiler": true
+    },
     "plugins": [
       "expo-router",
       "expo-secure-store",
