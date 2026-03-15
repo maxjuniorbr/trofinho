@@ -64,7 +64,7 @@ export function AppreciationModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide">
-      <KeyboardAvoidingView style={styles.overlay} behavior="padding">
+      <KeyboardAvoidingView style={[styles.overlay, { backgroundColor: colors.overlay.scrim }]} behavior="padding">
         <View style={[styles.box, { backgroundColor: colors.bg.surface }]}>
           <Text style={[styles.title, { color: colors.text.primary }]}>Configurar valorização</Text>
 
@@ -127,7 +127,7 @@ export function AppreciationModal({
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
+  overlay: { flex: 1, justifyContent: 'flex-end' },
   box: {
     borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl,
     padding: spacing['6'], paddingBottom: spacing['12'], gap: spacing['3'],

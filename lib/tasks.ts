@@ -1,7 +1,6 @@
 import { toDateString } from './utils';
 import { readImageAsArrayBuffer, inferImageExtension, inferImageContentType, extractErrorMessage } from './image-utils';
 import { supabase } from './supabase';
-import type { ThemeColors } from '@/constants/theme';
 
 export type Child = {
   id: string;
@@ -356,27 +355,4 @@ function normalizeEvidencePath(evidence: string): string | null {
   } catch {
     return null;
   }
-}
-
-export function getStatusLabel(status: AssignmentStatus): string {
-  switch (status) {
-    case 'pendente':
-      return 'Pendente';
-    case 'aguardando_validacao':
-      return 'Aguardando validação';
-    case 'aprovada':
-      return 'Aprovada';
-    case 'rejeitada':
-      return 'Rejeitada';
-  }
-}
-
-export function getStatusColor(status: AssignmentStatus, colors: ThemeColors): string {
-  const map: Record<AssignmentStatus, string> = {
-    pendente: colors.semantic.warning,
-    aguardando_validacao: colors.semantic.info,
-    aprovada: colors.semantic.success,
-    rejeitada: colors.semantic.error,
-  };
-  return map[status];
 }

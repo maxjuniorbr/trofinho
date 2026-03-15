@@ -1,4 +1,3 @@
-// app.config.js — recebe a base do app.json e injeta apenas valores dinâmicos.
 module.exports = function appConfig({ config }) {
   return {
     ...config,

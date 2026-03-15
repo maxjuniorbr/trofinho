@@ -14,19 +14,16 @@ import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { RefreshCw, Camera } from 'lucide-react-native';
 import {
   getTaskWithAssignments,
-  getStatusLabel,
-  getStatusColor,
   type TaskDetail,
   type AssignmentWithChild,
 } from '@lib/tasks';
+import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
 import { useAssignmentActions } from '@/hooks/use-assignment-actions';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
-
-const WHITE = '#fff';
 
 type AssignmentCardProps = Readonly<{
   assignment: AssignmentWithChild;
@@ -60,7 +57,7 @@ function AssignmentCard({
   onImageStateChange,
 }: AssignmentCardProps) {
   const processing = action === 'processing';
-  const statusColor = getStatusColor(assignment.status, colors);
+  const statusColor = getAssignmentStatusColor(assignment.status, colors);
   const isRejecting = action === 'rejecting';
   const evidenceUrl = assignment.evidencia_url ?? undefined;
 
@@ -70,7 +67,7 @@ function AssignmentCard({
         <Text style={styles.filhoNome}>{assignment.filhos.nome}</Text>
         <View style={[styles.statusTag, { backgroundColor: statusColor + '20' }]}>
           <Text style={[styles.statusTexto, { color: statusColor }]}>
-            {getStatusLabel(assignment.status)}
+            {getAssignmentStatusLabel(assignment.status)}
           </Text>
         </View>
       </View>
@@ -132,7 +129,7 @@ function AssignmentCard({
                   disabled={processing}
                 >
                   {processing
-                    ? <ActivityIndicator color={WHITE} size="small" />
+                    ? <ActivityIndicator color={colors.text.inverse} size="small" />
                     : <Text style={styles.botaoRejeitarTexto}>Confirmar rejeição</Text>}
                 </Pressable>
               </View>
@@ -152,7 +149,7 @@ function AssignmentCard({
                 disabled={processing}
               >
                 {processing
-                  ? <ActivityIndicator color={WHITE} size="small" />
+                    ? <ActivityIndicator color={colors.text.inverse} size="small" />
                   : <Text style={styles.botaoAprovarTexto}>Aprovar ✓</Text>}
               </Pressable>
             </View>
@@ -364,9 +361,9 @@ function makeStyles(colors: ThemeColors) {
     botaoCancelar: { borderWidth: 1, borderColor: colors.border.default },
     botaoCancelarTexto: { color: colors.text.secondary, fontFamily: typography.family.semibold, fontSize: typography.size.sm },
     botaoRejeitar: { backgroundColor: colors.semantic.error },
-    botaoRejeitarTexto: { color: WHITE, fontFamily: typography.family.bold, fontSize: typography.size.sm },
+    botaoRejeitarTexto: { color: colors.text.inverse, fontFamily: typography.family.bold, fontSize: typography.size.sm },
     botaoAprovar: { backgroundColor: colors.semantic.success },
-    botaoAprovarTexto: { color: WHITE, fontFamily: typography.family.bold, fontSize: typography.size.sm },
+    botaoAprovarTexto: { color: colors.text.inverse, fontFamily: typography.family.bold, fontSize: typography.size.sm },
     botaoDesabilitado: { opacity: 0.5 },
     erroAtrib: { color: colors.semantic.error, fontSize: typography.size.xs, marginTop: spacing['2'] },
   });

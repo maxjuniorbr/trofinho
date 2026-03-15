@@ -12,7 +12,6 @@ interface ScreenHeaderProps {
   onBack?: () => void;
   backLabel?: string;
   rightAction?: ReactNode;
-  /** Role determines the back-button / accent color ('admin' | 'filho') */
   role?: 'admin' | 'filho';
   backTone?: 'accent' | 'muted';
   surface?: 'surface' | 'canvas';

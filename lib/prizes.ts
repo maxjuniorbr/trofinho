@@ -1,5 +1,4 @@
 import { supabase } from './supabase';
-import type { ThemeColors } from '@/constants/theme';
 
 export type Prize = {
   id: string;
@@ -38,32 +37,6 @@ export type PrizeInput = {
   custo_pontos: number;
 };
 
-export function getRedemptionStatusLabel(status: RedemptionStatus): string {
-  const map: Record<RedemptionStatus, string> = {
-    pendente:   'Pendente',
-    confirmado: 'Confirmado',
-    cancelado:  'Cancelado',
-  };
-  return map[status];
-}
-
-export function getRedemptionStatusEmoji(status: RedemptionStatus): string {
-  const map: Record<RedemptionStatus, string> = {
-    pendente:   '⏳',
-    confirmado: '✅',
-    cancelado:  '❌',
-  };
-  return map[status];
-}
-
-export function getRedemptionStatusColor(status: RedemptionStatus, colors: ThemeColors): string {
-  const map: Record<RedemptionStatus, string> = {
-    pendente:   colors.semantic.warning,
-    confirmado: colors.semantic.success,
-    cancelado:  colors.semantic.error,
-  };
-  return map[status];
-}
 
 export async function listPrizes(limit = 50): Promise<{
   data: Prize[];

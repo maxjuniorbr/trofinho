@@ -142,9 +142,9 @@ function makeStyles(colors: ThemeColors) {
       marginBottom: spacing['1'],
       gap: spacing['1'],
     },
-    balanceLabel: { fontSize: typography.size.xs, color: 'rgba(42,36,16,0.75)', fontFamily: typography.family.semibold },
+    balanceLabel: { fontSize: typography.size.xs, color: colors.text.onBrandMuted, fontFamily: typography.family.semibold },
     balanceValue: { fontSize: typography.size['3xl'], fontFamily: typography.family.black, color: colors.text.onBrand },
-    balancePts: { fontSize: typography.size.xs, color: 'rgba(42,36,16,0.75)', fontFamily: typography.family.medium },
+    balancePts: { fontSize: typography.size.xs, color: colors.text.onBrandMuted, fontFamily: typography.family.medium },
     errorText: { color: colors.semantic.error, fontSize: typography.size.sm, fontFamily: typography.family.medium, marginBottom: spacing['1'] },
     successText: { color: colors.semantic.success, fontSize: typography.size.sm, fontFamily: typography.family.semibold, marginBottom: spacing['1'] },
   });
@@ -228,9 +228,11 @@ function PrizeCard({ item, freeBalance, redeeming, onRedeem }: PrizeCardProps) {
         accessibilityState={{ disabled: !hasBalance || redeeming !== null }}
       >
         {isRedeeming ? (
-          <ActivityIndicator size="small" color="#fff" />
+          <ActivityIndicator size="small" color={colors.text.inverse} />
         ) : (
-          <Text style={cardStyles.buttonText}>{hasBalance ? 'Resgatar' : 'Sem saldo'}</Text>
+          <Text style={[cardStyles.buttonText, { color: colors.text.inverse }]}>
+            {hasBalance ? 'Resgatar' : 'Sem saldo'}
+          </Text>
         )}
       </Pressable>
     </View>
@@ -255,14 +257,14 @@ const cardStyles = StyleSheet.create({
   costRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing['1'],
   },
   cost: {
     fontSize: typography.size.xs,
     fontFamily: typography.family.bold,
   },
   progressBg: {
-    height: 4,
+    height: spacing['1'],
     borderRadius: radii.full,
     overflow: 'hidden',
     marginTop: spacing['1'],
@@ -280,7 +282,7 @@ const cardStyles = StyleSheet.create({
   statusInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: spacing['0.75'],
   },
   statusText: {
     fontSize: typography.size.xs,
@@ -297,7 +299,6 @@ const cardStyles = StyleSheet.create({
   },
   disabledButton: { opacity: 0.5 },
   buttonText: {
-    color: '#fff',
     fontFamily: typography.family.bold,
     fontSize: typography.size.xs,
   },

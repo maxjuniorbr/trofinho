@@ -36,17 +36,11 @@ vi.mock('./supabase', () => ({
   supabase: supabaseMock,
 }));
 
-vi.mock('@/constants/theme', () => ({
-  lightColors: {},
-}));
-
 import {
   approveAssignment,
   completeAssignment,
   createTask,
   getChildAssignment,
-  getStatusColor,
-  getStatusLabel,
   getTaskWithAssignments,
   listAdminTasks,
   listChildAssignments,
@@ -54,6 +48,7 @@ import {
   rejectAssignment,
   renewDailyTasks,
 } from './tasks';
+import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
 
 type QueryResult = {
   count?: number | null;
@@ -134,19 +129,19 @@ describe('tasks', () => {
   });
 
   it('returns status labels and colors', () => {
-    expect(getStatusLabel('pendente')).toBe('Pendente');
-    expect(getStatusLabel('aguardando_validacao')).toBe('Aguardando validação');
-    expect(getStatusLabel('aprovada')).toBe('Aprovada');
-    expect(getStatusLabel('rejeitada')).toBe('Rejeitada');
+    expect(getAssignmentStatusLabel('pendente')).toBe('Pendente');
+    expect(getAssignmentStatusLabel('aguardando_validacao')).toBe('Aguardando validação');
+    expect(getAssignmentStatusLabel('aprovada')).toBe('Aprovada');
+    expect(getAssignmentStatusLabel('rejeitada')).toBe('Rejeitada');
 
     const mockColors = {
       semantic: { warning: '#F59F0A', info: '#308CE8', success: '#20C55D', error: '#DC2828' },
-    } as Parameters<typeof getStatusColor>[1];
+    } as Parameters<typeof getAssignmentStatusColor>[1];
 
-    expect(getStatusColor('pendente', mockColors)).toBe('#F59F0A');
-    expect(getStatusColor('aguardando_validacao', mockColors)).toBe('#308CE8');
-    expect(getStatusColor('aprovada', mockColors)).toBe('#20C55D');
-    expect(getStatusColor('rejeitada', mockColors)).toBe('#DC2828');
+    expect(getAssignmentStatusColor('pendente', mockColors)).toBe('#F59F0A');
+    expect(getAssignmentStatusColor('aguardando_validacao', mockColors)).toBe('#308CE8');
+    expect(getAssignmentStatusColor('aprovada', mockColors)).toBe('#20C55D');
+    expect(getAssignmentStatusColor('rejeitada', mockColors)).toBe('#DC2828');
   });
 
   it('lists family children and admin tasks', async () => {
