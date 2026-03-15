@@ -40,13 +40,13 @@ export default function AdminTasksScreen() {
         backLabel="Início"
         rightAction={
           <Pressable onPress={() => router.push('/(admin)/tasks/new')} style={[styles.botaoNova, { backgroundColor: colors.accent.admin }]}>
-            <Text style={[styles.botaoNovaTexto, { color: colors.text.inverse }]}>+ Nova</Text>
+            <Text style={[styles.botaoNovaTexto, { color: colors.text.inverse }]}>+</Text>
           </Pressable>
         }
       />
 
       {shouldShowEmptyState ? (
-        <EmptyState loading={loading} error={error} empty={tasks.length === 0} emptyMessage={'Nenhuma tarefa criada ainda.\nToque em "+ Nova" para criar a primeira tarefa.'} onRetry={loadData} />
+        <EmptyState loading={loading} error={error} empty={tasks.length === 0} emptyMessage={'Nenhuma tarefa criada ainda.\nToque em "+" para criar a primeira tarefa.'} onRetry={loadData} />
       ) : (
         <FlatList
           data={tasks}
@@ -93,8 +93,8 @@ export default function AdminTasksScreen() {
 function makeStyles() {
   return StyleSheet.create({
     container: { flex: 1 },
-    botaoNova: { borderRadius: radii.sm, paddingVertical: spacing['2'], paddingHorizontal: spacing['3'], minHeight: 36 },
-    botaoNovaTexto: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
+    botaoNova: { alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: radii.md },
+    botaoNovaTexto: { fontSize: 22, fontFamily: typography.family.black, textAlign: 'center', includeFontPadding: false },
     lista: { padding: spacing['4'], paddingBottom: spacing['10'], gap: spacing['3'] },
     card: { borderRadius: radii.xl, borderWidth: 1, padding: spacing['4'] },
     cardTopo: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing['2'] },

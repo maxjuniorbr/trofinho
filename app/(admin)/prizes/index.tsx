@@ -46,7 +46,7 @@ export default function AdminPrizesScreen() {
   const inactive = prizes.filter((p) => !p.ativo);
   const hasError = Boolean(error);
   const shouldShowEmptyState = loading || hasError || prizes.length === 0;
-  const emptyStateMessage = 'Nenhum prêmio cadastrado.\nToque em "+ Novo" para criar o primeiro prêmio.';
+  const emptyStateMessage = 'Nenhum prêmio cadastrado.\nToque em "+" para criar o primeiro prêmio.';
   const inactivePlural = inactive.length === 1 ? '' : 's';
   const inactiveSummary = inactive.length > 0
     ? ` · ${inactive.length} inativo${inactivePlural}`
@@ -64,7 +64,7 @@ export default function AdminPrizesScreen() {
             onPress={() => router.push('/(admin)/prizes/new' as never)}
             style={[styles.botaoNova, { backgroundColor: colors.accent.admin }]}
           >
-            <Text style={[styles.botaoNovaTexto, { color: colors.text.inverse }]}>+ Novo</Text>
+            <Text style={[styles.botaoNovaTexto, { color: colors.text.inverse }]}>+</Text>
           </Pressable>
         }
       />
@@ -151,8 +151,7 @@ function makeStyles(colors: ThemeColors) {
       paddingVertical: spacing['1'],
     },
     badgeInativoTexto: { fontSize: typography.size.xs, color: colors.text.muted, fontFamily: typography.family.semibold },
-    botaoNova: { borderRadius: radii.sm, paddingVertical: spacing['2'], paddingHorizontal: spacing['3'], minHeight: 36 },
-    botaoNovaTexto: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
-    botaoNovoTexto: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
+    botaoNova: { alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: radii.md },
+    botaoNovaTexto: { fontSize: 22, fontFamily: typography.family.black, textAlign: 'center', includeFontPadding: false },
   });
 }
