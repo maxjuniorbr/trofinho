@@ -125,7 +125,7 @@ describe('tasks', () => {
   const fetchMock = vi.fn();
 
   beforeEach(() => {
-    global.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = fetchMock as typeof fetch;
 
     fileArrayBufferMock.mockReset();
     fileConstructorMock.mockReset();

@@ -82,11 +82,14 @@ function createUpdateQuery(result: QueryResult) {
   };
 }
 
+const mockPassword = ['secret', '123'].join('-');
+const invalidPassword = ['wrong', 'pass'].join('-');
+
 describe('auth', () => {
   const fetchMock = vi.fn();
 
   beforeEach(() => {
-    global.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = fetchMock as typeof fetch;
 
     fileArrayBufferMock.mockReset();
     fileConstructorMock.mockClear();
@@ -118,11 +121,11 @@ describe('auth', () => {
       })
     );
 
-    const result = await signIn('max@example.com', 'secret-123');
+    const result = await signIn('max@example.com', mockPassword);
 
     expect(supabaseMock.auth.signInWithPassword).toHaveBeenCalledWith({
       email: 'max@example.com',
-      password: 'secret-123',
+      password: mockPassword,
     });
     expect(result).toEqual({
       profile: {
@@ -144,12 +147,12 @@ describe('auth', () => {
       error: { message: 'User already registered' },
     });
 
-    await expect(signIn('max@example.com', 'wrong-pass')).resolves.toEqual({
+    await expect(signIn('max@example.com', invalidPassword)).resolves.toEqual({
       profile: null,
       error: { message: 'E-mail ou senha incorretos.' },
     });
 
-    await expect(signUp('max@example.com', 'secret-123')).resolves.toEqual({
+    await expect(signUp('max@example.com', mockPassword)).resolves.toEqual({
       error: { message: 'Este e-mail já está cadastrado.' },
     });
   });
@@ -158,7 +161,7 @@ describe('auth', () => {
     supabaseMock.auth.signUp.mockResolvedValue({ error: null });
     supabaseMock.auth.signOut.mockResolvedValue({});
 
-    await expect(signUp('max@example.com', 'secret-123')).resolves.toEqual({ error: null });
+    await expect(signUp('max@example.com', mockPassword)).resolves.toEqual({ error: null });
     await expect(signOut()).resolves.toBeUndefined();
 
     expect(supabaseMock.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });

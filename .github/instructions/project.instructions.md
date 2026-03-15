@@ -90,6 +90,8 @@ Manter o projeto simples, consistente, tipado e alinhado ao estado real do produ
 
 Antes de concluir qualquer alteração:
 
+- Durante o desenvolvimento e antes de concluir, verificar os apontamentos do Sonar local no editor e tratar os itens novos relacionados à alteração.
+
 ```bash
 npm run typecheck
 npm test
