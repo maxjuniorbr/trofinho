@@ -49,13 +49,13 @@ export default function AdminChildrenScreen() {
         backLabel="Início"
         rightAction={
           <Pressable onPress={() => router.push('/(admin)/children/new')} style={[styles.botaoNovo, { backgroundColor: colors.accent.admin }]}>
-            <Text style={[styles.botaoNovoTexto, { color: colors.text.inverse }]}>+ Novo</Text>
+            <Text style={[styles.botaoNovoTexto, { color: colors.text.inverse }]}>+</Text>
           </Pressable>
         }
       />
 
       {(loading || error || children.length === 0) ? (
-        <EmptyState loading={loading} error={error} empty={children.length === 0} emptyMessage={'Nenhum filho cadastrado.\nToque em "+ Novo" para cadastrar o primeiro filho.'} onRetry={loadData} />
+        <EmptyState loading={loading} error={error} empty={children.length === 0} emptyMessage={'Nenhum filho cadastrado.\nToque em "+" para cadastrar o primeiro filho.'} onRetry={loadData} />
       ) : (
         <FlatList
           data={children}
@@ -95,8 +95,8 @@ export default function AdminChildrenScreen() {
 function makeStyles() {
   return StyleSheet.create({
     container: { flex: 1 },
-    botaoNovo: { borderRadius: radii.sm, paddingVertical: spacing['2'], paddingHorizontal: spacing['3'], minHeight: 36 },
-    botaoNovoTexto: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
+    botaoNovo: { alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: radii.md },
+    botaoNovoTexto: { fontSize: 22, fontFamily: typography.family.black, textAlign: 'center', includeFontPadding: false },
     lista: { padding: spacing['4'], gap: spacing['3'] },
     card: { borderRadius: radii.xl, borderWidth: 1, padding: spacing['3'], flexDirection: 'row', alignItems: 'center' },
     cardInfo: { flex: 1, marginLeft: spacing['3'] },
