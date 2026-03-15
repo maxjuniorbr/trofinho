@@ -89,16 +89,15 @@ vi.mock('expo-linear-gradient', () => ({
     React.createElement('LinearGradient', props, children),
 }));
 
-vi.mock('react-native', () => {
-  class AnimatedValue {
-    constructor(private readonly initialValue: number) {}
+class AnimatedValue {
+  constructor(private readonly initialValue: number) {}
 
-    interpolate(config: { outputRange: unknown[] }) {
-      return config.outputRange[0] ?? this.initialValue;
-    }
+  interpolate(config: { outputRange: unknown[] }) {
+    return config.outputRange[0] ?? this.initialValue;
   }
+}
 
-  return {
+vi.mock('react-native', () => ({
     ActivityIndicator: createHostComponent('ActivityIndicator'),
     Animated: {
       View: createHostComponent('Animated.View'),
@@ -118,8 +117,7 @@ vi.mock('react-native', () => {
     Text: createHostComponent('Text'),
     TextInput: createHostComponent('TextInput'),
     View: createHostComponent('View'),
-  };
-});
+}));
 
 vi.mock('expo-status-bar', () => ({
   StatusBar: (props: Record<string, unknown>) => React.createElement('StatusBar', props),
