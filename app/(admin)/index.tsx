@@ -121,7 +121,15 @@ export default function AdminHomeScreen() {
             <Text style={[styles.heroFamily, { color: colors.accent.admin }]}>{family.nome}</Text>
           ) : null}
         </View>
-        <Avatar name={profile?.nome ?? 'A'} size={52} />
+        <Pressable
+          onPress={handleSignOut}
+          disabled={loggingOut}
+          accessibilityRole="button"
+          accessibilityLabel={loggingOut ? 'Saindo' : 'Sair'}
+          style={{ opacity: loggingOut ? 0.5 : 1 }}
+        >
+          <Avatar name={profile?.nome ?? 'A'} size={52} />
+        </Pressable>
       </Animated.View>
 
       <Animated.View
@@ -245,20 +253,6 @@ export default function AdminHomeScreen() {
         </View>
       </View>
 
-      <Pressable
-        style={({ pressed }) => [
-          styles.sairBtn,
-          { borderColor: colors.border.default, opacity: (loggingOut || pressed) ? 0.6 : 1 },
-        ]}
-        onPress={handleSignOut}
-        disabled={loggingOut}
-        accessibilityRole="button"
-        accessibilityLabel={loggingOut ? 'Saindo' : 'Sair'}
-      >
-        <Text style={[styles.sairTexto, { color: colors.text.secondary }]}>
-          {loggingOut ? 'Saindo…' : 'Sair'}
-        </Text>
-      </Pressable>
     </ScrollView>
   );
 }
@@ -319,7 +313,5 @@ function makeStyles() {
     quickBadge:    { position: 'absolute', top: spacing['2'], right: spacing['2'], minWidth: 20, height: 20, borderRadius: radii.full, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing['1'] },
     quickBadgeText:{ color: '#fff', fontFamily: typography.family.black, fontSize: 10 },
 
-    sairBtn:       { borderWidth: 1, borderRadius: radii.md, paddingVertical: spacing['3'], alignItems: 'center', alignSelf: 'center', paddingHorizontal: spacing['8'], marginTop: spacing['2'], minHeight: 48 },
-    sairTexto:     { fontFamily: typography.family.medium, fontSize: typography.size.sm },
   });
 }

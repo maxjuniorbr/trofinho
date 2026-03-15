@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { signIn } from '@lib/auth';
+import { localizeSupabaseError } from '@lib/api-error';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
 import { useTheme } from '@/context/theme-context';
 import { gradients, radii, shadows, spacing, typography } from '@/constants/theme';
@@ -29,6 +30,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
   const shouldShowError = Boolean(error);
 
   const mascotScale    = useRef(new Animated.Value(0.4)).current;
@@ -92,7 +94,7 @@ export default function LoginScreen() {
     const { profile, error: signInError } = await signIn(email.trim(), password);
     setLoading(false);
 
-    if (signInError) { setError(signInError.message); return; }
+    if (signInError) { setError(localizeSupabaseError(signInError.message)); return; }
     if (!profile) { router.replace('/(auth)/onboarding'); return; }
 
     const destination = profile.papel === 'admin' ? '/(admin)/' : '/(child)/';
@@ -150,13 +152,15 @@ export default function LoginScreen() {
           <TextInput
             style={[styles.input, {
               backgroundColor: colors.bg.elevated,
-              borderColor: colors.border.default,
+              borderColor: focusedField === 'email' ? colors.border.focus : colors.border.default,
               color: colors.text.primary,
             }]}
             placeholder="seu@email.com"
             placeholderTextColor={colors.text.muted}
             value={email}
             onChangeText={(t) => { setEmail(t); setError(''); }}
+            onFocus={() => setFocusedField('email')}
+            onBlur={() => setFocusedField(null)}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
@@ -169,13 +173,15 @@ export default function LoginScreen() {
           <TextInput
             style={[styles.input, {
               backgroundColor: colors.bg.elevated,
-              borderColor: colors.border.default,
+              borderColor: focusedField === 'password' ? colors.border.focus : colors.border.default,
               color: colors.text.primary,
             }]}
             placeholder="••••••"
             placeholderTextColor={colors.text.muted}
             value={password}
             onChangeText={(t) => { setPassword(t); setError(''); }}
+            onFocus={() => setFocusedField('password')}
+            onBlur={() => setFocusedField(null)}
             secureTextEntry
             maxLength={128}
             editable={!loading}

@@ -4,7 +4,8 @@ import {
   View,
   Pressable,
   FlatList,
-  Alert,
+  RefreshControl,
+  Modal,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
@@ -25,6 +26,24 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { formatDate } from '@lib/utils';
 
+type ConfirmModalState = {
+  visible: boolean;
+  type: 'confirm' | 'cancel';
+  redemptionId: string;
+  childName: string;
+  prizeName: string;
+  points: number;
+};
+
+const MODAL_INITIAL: ConfirmModalState = {
+  visible: false,
+  type: 'confirm',
+  redemptionId: '',
+  childName: '',
+  prizeName: '',
+  points: 0,
+};
+
 export default function AdminRedemptionsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
@@ -35,6 +54,7 @@ export default function AdminRedemptionsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [modal, setModal] = useState<ConfirmModalState>(MODAL_INITIAL);
   const hasError = Boolean(error);
   const hasActionError = Boolean(actionError);
   const shouldShowEmptyState = loading || hasError || redemptions.length === 0;
@@ -57,48 +77,30 @@ export default function AdminRedemptionsScreen() {
 
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
-  async function handleConfirm(redemptionId: string, childName: string, prizeName: string) {
+  function handleConfirm(redemptionId: string, childName: string, prizeName: string) {
     setActionError(null);
-    Alert.alert(
-      'Confirmar entrega',
-      `Confirmar entrega do prêmio "${prizeName}" para ${childName}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Confirmar',
-          style: 'default',
-          onPress: async () => {
-            setProcessing(redemptionId);
-            const { error } = await confirmRedemption(redemptionId);
-            setProcessing(null);
-            if (error) setActionError(error);
-            else loadData();
-          },
-        },
-      ]
-    );
+    setModal({ visible: true, type: 'confirm', redemptionId, childName, prizeName, points: 0 });
   }
 
-  async function handleCancel(redemptionId: string, childName: string, prizeName: string, points: number) {
+  function handleCancel(redemptionId: string, childName: string, prizeName: string, points: number) {
     setActionError(null);
-    Alert.alert(
-      'Cancelar resgate',
-      `Cancelar o resgate de "${prizeName}" de ${childName}? Os ${points} pts serão estornados.`,
-      [
-        { text: 'Voltar', style: 'cancel' },
-        {
-          text: 'Cancelar resgate',
-          style: 'destructive',
-          onPress: async () => {
-            setProcessing(redemptionId);
-            const { error } = await cancelRedemption(redemptionId);
-            setProcessing(null);
-            if (error) setActionError(error);
-            else loadData();
-          },
-        },
-      ]
-    );
+    setModal({ visible: true, type: 'cancel', redemptionId, childName, prizeName, points });
+  }
+
+  async function handleModalConfirm() {
+    setProcessing(modal.redemptionId);
+    setModal(MODAL_INITIAL);
+    if (modal.type === 'confirm') {
+      const { error } = await confirmRedemption(modal.redemptionId);
+      setProcessing(null);
+      if (error) setActionError(error);
+      else loadData();
+    } else {
+      const { error } = await cancelRedemption(modal.redemptionId);
+      setProcessing(null);
+      if (error) setActionError(error);
+      else loadData();
+    }
   }
 
   const pending = redemptions.filter((r) => r.status === 'pendente');
@@ -122,6 +124,7 @@ export default function AdminRedemptionsScreen() {
           keyExtractor={(item) => item.id}
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={styles.lista}
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
           ListHeaderComponent={
             <>
               {hasActionError ? <Text style={styles.erroAcao}>{actionError}</Text> : null}
@@ -187,6 +190,40 @@ export default function AdminRedemptionsScreen() {
           }}
         />
       )}
+
+      <Modal visible={modal.visible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>
+              {modal.type === 'confirm' ? 'Confirmar entrega' : 'Cancelar resgate'}
+            </Text>
+            <Text style={styles.modalMessage}>
+              {modal.type === 'confirm'
+                ? `Confirmar entrega do prêmio "${modal.prizeName}" para ${modal.childName}?`
+                : `Cancelar o resgate de "${modal.prizeName}" de ${modal.childName}? Os ${modal.points} pts serão estornados.`}
+            </Text>
+            <View style={styles.modalBtns}>
+              <Pressable
+                style={styles.modalCancelBtn}
+                onPress={() => setModal(MODAL_INITIAL)}
+              >
+                <Text style={styles.modalCancelBtnText}>Voltar</Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.modalConfirmBtn,
+                  { backgroundColor: modal.type === 'confirm' ? colors.semantic.success : colors.semantic.error },
+                ]}
+                onPress={handleModalConfirm}
+              >
+                <Text style={styles.modalConfirmBtnText}>
+                  {modal.type === 'confirm' ? 'Confirmar' : 'Cancelar resgate'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -222,5 +259,34 @@ function makeStyles(colors: ThemeColors) {
     botaoCancelar: { flex: 1, borderRadius: radii.lg, borderCurve: 'continuous', borderWidth: 1.5, borderColor: colors.semantic.error, paddingVertical: spacing['2'], alignItems: 'center', minHeight: 44 },
     botaoCancelarTexto: { color: colors.semantic.error, fontFamily: typography.family.bold, fontSize: typography.size.sm },
     botaoDesabilitado: { opacity: 0.5 },
+    modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)', padding: spacing['6'] },
+    modalBox: {
+      backgroundColor: colors.bg.surface,
+      borderRadius: radii.xl,
+      padding: spacing['6'],
+      width: '100%',
+      gap: spacing['4'],
+    },
+    modalTitle: { fontSize: typography.size.lg, fontFamily: typography.family.bold, color: colors.text.primary },
+    modalMessage: { fontSize: typography.size.sm, color: colors.text.secondary, lineHeight: typography.lineHeight.md },
+    modalBtns: { flexDirection: 'row', gap: spacing['3'] },
+    modalCancelBtn: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.border.default,
+      borderRadius: radii.xl,
+      paddingVertical: spacing['3'],
+      alignItems: 'center',
+      minHeight: 48,
+    },
+    modalCancelBtnText: { color: colors.text.secondary, fontFamily: typography.family.semibold, fontSize: typography.size.sm },
+    modalConfirmBtn: {
+      flex: 1,
+      borderRadius: radii.xl,
+      paddingVertical: spacing['3'],
+      alignItems: 'center',
+      minHeight: 48,
+    },
+    modalConfirmBtnText: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.sm },
   });
 }

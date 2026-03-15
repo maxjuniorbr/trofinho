@@ -4,6 +4,7 @@ import {
   View,
   Pressable,
   FlatList,
+  RefreshControl,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
@@ -82,6 +83,7 @@ export default function AdminPrizesScreen() {
           keyExtractor={(item) => item.id}
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={styles.lista}
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
           ListHeaderComponent={
             <Text style={styles.resumo}>
               {active.length} ativo{active.length === 1 ? '' : 's'}

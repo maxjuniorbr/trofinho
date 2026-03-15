@@ -97,10 +97,12 @@ export default function ChildTaskDetailScreen() {
 
   if (error || !assignment) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
+      <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />
         <ScreenHeader title="Detalhe" onBack={() => router.back()} backLabel="Tarefas" role="filho" />
-        <EmptyState error={error ?? 'Tarefa não encontrada.'} onRetry={loadData} />
+        <View style={styles.center}>
+          <EmptyState error={error ?? 'Tarefa não encontrada.'} onRetry={loadData} />
+        </View>
       </View>
     );
   }

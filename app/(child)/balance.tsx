@@ -8,6 +8,7 @@ import {
   TextInput,
   ActivityIndicator,
   KeyboardAvoidingView,
+  RefreshControl,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
@@ -106,6 +107,7 @@ export default function ChildBalanceScreen() {
         data={transactions}
         keyExtractor={(m) => m.id}
         contentContainerStyle={styles.list}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
         ListHeaderComponent={
           <>
             <View style={styles.cardsRow}>
@@ -218,7 +220,7 @@ function makeStyles(colors: ThemeColors) {
     appreciationBox: { backgroundColor: colors.semantic.successBg, borderRadius: radii.lg, padding: spacing['2'], marginBottom: spacing['3'] },
     appreciationText: { color: colors.semantic.success, fontSize: typography.size.xs },
     transferBtn: {
-      backgroundColor: colors.semantic.warning,
+      backgroundColor: colors.accent.filho,
       borderRadius: radii.xl,
       paddingVertical: spacing['3'],
       alignItems: 'center',
@@ -284,7 +286,7 @@ function makeStyles(colors: ThemeColors) {
     cancelBtnText: { color: colors.text.secondary, fontFamily: typography.family.semibold },
     confirmBtn: {
       flex: 1,
-      backgroundColor: colors.semantic.warning,
+      backgroundColor: colors.accent.filho,
       borderRadius: radii.xl,
       paddingVertical: spacing['3'],
       alignItems: 'center',

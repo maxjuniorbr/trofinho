@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { signUp } from '@lib/auth';
+import { localizeSupabaseError } from '@lib/api-error';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
 import { useTheme } from '@/context/theme-context';
 import { gradients, radii, shadows, spacing, typography } from '@/constants/theme';
@@ -31,6 +32,7 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
   const shouldShowError = Boolean(error);
 
   const mascotScale    = useRef(new Animated.Value(0.4)).current;
@@ -96,7 +98,7 @@ export default function RegisterScreen() {
     const { error: signUpError } = await signUp(email.trim(), password);
     setLoading(false);
 
-    if (signUpError) { setError(signUpError.message); return; }
+    if (signUpError) { setError(localizeSupabaseError(signUpError.message)); return; }
     router.replace({ pathname: '/(auth)/onboarding', params: { nome: name.trim() } });
   }
 
@@ -151,13 +153,15 @@ export default function RegisterScreen() {
           <TextInput
             style={[styles.input, {
               backgroundColor: colors.bg.elevated,
-              borderColor: colors.border.default,
+              borderColor: focusedField === 'name' ? colors.border.focus : colors.border.default,
               color: colors.text.primary,
             }]}
             placeholder="Seu nome"
             placeholderTextColor={colors.text.muted}
             value={name}
             onChangeText={(t) => { setName(t); setError(''); }}
+            onFocus={() => setFocusedField('name')}
+            onBlur={() => setFocusedField(null)}
             autoCapitalize="words"
             editable={!loading}
             accessibilityLabel="Campo de nome"
@@ -167,13 +171,15 @@ export default function RegisterScreen() {
           <TextInput
             style={[styles.input, {
               backgroundColor: colors.bg.elevated,
-              borderColor: colors.border.default,
+              borderColor: focusedField === 'email' ? colors.border.focus : colors.border.default,
               color: colors.text.primary,
             }]}
             placeholder="seu@email.com"
             placeholderTextColor={colors.text.muted}
             value={email}
             onChangeText={(t) => { setEmail(t); setError(''); }}
+            onFocus={() => setFocusedField('email')}
+            onBlur={() => setFocusedField(null)}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
@@ -186,13 +192,15 @@ export default function RegisterScreen() {
           <TextInput
             style={[styles.input, {
               backgroundColor: colors.bg.elevated,
-              borderColor: colors.border.default,
+              borderColor: focusedField === 'password' ? colors.border.focus : colors.border.default,
               color: colors.text.primary,
             }]}
             placeholder="Mínimo 6 caracteres"
             placeholderTextColor={colors.text.muted}
             value={password}
             onChangeText={(t) => { setPassword(t); setError(''); }}
+            onFocus={() => setFocusedField('password')}
+            onBlur={() => setFocusedField(null)}
             secureTextEntry
             maxLength={128}
             editable={!loading}
@@ -203,13 +211,15 @@ export default function RegisterScreen() {
           <TextInput
             style={[styles.input, {
               backgroundColor: colors.bg.elevated,
-              borderColor: colors.border.default,
+              borderColor: focusedField === 'confirmPassword' ? colors.border.focus : colors.border.default,
               color: colors.text.primary,
             }]}
             placeholder="Repita a senha"
             placeholderTextColor={colors.text.muted}
             value={confirmPassword}
             onChangeText={(t) => { setConfirmPassword(t); setError(''); }}
+            onFocus={() => setFocusedField('confirmPassword')}
+            onBlur={() => setFocusedField(null)}
             secureTextEntry
             maxLength={128}
             editable={!loading}

@@ -6,6 +6,7 @@ import {
   FlatList,
   ActivityIndicator,
   Animated,
+  RefreshControl,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
@@ -95,6 +96,7 @@ export default function ChildPrizesScreen() {
           keyExtractor={(item) => item.id}
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={styles.list}
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
           numColumns={2}
           columnWrapperStyle={{ gap: spacing['3'] }}
           ListHeaderComponent={
