@@ -10,8 +10,8 @@ interface PointsDisplayProps {
   label: string;
   /**
    * Controls the text color of the value:
-   *   gold    → brand.vivid (#F5C518)
-   *   amber   → brand.dim   (#C8860A)
+   *   gold    → brand.vivid (#FAC114)
+   *   amber   → brand.dim   (#C57B0D)
    *   default → text.primary
    */
   variant?: 'gold' | 'amber' | 'default';

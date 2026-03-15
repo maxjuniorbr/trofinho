@@ -1,6 +1,7 @@
 import React, { type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/theme-context';
@@ -13,9 +14,54 @@ interface ScreenHeaderProps {
   rightAction?: ReactNode;
   /** Role determines the back-button / accent color ('admin' | 'filho') */
   role?: 'admin' | 'filho';
+  backTone?: 'accent' | 'muted';
+  surface?: 'surface' | 'canvas';
+  showBorder?: boolean;
 }
 
 type ReadonlyScreenHeaderProps = Readonly<ScreenHeaderProps>;
+
+type HeaderIconButtonProps = Readonly<{
+  icon: LucideIcon;
+  onPress: () => void;
+  accessibilityLabel: string;
+  role?: 'admin' | 'filho';
+  tone?: 'accent' | 'muted';
+}>;
+
+export function HeaderIconButton({
+  icon: Icon,
+  onPress,
+  accessibilityLabel,
+  role = 'admin',
+  tone = 'muted',
+}: HeaderIconButtonProps) {
+  const { colors, isDark } = useTheme();
+  const accent = role === 'filho' ? colors.accent.filho : colors.accent.admin;
+  const backgroundColor = tone === 'muted' ? colors.bg.muted : accent;
+  const iconColor = tone === 'muted'
+    ? (isDark ? colors.text.inverse : colors.text.primary)
+    : colors.text.inverse;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.iconButton,
+        {
+          backgroundColor,
+          opacity: pressed ? 0.92 : 1,
+          transform: [{ scale: pressed ? 0.95 : 1 }],
+        },
+      ]}
+      hitSlop={12}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+    >
+      <Icon size={20} color={iconColor} strokeWidth={2.5} />
+    </Pressable>
+  );
+}
 
 export function ScreenHeader({
   title,
@@ -23,11 +69,13 @@ export function ScreenHeader({
   backLabel = 'Voltar',
   rightAction,
   role = 'admin',
+  backTone = role === 'filho' ? 'accent' : 'muted',
+  surface = 'surface',
+  showBorder = true,
 }: ReadonlyScreenHeaderProps) {
   const { colors } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const accent = role === 'filho' ? colors.accent.filho : colors.accent.admin;
   const displayLabel = backLabel.replace(/^←\s*/, '');
 
   return (
@@ -35,14 +83,16 @@ export function ScreenHeader({
       style={[
         styles.container,
         {
-          paddingTop: insets.top + spacing['2'],
-          backgroundColor: colors.bg.surface,
+          paddingTop: insets.top + spacing['3'],
+          backgroundColor: surface === 'canvas' ? colors.bg.canvas : colors.bg.surface,
           borderBottomColor: colors.border.subtle,
+          borderBottomWidth: showBorder ? 1 : 0,
         },
       ]}
     >
       {onBack ? (
-        <Pressable
+        <HeaderIconButton
+          icon={ChevronLeft}
           onPress={() => {
             if (router.canGoBack()) {
               onBack();
@@ -50,13 +100,10 @@ export function ScreenHeader({
               router.replace(role === 'filho' ? '/(child)/' : '/(admin)/');
             }
           }}
-          style={({ pressed }) => [styles.backBtn, { backgroundColor: accent, opacity: pressed ? 0.7 : 1 }]}
-          hitSlop={12}
-          accessibilityRole="button"
           accessibilityLabel={`Voltar para ${displayLabel}`}
-        >
-          <ChevronLeft size={20} color={colors.text.inverse} strokeWidth={2.5} />
-        </Pressable>
+          role={role}
+          tone={backTone}
+        />
       ) : (
         <View style={styles.side} />
       )}
@@ -77,18 +124,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingBottom: spacing['2'],
-    paddingHorizontal: spacing['2'],
-    borderBottomWidth: 1,
+    paddingBottom: spacing['3'],
+    paddingHorizontal: spacing['4'],
   },
   side: {
-    minWidth: 44,
+    minWidth: 40,
   },
-  backBtn: {
+  iconButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: radii.md,
   },
   title: {

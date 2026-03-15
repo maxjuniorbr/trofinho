@@ -80,7 +80,7 @@ describe('prizes', () => {
   it('returns redemption presentation helpers', () => {
     expect(getRedemptionStatusLabel('pendente')).toBe('Pendente');
     expect(getRedemptionStatusEmoji('confirmado')).toBe('✅');
-    expect(getRedemptionStatusColor('cancelado')).toBe('#EF4444');
+    expect(getRedemptionStatusColor('cancelado')).toBe('#DC2828');
   });
 
   it('lists and fetches prizes', async () => {

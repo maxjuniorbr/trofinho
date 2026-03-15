@@ -261,7 +261,7 @@ export default function ProfileScreen() {
             accessibilityLabel="Alterar foto de perfil"
           >
             <Avatar name={profile?.nome ?? 'A'} size={80} imageUri={avatarUri} />
-            <View style={[styles.cameraBtn, { backgroundColor: colors.accent.admin }]}>
+            <View style={[styles.cameraBtn, { backgroundColor: colors.accent.adminDim }]}>
               {uploadingAvatar
                 ? <ActivityIndicator size="small" color={colors.text.inverse} />
                 : <Camera size={12} color={colors.text.inverse} strokeWidth={2.5} />
@@ -305,7 +305,7 @@ export default function ProfileScreen() {
           ) : null}
 
           <Pressable
-            style={[styles.btn, { backgroundColor: colors.accent.admin, opacity: savingName ? 0.55 : 1, marginTop: spacing['1'] }]}
+            style={[styles.btn, { backgroundColor: colors.accent.adminDim, opacity: savingName ? 0.55 : 1, marginTop: spacing['1'] }]}
             onPress={handleSaveName}
             disabled={savingName}
           >
@@ -354,7 +354,7 @@ export default function ProfileScreen() {
           ) : null}
 
           <Pressable
-            style={[styles.btn, { backgroundColor: colors.accent.admin, opacity: savingPassword ? 0.55 : 1, marginTop: spacing['1'] }]}
+            style={[styles.btn, { backgroundColor: colors.accent.adminDim, opacity: savingPassword ? 0.55 : 1, marginTop: spacing['1'] }]}
             onPress={handleSavePassword}
             disabled={savingPassword}
           >
@@ -376,8 +376,8 @@ export default function ProfileScreen() {
                   style={[
                     styles.themeOption,
                     {
-                      backgroundColor: isActive ? colors.accent.admin : colors.bg.elevated,
-                      borderColor: isActive ? colors.accent.admin : colors.border.subtle,
+                      backgroundColor: isActive ? colors.accent.adminDim : colors.bg.elevated,
+                      borderColor: isActive ? colors.accent.adminDim : colors.border.subtle,
                     },
                   ]}
                   onPress={() => setScheme(value)}
@@ -416,7 +416,7 @@ export default function ProfileScreen() {
               <Switch
                 value={notificationPreferences[key]}
                 onValueChange={(value) => handleToggleNotification(key, value)}
-                trackColor={{ false: colors.border.default, true: colors.accent.admin }}
+                trackColor={{ false: colors.border.default, true: colors.accent.adminDim }}
                 thumbColor={colors.text.inverse}
               />
             </View>
