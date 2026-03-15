@@ -182,8 +182,7 @@ async function readAsArrayBuffer(imageUri: string): Promise<ArrayBuffer> {
 
   if (
     !normalizedUri.startsWith('http://') &&
-    !normalizedUri.startsWith('https://') &&
-    !normalizedUri.startsWith('blob:')
+    !normalizedUri.startsWith('https://')
   ) {
     try {
       return await new File(normalizedUri).arrayBuffer();

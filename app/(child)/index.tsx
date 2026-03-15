@@ -115,30 +115,13 @@ export default function FilhoHomeScreen() {
       <Animated.View
         style={[styles.hero, { opacity: heroOpacity, transform: [{ translateY: heroY }] }]}
       >
-        <View style={styles.heroSideSlot} />
-        <View style={styles.heroContent}>
-          <Text style={[styles.heroSub, { color: colors.text.secondary }]}>{getGreeting()} 🏆</Text>
-          <Text style={[styles.heroTitle, { color: colors.text.primary }]}>
-            Olá, {profile?.nome ?? 'Campeão'}!
-          </Text>
-          {family ? (
-            <Text style={[styles.heroFamily, { color: colors.accent.filho }]}>{family.nome}</Text>
-          ) : null}
-        </View>
-        <View style={styles.heroSideSlot}>
-          <Pressable
-            onPress={handleSignOut}
-            disabled={loggingOut}
-            accessibilityRole="button"
-            accessibilityLabel={loggingOut ? 'Saindo' : 'Sair'}
-            style={({ pressed }) => [
-              styles.sairBtnHeader,
-              { borderColor: colors.border.default, opacity: (loggingOut || pressed) ? 0.5 : 1 },
-            ]}
-          >
-            <Text style={[styles.sairBtnHeaderText, { color: colors.text.secondary }]}>Sair</Text>
-          </Pressable>
-        </View>
+        <Text style={[styles.heroSub, { color: colors.text.secondary }]}>{getGreeting()} 🏆</Text>
+        <Text style={[styles.heroTitle, { color: colors.text.primary }]}>
+          Olá, {profile?.nome ?? 'Campeão'}!
+        </Text>
+        {family ? (
+          <Text style={[styles.heroFamily, { color: colors.accent.filho }]}>{family.nome}</Text>
+        ) : null}
       </Animated.View>
 
       <Animated.View style={[styles.mascotContainer, { transform: [{ scale: mascotScale }] }]}>
@@ -234,6 +217,19 @@ export default function FilhoHomeScreen() {
         ))}
       </Animated.View>
 
+      <Pressable
+        style={[styles.btnLogout, { borderColor: colors.semantic.error + '60', opacity: loggingOut ? 0.55 : 1 }]}
+        onPress={handleSignOut}
+        disabled={loggingOut}
+        accessibilityRole="button"
+        accessibilityLabel="Sair da conta"
+      >
+        {loggingOut
+          ? <ActivityIndicator color={colors.semantic.error} />
+          : <Text style={[styles.btnLogoutText, { color: colors.semantic.error }]}>Sair</Text>
+        }
+      </Pressable>
+
     </ScrollView>
   );
 }
@@ -243,9 +239,7 @@ function makeStyles() {
     loading:         { flex: 1, alignItems: 'center', justifyContent: 'center' },
     container:       { flexGrow: 1, alignItems: 'center', paddingHorizontal: spacing.screen, paddingBottom: spacing['12'] },
 
-    hero:            { flexDirection: 'row', alignItems: 'flex-start', width: '100%', marginBottom: spacing['4'] },
-    heroSideSlot:    { width: 72, alignItems: 'flex-end' },
-    heroContent:     { flex: 1, alignItems: 'center', paddingHorizontal: spacing['2'] },
+    hero:            { alignItems: 'center', width: '100%', marginBottom: spacing['4'] },
     heroSub:         { fontFamily: typography.family.bold, fontSize: typography.size.sm },
     heroTitle:       { fontFamily: typography.family.black, fontSize: typography.size['3xl'], marginTop: spacing['1'], textAlign: 'center' },
     heroFamily:      { fontFamily: typography.family.semibold, fontSize: typography.size.sm, marginTop: spacing['1'] },
@@ -282,7 +276,11 @@ function makeStyles() {
     quickEmoji:      { fontSize: 24 },
     quickLabel:      { fontFamily: typography.family.bold, fontSize: typography.size.xs, textAlign: 'center' },
 
-    sairBtnHeader:   { borderWidth: 1, borderRadius: radii.md, paddingVertical: spacing['1'], paddingHorizontal: spacing['3'], minHeight: 32, justifyContent: 'center' },
-    sairBtnHeaderText: { fontFamily: typography.family.medium, fontSize: typography.size.xs },
+    btnLogout: {
+      borderRadius: radii.md, borderWidth: 1,
+      paddingVertical: spacing['3'], alignItems: 'center',
+      minHeight: 48, justifyContent: 'center', width: '100%',
+    },
+    btnLogoutText: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
   });
 }
