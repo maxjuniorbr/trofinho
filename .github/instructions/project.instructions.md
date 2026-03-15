@@ -1,3 +1,7 @@
+---
+applyTo: "**"
+---
+
 # Instrucoes De IA Do Projeto Trofinho
 
 ## Objetivo

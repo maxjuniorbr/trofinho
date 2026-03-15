@@ -254,7 +254,7 @@ export default function AdminRedemptionsScreen() {
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
-    lista: { padding: spacing['4'], gap: spacing['2'], paddingBottom: spacing['10'] },
+    lista: { padding: spacing['4'], paddingBottom: spacing['10'] },
     erroAcao: { color: colors.semantic.error, fontSize: typography.size.sm, fontFamily: typography.family.medium, marginBottom: spacing['2'], textAlign: 'center' },
     secaoHeader: { paddingVertical: spacing['2'] },
     secaoTituloRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
@@ -265,6 +265,7 @@ function makeStyles(colors: ThemeColors) {
       borderCurve: 'continuous',
       padding: spacing['4'],
       gap: spacing['2'],
+      marginBottom: spacing['2'],
       ...shadows.card,
     },
     cardPendente: { borderLeftWidth: 3, borderLeftColor: colors.semantic.warning },

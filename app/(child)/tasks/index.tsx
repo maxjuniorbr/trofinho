@@ -166,11 +166,12 @@ function makeStyles(colors: ThemeColors) {
     filterBtnActive: { backgroundColor: colors.accent.filho },
     filterText: { fontSize: typography.size.xs, fontFamily: typography.family.semibold, color: colors.text.secondary },
     filterTextActive: {},
-    list: { padding: spacing['4'], gap: spacing['3'] },
+    list: { padding: spacing['4'] },
     card: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,
       padding: spacing['4'],
+      marginBottom: spacing['3'],
       ...shadows.card,
     },
     cardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: spacing['2'] },
