@@ -8,5 +8,6 @@
       "@/*": ["src/*"],
       "@types/*": ["src/types/*"]
     }
-  }
+  },
+  "exclude": ["coverage", "dist", "node_modules"]
 }

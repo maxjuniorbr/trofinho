@@ -11,7 +11,7 @@ vi.mock('expo-router', () => ({
   },
 }));
 
-import Index from './index';
+import Index from '../../app/index';
 
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
