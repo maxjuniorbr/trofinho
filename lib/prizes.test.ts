@@ -12,10 +12,6 @@ vi.mock('./supabase', () => ({
   supabase: supabaseMock,
 }));
 
-vi.mock('@/constants/theme', () => ({
-  lightColors: {},
-}));
-
 import {
   cancelRedemption,
   confirmRedemption,
@@ -23,9 +19,6 @@ import {
   createPrize,
   deactivatePrize,
   getPrize,
-  getRedemptionStatusColor,
-  getRedemptionStatusEmoji,
-  getRedemptionStatusLabel,
   listActivePrizes,
   listChildRedemptions,
   listPrizes,
@@ -34,6 +27,7 @@ import {
   requestRedemption,
   updatePrize,
 } from './prizes';
+import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@/constants/status';
 
 type QueryResult = {
   count?: number | null;
@@ -84,7 +78,6 @@ describe('prizes', () => {
 
   it('returns redemption presentation helpers', () => {
     expect(getRedemptionStatusLabel('pendente')).toBe('Pendente');
-    expect(getRedemptionStatusEmoji('confirmado')).toBe('✅');
 
     const mockColors = {
       semantic: { warning: '#F59F0A', success: '#20C55D', error: '#DC2828' },

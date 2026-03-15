@@ -168,7 +168,7 @@ function makeStyles(colors: ThemeColors) {
     sucessoTexto: { color: colors.semantic.success, fontSize: typography.size.sm, fontFamily: typography.family.semibold },
     botao: { backgroundColor: colors.accent.adminDim, borderRadius: radii.xl, borderCurve: 'continuous', paddingVertical: spacing['3'], alignItems: 'center', marginTop: spacing['1'], minHeight: 48 },
     botaoDesabilitado: { opacity: 0.55 },
-    botaoTexto: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.md },
+    botaoTexto: { color: colors.text.inverse, fontFamily: typography.family.bold, fontSize: typography.size.md },
     botaoSecundario: {
       borderRadius: radii.xl,
       borderCurve: 'continuous',

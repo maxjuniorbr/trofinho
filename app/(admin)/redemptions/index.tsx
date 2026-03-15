@@ -21,10 +21,9 @@ import {
   listRedemptions,
   confirmRedemption,
   cancelRedemption,
-  getRedemptionStatusLabel,
-  getRedemptionStatusColor,
   type RedemptionWithChildAndPrize,
 } from '@lib/prizes';
+import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@/constants/status';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -273,7 +272,7 @@ function makeStyles(colors: ThemeColors) {
     premioNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
     cardFilhoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     cardFilho: { fontSize: typography.size.xs, color: colors.text.secondary },
-    alertaIcone: { fontSize: 24, marginBottom: spacing['2'] },
+    alertaIcone: { fontSize: typography.size['2xl'], marginBottom: spacing['2'] },
     statusBadge: { borderRadius: radii.md, borderCurve: 'continuous', paddingHorizontal: spacing['2'], paddingVertical: spacing['1'], alignSelf: 'flex-end' },
     statusTexto: { fontSize: typography.size.xs, fontFamily: typography.family.bold },
     cardData: { fontSize: typography.size.xs, color: colors.text.muted, textAlign: 'right', marginTop: spacing['1'] },
@@ -287,7 +286,7 @@ function makeStyles(colors: ThemeColors) {
     botaoCancelar: { flex: 1, borderRadius: radii.lg, borderCurve: 'continuous', borderWidth: 1.5, borderColor: colors.semantic.error, paddingVertical: spacing['2'], alignItems: 'center', justifyContent: 'center', minHeight: 44 },
     botaoCancelarTexto: { color: colors.semantic.error, fontFamily: typography.family.bold, fontSize: typography.size.sm },
     botaoDesabilitado: { opacity: 0.5 },
-    modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)', padding: spacing['6'] },
+    modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.overlay.scrimSoft, padding: spacing['6'] },
     modalBox: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,

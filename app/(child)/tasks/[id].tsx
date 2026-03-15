@@ -21,10 +21,9 @@ import {
 import {
   getChildAssignment,
   completeAssignment,
-  getStatusLabel,
-  getStatusColor,
   type ChildAssignment,
 } from '@lib/tasks';
+import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -249,8 +248,8 @@ export default function ChildTaskDetailScreen() {
       <ScreenHeader title="Detalhe" onBack={() => router.back()} backLabel="Tarefas" role="filho" />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(assignment.status, colors) }]}>
-          <Text style={[styles.statusBadgeText, { color: colors.text.inverse }]}>{getStatusLabel(assignment.status)}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: getAssignmentStatusColor(assignment.status, colors) }]}>
+          <Text style={[styles.statusBadgeText, { color: colors.text.inverse }]}>{getAssignmentStatusLabel(assignment.status)}</Text>
         </View>
 
         <View style={styles.card}>
@@ -361,10 +360,10 @@ function makeStyles(colors: ThemeColors) {
     rejectionNoteHint: { fontSize: typography.size.xs, color: colors.text.muted, fontStyle: 'italic' },
     errorText: { color: colors.semantic.error, fontSize: typography.size.sm, textAlign: 'center', marginBottom: spacing['3'], marginTop: spacing['2'] },
     completeBtn: { backgroundColor: colors.accent.filho, borderRadius: radii.xl, paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['2'], minHeight: 48, justifyContent: 'center' },
-    completeBtnInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    completeBtnInner: { flexDirection: 'row', alignItems: 'center', gap: spacing['1.5'] },
     disabledBtn: { opacity: 0.6 },
     completeBtnText: { fontSize: typography.size.md, fontFamily: typography.family.bold },
-    statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    statusRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1.5'] },
     awaitingBox: { backgroundColor: colors.accent.filhoBg, borderRadius: radii.xl, padding: spacing['3'], alignItems: 'center', marginTop: spacing['2'] },
     awaitingText: { fontSize: typography.size.sm, color: colors.accent.filho, fontFamily: typography.family.semibold },
     approvedBox: { backgroundColor: colors.semantic.successBg, borderRadius: radii.xl, padding: spacing['3'], alignItems: 'center', marginTop: spacing['2'] },

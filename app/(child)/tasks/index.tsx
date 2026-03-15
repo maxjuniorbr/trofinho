@@ -13,11 +13,10 @@ import { RefreshCw } from 'lucide-react-native';
 import {
   listChildAssignments,
   renewDailyTasks,
-  getStatusLabel,
-  getStatusColor,
   type ChildAssignment,
   type AssignmentStatus,
 } from '@lib/tasks';
+import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -130,9 +129,9 @@ export default function ChildTasksScreen() {
                   {item.tarefas.frequencia === 'diaria' ? 'Diária' : 'Única'}
                 </Text>
               </View>
-              <View style={[styles.statusTag, { backgroundColor: getStatusColor(item.status, colors) + '20' }]}>
-                <Text style={[styles.statusText, { color: getStatusColor(item.status, colors) }]}>
-                  {getStatusLabel(item.status)}
+              <View style={[styles.statusTag, { backgroundColor: getAssignmentStatusColor(item.status, colors) + '20' }]}>
+                <Text style={[styles.statusText, { color: getAssignmentStatusColor(item.status, colors) }]}>
+                  {getAssignmentStatusLabel(item.status)}
                 </Text>
               </View>
             </Pressable>

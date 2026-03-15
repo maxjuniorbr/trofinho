@@ -153,7 +153,7 @@ export default function AdminHomeScreen() {
             Olá, {profile?.nome ?? 'Admin'}
           </Text>
           {family ? (
-            <Text style={[styles.heroFamily, { color: colors.accent.admin }]}>{family.nome}</Text>
+            <Text style={[styles.heroFamily, { color: colors.accent.admin }]}>Família {family.nome}</Text>
           ) : null}
         </View>
         <Pressable
@@ -369,7 +369,7 @@ function makeStyles() {
     quickIconBox:  { width: 44, height: 44, borderRadius: radii.md, alignItems: 'center' as const, justifyContent: 'center' as const },
     quickLabel:    { fontFamily: typography.family.bold, fontSize: typography.size.xs, textAlign: 'center' },
     quickBadge:    { position: 'absolute', top: spacing['2'], right: spacing['2'], minWidth: 20, height: 20, borderRadius: radii.full, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing['1'] },
-    quickBadgeText:{ fontFamily: typography.family.black, fontSize: 10 },
+    quickBadgeText:{ fontFamily: typography.family.black, fontSize: typography.size.xxs },
 
   });
 }

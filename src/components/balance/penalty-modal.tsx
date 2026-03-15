@@ -51,7 +51,7 @@ export function PenaltyModal({ visible, childName, onClose, onApply }: PenaltyMo
 
   return (
     <Modal visible={visible} transparent animationType="slide">
-      <KeyboardAvoidingView style={styles.overlay} behavior="padding">
+      <KeyboardAvoidingView style={[styles.overlay, { backgroundColor: colors.overlay.scrim }]} behavior="padding">
         <View style={[styles.box, { backgroundColor: colors.bg.surface }]}>
           <Text style={[styles.title, { color: colors.text.primary }]}>Penalização — {childName}</Text>
 
@@ -116,7 +116,7 @@ export function PenaltyButton({ onPress }: Readonly<{ onPress: () => void }>) {
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
+  overlay: { flex: 1, justifyContent: 'flex-end' },
   box: {
     borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl,
     padding: spacing['6'], paddingBottom: spacing['12'], gap: spacing['3'],
@@ -141,6 +141,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg, paddingVertical: spacing['3'],
     alignItems: 'center', marginBottom: spacing['5'], minHeight: 44, justifyContent: 'center',
   },
-  triggerInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  triggerInner: { flexDirection: 'row', alignItems: 'center', gap: spacing['1.5'] },
   triggerText: { fontFamily: typography.family.bold, fontSize: typography.size.sm },
 });

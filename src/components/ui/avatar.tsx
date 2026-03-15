@@ -5,15 +5,9 @@ import { gradients, typography } from '@/constants/theme';
 import { useTheme } from '@/context/theme-context';
 
 interface AvatarProps {
-  /** Full name — up to 2 initials extracted */
   name: string;
   size?: number;
-  /**
-   * Override gradient with a solid color instead.
-   * When set, the gold gradient is replaced by this solid background.
-   */
   solidColor?: string;
-  /** When provided, renders an image instead of initials */
   imageUri?: string | null;
 }
 
@@ -46,7 +40,6 @@ export function Avatar({ name, size = 44, solidColor, imageUri }: ReadonlyAvatar
   const fontSize = Math.round(size * 0.4);
 
   if (solidColor) {
-    // Solid color fallback (e.g. per-role accent)
     return (
       <LinearGradient
         colors={[solidColor, solidColor]}
