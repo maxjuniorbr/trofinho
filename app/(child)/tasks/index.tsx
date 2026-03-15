@@ -4,6 +4,7 @@ import {
   View,
   Pressable,
   FlatList,
+  RefreshControl,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
@@ -104,6 +105,7 @@ export default function ChildTasksScreen() {
           data={filtered}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
           renderItem={({ item }) => (
             <Pressable
               style={styles.card}

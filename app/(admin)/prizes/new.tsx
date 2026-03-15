@@ -26,6 +26,7 @@ export default function NewPrizeScreen() {
   const [costStr, setCostStr] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   async function handleCreate() {
     setError(null);
@@ -36,7 +37,23 @@ export default function NewPrizeScreen() {
     const { error } = await createPrize({ nome: name.trim(), descricao: description.trim() || null, custo_pontos: cost });
     setSaving(false);
     if (error) return setError(error);
-    router.back();
+    setSuccess(true);
+  }
+
+  if (success) {
+    return (
+      <View style={[styles.sucessoContainer, { backgroundColor: colors.bg.canvas }]}>
+        <StatusBar style={colors.statusBar} />
+        <Text style={styles.sucessoEmoji}>🎁</Text>
+        <Text style={[styles.sucessoTitulo, { color: colors.text.primary }]}>Prêmio criado!</Text>
+        <Text style={[styles.sucessoTexto, { color: colors.text.secondary }]}>
+          O prêmio já está disponível no catálogo.
+        </Text>
+        <Pressable style={[styles.botaoConcluir, { backgroundColor: colors.accent.admin }]} onPress={() => router.back()}>
+          <Text style={[styles.botaoConcluirTexto, { color: colors.text.inverse }]}>Concluir</Text>
+        </Pressable>
+      </View>
+    );
   }
 
   return (
@@ -131,5 +148,11 @@ function makeStyles(colors: ThemeColors) {
     },
     botaoDesabilitado: { opacity: 0.55 },
     botaoTexto: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.md },
+    sucessoContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing['8'] },
+    sucessoEmoji: { fontSize: 56, marginBottom: spacing['4'] },
+    sucessoTitulo: { fontSize: typography.size['2xl'], fontFamily: typography.family.bold, marginBottom: spacing['3'] },
+    sucessoTexto: { fontSize: typography.size.md, textAlign: 'center', lineHeight: typography.lineHeight.md, marginBottom: spacing['8'] },
+    botaoConcluir: { borderRadius: radii.md, paddingVertical: spacing['3'], paddingHorizontal: spacing['8'], minHeight: 48, justifyContent: 'center' },
+    botaoConcluirTexto: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
   });
 }

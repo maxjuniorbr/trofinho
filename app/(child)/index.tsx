@@ -111,13 +111,27 @@ export default function FilhoHomeScreen() {
       <Animated.View
         style={[styles.hero, { opacity: heroOpacity, transform: [{ translateY: heroY }] }]}
       >
-        <Text style={[styles.heroSub, { color: colors.text.secondary }]}>{getGreeting()} 🏆</Text>
-        <Text style={[styles.heroTitle, { color: colors.text.primary }]}>
-          Olá, {profile?.nome ?? 'Campeão'}!
-        </Text>
-        {family ? (
-          <Text style={[styles.heroFamily, { color: colors.accent.filho }]}>{family.nome}</Text>
-        ) : null}
+        <View style={styles.heroContent}>
+          <Text style={[styles.heroSub, { color: colors.text.secondary }]}>{getGreeting()} 🏆</Text>
+          <Text style={[styles.heroTitle, { color: colors.text.primary }]}>
+            Olá, {profile?.nome ?? 'Campeão'}!
+          </Text>
+          {family ? (
+            <Text style={[styles.heroFamily, { color: colors.accent.filho }]}>{family.nome}</Text>
+          ) : null}
+        </View>
+        <Pressable
+          onPress={handleSignOut}
+          disabled={loggingOut}
+          accessibilityRole="button"
+          accessibilityLabel={loggingOut ? 'Saindo' : 'Sair'}
+          style={({ pressed }) => [
+            styles.sairBtnHeader,
+            { borderColor: colors.border.default, opacity: (loggingOut || pressed) ? 0.5 : 1 },
+          ]}
+        >
+          <Text style={[styles.sairBtnHeaderText, { color: colors.text.secondary }]}>Sair</Text>
+        </Pressable>
       </Animated.View>
 
       <Animated.View style={[styles.mascotContainer, { transform: [{ scale: mascotScale }] }]}>
@@ -213,20 +227,6 @@ export default function FilhoHomeScreen() {
         ))}
       </Animated.View>
 
-      <Pressable
-        style={({ pressed }) => [
-          styles.sairBtn,
-          { borderColor: colors.border.default, opacity: (loggingOut || pressed) ? 0.6 : 1 },
-        ]}
-        onPress={handleSignOut}
-        disabled={loggingOut}
-        accessibilityRole="button"
-        accessibilityLabel={loggingOut ? 'Saindo' : 'Sair'}
-      >
-        <Text style={[styles.sairTexto, { color: colors.text.secondary }]}>
-          {loggingOut ? 'Saindo…' : 'Sair'}
-        </Text>
-      </Pressable>
     </ScrollView>
   );
 }
@@ -236,7 +236,8 @@ function makeStyles() {
     loading:         { flex: 1, alignItems: 'center', justifyContent: 'center' },
     container:       { flexGrow: 1, alignItems: 'center', paddingHorizontal: spacing.screen, paddingBottom: spacing['12'] },
 
-    hero:            { alignItems: 'center', marginBottom: spacing['4'] },
+    hero:            { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', width: '100%', marginBottom: spacing['4'] },
+    heroContent:     { flex: 1, alignItems: 'center' },
     heroSub:         { fontFamily: typography.family.bold, fontSize: typography.size.sm },
     heroTitle:       { fontFamily: typography.family.black, fontSize: typography.size['3xl'], marginTop: spacing['1'], textAlign: 'center' },
     heroFamily:      { fontFamily: typography.family.semibold, fontSize: typography.size.sm, marginTop: spacing['1'] },
@@ -273,7 +274,7 @@ function makeStyles() {
     quickEmoji:      { fontSize: 24 },
     quickLabel:      { fontFamily: typography.family.bold, fontSize: typography.size.xs, textAlign: 'center' },
 
-    sairBtn:         { borderWidth: 1, borderRadius: radii.md, paddingVertical: spacing['3'], paddingHorizontal: spacing['8'], alignSelf: 'center', minHeight: 48, justifyContent: 'center' },
-    sairTexto:       { fontFamily: typography.family.medium, fontSize: typography.size.sm },
+    sairBtnHeader:   { borderWidth: 1, borderRadius: radii.md, paddingVertical: spacing['1'], paddingHorizontal: spacing['3'], minHeight: 32, justifyContent: 'center' },
+    sairBtnHeaderText: { fontFamily: typography.family.medium, fontSize: typography.size.xs },
   });
 }

@@ -3,6 +3,7 @@ import {
   Text,
   View,
   FlatList,
+  RefreshControl,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
@@ -69,6 +70,7 @@ export default function ChildRedemptionsScreen() {
           keyExtractor={(item) => item.id}
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={styles.list}
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
           renderItem={({ item }) => (
             <View style={styles.card}>
               <View style={styles.cardTop}>
