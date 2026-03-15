@@ -169,7 +169,7 @@ function makeStyles() {
     botaoCriar: { borderRadius: radii.md, paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['6'], minHeight: 56 },
     botaoCriarTexto: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
     sucessoContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing['8'] },
-    sucessoEmoji: { fontSize: 56, marginBottom: spacing['4'] },
+    sucessoEmoji: { fontSize: typography.size['5xl'], marginBottom: spacing['4'] },
     sucessoTitulo: { fontSize: typography.size['2xl'], fontFamily: typography.family.bold, marginBottom: spacing['3'] },
     sucessoTexto: { fontSize: typography.size.md, textAlign: 'center', lineHeight: typography.lineHeight.md, marginBottom: spacing['8'] },
     botaoConcluir: { borderRadius: radii.md, paddingVertical: spacing['3'], paddingHorizontal: spacing['8'], minHeight: 48, justifyContent: 'center' },

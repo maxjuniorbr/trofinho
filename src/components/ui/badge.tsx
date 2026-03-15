@@ -4,11 +4,6 @@ import { Clock, Eye, CheckCircle2, XCircle } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 
-/**
- * Variants aligned with design-studio StatusBadge:
- * pending=warning  approved=success  rejected=error
- * active=brand     inactive=neutral
- */
 type BadgeVariant =
   | 'success' | 'error' | 'warning' | 'info' | 'neutral' | 'brand'
   | 'pending' | 'approved' | 'rejected' | 'active' | 'inactive';
@@ -21,7 +16,6 @@ interface BadgeProps {
 
 type ReadonlyBadgeProps = Readonly<BadgeProps>;
 
-// Map status aliases to semantic variants
 function resolveVariant(v: BadgeVariant): 'success' | 'error' | 'warning' | 'info' | 'neutral' | 'brand' {
   switch (v) {
     case 'pending':  return 'warning';
@@ -75,7 +69,7 @@ export function Badge({ label, variant = 'neutral', size = 'sm' }: ReadonlyBadge
     }
   }
 
-  const paddingV = size === 'md' ? spacing['2'] : 3;
+  const paddingV = size === 'md' ? spacing['2'] : spacing['0.75'];
   const paddingH = size === 'md' ? spacing['3'] : spacing['2'];
   const fontSize  = size === 'md' ? typography.size.sm : typography.size.xs;
   const iconSize  = size === 'md' ? 14 : 12;
@@ -97,7 +91,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing['1'],
   },
   label: {
     fontWeight: typography.weight.black,

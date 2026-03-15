@@ -4,14 +4,8 @@ import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing } from '@/constants/theme';
 
 interface CardProps extends ViewProps {
-  /** Elevates card with a stronger shadow */
   elevated?: boolean;
-  /** Removes all padding (e.g. for image-only cards) */
   noPadding?: boolean;
-  /**
-   * Adds a gold ambient glow shadow + subtle gold border.
-   * Use on featured/highlighted cards (saldo hero, prize cards, etc.)
-   */
   glow?: boolean;
 }
 
@@ -23,7 +17,7 @@ export function Card({ elevated = false, noPadding = false, glow = false, style,
   if (glow) shadowStyle = isDark ? styles.glowShadowDark : styles.glowShadow;
   else if (elevated) shadowStyle = styles.elevatedShadow;
 
-  const glowBorderOpacity = isDark ? '4D' : '33'; // 30% dark, 20% light
+  const glowBorderOpacity = isDark ? '4D' : '33';
 
   return (
     <View

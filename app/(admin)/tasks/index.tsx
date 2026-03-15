@@ -104,8 +104,8 @@ export default function AdminTasksScreen() {
 function makeStyles() {
   return StyleSheet.create({
     container: { flex: 1 },
-    lista: { padding: spacing['4'], paddingBottom: spacing['10'], gap: spacing['3'] },
-    card: { borderRadius: radii.xl, borderWidth: 1, padding: spacing['4'] },
+    lista: { padding: spacing['4'], paddingBottom: spacing['10'] },
+    card: { borderRadius: radii.xl, borderWidth: 1, padding: spacing['4'], marginBottom: spacing['3'] },
     cardTopo: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing['2'] },
     cardTitulo: { flex: 1, fontSize: typography.size.md, fontFamily: typography.family.semibold, marginRight: spacing['2'] },
     pontosTag: { borderRadius: radii.full, paddingHorizontal: spacing['2'], paddingVertical: spacing['1'] },

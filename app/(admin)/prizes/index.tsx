@@ -146,7 +146,7 @@ function makeStyles(colors: ThemeColors) {
     cardNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary, flex: 1 },
     textoInativo: { color: colors.text.muted },
     cardDescricao: { fontSize: typography.size.sm, color: colors.text.secondary },
-    cardCustoRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    cardCustoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     cardCusto: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.accent.admin },
     badgeInativo: {
       backgroundColor: colors.bg.muted,

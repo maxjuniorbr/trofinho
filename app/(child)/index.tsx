@@ -7,7 +7,6 @@ import {
   View,
   ActivityIndicator,
 } from 'react-native';
-// Animations use plain Views — Reanimated requires a custom dev build
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -75,8 +74,7 @@ export default function FilhoHomeScreen() {
       } else {
         setFamily(null);
       }
-    } catch (err) {
-      console.warn('Erro ao carregar dados da home:', err);
+    } catch {
       setFamily(null);
       setPendingCount(0);
       setFreeBalance(0);
@@ -113,7 +111,7 @@ export default function FilhoHomeScreen() {
           Olá, {profile?.nome ?? 'Campeão'}!
         </Text>
         {family ? (
-          <Text style={[styles.heroFamily, { color: colors.accent.filho }]}>{family.nome}</Text>
+          <Text style={[styles.heroFamily, { color: colors.accent.filho }]}>Família {family.nome}</Text>
         ) : null}
       </View>
 

@@ -12,7 +12,7 @@ export async function readImageAsArrayBuffer(imageUri: string): Promise<ArrayBuf
     try {
       return await new File(normalizedUri).arrayBuffer();
     } catch {
-      // File API failed — fall through to fetch
+      // Se a leitura local falhar, tenta via fetch.
     }
   }
 

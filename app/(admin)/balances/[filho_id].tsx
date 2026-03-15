@@ -134,7 +134,7 @@ export default function ChildBalanceAdminScreen() {
             <View style={styles.cardsRow}>
               <View style={[styles.saldoCard, { backgroundColor: colors.accent.adminDim }]}>
                 <View style={styles.saldoLabelRow}>
-                  <Wallet size={14} color="rgba(255,255,255,0.85)" strokeWidth={2} />
+                  <Wallet size={14} color={colors.text.inverseMuted} strokeWidth={2} />
                   <Text style={styles.saldoLabel}>Saldo livre</Text>
                 </View>
                 <Text style={styles.saldoValor}>{saldoLivre}</Text>
@@ -142,7 +142,7 @@ export default function ChildBalanceAdminScreen() {
               </View>
               <View style={[styles.saldoCard, { backgroundColor: colors.semantic.warning }]}>
                 <View style={styles.saldoLabelRow}>
-                  <Wallet size={14} color="rgba(255,255,255,0.85)" strokeWidth={2} />
+                  <Wallet size={14} color={colors.text.inverseMuted} strokeWidth={2} />
                   <Text style={styles.saldoLabel}>Cofrinho</Text>
                 </View>
                 <Text style={styles.saldoValor}>{cofrinho}</Text>
@@ -240,15 +240,15 @@ function makeStyles(colors: ThemeColors) {
       flex: 1, borderRadius: radii.xl, padding: spacing['4'], alignItems: 'center',
       ...shadows.card,
     },
-    saldoLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: spacing['1'] },
-    saldoLabel: { color: 'rgba(255,255,255,0.85)', fontSize: typography.size.xs, fontFamily: typography.family.semibold },
-    saldoValor: { color: '#fff', fontSize: typography.size['4xl'], fontFamily: typography.family.extrabold },
-    saldoPts: { color: 'rgba(255,255,255,0.8)', fontSize: typography.size.xs, marginTop: spacing['1'] },
+    saldoLabelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'], marginBottom: spacing['1'] },
+    saldoLabel: { color: colors.text.inverseMuted, fontSize: typography.size.xs, fontFamily: typography.family.semibold },
+    saldoValor: { color: colors.text.inverse, fontSize: typography.size['4xl'], fontFamily: typography.family.extrabold },
+    saldoPts: { color: colors.text.inverseSubtle, fontSize: typography.size.xs, marginTop: spacing['1'] },
     boxConfig: {
       backgroundColor: colors.bg.surface, borderRadius: radii.xl,
       padding: spacing['4'], marginBottom: spacing['3'], ...shadows.card,
     },
-    boxConfigTituloRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing['1'] },
+    boxConfigTituloRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1.5'], marginBottom: spacing['1'] },
     boxConfigTitulo: { fontSize: typography.size.md, fontFamily: typography.family.bold, color: colors.text.primary },
     boxConfigTexto: { fontSize: typography.size.sm, color: colors.text.secondary, marginBottom: spacing['3'] },
     acoesBtns: { flexDirection: 'row', gap: spacing['2'] },

@@ -1,21 +1,12 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { typography } from '@/constants/theme';
+import { spacing, typography } from '@/constants/theme';
 import { useTheme } from '@/context/theme-context';
 
 interface PointsDisplayProps {
-  /** Numeric value — displayed formatted with pt-BR locale (e.g. 1.250) */
   value: number;
-  /** Caption below the number (e.g. "pontos disponíveis") */
   label: string;
-  /**
-   * Controls the text color of the value:
-   *   gold    → brand.vivid (#FAC114)
-   *   amber   → brand.dim   (#C57B0D)
-   *   default → text.primary
-   */
   variant?: 'gold' | 'amber' | 'default';
-  /** sm = xl font (28px), lg = 3xl font (40px) */
   size?: 'sm' | 'lg';
 }
 
@@ -32,7 +23,7 @@ export function PointsDisplay({ value, label, variant = 'gold', size = 'sm' }: R
     }
   }
 
-  const valueFontSize = size === 'lg' ? 40 : 28;
+  const valueFontSize = size === 'lg' ? typography.size['3xl'] : typography.lineHeight.lg;
 
   const formatted = value.toLocaleString('pt-BR');
 
@@ -59,7 +50,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.family.black,
     fontWeight: typography.weight.black,
     includeFontPadding: false,
-    lineHeight: undefined, // let RN auto-calculate per fontFamily
+    lineHeight: undefined,
     fontVariant: ['tabular-nums'] as const,
   },
   label: {
@@ -68,6 +59,6 @@ const styles = StyleSheet.create({
     fontSize: typography.size.xs,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
-    marginTop: 2,
+    marginTop: spacing['0.5'],
   },
 });

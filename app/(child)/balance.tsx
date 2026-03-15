@@ -220,7 +220,7 @@ export default function ChildBalanceScreen() {
                 disabled={transferring}
               >
                 {transferring
-                  ? <ActivityIndicator color="#fff" />
+                  ? <ActivityIndicator color={colors.text.inverse} />
                   : <Text style={styles.confirmBtnText}>Guardar</Text>}
               </Pressable>
             </View>
@@ -244,10 +244,10 @@ function makeStyles(colors: ThemeColors) {
       alignItems: 'center',
       gap: spacing['1'],
     },
-    balanceLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    balanceLabelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     balanceLabel: { color: colors.text.secondary, fontSize: typography.size.xs, fontFamily: typography.family.semibold },
     appreciationBox: { backgroundColor: colors.semantic.successBg, borderRadius: radii.lg, padding: spacing['2'], marginBottom: spacing['3'] },
-    appreciationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    appreciationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     appreciationText: { color: colors.semantic.success, fontSize: typography.size.xs, flex: 1 },
     transferBtn: {
       backgroundColor: colors.accent.filho,
@@ -258,7 +258,7 @@ function makeStyles(colors: ThemeColors) {
       minHeight: 48,
     },
     disabledBtn: { opacity: 0.4 },
-    transferBtnText: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.md },
+    transferBtnText: { color: colors.text.inverse, fontFamily: typography.family.bold, fontSize: typography.size.md },
     sectionTitle: { fontSize: typography.size.md, fontFamily: typography.family.bold, color: colors.text.primary, marginBottom: spacing['3'] },
     emptyText: { color: colors.text.muted, fontSize: typography.size.sm, textAlign: 'center', marginTop: spacing['2'] },
     txnItem: {
@@ -279,7 +279,7 @@ function makeStyles(colors: ThemeColors) {
     txnAmount: { fontSize: typography.size.md, fontFamily: typography.family.bold },
     credit: { color: colors.semantic.success },
     debit: { color: colors.semantic.error },
-    modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+    modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.overlay.scrimSoft },
     modalBox: {
       backgroundColor: colors.bg.surface,
       borderTopLeftRadius: radii.xl,
@@ -321,6 +321,6 @@ function makeStyles(colors: ThemeColors) {
       alignItems: 'center',
       minHeight: 48,
     },
-    confirmBtnText: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.md },
+    confirmBtnText: { color: colors.text.inverse, fontFamily: typography.family.bold, fontSize: typography.size.md },
   });
 }
