@@ -170,15 +170,18 @@ export default function ProfileScreen() {
     const uri = result.assets[0].uri;
     setAvatarError(null);
     setUploadingAvatar(true);
-    const { url, error } = await updateUserAvatar(uri);
-    setUploadingAvatar(false);
-
-    if (error) {
-      setAvatarError(error.message);
-      return;
+    try {
+      const { url, error } = await updateUserAvatar(uri);
+      if (error) {
+        setAvatarError(error.message);
+        return;
+      }
+      setAvatarUri(url);
+    } catch {
+      setAvatarError('Não foi possível atualizar a foto.');
+    } finally {
+      setUploadingAvatar(false);
     }
-
-    setAvatarUri(url);
   }
 
   async function handleSaveName() {

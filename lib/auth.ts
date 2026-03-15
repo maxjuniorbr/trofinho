@@ -171,6 +171,7 @@ function translateRpcError(msg: string): string {
 async function readAsArrayBuffer(imageUri: string): Promise<ArrayBuffer> {
   const normalizedUri = imageUri.split('?')[0];
 
+  // Try expo-file-system File API for local URIs (file://, content://, ph://)
   if (
     !normalizedUri.startsWith('http://') &&
     !normalizedUri.startsWith('https://')
@@ -178,6 +179,7 @@ async function readAsArrayBuffer(imageUri: string): Promise<ArrayBuffer> {
     try {
       return await new File(normalizedUri).arrayBuffer();
     } catch {
+      // File API failed — fall through to fetch
     }
   }
 
