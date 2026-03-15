@@ -8,35 +8,35 @@ vi.mock('expo-secure-store', () => ({
   deleteItemAsync: vi.fn(),
 }));
 
-const originalExpoOs = process.env.EXPO_OS;
-
 afterEach(() => {
-  process.env.EXPO_OS = originalExpoOs;
   vi.restoreAllMocks();
-  vi.unstubAllGlobals();
 });
 
 describe('deviceStorage', () => {
-  it('uses localStorage on web instead of expo-secure-store', async () => {
-    process.env.EXPO_OS = 'web';
+  it('delegates getItem to SecureStore', async () => {
+    vi.mocked(SecureStore.getItemAsync).mockResolvedValueOnce(null); // no chunks
+    vi.mocked(SecureStore.getItemAsync).mockResolvedValueOnce('dark');
 
-    const localStorage = {
-      getItem: vi.fn().mockReturnValue('dark'),
-      setItem: vi.fn(),
-      removeItem: vi.fn(),
-    };
+    const result = await deviceStorage.getItem('trofinho_color_scheme');
 
-    vi.stubGlobal('window', { localStorage });
+    expect(result).toBe('dark');
+    expect(SecureStore.getItemAsync).toHaveBeenCalledWith('trofinho_color_scheme_chunks');
+    expect(SecureStore.getItemAsync).toHaveBeenCalledWith('trofinho_color_scheme');
+  });
 
-    await expect(deviceStorage.getItem('trofinho_color_scheme')).resolves.toBe('dark');
-    await expect(deviceStorage.setItem('trofinho_color_scheme', 'light')).resolves.toBeUndefined();
-    await expect(deviceStorage.removeItem('trofinho_color_scheme')).resolves.toBeUndefined();
+  it('delegates setItem to SecureStore for small values', async () => {
+    vi.mocked(SecureStore.getItemAsync).mockResolvedValueOnce(null); // no existing chunks
 
-    expect(localStorage.getItem).toHaveBeenCalledWith('trofinho_color_scheme');
-    expect(localStorage.setItem).toHaveBeenCalledWith('trofinho_color_scheme', 'light');
-    expect(localStorage.removeItem).toHaveBeenCalledWith('trofinho_color_scheme');
-    expect(SecureStore.getItemAsync).not.toHaveBeenCalled();
-    expect(SecureStore.setItemAsync).not.toHaveBeenCalled();
-    expect(SecureStore.deleteItemAsync).not.toHaveBeenCalled();
+    await deviceStorage.setItem('key', 'value');
+
+    expect(SecureStore.setItemAsync).toHaveBeenCalledWith('key', 'value');
+  });
+
+  it('delegates removeItem to SecureStore', async () => {
+    vi.mocked(SecureStore.getItemAsync).mockResolvedValueOnce(null); // no chunks
+
+    await deviceStorage.removeItem('key');
+
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('key');
   });
 });
