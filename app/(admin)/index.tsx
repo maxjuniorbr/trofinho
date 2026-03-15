@@ -58,25 +58,27 @@ export default function AdminHomeScreen() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const p = await getProfile();
+      const [p, { data: tarefas }, { data: childrenData }, { data: balancesData }, { data: redemptionCount }] = await Promise.all([
+        getProfile(),
+        listAdminTasks(),
+        listChildren(),
+        listAdminBalances(),
+        countPendingRedemptions(),
+      ]);
+
       setProfile(p);
       setAvatarUri(p?.avatarUrl ?? null);
+      setPendingValidationCount(tarefas.reduce((acc, t) => acc + t.atribuicoes.filter((a) => a.status === 'aguardando_validacao').length, 0));
+      setChildren(childrenData);
+      setBalancesMap(new Map(balancesData.map((s) => [s.filho_id, s])));
+      setPendingRedemptionCount(redemptionCount);
+
       if (p?.familia_id) {
         const { data: fam } = await supabase.from('familias').select('nome').eq('id', p.familia_id).single();
         setFamily(fam);
       } else {
         setFamily(null);
       }
-      const { data: tarefas } = await listAdminTasks();
-      setPendingValidationCount(tarefas.reduce((acc, t) => acc + t.atribuicoes.filter((a) => a.status === 'aguardando_validacao').length, 0));
-      const [{ data: childrenData }, { data: balancesData }] = await Promise.all([
-        listChildren(),
-        listAdminBalances(),
-      ]);
-      setChildren(childrenData);
-      setBalancesMap(new Map(balancesData.map((s) => [s.filho_id, s])));
-      const { data: redemptionCount } = await countPendingRedemptions();
-      setPendingRedemptionCount(redemptionCount);
     } catch {
       setFamily(null);
       setChildren([]);
