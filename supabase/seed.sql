@@ -1,3 +1,2 @@
 -- Seed para desenvolvimento local
--- Adicione dados de teste aqui para popular o banco ao rodar `supabase start`
--- Exemplo: INSERT INTO public.familias (nome) VALUES ('Família Demo');
+-- Adicione dados de teste aqui para popular o banco ao rodar `supabase db reset`

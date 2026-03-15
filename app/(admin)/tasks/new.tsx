@@ -1,11 +1,9 @@
 import { StyleSheet, Text, View, Pressable, TextInput, ScrollView, Switch, KeyboardAvoidingView, ActivityIndicator } from 'react-native';
-import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { ScreenHeader } from '@/components/ui/screen-header';
-import { createTask, listFamilyChildren, type Child } from '@lib/tasks';
-import { formatDate, toDateString } from '@lib/utils';
+import { createTask, listFamilyChildren, type Child, type TaskFrequencia } from '@lib/tasks';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 
@@ -17,10 +15,7 @@ export default function NewTaskScreen() {
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
   const [pontos, setPontos] = useState('');
-  const [inicio, setInicio] = useState(new Date());
-  const [fim, setFim] = useState(new Date());
-  const [showPickerInicio, setShowPickerInicio] = useState(false);
-  const [showPickerFim, setShowPickerFim] = useState(false);
+  const [frequencia, setFrequencia] = useState<TaskFrequencia>('unica');
   const [exigeEvidencia, setExigeEvidencia] = useState(false);
   const [children, setChildren] = useState<Child[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -46,30 +41,16 @@ export default function NewTaskScreen() {
     });
   }
 
-  function openPickerInicio() {
-    if (process.env.EXPO_OS === 'android') {
-      DateTimePickerAndroid.open({ value: inicio, mode: 'date', onChange: (_, date) => { if (date) setInicio(date); } });
-    } else { setShowPickerInicio(true); }
-  }
-
-  function openPickerFim() {
-    if (process.env.EXPO_OS === 'android') {
-      DateTimePickerAndroid.open({ value: fim, mode: 'date', minimumDate: inicio, onChange: (_, date) => { if (date) setFim(date); } });
-    } else { setShowPickerFim(true); }
-  }
-
   async function handleCreate() {
     setError(null);
     if (!titulo.trim()) return setError('Informe o título da tarefa.');
     const pontosNum = Number.parseInt(pontos, 10);
     if (Number.isNaN(pontosNum) || pontosNum <= 0) return setError('Pontos deve ser um número maior que zero.');
-    if (fim < inicio) return setError('Data fim deve ser igual ou posterior ao início.');
     if (selected.size === 0) return setError('Selecione ao menos um filho para atribuir a tarefa.');
     setSubmitting(true);
     const { error } = await createTask({
       titulo: titulo.trim(), descricao: descricao.trim() || null, pontos: pontosNum,
-      timebox_inicio: toDateString(inicio), timebox_fim: toDateString(fim),
-      exige_evidencia: exigeEvidencia, filhoIds: Array.from(selected),
+      frequencia, exige_evidencia: exigeEvidencia, filhoIds: Array.from(selected),
     });
     setSubmitting(false);
     if (error) return setError(error);
@@ -125,25 +106,22 @@ export default function NewTaskScreen() {
         <Text style={[styles.label, { color: colors.text.secondary }]}>Pontos *</Text>
         <TextInput style={[styles.input, { backgroundColor: colors.bg.surface, borderColor: colors.border.default, color: colors.text.primary }]} value={pontos} onChangeText={setPontos} placeholder="Ex: 10" placeholderTextColor={colors.text.muted} keyboardType="numeric" maxLength={4} />
 
+        <Text style={[styles.label, { color: colors.text.secondary }]}>Frequência *</Text>
         <View style={styles.linha}>
-          <View style={styles.linhaItem}>
-            <Text style={[styles.label, { color: colors.text.secondary }]}>Data início *</Text>
-            <Pressable style={[styles.dateBtn, { backgroundColor: colors.bg.surface, borderColor: colors.border.default }]} onPress={openPickerInicio}>
-              <Text style={[styles.dateBtnTexto, { color: colors.text.primary }]}>📅 {formatDate(inicio)}</Text>
-            </Pressable>
-            {showPickerInicio && process.env.EXPO_OS !== 'android' && (
-              <DateTimePicker value={inicio} mode="date" display="spinner" onChange={(_, date) => { setShowPickerInicio(false); if (date) setInicio(date); }} />
-            )}
-          </View>
-          <View style={styles.linhaItem}>
-            <Text style={[styles.label, { color: colors.text.secondary }]}>Data fim *</Text>
-            <Pressable style={[styles.dateBtn, { backgroundColor: colors.bg.surface, borderColor: colors.border.default }]} onPress={openPickerFim}>
-              <Text style={[styles.dateBtnTexto, { color: colors.text.primary }]}>📅 {formatDate(fim)}</Text>
-            </Pressable>
-            {showPickerFim && process.env.EXPO_OS !== 'android' && (
-              <DateTimePicker value={fim} mode="date" minimumDate={inicio} display="spinner" onChange={(_, date) => { setShowPickerFim(false); if (date) setFim(date); }} />
-            )}
-          </View>
+          <Pressable
+            style={[styles.freqBtn, { borderColor: frequencia === 'unica' ? colors.accent.admin : colors.border.default, backgroundColor: frequencia === 'unica' ? colors.accent.adminBg : colors.bg.surface }]}
+            onPress={() => setFrequencia('unica')}
+          >
+            <Text style={[styles.freqBtnTexto, { color: frequencia === 'unica' ? colors.accent.admin : colors.text.secondary }]}>Única</Text>
+            <Text style={[styles.freqBtnDesc, { color: frequencia === 'unica' ? colors.accent.admin : colors.text.muted }]}>Realizada uma vez</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.freqBtn, { borderColor: frequencia === 'diaria' ? colors.accent.admin : colors.border.default, backgroundColor: frequencia === 'diaria' ? colors.accent.adminBg : colors.bg.surface }]}
+            onPress={() => setFrequencia('diaria')}
+          >
+            <Text style={[styles.freqBtnTexto, { color: frequencia === 'diaria' ? colors.accent.admin : colors.text.secondary }]}>Diária</Text>
+            <Text style={[styles.freqBtnDesc, { color: frequencia === 'diaria' ? colors.accent.admin : colors.text.muted }]}>Repetida todo dia</Text>
+          </Pressable>
         </View>
 
         <View style={[styles.switchRow, { borderTopColor: colors.border.subtle }]}>
@@ -177,9 +155,9 @@ function makeStyles() {
     input: { borderWidth: 1, borderRadius: radii.md, paddingHorizontal: spacing['4'], paddingVertical: spacing['3'], fontSize: typography.size.md },
     inputMultiline: { minHeight: 80, textAlignVertical: 'top' },
     linha: { flexDirection: 'row', gap: spacing['2'], marginTop: spacing['2'] },
-    linhaItem: { flex: 1 },
-    dateBtn: { borderWidth: 1, borderRadius: radii.md, paddingVertical: spacing['3'], paddingHorizontal: spacing['4'] },
-    dateBtnTexto: { fontSize: typography.size.md },
+    freqBtn: { flex: 1, borderWidth: 2, borderRadius: radii.md, paddingVertical: spacing['3'], paddingHorizontal: spacing['4'], alignItems: 'center', gap: spacing['1'] },
+    freqBtnTexto: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
+    freqBtnDesc: { fontSize: typography.size.xs },
     switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: spacing['4'], marginTop: spacing['4'], borderTopWidth: 1 },
     secaoTitulo: { fontSize: typography.size.md, fontFamily: typography.family.bold, marginTop: spacing['5'], marginBottom: spacing['3'] },
     filhosList: { gap: spacing['2'] },
