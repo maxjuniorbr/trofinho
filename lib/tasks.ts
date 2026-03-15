@@ -1,4 +1,5 @@
 import { File } from 'expo-file-system';
+import { toDateString } from './utils';
 import { supabase } from './supabase';
 
 export type Child = {
@@ -168,19 +169,14 @@ export async function listChildAssignments(): Promise<{
   data: ChildAssignment[];
   error: string | null;
 }> {
-  // sv-SE locale produces 'YYYY-MM-DD' in the device's local timezone,
-  // matching CURRENT_DATE on Postgres when the server timezone aligns.
-  const today = new Date().toLocaleDateString('sv-SE');
+  const today = toDateString(new Date());
+  const visibleAssignmentsFilter =
+    `competencia.is.null,competencia.eq.${today},status.in.(aprovada,rejeitada)`;
 
-  // Mostrar:
-  //  • Tarefas únicas: sempre (competencia IS NULL)
-  //  • Tarefas diárias de hoje (competencia = hoje)
-  //  • Histórico aprovado/rejeitado de qualquer dia
-  // Ocultar: "pendente" de dias anteriores (tarefa diária perdida)
   const { data, error } = await supabase
     .from('atribuicoes')
     .select('*, tarefas(*)')
-    .or(`competencia.is.null,competencia.eq.${today},status.in.(aprovada,rejeitada)`)
+    .or(visibleAssignmentsFilter)
     .order('created_at', { ascending: false });
 
   if (error) return { data: [], error: error.message };
@@ -263,7 +259,7 @@ async function uploadEvidence(
 
     const extension = inferImageExtension(imageUri);
     const buffer = await readImageAsArrayBuffer(imageUri);
-    const fileName = `evidencia_${Date.now()}_${generateRandomSuffix()}.${extension}`;
+    const fileName = `evidencia_${createEvidenceSuffix()}.${extension}`;
     const filePath = `${profile.familia_id}/${child.id}/${fileName}`;
 
     const { data, error } = await supabase.storage
@@ -293,7 +289,6 @@ async function readImageAsArrayBuffer(imageUri: string): Promise<ArrayBuffer> {
     try {
       return await new File(normalizedUri).arrayBuffer();
     } catch {
-      // Fallback for environments/URIs where expo-file-system cannot open the file.
     }
   }
 
@@ -306,19 +301,15 @@ async function readImageAsArrayBuffer(imageUri: string): Promise<ArrayBuffer> {
   return response.arrayBuffer();
 }
 
-function generateRandomSuffix(): string {
-  const cryptoApi = globalThis.crypto;
+let evidenceSuffixCounter = 0;
 
-  if (cryptoApi?.getRandomValues) {
-    return Array.from(cryptoApi.getRandomValues(new Uint8Array(8)))
-      .map((byte) => byte.toString(16).padStart(2, '0'))
-      .join('');
-  }
+function createEvidenceSuffix(): string {
+  evidenceSuffixCounter = (evidenceSuffixCounter + 1) % 1_000_000;
 
-  // Fallback for Hermes / React Native environments without Web Crypto
-  return Array.from({ length: 8 }, () =>
-    Math.floor(Math.random() * 256).toString(16).padStart(2, '0')
-  ).join('');
+  const timePart = Date.now().toString(36);
+  const counterPart = evidenceSuffixCounter.toString(36).padStart(4, '0');
+
+  return `${timePart}_${counterPart}`;
 }
 
 function inferImageExtension(imageUri: string): string {
