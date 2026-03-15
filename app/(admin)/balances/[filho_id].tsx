@@ -12,9 +12,6 @@ import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import {
   Wallet,
   TrendingUp,
-  CheckCircle2,
-  ArrowDownCircle,
-  AlertTriangle,
 } from 'lucide-react-native';
 import {
   getBalance,
@@ -27,7 +24,6 @@ import {
   isCredit,
   type Balance,
   type Transaction,
-  type TransactionType,
 } from '@lib/balances';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
@@ -35,16 +31,7 @@ import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { PenaltyModal, PenaltyButton } from '@/components/balance/penalty-modal';
 import { AppreciationModal } from '@/components/balance/appreciation-modal';
-
-import type { LucideIcon } from 'lucide-react-native';
-
-const TRANSACTION_ICONS: Record<TransactionType, LucideIcon> = {
-  credito:                CheckCircle2,
-  debito:                 ArrowDownCircle,
-  transferencia_cofrinho: Wallet,
-  valorizacao:            TrendingUp,
-  penalizacao:            AlertTriangle,
-};
+import { TransactionIcon } from '@/components/balance/transaction-icon';
 
 type ModalType = 'penalizar' | 'valorizacao_config' | null;
 
@@ -191,11 +178,7 @@ export default function ChildBalanceAdminScreen() {
         }
         renderItem={({ item }) => (
           <View style={styles.movItem}>
-            {(() => { const Icon = TRANSACTION_ICONS[item.tipo]; return (
-            <View style={[styles.movIconBox, { backgroundColor: isCredit(item.tipo) ? colors.semantic.successBg : colors.semantic.errorBg }]}>
-              <Icon size={16} color={isCredit(item.tipo) ? colors.semantic.successText : colors.semantic.errorText} strokeWidth={2} />
-            </View>
-            ); })()}
+            <TransactionIcon type={item.tipo} style={styles.movIconBox} />
             <View style={styles.movInfo}>
               <Text style={styles.movLabel}>{getTransactionTypeLabel(item.tipo)}</Text>
               <Text style={styles.movDesc} numberOfLines={1}>{item.descricao}</Text>

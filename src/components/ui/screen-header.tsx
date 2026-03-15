@@ -38,9 +38,11 @@ export function HeaderIconButton({
   const { colors, isDark } = useTheme();
   const accent = role === 'filho' ? colors.accent.filho : colors.accent.admin;
   const backgroundColor = tone === 'muted' ? colors.bg.muted : accent;
-  const iconColor = tone === 'muted'
-    ? (isDark ? colors.text.inverse : colors.text.primary)
-    : colors.text.inverse;
+  let iconColor: string = colors.text.inverse;
+
+  if (tone === 'muted') {
+    iconColor = isDark ? colors.text.inverse : colors.text.primary;
+  }
 
   return (
     <Pressable
@@ -68,7 +70,7 @@ export function ScreenHeader({
   backLabel = 'Voltar',
   rightAction,
   role = 'admin',
-  backTone = role === 'filho' ? 'accent' : 'muted',
+  backTone,
   surface = 'surface',
   showBorder = true,
 }: ReadonlyScreenHeaderProps) {
@@ -76,6 +78,7 @@ export function ScreenHeader({
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const displayLabel = backLabel.replace(/^←\s*/, '');
+  const resolvedBackTone = backTone ?? (role === 'filho' ? 'accent' : 'muted');
 
   return (
     <View
@@ -101,7 +104,7 @@ export function ScreenHeader({
           }}
           accessibilityLabel={`Voltar para ${displayLabel}`}
           role={role}
-          tone={backTone}
+          tone={resolvedBackTone}
         />
       ) : (
         <View style={styles.side} />

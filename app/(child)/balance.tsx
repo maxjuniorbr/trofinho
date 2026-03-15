@@ -16,9 +16,6 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import {
   Wallet,
   TrendingUp,
-  CheckCircle2,
-  ArrowDownCircle,
-  AlertTriangle,
 } from 'lucide-react-native';
 import {
   getBalance,
@@ -29,24 +26,14 @@ import {
   isCredit,
   type Balance,
   type Transaction,
-  type TransactionType,
 } from '@lib/balances';
 import { getMyChildId } from '@lib/children';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { TransactionIcon } from '@/components/balance/transaction-icon';
 import { PointsDisplay } from '@/components/ui/points-display';
-
-import type { LucideIcon } from 'lucide-react-native';
-
-const TRANSACTION_ICONS: Record<TransactionType, LucideIcon> = {
-  credito:                CheckCircle2,
-  debito:                 ArrowDownCircle,
-  transferencia_cofrinho: Wallet,
-  valorizacao:            TrendingUp,
-  penalizacao:            AlertTriangle,
-};
 
 export default function ChildBalanceScreen() {
   const router = useRouter();
@@ -170,11 +157,7 @@ export default function ChildBalanceScreen() {
         }
         renderItem={({ item }) => (
           <View style={styles.txnItem}>
-            {(() => { const Icon = TRANSACTION_ICONS[item.tipo]; return (
-            <View style={[styles.txnIconBox, { backgroundColor: isCredit(item.tipo) ? colors.semantic.successBg : colors.semantic.errorBg }]}>
-              <Icon size={16} color={isCredit(item.tipo) ? colors.semantic.successText : colors.semantic.errorText} strokeWidth={2} />
-            </View>
-            ); })()}
+            <TransactionIcon type={item.tipo} style={styles.txnIconBox} />
             <View style={styles.txnInfo}>
               <Text style={styles.txnLabel}>{getTransactionTypeLabel(item.tipo)}</Text>
               <Text style={styles.txnDesc} numberOfLines={1}>{item.descricao}</Text>
