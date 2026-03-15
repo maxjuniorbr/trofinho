@@ -8,6 +8,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "tunnel": "expo start --tunnel",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
@@ -43,6 +45,9 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.10",
+    "@types/react-test-renderer": "^19.1.0",
+    "@vitest/coverage-v8": "^4.1.0",
+    "react-test-renderer": "^19.1.0",
     "typescript": "~5.9.2",
     "vitest": "^4.1.0"
   },
