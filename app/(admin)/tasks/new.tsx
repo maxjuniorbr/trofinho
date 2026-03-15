@@ -27,6 +27,7 @@ export default function NewTaskScreen() {
   const [loadingChildren, setLoadingChildren] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const shouldShowError = Boolean(error);
 
   useEffect(() => {
@@ -72,7 +73,7 @@ export default function NewTaskScreen() {
     });
     setSubmitting(false);
     if (error) return setError(error);
-    router.back();
+    setSuccess(true);
   }
 
   function renderChildrenList() {
@@ -91,6 +92,22 @@ export default function NewTaskScreen() {
         </Pressable>
       );
     });
+  }
+
+  if (success) {
+    return (
+      <View style={[styles.sucessoContainer, { backgroundColor: colors.bg.canvas }]}>
+        <StatusBar style={colors.statusBar} />
+        <Text style={styles.sucessoEmoji}>📋</Text>
+        <Text style={[styles.sucessoTitulo, { color: colors.text.primary }]}>Tarefa criada!</Text>
+        <Text style={[styles.sucessoTexto, { color: colors.text.secondary }]}>
+          A tarefa foi criada e atribuída com sucesso.
+        </Text>
+        <Pressable style={[styles.botaoConcluir, { backgroundColor: colors.accent.admin }]} onPress={() => router.back()}>
+          <Text style={[styles.botaoConcluirTexto, { color: colors.text.inverse }]}>Concluir</Text>
+        </Pressable>
+      </View>
+    );
   }
 
   return (
@@ -173,5 +190,11 @@ function makeStyles() {
     erroTexto: { fontSize: typography.size.sm, marginTop: spacing['4'], textAlign: 'center' },
     botaoCriar: { borderRadius: radii.md, paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['6'], minHeight: 56 },
     botaoCriarTexto: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
+    sucessoContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing['8'] },
+    sucessoEmoji: { fontSize: 56, marginBottom: spacing['4'] },
+    sucessoTitulo: { fontSize: typography.size['2xl'], fontFamily: typography.family.bold, marginBottom: spacing['3'] },
+    sucessoTexto: { fontSize: typography.size.md, textAlign: 'center', lineHeight: typography.lineHeight.md, marginBottom: spacing['8'] },
+    botaoConcluir: { borderRadius: radii.md, paddingVertical: spacing['3'], paddingHorizontal: spacing['8'], minHeight: 48, justifyContent: 'center' },
+    botaoConcluirTexto: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
   });
 }

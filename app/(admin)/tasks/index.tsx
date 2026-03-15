@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Pressable, FlatList } from 'react-native';
+import { StyleSheet, Text, View, Pressable, FlatList, RefreshControl } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -52,6 +52,7 @@ export default function AdminTasksScreen() {
           data={tasks}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
           renderItem={({ item }) => {
             const total = item.atribuicoes.length;
             const pendentes = item.atribuicoes.filter((a) => a.status === 'pendente').length;

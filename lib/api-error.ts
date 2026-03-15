@@ -13,6 +13,25 @@ export class ApiError extends Error {
   }
 }
 
+const SUPABASE_ERROR_MAP: Record<string, string> = {
+  'User already registered': 'Este e-mail já está cadastrado.',
+  'Invalid login credentials': 'E-mail ou senha incorretos.',
+  'Email not confirmed': 'Confirme seu e-mail antes de entrar.',
+  'Password should be at least 6 characters': 'A senha deve ter ao menos 6 caracteres.',
+  'Email rate limit exceeded': 'Muitas tentativas. Aguarde um momento e tente novamente.',
+  'User not found': 'Usuário não encontrado.',
+  'New password should be different from the old password.': 'A nova senha deve ser diferente da anterior.',
+  'Auth session missing!': 'Sessão expirada. Faça login novamente.',
+};
+
+/**
+ * Traduz mensagens de erro do Supabase Auth para PT-BR.
+ * Retorna mensagem genérica se não houver mapeamento.
+ */
+export function localizeSupabaseError(message: string): string {
+  return SUPABASE_ERROR_MAP[message] ?? 'Algo deu errado. Tente novamente.';
+}
+
 /**
  * Wrapper de fetch com tratamento de erros padronizado.
  * Lança `ApiError` com status HTTP ou code `NETWORK_ERROR`.

@@ -103,10 +103,12 @@ export default function TaskDetailAdminScreen() {
 
   if (error || !task) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
+      <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />
         <ScreenHeader title="Detalhes" onBack={() => router.back()} />
-        <EmptyState error={error ?? 'Tarefa não encontrada.'} onRetry={loadData} />
+        <View style={styles.center}>
+          <EmptyState error={error ?? 'Tarefa não encontrada.'} onRetry={loadData} />
+        </View>
       </View>
     );
   }
