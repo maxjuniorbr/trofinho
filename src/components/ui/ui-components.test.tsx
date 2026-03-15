@@ -76,18 +76,19 @@ describe('ui components', () => {
   });
 
   it.each([
-    ['approved', lightColors.semantic.successBg, lightColors.semantic.success],
-    ['rejected', lightColors.semantic.errorBg, lightColors.semantic.error],
-    ['pending', lightColors.semantic.warningBg, lightColors.semantic.warning],
-    ['info', lightColors.semantic.infoBg, lightColors.semantic.info],
+    ['approved', lightColors.semantic.successBg, lightColors.semantic.successText],
+    ['rejected', lightColors.semantic.errorBg, lightColors.semantic.errorText],
+    ['pending', lightColors.semantic.warningBg, lightColors.semantic.warningText],
+    ['info', lightColors.semantic.infoBg, lightColors.semantic.infoText],
     ['active', lightColors.brand.subtle, lightColors.brand.vivid],
     ['inactive', lightColors.bg.muted, lightColors.text.secondary],
   ] as const)('renders badge variant %s with the expected semantic colors', (variant, bg, fg) => {
     const renderer = render(<Badge label="Status" variant={variant} size="md" />);
-    const view = renderer.root.findByType(View);
+    const views = renderer.root.findAllByType(View);
+    const outerView = views[0];
     const label = renderer.root.findByType(Text);
 
-    expect(flattenStyle(view.props.style).backgroundColor).toBe(bg);
+    expect(flattenStyle(outerView.props.style).backgroundColor).toBe(bg);
     expect(flattenStyle(label.props.style).color).toBe(fg);
   });
 
@@ -164,9 +165,17 @@ describe('ui components', () => {
     expect(errorRenderer.root.findAllByType(Text).map((node) => node.props.children).join(' '))
       .toContain('Algo deu errado');
 
+    // Error state uses AlertTriangle icon instead of emoji
+    const alertIcon = errorRenderer.root.findAll((node) => String(node.type) === 'AlertTriangle');
+    expect(alertIcon.length).toBe(1);
+
     const emptyRenderer = render(<EmptyState empty emptyTitle="Sem tarefas" emptyMessage="Nada por aqui" />);
     expect(emptyRenderer.root.findAllByType(Text).map((node) => node.props.children).join(' '))
       .toContain('Sem tarefas');
+
+    // Empty state uses mascot image instead of emoji
+    const mascotImage = emptyRenderer.root.findByType(Image);
+    expect(mascotImage.props.accessibilityLabel).toContain('Trofinho');
 
     const nullRenderer = render(<EmptyState />);
     expect(nullRenderer.toJSON()).toBeNull();

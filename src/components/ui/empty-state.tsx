@@ -1,7 +1,9 @@
 import React from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AlertTriangle } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
+import { emptyImage } from '@/constants/assets';
 
 interface EmptyStateProps {
   loading?: boolean;
@@ -37,7 +39,7 @@ export function EmptyState({
   if (error) {
     return (
       <View style={styles.center}>
-        <Text style={styles.icon}>⚠️</Text>
+        <AlertTriangle size={36} color={colors.semantic.warning} strokeWidth={1.5} />
         <Text style={[styles.title, { color: colors.text.primary }]}>Algo deu errado</Text>
         <Text style={[styles.message, { color: colors.text.secondary }]}>{error}</Text>
         {hasRetry ? (
@@ -57,7 +59,12 @@ export function EmptyState({
   if (empty) {
     return (
       <View style={styles.center}>
-        <Text style={styles.icon}>📭</Text>
+        <Image
+          source={emptyImage}
+          style={styles.mascotImage}
+          resizeMode="contain"
+          accessibilityLabel="Trofinho triste — nenhum item"
+        />
         {hasEmptyTitle ? (
           <Text style={[styles.title, { color: colors.text.primary }]}>{emptyTitle}</Text>
         ) : null}
@@ -77,9 +84,10 @@ const styles = StyleSheet.create({
     padding: spacing['8'],
     gap: spacing['2'],
   },
-  icon: {
-    fontSize: 40,
-    marginBottom: spacing['1'],
+  mascotImage: {
+    width: 100,
+    height: 100,
+    marginBottom: spacing['2'],
   },
   title: {
     fontSize: typography.size.lg,

@@ -18,10 +18,12 @@ interface CardProps extends ViewProps {
 type ReadonlyCardProps = Readonly<CardProps>;
 
 export function Card({ elevated = false, noPadding = false, glow = false, style, children, ...rest }: ReadonlyCardProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   let shadowStyle: ViewStyle = styles.baseShadow;
-  if (glow) shadowStyle = styles.glowShadow;
+  if (glow) shadowStyle = isDark ? styles.glowShadowDark : styles.glowShadow;
   else if (elevated) shadowStyle = styles.elevatedShadow;
+
+  const glowBorderOpacity = isDark ? '4D' : '33'; // 30% dark, 20% light
 
   return (
     <View
@@ -31,7 +33,7 @@ export function Card({ elevated = false, noPadding = false, glow = false, style,
         shadowStyle,
         {
           backgroundColor: colors.bg.surface,
-          borderColor: glow ? colors.brand.vivid + '33' : colors.border.subtle, // +33 = 20% opacity
+          borderColor: glow ? colors.brand.vivid + glowBorderOpacity : colors.border.subtle,
           padding: noPadding ? 0 : spacing.card,
         },
         style,
@@ -51,4 +53,5 @@ const styles = StyleSheet.create({
   baseShadow:     { ...shadows.card, shadowOpacity: 0.12 },
   elevatedShadow: { ...shadows.card },
   glowShadow:     { ...shadows.goldGlow },
+  glowShadowDark: { ...shadows.goldGlow, shadowOpacity: 0.55, shadowRadius: 28 },
 });

@@ -75,11 +75,11 @@ export default function AdminChildrenScreen() {
                 <View style={styles.cardInfo}>
                   <Text style={[styles.cardNome, { color: colors.text.primary }]}>{item.nome}</Text>
                   <Text style={[styles.cardStatus, { color: item.usuario_id ? colors.semantic.success : colors.semantic.warning }]}>
-                    {item.usuario_id ? '✓ Conta vinculada' : '⚠ Sem conta'}
+                    {item.usuario_id ? 'Conta vinculada' : 'Sem conta'}
                   </Text>
                   {balance ? (
                     <Text style={[styles.cardSaldo, { color: colors.text.secondary }]}>
-                      💰 {balance.saldo_livre} livre · 🐷 {balance.cofrinho} cofrinho
+                      {balance.saldo_livre} livre · {balance.cofrinho} cofrinho
                     </Text>
                   ) : null}
                 </View>

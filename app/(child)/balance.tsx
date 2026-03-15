@@ -14,15 +14,22 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import {
+  Wallet,
+  TrendingUp,
+  CheckCircle2,
+  ArrowDownCircle,
+  AlertTriangle,
+} from 'lucide-react-native';
+import {
   getBalance,
   listTransactions,
   transferToPiggyBank,
-  getTransactionTypeEmoji,
   getAppreciationPeriodLabel,
   getTransactionTypeLabel,
   isCredit,
   type Balance,
   type Transaction,
+  type TransactionType,
 } from '@lib/balances';
 import { getMyChildId } from '@lib/children';
 import { useTheme } from '@/context/theme-context';
@@ -30,6 +37,16 @@ import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { PointsDisplay } from '@/components/ui/points-display';
+
+import type { LucideIcon } from 'lucide-react-native';
+
+const TRANSACTION_ICONS: Record<TransactionType, LucideIcon> = {
+  credito:                CheckCircle2,
+  debito:                 ArrowDownCircle,
+  transferencia_cofrinho: Wallet,
+  valorizacao:            TrendingUp,
+  penalizacao:            AlertTriangle,
+};
 
 export default function ChildBalanceScreen() {
   const router = useRouter();
@@ -112,21 +129,30 @@ export default function ChildBalanceScreen() {
           <>
             <View style={styles.cardsRow}>
               <View style={[styles.balanceCard, { backgroundColor: colors.bg.elevated }, shadows.goldGlow]}>
-                <Text style={styles.balanceLabel}>💰 Saldo livre</Text>
+                <View style={styles.balanceLabelRow}>
+                  <Wallet size={14} color={colors.text.secondary} strokeWidth={2} />
+                  <Text style={styles.balanceLabel}>Saldo livre</Text>
+                </View>
                 <PointsDisplay value={freeBalance} label="pontos" variant="gold" size="lg" />
               </View>
               <View style={[styles.balanceCard, { backgroundColor: colors.bg.elevated }, shadows.card]}>
-                <Text style={styles.balanceLabel}>🐷 Cofrinho</Text>
+                <View style={styles.balanceLabelRow}>
+                  <Wallet size={14} color={colors.text.secondary} strokeWidth={2} />
+                  <Text style={styles.balanceLabel}>Cofrinho</Text>
+                </View>
                 <PointsDisplay value={piggyBank} label="pontos" variant="amber" size="lg" />
               </View>
             </View>
 
             {(balance?.indice_valorizacao ?? 0) > 0 && (
               <View style={styles.appreciationBox}>
-                <Text style={styles.appreciationText}>
-                  📈 Seu cofrinho rende {balance!.indice_valorizacao}% ao {appreciationPeriod}
-                  {lastAppreciationText}
-                </Text>
+                <View style={styles.appreciationRow}>
+                  <TrendingUp size={14} color={colors.semantic.success} strokeWidth={2} />
+                  <Text style={styles.appreciationText}>
+                    Seu cofrinho rende {balance!.indice_valorizacao}% ao {appreciationPeriod}
+                    {lastAppreciationText}
+                  </Text>
+                </View>
               </View>
             )}
 
@@ -135,7 +161,7 @@ export default function ChildBalanceScreen() {
               onPress={() => { setModalVisible(true); setAmountStr(''); setModalError(null); }}
               disabled={freeBalance === 0}
             >
-              <Text style={styles.transferBtnText}>🐷 Guardar no cofrinho</Text>
+              <Text style={styles.transferBtnText}>Guardar no cofrinho</Text>
             </Pressable>
 
             <Text style={styles.sectionTitle}>Histórico</Text>
@@ -144,9 +170,11 @@ export default function ChildBalanceScreen() {
         }
         renderItem={({ item }) => (
           <View style={styles.txnItem}>
-            <View style={[styles.txnEmojiBox, { backgroundColor: isCredit(item.tipo) ? colors.semantic.successBg : colors.semantic.errorBg }]}>
-              <Text style={styles.txnEmoji}>{getTransactionTypeEmoji(item.tipo)}</Text>
+            {(() => { const Icon = TRANSACTION_ICONS[item.tipo]; return (
+            <View style={[styles.txnIconBox, { backgroundColor: isCredit(item.tipo) ? colors.semantic.successBg : colors.semantic.errorBg }]}>
+              <Icon size={16} color={isCredit(item.tipo) ? colors.semantic.successText : colors.semantic.errorText} strokeWidth={2} />
             </View>
+            ); })()}
             <View style={styles.txnInfo}>
               <Text style={styles.txnLabel}>{getTransactionTypeLabel(item.tipo)}</Text>
               <Text style={styles.txnDesc} numberOfLines={1}>{item.descricao}</Text>
@@ -167,7 +195,7 @@ export default function ChildBalanceScreen() {
           behavior="padding"
         >
           <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>🐷 Guardar no cofrinho</Text>
+            <Text style={styles.modalTitle}>Guardar no cofrinho</Text>
             <Text style={styles.modalSub}>
               Saldo livre disponível: <Text style={{ fontFamily: typography.family.bold }}>{freeBalance}</Text> pts
             </Text>
@@ -216,9 +244,11 @@ function makeStyles(colors: ThemeColors) {
       alignItems: 'center',
       gap: spacing['1'],
     },
-    balanceLabel: { color: colors.text.secondary, fontSize: typography.size.xs, fontFamily: typography.family.semibold, marginBottom: spacing['1'] },
+    balanceLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    balanceLabel: { color: colors.text.secondary, fontSize: typography.size.xs, fontFamily: typography.family.semibold },
     appreciationBox: { backgroundColor: colors.semantic.successBg, borderRadius: radii.lg, padding: spacing['2'], marginBottom: spacing['3'] },
-    appreciationText: { color: colors.semantic.success, fontSize: typography.size.xs },
+    appreciationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    appreciationText: { color: colors.semantic.success, fontSize: typography.size.xs, flex: 1 },
     transferBtn: {
       backgroundColor: colors.accent.filho,
       borderRadius: radii.xl,
@@ -241,8 +271,7 @@ function makeStyles(colors: ThemeColors) {
       marginBottom: spacing['2'],
       ...shadows.card,
     },
-    txnEmojiBox: { width: 36, height: 36, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center', marginRight: spacing['3'] },
-    txnEmoji: { fontSize: 18 },
+    txnIconBox: { width: 36, height: 36, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center', marginRight: spacing['3'] },
     txnInfo: { flex: 1 },
     txnLabel: { fontSize: typography.size.sm, fontFamily: typography.family.semibold, color: colors.text.primary },
     txnDesc: { fontSize: typography.size.xs, color: colors.text.secondary, marginTop: spacing['1'] },

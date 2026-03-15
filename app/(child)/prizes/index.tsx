@@ -12,6 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Trophy, CheckCircle2 } from 'lucide-react-native';
 import {
   listActivePrizes,
   requestRedemption,
@@ -181,9 +182,12 @@ function PrizeCard({ item, freeBalance, redeeming, onRedeem }: PrizeCardProps) {
           {item.descricao}
         </Text>
       ) : null}
-      <Text style={[cardStyles.cost, { color: colors.accent.filho }]}>
-        🏆 {item.custo_pontos} pts
-      </Text>
+      <View style={cardStyles.costRow}>
+        <Trophy size={12} color={colors.accent.filho} strokeWidth={2} />
+        <Text style={[cardStyles.cost, { color: colors.accent.filho }]}>
+          {item.custo_pontos} pts
+        </Text>
+      </View>
 
       <View style={[cardStyles.progressBg, { backgroundColor: colors.bg.muted }]}>
         <Animated.View
@@ -198,9 +202,16 @@ function PrizeCard({ item, freeBalance, redeeming, onRedeem }: PrizeCardProps) {
       </View>
 
       <View style={[cardStyles.statusRow, { backgroundColor: hasBalance ? colors.semantic.successBg : colors.bg.muted }]}>
-        <Text style={[cardStyles.statusText, { color: hasBalance ? colors.semantic.success : colors.text.muted }]}>
-          {hasBalance ? '✓ Disponível!' : `Faltam ${item.custo_pontos - freeBalance} pts`}
-        </Text>
+        {hasBalance ? (
+          <View style={cardStyles.statusInner}>
+            <CheckCircle2 size={12} color={colors.semantic.success} strokeWidth={2} />
+            <Text style={[cardStyles.statusText, { color: colors.semantic.success }]}>Disponível!</Text>
+          </View>
+        ) : (
+          <Text style={[cardStyles.statusText, { color: colors.text.muted }]}>
+            Faltam {item.custo_pontos - freeBalance} pts
+          </Text>
+        )}
       </View>
 
       <Pressable
@@ -241,6 +252,11 @@ const cardStyles = StyleSheet.create({
   desc: {
     fontSize: typography.size.xs,
   },
+  costRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   cost: {
     fontSize: typography.size.xs,
     fontFamily: typography.family.bold,
@@ -260,6 +276,11 @@ const cardStyles = StyleSheet.create({
     paddingVertical: spacing['1'],
     paddingHorizontal: spacing['2'],
     alignSelf: 'flex-start',
+  },
+  statusInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
   },
   statusText: {
     fontSize: typography.size.xs,
