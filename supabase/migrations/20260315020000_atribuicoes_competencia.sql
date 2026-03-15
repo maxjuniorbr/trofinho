@@ -142,7 +142,8 @@ DECLARE
 BEGIN
   v_filho_id := public.meu_filho_id();
   IF v_filho_id IS NULL THEN
-    RAISE EXCEPTION 'Perfil de filho não encontrado';
+    -- Admin ou usuário sem perfil de filho — nada a renovar.
+    RETURN;
   END IF;
 
   v_familia_id := public.minha_familia_id();
