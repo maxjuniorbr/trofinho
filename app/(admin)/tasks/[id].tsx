@@ -11,6 +11,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { RefreshCw, Camera } from 'lucide-react-native';
 import {
   getTaskWithAssignments,
   approveAssignment,
@@ -284,12 +285,20 @@ export default function TaskDetailAdminScreen() {
           {task.descricao ? (
             <Text style={styles.descricao}>{task.descricao}</Text>
           ) : null}
-          <Text style={styles.meta}>
-            {task.frequencia === 'diaria' ? '🔁 Diária' : '1️⃣ Única'}
-          </Text>
+          <View style={styles.metaRow}>
+            {task.frequencia === 'diaria' ? (
+              <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
+            ) : null}
+            <Text style={styles.meta}>
+              {task.frequencia === 'diaria' ? 'Diária' : 'Única'}
+            </Text>
+          </View>
           {task.exige_evidencia && (
             <View style={styles.tagEvidencia}>
-              <Text style={styles.tagEvidenciaTexto}>📷 Exige foto</Text>
+              <View style={styles.tagEvidenciaRow}>
+                <Camera size={12} color={colors.semantic.warningText} strokeWidth={2} />
+                <Text style={styles.tagEvidenciaTexto}>Exige foto</Text>
+              </View>
             </View>
           )}
         </View>
@@ -347,6 +356,7 @@ function makeStyles(colors: ThemeColors) {
     pontosTag: { backgroundColor: colors.accent.adminBg, borderRadius: radii.md, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'] },
     pontosTexto: { fontSize: typography.size.sm, fontFamily: typography.family.bold, color: colors.accent.admin },
     descricao: { fontSize: typography.size.sm, color: colors.text.secondary, marginBottom: spacing['2'], lineHeight: 20 },
+    metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     meta: { fontSize: typography.size.xs, color: colors.text.muted },
     tagEvidencia: {
       backgroundColor: colors.semantic.warningBg,
@@ -356,7 +366,8 @@ function makeStyles(colors: ThemeColors) {
       alignSelf: 'flex-start',
       marginTop: spacing['2'],
     },
-    tagEvidenciaTexto: { fontSize: typography.size.xs, color: colors.semantic.warning, fontFamily: typography.family.semibold },
+    tagEvidenciaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    tagEvidenciaTexto: { fontSize: typography.size.xs, color: colors.semantic.warningText, fontFamily: typography.family.semibold },
     secaoTitulo: {
       fontSize: typography.size.xs,
       fontFamily: typography.family.bold,

@@ -60,6 +60,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.weight.black,
     includeFontPadding: false,
     lineHeight: undefined, // let RN auto-calculate per fontFamily
+    fontVariant: ['tabular-nums'] as const,
   },
   label: {
     fontFamily: typography.family.semibold,

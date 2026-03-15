@@ -9,6 +9,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { RefreshCw } from 'lucide-react-native';
 import {
   listChildAssignments,
   renewDailyTasks,
@@ -121,7 +122,14 @@ export default function ChildTasksScreen() {
                   <Text style={styles.pointsText}>{item.tarefas.pontos} pts</Text>
                 </View>
               </View>
-              <Text style={styles.cardDeadline}>{item.tarefas.frequencia === 'diaria' ? '🔁 Diária' : '1️⃣ Única'}</Text>
+              <View style={styles.freqRow}>
+                {item.tarefas.frequencia === 'diaria' ? (
+                  <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
+                ) : null}
+                <Text style={styles.cardDeadline}>
+                  {item.tarefas.frequencia === 'diaria' ? 'Diária' : 'Única'}
+                </Text>
+              </View>
               <View style={[styles.statusTag, { backgroundColor: getStatusColor(item.status) + '20' }]}>
                 <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
                   {getStatusLabel(item.status)}
@@ -170,7 +178,8 @@ function makeStyles(colors: ThemeColors) {
     cardTitle: { flex: 1, fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary, marginRight: spacing['2'] },
     pointsTag: { backgroundColor: colors.accent.filhoBg, borderRadius: radii.sm, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'] },
     pointsText: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.accent.filho },
-    cardDeadline: { fontSize: typography.size.xs, color: colors.text.muted, marginBottom: spacing['2'] },
+    freqRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: spacing['2'] },
+    cardDeadline: { fontSize: typography.size.xs, color: colors.text.muted },
     statusTag: { borderRadius: radii.sm, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'], alignSelf: 'flex-start' },
     statusText: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
   });

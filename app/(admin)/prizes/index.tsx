@@ -9,6 +9,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { Trophy } from 'lucide-react-native';
 import { listPrizes, type Prize } from '@lib/prizes';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
@@ -95,7 +96,7 @@ export default function AdminPrizesScreen() {
               style={({ pressed }) => [
                 styles.card,
                 !item.ativo && styles.cardInativo,
-                pressed && { opacity: 0.85 },
+                pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
               ]}
               onPress={() => router.push(`/(admin)/prizes/${item.id}` as never)}
               accessibilityRole="button"
@@ -114,9 +115,12 @@ export default function AdminPrizesScreen() {
                   {item.descricao}
                 </Text>
               ) : null}
-              <Text style={[styles.cardCusto, !item.ativo && styles.textoInativo]}>
-                🏆 {item.custo_pontos} pts
-              </Text>
+              <View style={styles.cardCustoRow}>
+                <Trophy size={12} color={item.ativo ? colors.accent.admin : colors.text.muted} strokeWidth={2} />
+                <Text style={[styles.cardCusto, !item.ativo && styles.textoInativo]}>
+                  {item.custo_pontos} pts
+                </Text>
+              </View>
             </Pressable>
           )}
         />
@@ -143,6 +147,7 @@ function makeStyles(colors: ThemeColors) {
     cardNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary, flex: 1 },
     textoInativo: { color: colors.text.muted },
     cardDescricao: { fontSize: typography.size.sm, color: colors.text.secondary },
+    cardCustoRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     cardCusto: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.accent.admin },
     badgeInativo: {
       backgroundColor: colors.bg.muted,

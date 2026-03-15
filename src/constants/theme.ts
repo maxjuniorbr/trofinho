@@ -43,6 +43,11 @@ export const lightColors = {
     warningBg: '#FFFBEB',
     info:      '#2563EB',
     infoBg:    '#EFF6FF',
+    /** Darker foreground for text-on-status-bg (WCAG AA compliant) */
+    successText: '#166534',
+    errorText:   '#991B1B',
+    warningText: '#92400E',
+    infoText:    '#1E40AF',
   },
   border: {
     subtle:  '#E5E7EB',
@@ -90,13 +95,18 @@ export const darkColors = {
   },
   semantic: {
     success:   '#22c55e',   // hsl(142 70% 45%) — studio --success
-    successBg: 'rgba(34, 197, 94, 0.15)',
+    successBg: '#1a2d22',   // pre-calculated on surface — no alpha bleeding
     error:     '#ef4444',   // hsl(0 84% 60%)   — studio --destructive
-    errorBg:   'rgba(239, 68, 68, 0.15)',
+    errorBg:   '#2d1c1c',   // pre-calculated on surface
     warning:   '#e6a817',   // hsl(39 90% 50%)  — studio --warning
-    warningBg: 'rgba(230, 168, 23, 0.18)',
+    warningBg: '#2d2819',   // pre-calculated on surface
     info:      '#60A5FA',
-    infoBg:    'rgba(96, 165, 250, 0.15)',
+    infoBg:    '#1a2640',   // pre-calculated on surface
+    /** Lighter foreground for text-on-status-bg in dark mode */
+    successText: '#86efac',
+    errorText:   '#fca5a5',
+    warningText: '#fcd34d',
+    infoText:    '#93c5fd',
   },
   border: {
     subtle:  '#1f2b3d',   // hsl(220 20% 16%) — studio --border

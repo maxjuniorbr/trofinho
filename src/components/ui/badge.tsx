@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { Clock, Eye, CheckCircle2, XCircle } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 
@@ -32,6 +33,22 @@ function resolveVariant(v: BadgeVariant): 'success' | 'error' | 'warning' | 'inf
   }
 }
 
+const STATUS_ICONS = {
+  pending:  Clock,
+  approved: CheckCircle2,
+  rejected: XCircle,
+} as const;
+
+const AWAITING_ICON = Eye;
+
+type StatusAlias = keyof typeof STATUS_ICONS;
+
+function getStatusIcon(variant: BadgeVariant) {
+  if (variant === 'info') return AWAITING_ICON;
+  if (variant in STATUS_ICONS) return STATUS_ICONS[variant as StatusAlias];
+  return null;
+}
+
 export function Badge({ label, variant = 'neutral', size = 'sm' }: ReadonlyBadgeProps) {
   const { colors } = useTheme();
   const resolved = resolveVariant(variant);
@@ -49,10 +66,10 @@ export function Badge({ label, variant = 'neutral', size = 'sm' }: ReadonlyBadge
 
   function fg() {
     switch (resolved) {
-      case 'success': return colors.semantic.success;
-      case 'error':   return colors.semantic.error;
-      case 'warning': return colors.semantic.warning;
-      case 'info':    return colors.semantic.info;
+      case 'success': return colors.semantic.successText;
+      case 'error':   return colors.semantic.errorText;
+      case 'warning': return colors.semantic.warningText;
+      case 'info':    return colors.semantic.infoText;
       case 'brand':   return colors.brand.vivid;
       default:        return colors.text.secondary;
     }
@@ -61,10 +78,15 @@ export function Badge({ label, variant = 'neutral', size = 'sm' }: ReadonlyBadge
   const paddingV = size === 'md' ? spacing['2'] : 3;
   const paddingH = size === 'md' ? spacing['3'] : spacing['2'];
   const fontSize  = size === 'md' ? typography.size.sm : typography.size.xs;
+  const iconSize  = size === 'md' ? 14 : 12;
+
+  const Icon = getStatusIcon(variant);
+  const color = fg();
 
   return (
     <View style={[styles.base, { backgroundColor: bg(), paddingVertical: paddingV, paddingHorizontal: paddingH }]}>
-      <Text style={[styles.label, { color: fg(), fontSize }]}>{label}</Text>
+      {Icon ? <Icon size={iconSize} color={color} strokeWidth={2} /> : null}
+      <Text style={[styles.label, { color, fontSize }]}>{label}</Text>
     </View>
   );
 }
@@ -73,6 +95,9 @@ const styles = StyleSheet.create({
   base: {
     borderRadius: radii.full,
     alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   label: {
     fontWeight: typography.weight.black,

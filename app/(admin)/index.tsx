@@ -12,6 +12,14 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  ClipboardList,
+  Users,
+  Wallet,
+  Gift,
+  ShoppingBag,
+  Pencil,
+} from 'lucide-react-native';
 import { getProfile, type UserProfile } from '@lib/auth';
 import { supabase } from '@lib/supabase';
 import { listAdminTasks } from '@lib/tasks';
@@ -25,6 +33,16 @@ import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { Avatar } from '@/components/ui/avatar';
 import { PointsDisplay } from '@/components/ui/points-display';
 import { Badge } from '@/components/ui/badge';
+
+import type { LucideIcon } from 'lucide-react-native';
+
+const QUICK_ACTIONS: ReadonlyArray<{ icon: LucideIcon; label: string; rota: string; badgeKey: 'tasks' | 'redemptions' | 'none' }> = [
+  { icon: ClipboardList, label: 'Tarefas',  rota: '/(admin)/tasks',       badgeKey: 'tasks'       },
+  { icon: Users,         label: 'Filhos',   rota: '/(admin)/children',    badgeKey: 'none'        },
+  { icon: Wallet,        label: 'Saldos',   rota: '/(admin)/balances',    badgeKey: 'none'        },
+  { icon: Gift,          label: 'Prêmios',  rota: '/(admin)/prizes',      badgeKey: 'none'        },
+  { icon: ShoppingBag,   label: 'Resgates', rota: '/(admin)/redemptions', badgeKey: 'redemptions' },
+];
 
 type Family = { nome: string };
 
@@ -130,7 +148,7 @@ export default function AdminHomeScreen() {
           <View style={styles.avatarWrapper}>
             <Avatar name={profile?.nome ?? 'A'} size={52} imageUri={avatarUri} />
             <View style={[styles.editBadge, { backgroundColor: colors.accent.admin }]}>
-              <Text style={styles.editBadgeIcon}>✏️</Text>
+              <Pencil size={10} color={colors.text.inverse} strokeWidth={2.5} />
             </View>
           </View>
         </Pressable>
@@ -211,7 +229,7 @@ export default function AdminHomeScreen() {
             accessibilityRole="button"
             accessibilityLabel={`${pendingValidationCount} tarefas aguardando validação`}
           >
-            <Text style={styles.navCardEmoji}>📋</Text>
+            <ClipboardList size={28} color={colors.text.secondary} strokeWidth={1.5} />
             <View style={styles.navCardBody}>
               <Text style={[styles.navCardTitle, { color: colors.text.primary }]}>Tarefas</Text>
               <Text style={[styles.navCardSub, { color: colors.text.secondary }]}>
@@ -226,34 +244,34 @@ export default function AdminHomeScreen() {
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Ações rápidas</Text>
         <View style={styles.quickGrid}>
-          {([
-            { emoji: '📋', label: 'Tarefas',    rota: '/(admin)/tasks',       badge: pendingValidationCount },
-            { emoji: '👨‍👧', label: 'Filhos',     rota: '/(admin)/children',    badge: 0                      },
-            { emoji: '💰', label: 'Saldos',     rota: '/(admin)/balances',    badge: 0                      },
-            { emoji: '🎁', label: 'Prêmios',    rota: '/(admin)/prizes',      badge: 0                      },
-            { emoji: '🛍️', label: 'Resgates',   rota: '/(admin)/redemptions', badge: pendingRedemptionCount  },
-          ] as const).map(({ emoji, label, rota, badge }) => (
-            <Pressable
-              key={rota}
-              style={({ pressed }) => [
-                styles.quickCard,
-                { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-                shadows.card,
-                pressed && { opacity: 0.8 },
-              ]}
-              onPress={() => router.push(rota as never)}
-              accessibilityRole="button"
-              accessibilityLabel={label}
-            >
-              <Text style={styles.quickEmoji}>{emoji}</Text>
-              <Text style={[styles.quickLabel, { color: colors.text.primary }]}>{label}</Text>
-              {badge > 0 ? (
-                <View style={[styles.quickBadge, { backgroundColor: colors.semantic.error }]}>
-                  <Text style={styles.quickBadgeText}>{badge}</Text>
+          {QUICK_ACTIONS.map(({ icon: Icon, label, rota, badgeKey }) => {
+            const badge = badgeKey === 'tasks' ? pendingValidationCount
+              : badgeKey === 'redemptions' ? pendingRedemptionCount : 0;
+            return (
+              <Pressable
+                key={rota}
+                style={({ pressed }) => [
+                  styles.quickCard,
+                  { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+                  shadows.card,
+                  pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
+                ]}
+                onPress={() => router.push(rota as never)}
+                accessibilityRole="button"
+                accessibilityLabel={label}
+              >
+                <View style={[styles.quickIconBox, { backgroundColor: colors.bg.elevated }]}>
+                  <Icon size={22} color={colors.accent.admin} strokeWidth={1.5} />
                 </View>
-              ) : null}
-            </Pressable>
-          ))}
+                <Text style={[styles.quickLabel, { color: colors.text.primary }]}>{label}</Text>
+                {badge > 0 ? (
+                  <View style={[styles.quickBadge, { backgroundColor: colors.semantic.error }]}>
+                    <Text style={styles.quickBadgeText}>{badge}</Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            );
+          })}
         </View>
       </View>
 
@@ -275,7 +293,7 @@ function makeStyles() {
       width: 20, height: 20, borderRadius: radii.full,
       alignItems: 'center', justifyContent: 'center',
     },
-    editBadgeIcon: { fontSize: 10 },
+    editBadgeIcon: { alignItems: 'center' as const, justifyContent: 'center' as const },
     heroSub:       { fontFamily: typography.family.bold, fontSize: typography.size.sm },
     heroTitle:     { fontFamily: typography.family.black, fontSize: typography.size['2xl'], marginTop: spacing['1'] },
     heroFamily:    { fontFamily: typography.family.semibold, fontSize: typography.size.sm, marginTop: spacing['1'] },
@@ -308,7 +326,7 @@ function makeStyles() {
       flexDirection: 'row', alignItems: 'center', gap: spacing['3'],
       borderRadius: radii.outer, borderWidth: 1, padding: spacing['4'],
     },
-    navCardEmoji:  { fontSize: 28 },
+    navCardIcon:   { width: 44, height: 44, borderRadius: radii.md, alignItems: 'center' as const, justifyContent: 'center' as const },
     navCardBody:   { flex: 1 },
     navCardTitle:  { fontFamily: typography.family.bold, fontSize: typography.size.md },
     navCardSub:    { fontFamily: typography.family.medium, fontSize: typography.size.xs, marginTop: spacing['1'] },
@@ -320,7 +338,7 @@ function makeStyles() {
       borderRadius: radii.inner, borderWidth: 1,
       paddingVertical: spacing['4'], alignItems: 'center', gap: spacing['1'],
     },
-    quickEmoji:    { fontSize: 24 },
+    quickIconBox:  { width: 44, height: 44, borderRadius: radii.md, alignItems: 'center' as const, justifyContent: 'center' as const },
     quickLabel:    { fontFamily: typography.family.bold, fontSize: typography.size.xs, textAlign: 'center' },
     quickBadge:    { position: 'absolute', top: spacing['2'], right: spacing['2'], minWidth: 20, height: 20, borderRadius: radii.full, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing['1'] },
     quickBadgeText:{ color: '#fff', fontFamily: typography.family.black, fontSize: 10 },
