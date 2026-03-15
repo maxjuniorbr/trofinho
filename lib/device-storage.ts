@@ -5,13 +5,6 @@ import * as SecureStore from 'expo-secure-store';
 // fixed-size chunks stored under "<key>_chunk_<n>", with a count key "<key>_chunks".
 const CHUNK_SIZE = 1900; // bytes per chunk (safe margin below 2048)
 
-function getWebStorage(): Storage | null {
-  if (process.env.EXPO_OS !== 'web') return null;
-
-  const webWindow = globalThis.window;
-  return webWindow ? webWindow.localStorage : null;
-}
-
 async function secureGet(key: string): Promise<string | null> {
   // Check if value was stored in chunks
   const countRaw = await SecureStore.getItemAsync(`${key}_chunks`);
@@ -79,30 +72,14 @@ async function secureRemove(key: string): Promise<void> {
 
 export const deviceStorage = {
   async getItem(key: string): Promise<string | null> {
-    if (process.env.EXPO_OS === 'web') {
-      return getWebStorage()?.getItem(key) ?? null;
-    }
-
     return secureGet(key);
   },
 
   async setItem(key: string, value: string): Promise<void> {
-    if (process.env.EXPO_OS === 'web') {
-      getWebStorage()?.setItem(key, value);
-
-      return;
-    }
-
     await secureSet(key, value);
   },
 
   async removeItem(key: string): Promise<void> {
-    if (process.env.EXPO_OS === 'web') {
-      getWebStorage()?.removeItem(key);
-
-      return;
-    }
-
     await secureRemove(key);
   },
 };

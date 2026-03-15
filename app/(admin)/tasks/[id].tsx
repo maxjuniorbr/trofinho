@@ -41,6 +41,7 @@ export default function TaskDetailAdminScreen() {
   >({});
   const [rejectionNotes, setRejectionNotes] = useState<Record<string, string>>({});
   const [assignmentErrors, setAssignmentErrors] = useState<Record<string, string>>({});
+  const [imgStates, setImgStates] = useState<Record<string, 'loading' | 'loaded' | 'error'>>({});
 
   const loadData = useCallback(async () => {
     if (!id) return;
@@ -163,12 +164,27 @@ export default function TaskDetailAdminScreen() {
                   </View>
                 </View>
 
-                {assignment.evidencia_url ? (
-                  <Image
-                    source={{ uri: assignment.evidencia_url }}
-                    style={styles.evidenciaImg}
-                    resizeMode="cover"
-                  />
+                {assignment.evidencia_url && imgStates[assignment.id] !== 'error' ? (
+                  <View style={styles.evidenciaImgWrapper}>
+                    <Image
+                      source={{ uri: assignment.evidencia_url }}
+                      style={styles.evidenciaImg}
+                      resizeMode="cover"
+                      onLoadStart={() => setImgStates(prev => ({ ...prev, [assignment.id]: 'loading' }))}
+                      onLoadEnd={() => setImgStates(prev => ({ ...prev, [assignment.id]: 'loaded' }))}
+                      onError={() => setImgStates(prev => ({ ...prev, [assignment.id]: 'error' }))}
+                    />
+                    {(!imgStates[assignment.id] || imgStates[assignment.id] === 'loading') ? (
+                      <View style={styles.evidenciaLoading}>
+                        <ActivityIndicator size="small" color={colors.accent.admin} />
+                      </View>
+                    ) : null}
+                  </View>
+                ) : null}
+                {assignment.evidencia_url && imgStates[assignment.id] === 'error' ? (
+                  <View style={[styles.evidenciaImgWrapper, styles.evidenciaFallback, { backgroundColor: colors.bg.muted }]}>
+                    <Text style={[styles.evidenciaFallbackText, { color: colors.text.muted }]}>Não foi possível carregar a imagem</Text>
+                  </View>
                 ) : null}
 
                 {assignment.nota_rejeicao ? (
@@ -293,7 +309,11 @@ function makeStyles(colors: ThemeColors) {
     filhoNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary },
     statusTag: { borderRadius: radii.sm, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'] },
     statusTexto: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
-    evidenciaImg: { width: '100%', height: 200, borderRadius: radii.lg, marginBottom: spacing['2'] },
+    evidenciaImgWrapper: { width: '100%', height: 200, borderRadius: radii.lg, overflow: 'hidden', marginBottom: spacing['2'] },
+    evidenciaImg: { width: '100%', height: 200 },
+    evidenciaLoading: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg.muted },
+    evidenciaFallback: { alignItems: 'center', justifyContent: 'center' },
+    evidenciaFallbackText: { fontSize: typography.size.sm, fontFamily: typography.family.medium, textAlign: 'center' },
     notaRejeicaoBox: {
       backgroundColor: colors.semantic.errorBg,
       borderRadius: radii.md,
