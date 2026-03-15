@@ -244,9 +244,9 @@ describe('auth', () => {
     });
     supabaseMock.auth.updateUser.mockResolvedValue({ error: null });
 
-    const result = await updateUserAvatar('/tmp/avatar.png?cache=1');
+    const result = await updateUserAvatar('/test/avatar.png?cache=1');
 
-    expect(fileConstructorMock).toHaveBeenCalledWith('/tmp/avatar.png');
+    expect(fileConstructorMock).toHaveBeenCalledWith('/test/avatar.png');
     expect(storageBucketMock.upload).toHaveBeenCalledWith(
       'user-1/avatar.png',
       expect.any(ArrayBuffer),
@@ -299,7 +299,7 @@ describe('auth', () => {
       .mockResolvedValueOnce({ data: { user: { id: 'user-3' } }, error: null })
       .mockResolvedValueOnce({ data: { user: { id: 'user-4' } }, error: null });
 
-    await expect(updateUserAvatar('/tmp/avatar.jpg')).resolves.toEqual({
+    await expect(updateUserAvatar('/test/avatar.jpg')).resolves.toEqual({
       url: null,
       error: { message: 'Sessão expirada. Faça login novamente.' },
     });
@@ -307,7 +307,7 @@ describe('auth', () => {
     fileArrayBufferMock.mockResolvedValue(new ArrayBuffer(4));
     storageBucketMock.upload.mockResolvedValue({ error: { message: 'upload failed' } });
 
-    await expect(updateUserAvatar('/tmp/avatar.jpg')).resolves.toEqual({
+    await expect(updateUserAvatar('/test/avatar.jpg')).resolves.toEqual({
       url: null,
       error: { message: 'upload failed' },
     });
@@ -318,7 +318,7 @@ describe('auth', () => {
       arrayBuffer: vi.fn(),
     });
 
-    await expect(updateUserAvatar('/tmp/avatar.unknown')).resolves.toEqual({
+    await expect(updateUserAvatar('/test/avatar.unknown')).resolves.toEqual({
       url: null,
       error: { message: 'Não foi possível ler a imagem selecionada' },
     });
