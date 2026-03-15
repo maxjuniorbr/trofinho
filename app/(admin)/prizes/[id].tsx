@@ -3,7 +3,6 @@ import {
   Text,
   View,
   Pressable,
-  TextInput,
   ScrollView,
   KeyboardAvoidingView,
   ActivityIndicator,
@@ -23,6 +22,7 @@ import type { ThemeColors } from '@/constants/theme';
 import { radii, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { PrizeFormFields } from '@/components/prizes/prize-form-fields';
 
 export default function AdminPrizeDetailScreen() {
   const router = useRouter();
@@ -124,29 +124,14 @@ export default function AdminPrizeDetailScreen() {
           </View>
         )}
 
-        <View style={styles.campo}>
-          <Text style={styles.label}>Nome *</Text>
-          <TextInput style={styles.input} value={name} onChangeText={setName} placeholderTextColor={colors.text.muted} returnKeyType="next" />
-        </View>
-
-        <View style={styles.campo}>
-          <Text style={styles.label}>Descrição</Text>
-          <TextInput
-            style={[styles.input, styles.inputMultilinha]}
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Detalhes opcionais…"
-            placeholderTextColor={colors.text.muted}
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
-          />
-        </View>
-
-        <View style={styles.campo}>
-          <Text style={styles.label}>Custo em pontos *</Text>
-          <TextInput style={styles.input} value={costStr} onChangeText={setCostStr} keyboardType="numeric" returnKeyType="done" placeholderTextColor={colors.text.muted} />
-        </View>
+        <PrizeFormFields
+          name={name}
+          description={description}
+          cost={costStr}
+          onNameChange={setName}
+          onDescriptionChange={setDescription}
+          onCostChange={setCostStr}
+        />
 
         {formError ? <Text style={styles.erroTexto}>{formError}</Text> : null}
         {success ? <Text style={styles.sucessoTexto}>{success}</Text> : null}
@@ -179,21 +164,6 @@ function makeStyles(colors: ThemeColors) {
     scroll: { padding: spacing['6'], gap: spacing['5'], flexGrow: 1 },
     avisoInativo: { backgroundColor: colors.semantic.warningBg, borderRadius: radii.lg, borderCurve: 'continuous', padding: spacing['3'] },
     avisoInativoTexto: { fontSize: typography.size.xs, color: colors.semantic.warning, textAlign: 'center' },
-    campo: { gap: spacing['2'] },
-    label: { fontSize: typography.size.sm, fontFamily: typography.family.semibold, color: colors.text.secondary },
-    input: {
-      backgroundColor: colors.bg.surface,
-      borderRadius: radii.lg,
-      borderCurve: 'continuous',
-      borderWidth: 1,
-      borderColor: colors.border.default,
-      paddingHorizontal: spacing['3'],
-      paddingVertical: spacing['3'],
-      fontSize: typography.size.md,
-      color: colors.text.primary,
-      minHeight: 48,
-    },
-    inputMultilinha: { minHeight: 80, paddingTop: spacing['3'] },
     erroTexto: { color: colors.semantic.error, fontSize: typography.size.sm, fontFamily: typography.family.medium },
     sucessoTexto: { color: colors.semantic.success, fontSize: typography.size.sm, fontFamily: typography.family.semibold },
     botao: { backgroundColor: colors.accent.admin, borderRadius: radii.xl, borderCurve: 'continuous', paddingVertical: spacing['3'], alignItems: 'center', marginTop: spacing['1'], minHeight: 48 },

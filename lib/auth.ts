@@ -1,4 +1,5 @@
 import { File } from 'expo-file-system';
+import { localizeSupabaseError } from './api-error';
 import { supabase } from './supabase';
 
 const AVATAR_BUCKET = 'avatars';
@@ -22,7 +23,7 @@ export async function signIn(
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    return { profile: null, error: { message: translateAuthError(error.message) } };
+    return { profile: null, error: { message: localizeSupabaseError(error.message) } };
   }
 
   const profile = await getProfile();
@@ -36,7 +37,7 @@ export async function signUp(
   const { error } = await supabase.auth.signUp({ email, password });
 
   if (error) {
-    return { error: { message: translateAuthError(error.message) } };
+    return { error: { message: localizeSupabaseError(error.message) } };
   }
 
   return { error: null };
@@ -108,7 +109,7 @@ export async function updateUserPassword(
   const { error } = await supabase.auth.updateUser({ password: newPassword });
 
   if (error) {
-    return { error: { message: translateAuthError(error.message) } };
+    return { error: { message: localizeSupabaseError(error.message) } };
   }
 
   return { error: null };
@@ -146,7 +147,6 @@ export async function updateUserAvatar(
 
     const publicUrl = `${publicData.publicUrl}?t=${Date.now()}`;
 
-    // Persist the avatar URL in user metadata so it survives across sessions.
     const { error: metaError } = await supabase.auth.updateUser({
       data: { avatar_url: publicUrl },
     });
@@ -160,15 +160,6 @@ export async function updateUserAvatar(
     const msg = err instanceof Error ? err.message : 'Erro ao fazer upload do avatar';
     return { url: null, error: { message: msg } };
   }
-}
-
-function translateAuthError(msg: string): string {
-  if (msg.includes('Invalid login credentials')) return 'E-mail ou senha incorretos.';
-  if (msg.includes('Email not confirmed')) return 'Confirme seu e-mail antes de entrar.';
-  if (msg.includes('User already registered')) return 'Este e-mail já está cadastrado.';
-  if (msg.includes('Password should be at least')) return 'A senha deve ter ao menos 6 caracteres.';
-  if (msg.includes('Unable to validate email')) return 'E-mail inválido.';
-  return msg;
 }
 
 function translateRpcError(msg: string): string {
@@ -187,7 +178,6 @@ async function readAsArrayBuffer(imageUri: string): Promise<ArrayBuffer> {
     try {
       return await new File(normalizedUri).arrayBuffer();
     } catch {
-      // Fallback para fetch
     }
   }
 

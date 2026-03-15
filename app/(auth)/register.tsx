@@ -1,25 +1,20 @@
 import {
-  Animated,
-  Image,
-  KeyboardAvoidingView,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { signUp } from '@lib/auth';
 import { localizeSupabaseError } from '@lib/api-error';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
 import { useTheme } from '@/context/theme-context';
-import { gradients, radii, shadows, spacing, typography } from '@/constants/theme';
-import { LinearGradient } from 'expo-linear-gradient';
+import { spacing, typography } from '@/constants/theme';
+import { AuthPrimaryButton } from '@/components/auth/auth-primary-button';
+import { AuthShell } from '@/components/auth/auth-shell';
+import { AuthTextField } from '@/components/auth/auth-text-field';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const mascotImage = require('../../assets/trofinho-mascot.png') as number;
+type RegisterField = 'name' | 'email' | 'password' | 'confirmPassword';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -32,51 +27,8 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [focusedField, setFocusedField] = useState<RegisterField | null>(null);
   const shouldShowError = Boolean(error);
-
-  const mascotScale    = useRef(new Animated.Value(0.4)).current;
-  const mascotRotate   = useRef(new Animated.Value(-12)).current;
-  const contentOpacity = useRef(new Animated.Value(0)).current;
-  const contentY       = useRef(new Animated.Value(32)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.spring(mascotScale, {
-        toValue: 1,
-        delay: 100,
-        friction: 5,
-        tension: 60,
-        useNativeDriver: true,
-      }),
-      Animated.spring(mascotRotate, {
-        toValue: 0,
-        delay: 100,
-        friction: 6,
-        tension: 55,
-        useNativeDriver: true,
-      }),
-      Animated.timing(contentOpacity, {
-        toValue: 1,
-        duration: 500,
-        delay: 250,
-        useNativeDriver: true,
-      }),
-      Animated.spring(contentY, {
-        toValue: 0,
-        delay: 250,
-        friction: 8,
-        tension: 50,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const mascotRotateDeg = mascotRotate.interpolate({
-    inputRange: [-12, 0],
-    outputRange: ['-12deg', '0deg'],
-  });
 
   function validate(): string | null {
     const emailValue = email.trim();
@@ -99,265 +51,117 @@ export default function RegisterScreen() {
     setLoading(false);
 
     if (signUpError) { setError(localizeSupabaseError(signUpError.message)); return; }
-    router.replace({ pathname: '/(auth)/onboarding', params: { nome: name.trim() } });
+    router.replace({ pathname: '/(auth)/onboarding', params: { name: name.trim() } });
   }
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.flex, { backgroundColor: colors.bg.canvas }]}
-      behavior="padding"
+    <AuthShell
+      title="Criar conta"
+      subtitle="Junte-se ao Trofinho e comece a conquistar!"
     >
-      <ScrollView
-        style={[styles.flex, { backgroundColor: colors.bg.canvas }]}
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+      <AuthTextField
+        label="Nome"
+        focused={focusedField === 'name'}
+        placeholder="Seu nome"
+        value={name}
+        onChangeText={(value) => { setName(value); setError(''); }}
+        onFocus={() => setFocusedField('name')}
+        onBlur={() => setFocusedField(null)}
+        autoCapitalize="words"
+        editable={!loading}
+        accessibilityLabel="Campo de nome"
+      />
+
+      <AuthTextField
+        label="E-mail"
+        focused={focusedField === 'email'}
+        placeholder="seu@email.com"
+        value={email}
+        onChangeText={(value) => { setEmail(value); setError(''); }}
+        onFocus={() => setFocusedField('email')}
+        onBlur={() => setFocusedField(null)}
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoCorrect={false}
+        maxLength={MAX_EMAIL_LENGTH}
+        editable={!loading}
+        accessibilityLabel="Campo de e-mail"
+      />
+
+      <AuthTextField
+        label="Senha"
+        focused={focusedField === 'password'}
+        placeholder="Mínimo 6 caracteres"
+        value={password}
+        onChangeText={(value) => { setPassword(value); setError(''); }}
+        onFocus={() => setFocusedField('password')}
+        onBlur={() => setFocusedField(null)}
+        secureTextEntry
+        maxLength={128}
+        editable={!loading}
+        accessibilityLabel="Campo de senha"
+      />
+
+      <AuthTextField
+        label="Confirmar senha"
+        focused={focusedField === 'confirmPassword'}
+        placeholder="Repita a senha"
+        value={confirmPassword}
+        onChangeText={(value) => { setConfirmPassword(value); setError(''); }}
+        onFocus={() => setFocusedField('confirmPassword')}
+        onBlur={() => setFocusedField(null)}
+        secureTextEntry
+        maxLength={128}
+        editable={!loading}
+        accessibilityLabel="Campo de confirmar senha"
+      />
+
+      {shouldShowError ? (
+        <Text style={[styles.error, { color: colors.semantic.error }]} accessibilityRole="alert">
+          {error}
+        </Text>
+      ) : null}
+
+      <AuthPrimaryButton
+        label="Criar conta"
+        loadingLabel="Criando conta…"
+        loading={loading}
+        onPress={handleSignUp}
+        accessibilityLabel={loading ? 'Criando conta' : 'Criar conta'}
+      />
+
+      <Pressable
+        style={({ pressed }) => [styles.secondaryButton, { opacity: pressed ? 0.65 : 1 }]}
+        onPress={() => router.back()}
+        disabled={loading}
+        accessibilityRole="button"
+        accessibilityLabel="Voltar ao login"
       >
-        <StatusBar style={colors.statusBar} />
-
-        <Animated.View
-          style={{
-            transform: [{ scale: mascotScale }, { rotate: mascotRotateDeg }],
-            marginBottom: spacing['4'],
-          }}
-        >
-          <Image
-            source={mascotImage}
-            style={styles.mascot}
-            accessibilityLabel="Mascote do Trofinho"
-            accessibilityRole="image"
-          />
-        </Animated.View>
-
-        <Animated.View
-          style={[styles.headline, { opacity: contentOpacity, transform: [{ translateY: contentY }] }]}
-        >
-          <Text style={[styles.titulo, { color: colors.text.primary }]}>Criar conta</Text>
-          <Text style={[styles.subtitulo, { color: colors.text.secondary }]}>
-            Junte-se ao Trofinho e comece a conquistar!
+        <Text style={[styles.secondaryButtonText, { color: colors.text.secondary }]}>
+          Já tem conta?{' '}
+          <Text style={{ color: colors.brand.vivid, fontFamily: typography.family.bold }}>
+            Entrar
           </Text>
-        </Animated.View>
-
-        <Animated.View
-          style={[
-            styles.card,
-            {
-              backgroundColor: colors.bg.surface,
-              borderColor: colors.border.subtle,
-              opacity: contentOpacity,
-              transform: [{ translateY: contentY }],
-            },
-          ]}
-        >
-          <Text style={[styles.label, { color: colors.text.secondary }]}>Nome</Text>
-          <TextInput
-            style={[styles.input, {
-              backgroundColor: colors.bg.elevated,
-              borderColor: focusedField === 'name' ? colors.border.focus : colors.border.default,
-              color: colors.text.primary,
-            }]}
-            placeholder="Seu nome"
-            placeholderTextColor={colors.text.muted}
-            value={name}
-            onChangeText={(t) => { setName(t); setError(''); }}
-            onFocus={() => setFocusedField('name')}
-            onBlur={() => setFocusedField(null)}
-            autoCapitalize="words"
-            editable={!loading}
-            accessibilityLabel="Campo de nome"
-          />
-
-          <Text style={[styles.label, { color: colors.text.secondary }]}>E-mail</Text>
-          <TextInput
-            style={[styles.input, {
-              backgroundColor: colors.bg.elevated,
-              borderColor: focusedField === 'email' ? colors.border.focus : colors.border.default,
-              color: colors.text.primary,
-            }]}
-            placeholder="seu@email.com"
-            placeholderTextColor={colors.text.muted}
-            value={email}
-            onChangeText={(t) => { setEmail(t); setError(''); }}
-            onFocus={() => setFocusedField('email')}
-            onBlur={() => setFocusedField(null)}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            maxLength={MAX_EMAIL_LENGTH}
-            editable={!loading}
-            accessibilityLabel="Campo de e-mail"
-          />
-
-          <Text style={[styles.label, { color: colors.text.secondary }]}>Senha</Text>
-          <TextInput
-            style={[styles.input, {
-              backgroundColor: colors.bg.elevated,
-              borderColor: focusedField === 'password' ? colors.border.focus : colors.border.default,
-              color: colors.text.primary,
-            }]}
-            placeholder="Mínimo 6 caracteres"
-            placeholderTextColor={colors.text.muted}
-            value={password}
-            onChangeText={(t) => { setPassword(t); setError(''); }}
-            onFocus={() => setFocusedField('password')}
-            onBlur={() => setFocusedField(null)}
-            secureTextEntry
-            maxLength={128}
-            editable={!loading}
-            accessibilityLabel="Campo de senha"
-          />
-
-          <Text style={[styles.label, { color: colors.text.secondary }]}>Confirmar senha</Text>
-          <TextInput
-            style={[styles.input, {
-              backgroundColor: colors.bg.elevated,
-              borderColor: focusedField === 'confirmPassword' ? colors.border.focus : colors.border.default,
-              color: colors.text.primary,
-            }]}
-            placeholder="Repita a senha"
-            placeholderTextColor={colors.text.muted}
-            value={confirmPassword}
-            onChangeText={(t) => { setConfirmPassword(t); setError(''); }}
-            onFocus={() => setFocusedField('confirmPassword')}
-            onBlur={() => setFocusedField(null)}
-            secureTextEntry
-            maxLength={128}
-            editable={!loading}
-            accessibilityLabel="Campo de confirmar senha"
-          />
-
-          {shouldShowError ? (
-            <Text style={[styles.erro, { color: colors.semantic.error }]} accessibilityRole="alert">
-              {error}
-            </Text>
-          ) : null}
-
-          <Pressable
-            onPress={handleSignUp}
-            disabled={loading}
-            accessibilityRole="button"
-            accessibilityLabel={loading ? 'Criando conta' : 'Criar conta'}
-            accessibilityState={{ disabled: loading, busy: loading }}
-            style={({ pressed }) => [
-              styles.primaryBtn,
-              shadows.goldButton,
-              { opacity: loading ? 0.55 : 1, transform: pressed ? [{ translateY: 2 }] : [] },
-            ]}
-          >
-            <LinearGradient
-              colors={gradients.gold.colors}
-              start={gradients.gold.start}
-              end={gradients.gold.end}
-              style={styles.primaryBtnGradient}
-            >
-              <Text style={[styles.primaryBtnText, { color: colors.text.onBrand }]}>
-                {loading ? 'Criando conta…' : 'Criar conta'}
-              </Text>
-            </LinearGradient>
-          </Pressable>
-
-          <Pressable
-            style={({ pressed }) => [styles.secondaryBtn, { opacity: pressed ? 0.65 : 1 }]}
-            onPress={() => router.back()}
-            disabled={loading}
-            accessibilityRole="button"
-            accessibilityLabel="Voltar ao login"
-          >
-            <Text style={[styles.secondaryBtnText, { color: colors.text.secondary }]}>
-              Já tem conta?{' '}
-              <Text style={{ color: colors.brand.vivid, fontFamily: typography.family.bold }}>
-                Entrar
-              </Text>
-            </Text>
-          </Pressable>
-        </Animated.View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </Text>
+      </Pressable>
+    </AuthShell>
   );
 }
 
 function makeStyles() {
   return StyleSheet.create({
-    flex:      { flex: 1 },
-    container: {
-      flexGrow: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: spacing.screen,
-      paddingVertical: spacing['10'],
-    },
-    mascot: {
-      width: 100,
-      height: 100,
-      resizeMode: 'contain',
-    },
-    headline: {
-      alignItems: 'center',
-      marginBottom: spacing['6'],
-    },
-    titulo: {
-      fontFamily: typography.family.black,
-      fontSize: typography.size['3xl'],
-      lineHeight: typography.lineHeight['3xl'],
-      textAlign: 'center',
-    },
-    subtitulo: {
-      fontFamily: typography.family.medium,
-      fontSize: typography.size.sm,
-      textAlign: 'center',
-      marginTop: spacing['1'],
-      lineHeight: typography.lineHeight.sm,
-    },
-    card: {
-      width: '100%',
-      borderRadius: radii.outer,
-      borderWidth: 1,
-      padding: spacing['6'],
-    },
-    label: {
-      fontFamily: typography.family.semibold,
-      fontSize: typography.size.sm,
-      marginBottom: spacing['1'],
-      marginTop: spacing['4'],
-    },
-    input: {
-      borderWidth: 1,
-      borderRadius: radii.inner,
-      paddingHorizontal: spacing['4'],
-      paddingVertical: spacing['3'],
-      fontSize: typography.size.md,
-      fontFamily: typography.family.medium,
-      minHeight: 48,
-    },
-    erro: {
+    error: {
       fontFamily: typography.family.medium,
       fontSize: typography.size.sm,
       marginTop: spacing['3'],
       textAlign: 'center',
     },
-    primaryBtn: {
-      borderRadius: radii.inner,
-      overflow: 'hidden',
-      marginTop: spacing['6'],
-      minHeight: 56,
-    },
-    primaryBtnGradient: {
-      paddingVertical: spacing['4'],
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: radii.inner,
-      flex: 1,
-    },
-    primaryBtnText: {
-      fontFamily: typography.family.bold,
-      fontSize: typography.size.md,
-    },
-    secondaryBtn: {
+    secondaryButton: {
       paddingVertical: spacing['4'],
       alignItems: 'center',
       marginTop: spacing['1'],
     },
-    secondaryBtnText: {
+    secondaryButtonText: {
       fontFamily: typography.family.medium,
       fontSize: typography.size.sm,
     },

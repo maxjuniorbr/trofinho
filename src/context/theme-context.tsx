@@ -27,7 +27,6 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const systemScheme = useColorScheme();
   const [currentScheme, setCurrentScheme] = useState<ColorScheme>('system');
 
-  // Load persisted preference once on mount
   useEffect(() => {
     let isMounted = true;
 

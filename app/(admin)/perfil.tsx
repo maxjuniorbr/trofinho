@@ -11,8 +11,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo, useCallback } from 'react';
-import { useRouter } from 'expo-router';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Avatar } from '@/components/ui/avatar';
@@ -29,21 +28,60 @@ import {
   type UserProfile,
 } from '@lib/auth';
 
-const NOTIF_PREFS_KEY = 'notification_prefs';
+const NOTIFICATION_PREFERENCES_KEY = 'notification_prefs';
 
-type NotifPrefs = {
+type NotificationPreferences = {
+  pendingTasks: boolean;
+  completedTask: boolean;
+  requestedRedemption: boolean;
+};
+
+type LegacyNotificationPreferences = Partial<{
   tarefas_pendentes: boolean;
   tarefa_concluida: boolean;
   resgate_solicitado: boolean;
+}>;
+
+const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
+  pendingTasks: true,
+  completedTask: true,
+  requestedRedemption: true,
 };
 
-const DEFAULT_NOTIF_PREFS: NotifPrefs = {
-  tarefas_pendentes: true,
-  tarefa_concluida: true,
-  resgate_solicitado: true,
-};
+const notificationOptions: ReadonlyArray<{
+  key: keyof NotificationPreferences;
+  label: string;
+}> = [
+  { key: 'pendingTasks', label: 'Tarefas pendentes' },
+  { key: 'completedTask', label: 'Tarefa concluída pelo filho' },
+  { key: 'requestedRedemption', label: 'Resgate solicitado' },
+];
 
-export default function PerfilScreen() {
+function normalizeNotificationPreferences(
+  rawPreferences: string | null,
+): NotificationPreferences {
+  if (!rawPreferences) return DEFAULT_NOTIFICATION_PREFERENCES;
+
+  try {
+    const parsed = JSON.parse(rawPreferences) as Partial<NotificationPreferences>
+      & LegacyNotificationPreferences;
+
+    return {
+      pendingTasks:
+        parsed.pendingTasks ?? parsed.tarefas_pendentes ?? DEFAULT_NOTIFICATION_PREFERENCES.pendingTasks,
+      completedTask:
+        parsed.completedTask ?? parsed.tarefa_concluida ?? DEFAULT_NOTIFICATION_PREFERENCES.completedTask,
+      requestedRedemption:
+        parsed.requestedRedemption
+        ?? parsed.resgate_solicitado
+        ?? DEFAULT_NOTIFICATION_PREFERENCES.requestedRedemption,
+    };
+  } catch {
+    return DEFAULT_NOTIFICATION_PREFERENCES;
+  }
+}
+
+export default function ProfileScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(), []);
@@ -67,7 +105,9 @@ export default function PerfilScreen() {
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  const [notifPrefs, setNotifPrefs] = useState<NotifPrefs>(DEFAULT_NOTIF_PREFS);
+  const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>(
+    DEFAULT_NOTIFICATION_PREFERENCES,
+  );
   const [loggingOut, setLoggingOut] = useState(false);
 
   useFocusEffect(
@@ -80,7 +120,7 @@ export default function PerfilScreen() {
           const [p, { data: authData, error: authError }, rawPrefs] = await Promise.all([
             getProfile(),
             supabase.auth.getUser(),
-            deviceStorage.getItem(NOTIF_PREFS_KEY),
+            deviceStorage.getItem(NOTIFICATION_PREFERENCES_KEY),
           ]);
 
           if (!active) return;
@@ -96,15 +136,7 @@ export default function PerfilScreen() {
           setAvatarUri(
             (authData.user.user_metadata?.avatar_url as string | undefined) ?? null,
           );
-
-          if (rawPrefs) {
-            try {
-              const parsed = JSON.parse(rawPrefs) as Partial<NotifPrefs>;
-              setNotifPrefs({ ...DEFAULT_NOTIF_PREFS, ...parsed });
-            } catch {
-              // prefs inválidas — usa defaults
-            }
-          }
+          setNotificationPreferences(normalizeNotificationPreferences(rawPrefs));
 
         } finally {
           if (active) setLoading(false);
@@ -168,10 +200,16 @@ export default function PerfilScreen() {
     setConfirmPassword('');
   }
 
-  async function handleToggleNotif(key: keyof NotifPrefs, value: boolean) {
-    const next = { ...notifPrefs, [key]: value };
-    setNotifPrefs(next);
-    await deviceStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(next));
+  async function handleToggleNotification(
+    key: keyof NotificationPreferences,
+    value: boolean,
+  ) {
+    const nextPreferences = { ...notificationPreferences, [key]: value };
+    setNotificationPreferences(nextPreferences);
+    await deviceStorage.setItem(
+      NOTIFICATION_PREFERENCES_KEY,
+      JSON.stringify(nextPreferences),
+    );
   }
 
   async function handleSignOut() {
@@ -203,7 +241,6 @@ export default function PerfilScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Avatar ── */}
         <View style={styles.avatarSection}>
           <Pressable
             onPress={handlePickAvatar}
@@ -229,7 +266,6 @@ export default function PerfilScreen() {
           ) : null}
         </View>
 
-        {/* ── Dados Pessoais ── */}
         <View style={[styles.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
           <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Dados pessoais</Text>
 
@@ -269,7 +305,6 @@ export default function PerfilScreen() {
           </Pressable>
         </View>
 
-        {/* ── Segurança ── */}
         <View style={[styles.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
           <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Segurança</Text>
           <Text style={[styles.sectionSub, { color: colors.text.secondary }]}>Alterar senha</Text>
@@ -319,28 +354,22 @@ export default function PerfilScreen() {
           </Pressable>
         </View>
 
-        {/* ── Notificações ── */}
         <View style={[styles.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
           <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Notificações</Text>
 
-          {(
-            [
-              { key: 'tarefas_pendentes', label: 'Tarefas pendentes' },
-              { key: 'tarefa_concluida', label: 'Tarefa concluída pelo filho' },
-              { key: 'resgate_solicitado', label: 'Resgate solicitado' },
-            ] as const
-          ).map(({ key, label }, idx, arr) => (
+          {notificationOptions.map(({ key, label }, index) => (
             <View
               key={key}
               style={[
                 styles.toggleRow,
-                idx < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border.subtle },
+                index < notificationOptions.length - 1
+                  && { borderBottomWidth: 1, borderBottomColor: colors.border.subtle },
               ]}
             >
               <Text style={[styles.toggleLabel, { color: colors.text.primary }]}>{label}</Text>
               <Switch
-                value={notifPrefs[key]}
-                onValueChange={(v) => handleToggleNotif(key, v)}
+                value={notificationPreferences[key]}
+                onValueChange={(value) => handleToggleNotification(key, value)}
                 trackColor={{ false: colors.border.default, true: colors.accent.admin }}
                 thumbColor={colors.text.inverse}
               />
@@ -348,7 +377,6 @@ export default function PerfilScreen() {
           ))}
         </View>
 
-        {/* ── Sair ── */}
         <Pressable
           style={[styles.btnLogout, { borderColor: colors.semantic.error + '60', opacity: loggingOut ? 0.55 : 1 }]}
           onPress={handleSignOut}
