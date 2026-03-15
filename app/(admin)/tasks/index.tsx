@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View, Pressable, FlatList, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -51,7 +52,7 @@ export default function AdminTasksScreen() {
       {shouldShowEmptyState ? (
         <EmptyState loading={loading} error={error} empty={tasks.length === 0} emptyMessage={'Nenhuma tarefa criada ainda.\nToque em "+" para criar a primeira tarefa.'} onRetry={loadData} />
       ) : (
-        <FlatList
+        <FlashList
           data={tasks}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
@@ -109,7 +110,7 @@ function makeStyles() {
     cardTitulo: { flex: 1, fontSize: typography.size.md, fontFamily: typography.family.semibold, marginRight: spacing['2'] },
     pontosTag: { borderRadius: radii.full, paddingHorizontal: spacing['2'], paddingVertical: spacing['1'] },
     pontosTexto: { fontSize: typography.size.xs, fontFamily: typography.family.bold },
-    freqRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: spacing['2'] },
+    freqRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'], marginBottom: spacing['2'] },
     cardPrazo: { fontSize: typography.size.xs },
     cardStats: { flexDirection: 'row', gap: spacing['2'], flexWrap: 'wrap' },
     statTexto: { fontSize: typography.size.xs },

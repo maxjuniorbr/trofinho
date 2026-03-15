@@ -2,9 +2,9 @@ import {
   StyleSheet,
   Text,
   View,
-  FlatList,
   RefreshControl,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -65,18 +65,17 @@ export default function ChildRedemptionsScreen() {
           onRetry={loadData}
         />
       ) : (
-        <FlatList
+        <FlashList
           data={redemptions}
           keyExtractor={(item) => item.id}
-          contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
           renderItem={({ item }) => (
             <View style={styles.card}>
               <View style={styles.cardTop}>
                 <Text style={styles.cardName}>{item.premios.nome}</Text>
-                <View style={[styles.statusBadge, { backgroundColor: getRedemptionStatusColor(item.status) + '22' }]}>
-                  <Text style={[styles.statusText, { color: getRedemptionStatusColor(item.status) }]}>
+                <View style={[styles.statusBadge, { backgroundColor: getRedemptionStatusColor(item.status, colors) + '22' }]}>
+                  <Text style={[styles.statusText, { color: getRedemptionStatusColor(item.status, colors) }]}>
                     {getRedemptionStatusLabel(item.status)}
                   </Text>
                 </View>
@@ -96,6 +95,7 @@ export default function ChildRedemptionsScreen() {
   );
 }
 
+
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
@@ -113,7 +113,7 @@ function makeStyles(colors: ThemeColors) {
     statusBadge: { borderRadius: radii.md, borderCurve: 'continuous', paddingHorizontal: spacing['2'], paddingVertical: spacing['1'] },
     statusText: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
     cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    cardPointsRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    cardPointsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     cardPoints: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.accent.filho },
     cardDate: { fontSize: typography.size.xs, color: colors.text.muted },
   });

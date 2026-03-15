@@ -3,10 +3,10 @@ import {
   Text,
   View,
   Pressable,
-  FlatList,
   RefreshControl,
   Modal,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -125,10 +125,9 @@ export default function AdminRedemptionsScreen() {
           onRetry={loadData}
         />
       ) : (
-        <FlatList
+        <FlashList
           data={redemptions}
           keyExtractor={(item) => item.id}
-          contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={styles.lista}
           refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
           ListHeaderComponent={
@@ -167,8 +166,8 @@ export default function AdminRedemptionsScreen() {
                       </View>
                     </View>
                     <View>
-                      <View style={[styles.statusBadge, { backgroundColor: getRedemptionStatusColor(item.status) + '22' }]}>
-                        <Text style={[styles.statusTexto, { color: getRedemptionStatusColor(item.status) }]}>
+                      <View style={[styles.statusBadge, { backgroundColor: getRedemptionStatusColor(item.status, colors) + '22' }]}>
+                        <Text style={[styles.statusTexto, { color: getRedemptionStatusColor(item.status, colors) }]}>
                           {getRedemptionStatusLabel(item.status)}
                         </Text>
                       </View>
@@ -190,7 +189,7 @@ export default function AdminRedemptionsScreen() {
                       >
                         {isProcessing ? <Text style={styles.botaoConfirmarTexto}>…</Text> : (
                           <View style={styles.botaoInner}>
-                            <CheckCircle2 size={14} color="#fff" strokeWidth={2} />
+                            <CheckCircle2 size={14} color={colors.text.inverse} strokeWidth={2} />
                             <Text style={styles.botaoConfirmarTexto}>Confirmar</Text>
                           </View>
                         )}
@@ -259,7 +258,7 @@ function makeStyles(colors: ThemeColors) {
     lista: { padding: spacing['4'], gap: spacing['2'], paddingBottom: spacing['10'] },
     erroAcao: { color: colors.semantic.error, fontSize: typography.size.sm, fontFamily: typography.family.medium, marginBottom: spacing['2'], textAlign: 'center' },
     secaoHeader: { paddingVertical: spacing['2'] },
-    secaoTituloRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    secaoTituloRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     secaoTitulo: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.text.muted, textTransform: 'uppercase', letterSpacing: 0.5 },
     card: {
       backgroundColor: colors.bg.surface,
@@ -272,19 +271,19 @@ function makeStyles(colors: ThemeColors) {
     cardPendente: { borderLeftWidth: 3, borderLeftColor: colors.semantic.warning },
     cardTopo: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing['2'] },
     premioNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
-    cardFilhoRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    cardFilhoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     cardFilho: { fontSize: typography.size.xs, color: colors.text.secondary },
     alertaIcone: { fontSize: 24, marginBottom: spacing['2'] },
     statusBadge: { borderRadius: radii.md, borderCurve: 'continuous', paddingHorizontal: spacing['2'], paddingVertical: spacing['1'], alignSelf: 'flex-end' },
     statusTexto: { fontSize: typography.size.xs, fontFamily: typography.family.bold },
     cardData: { fontSize: typography.size.xs, color: colors.text.muted, textAlign: 'right', marginTop: spacing['1'] },
-    cardPontosRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    cardPontosRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     cardPontos: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.accent.admin },
     dataSolicitacao: { fontSize: typography.size.xs, color: colors.text.muted },
     acoesRow: { flexDirection: 'row', gap: spacing['2'], marginTop: spacing['1'] },
-    botaoInner: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    botaoInner: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     botaoConfirmar: { flex: 1, backgroundColor: colors.semantic.success, borderRadius: radii.lg, borderCurve: 'continuous', paddingVertical: spacing['2'], alignItems: 'center', justifyContent: 'center', minHeight: 44 },
-    botaoConfirmarTexto: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.sm },
+    botaoConfirmarTexto: { color: colors.text.inverse, fontFamily: typography.family.bold, fontSize: typography.size.sm },
     botaoCancelar: { flex: 1, borderRadius: radii.lg, borderCurve: 'continuous', borderWidth: 1.5, borderColor: colors.semantic.error, paddingVertical: spacing['2'], alignItems: 'center', justifyContent: 'center', minHeight: 44 },
     botaoCancelarTexto: { color: colors.semantic.error, fontFamily: typography.family.bold, fontSize: typography.size.sm },
     botaoDesabilitado: { opacity: 0.5 },
@@ -316,6 +315,6 @@ function makeStyles(colors: ThemeColors) {
       alignItems: 'center',
       minHeight: 48,
     },
-    modalConfirmBtnText: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.sm },
+    modalConfirmBtnText: { color: colors.text.inverse, fontFamily: typography.family.bold, fontSize: typography.size.sm },
   });
 }

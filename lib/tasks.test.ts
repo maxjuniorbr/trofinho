@@ -31,8 +31,13 @@ vi.mock('expo-file-system', () => ({
   },
 }));
 
+
 vi.mock('./supabase', () => ({
   supabase: supabaseMock,
+}));
+
+vi.mock('@/constants/theme', () => ({
+  lightColors: {},
 }));
 
 import {
@@ -59,6 +64,7 @@ type QueryResult = {
 function createOrderQuery(result: QueryResult, orderCallsBeforeResolve = 0) {
   const query = {
     eq: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockResolvedValue(result),
     or: vi.fn().mockReturnThis(),
     order: vi.fn(),
     select: vi.fn().mockReturnThis(),
@@ -68,8 +74,20 @@ function createOrderQuery(result: QueryResult, orderCallsBeforeResolve = 0) {
     query.order.mockImplementationOnce(() => query);
   }
 
-  query.order.mockResolvedValueOnce(result);
+  // Return self so that a chained .limit() can resolve
+  query.order.mockReturnValueOnce(query);
 
+  return query;
+}
+
+/** Order query that resolves directly from .order() — no .limit() chain */
+function createSimpleOrderQuery(result: QueryResult) {
+  const query = {
+    eq: vi.fn().mockReturnThis(),
+    or: vi.fn().mockReturnThis(),
+    order: vi.fn().mockResolvedValue(result),
+    select: vi.fn().mockReturnThis(),
+  };
   return query;
 }
 
@@ -121,15 +139,19 @@ describe('tasks', () => {
     expect(getStatusLabel('aprovada')).toBe('Aprovada');
     expect(getStatusLabel('rejeitada')).toBe('Rejeitada');
 
-    expect(getStatusColor('pendente')).toBe('#F59F0A');
-    expect(getStatusColor('aguardando_validacao')).toBe('#308CE8');
-    expect(getStatusColor('aprovada')).toBe('#20C55D');
-    expect(getStatusColor('rejeitada')).toBe('#DC2828');
+    const mockColors = {
+      semantic: { warning: '#F59F0A', info: '#308CE8', success: '#20C55D', error: '#DC2828' },
+    } as Parameters<typeof getStatusColor>[1];
+
+    expect(getStatusColor('pendente', mockColors)).toBe('#F59F0A');
+    expect(getStatusColor('aguardando_validacao', mockColors)).toBe('#308CE8');
+    expect(getStatusColor('aprovada', mockColors)).toBe('#20C55D');
+    expect(getStatusColor('rejeitada', mockColors)).toBe('#DC2828');
   });
 
   it('lists family children and admin tasks', async () => {
     supabaseMock.from
-      .mockReturnValueOnce(createOrderQuery({ data: [{ id: 'child-1' }], error: null }))
+      .mockReturnValueOnce(createSimpleOrderQuery({ data: [{ id: 'child-1' }], error: null }))
       .mockReturnValueOnce(createOrderQuery({ data: [{ id: 'task-1' }], error: null }));
 
     await expect(listFamilyChildren()).resolves.toEqual({
@@ -145,7 +167,7 @@ describe('tasks', () => {
 
   it('surfaces list errors for family children and admin tasks', async () => {
     supabaseMock.from
-      .mockReturnValueOnce(createOrderQuery({ data: null, error: { message: 'children failed' } }))
+      .mockReturnValueOnce(createSimpleOrderQuery({ data: null, error: { message: 'children failed' } }))
       .mockReturnValueOnce(createOrderQuery({ data: null, error: { message: 'tasks failed' } }));
 
     await expect(listFamilyChildren()).resolves.toEqual({

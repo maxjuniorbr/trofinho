@@ -1,5 +1,5 @@
-import { File } from 'expo-file-system';
 import { localizeSupabaseError } from './api-error';
+import { readImageAsArrayBuffer, inferImageExtension, inferImageContentType } from './image-utils';
 import { supabase } from './supabase';
 
 const AVATAR_BUCKET = 'avatars';
@@ -126,14 +126,14 @@ export async function updateUserAvatar(
     }
 
     const userId = authData.user.id;
-    const extension = inferAvatarExtension(imageUri);
-    const buffer = await readAsArrayBuffer(imageUri);
+    const extension = inferImageExtension(imageUri);
+    const buffer = await readImageAsArrayBuffer(imageUri);
     const filePath = `${userId}/avatar.${extension}`;
 
     const { error: uploadError } = await supabase.storage
       .from(AVATAR_BUCKET)
       .upload(filePath, buffer, {
-        contentType: inferAvatarContentType(extension),
+        contentType: inferImageContentType(extension),
         upsert: true,
       });
 
@@ -168,53 +168,3 @@ function translateRpcError(msg: string): string {
   return msg;
 }
 
-async function readAsArrayBuffer(imageUri: string): Promise<ArrayBuffer> {
-  const normalizedUri = imageUri.split('?')[0];
-
-  // Try expo-file-system File API for local URIs (file://, content://, ph://)
-  if (
-    !normalizedUri.startsWith('http://') &&
-    !normalizedUri.startsWith('https://')
-  ) {
-    try {
-      return await new File(normalizedUri).arrayBuffer();
-    } catch {
-      // File API failed — fall through to fetch
-    }
-  }
-
-  const response = await fetch(imageUri);
-
-  if (!response.ok) {
-    throw new Error('Não foi possível ler a imagem selecionada');
-  }
-
-  return response.arrayBuffer();
-}
-
-function inferAvatarExtension(imageUri: string): string {
-  const extension = imageUri.split('?')[0]?.split('.').pop()?.toLowerCase();
-
-  switch (extension) {
-    case 'jpg':
-    case 'jpeg':
-    case 'png':
-    case 'webp':
-      return extension;
-    default:
-      return 'jpg';
-  }
-}
-
-function inferAvatarContentType(extension: string): string {
-  switch (extension) {
-    case 'png':
-      return 'image/png';
-    case 'webp':
-      return 'image/webp';
-    case 'jpg':
-    case 'jpeg':
-    default:
-      return 'image/jpeg';
-  }
-}

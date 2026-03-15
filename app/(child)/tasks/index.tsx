@@ -3,9 +3,9 @@ import {
   Text,
   View,
   Pressable,
-  FlatList,
   RefreshControl,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -90,7 +90,7 @@ export default function ChildTasksScreen() {
             style={[styles.filterBtn, filter === f.key && styles.filterBtnActive]}
             onPress={() => setFilter(f.key)}
           >
-            <Text style={[styles.filterText, filter === f.key && styles.filterTextActive]}>
+            <Text style={[styles.filterText, filter === f.key && [styles.filterTextActive, { color: colors.text.inverse }]]}>
               {f.label}
             </Text>
           </Pressable>
@@ -106,7 +106,7 @@ export default function ChildTasksScreen() {
           onRetry={loadData}
         />
       ) : (
-        <FlatList
+        <FlashList
           data={filtered}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
@@ -130,8 +130,8 @@ export default function ChildTasksScreen() {
                   {item.tarefas.frequencia === 'diaria' ? 'Diária' : 'Única'}
                 </Text>
               </View>
-              <View style={[styles.statusTag, { backgroundColor: getStatusColor(item.status) + '20' }]}>
-                <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+              <View style={[styles.statusTag, { backgroundColor: getStatusColor(item.status, colors) + '20' }]}>
+                <Text style={[styles.statusText, { color: getStatusColor(item.status, colors) }]}>
                   {getStatusLabel(item.status)}
                 </Text>
               </View>
@@ -166,7 +166,7 @@ function makeStyles(colors: ThemeColors) {
     },
     filterBtnActive: { backgroundColor: colors.accent.filho },
     filterText: { fontSize: typography.size.xs, fontFamily: typography.family.semibold, color: colors.text.secondary },
-    filterTextActive: { color: '#fff' },
+    filterTextActive: {},
     list: { padding: spacing['4'], gap: spacing['3'] },
     card: {
       backgroundColor: colors.bg.surface,
@@ -178,7 +178,7 @@ function makeStyles(colors: ThemeColors) {
     cardTitle: { flex: 1, fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary, marginRight: spacing['2'] },
     pointsTag: { backgroundColor: colors.accent.filhoBg, borderRadius: radii.sm, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'] },
     pointsText: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.accent.filho },
-    freqRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: spacing['2'] },
+    freqRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'], marginBottom: spacing['2'] },
     cardDeadline: { fontSize: typography.size.xs, color: colors.text.muted },
     statusTag: { borderRadius: radii.sm, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'], alignSelf: 'flex-start' },
     statusText: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
