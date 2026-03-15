@@ -7,14 +7,15 @@ export type Child = {
   usuario_id: string | null;
 };
 
+export type TaskFrequencia = 'diaria' | 'unica';
+
 export type Task = {
   id: string;
   familia_id: string;
   titulo: string;
   descricao: string | null;
   pontos: number;
-  timebox_inicio: string;
-  timebox_fim: string;
+  frequencia: TaskFrequencia;
   exige_evidencia: boolean;
   criado_por: string;
   created_at: string;
@@ -43,7 +44,7 @@ export type TaskListItem = {
   id: string;
   titulo: string;
   pontos: number;
-  timebox_fim: string;
+  frequencia: TaskFrequencia;
   atribuicoes: { status: AssignmentStatus }[];
 };
 
@@ -63,8 +64,7 @@ export type NewTaskInput = {
   titulo: string;
   descricao: string | null;
   pontos: number;
-  timebox_inicio: string;
-  timebox_fim: string;
+  frequencia: TaskFrequencia;
   exige_evidencia: boolean;
   filhoIds: string[];
 };
@@ -89,8 +89,7 @@ export async function createTask(
     p_titulo: input.titulo,
     p_descricao: input.descricao,
     p_pontos: input.pontos,
-    p_timebox_inicio: input.timebox_inicio,
-    p_timebox_fim: input.timebox_fim,
+    p_frequencia: input.frequencia,
     p_exige_evidencia: input.exige_evidencia,
     p_filho_ids: input.filhoIds,
   });
@@ -105,7 +104,7 @@ export async function listAdminTasks(): Promise<{
 }> {
   const { data, error } = await supabase
     .from('tarefas')
-    .select('id, titulo, pontos, timebox_fim, atribuicoes(status)')
+    .select('id, titulo, pontos, frequencia, atribuicoes(status)')
     .order('created_at', { ascending: false });
 
   if (error) return { data: [], error: error.message };
@@ -161,13 +160,25 @@ export async function rejectAssignment(
   return { error: null };
 }
 
+export async function renewDailyTasks(): Promise<void> {
+  await supabase.rpc('garantir_atribuicoes_diarias');
+}
+
 export async function listChildAssignments(): Promise<{
   data: ChildAssignment[];
   error: string | null;
 }> {
+  const today = new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD'
+
+  // Mostrar:
+  //  • Tarefas únicas: sempre (competencia IS NULL)
+  //  • Tarefas diárias de hoje (competencia = hoje)
+  //  • Histórico aprovado/rejeitado de qualquer dia
+  // Ocultar: "pendente" de dias anteriores (tarefa diária perdida)
   const { data, error } = await supabase
     .from('atribuicoes')
     .select('*, tarefas(*)')
+    .or(`competencia.is.null,competencia.eq.${today},status.in.(aprovada,rejeitada)`)
     .order('created_at', { ascending: false });
 
   if (error) return { data: [], error: error.message };
@@ -302,7 +313,10 @@ function generateRandomSuffix(): string {
       .join('');
   }
 
-  throw new Error('crypto.getRandomValues is not available in this environment');
+  // Fallback for Hermes / React Native environments without Web Crypto
+  return Array.from({ length: 8 }, () =>
+    Math.floor(Math.random() * 256).toString(16).padStart(2, '0')
+  ).join('');
 }
 
 function inferImageExtension(imageUri: string): string {

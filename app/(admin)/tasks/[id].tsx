@@ -131,9 +131,7 @@ export default function TaskDetailAdminScreen() {
             <Text style={styles.descricao}>{task.descricao}</Text>
           ) : null}
           <Text style={styles.meta}>
-            {task.timebox_inicio}
-            {' \u2192 '}
-            {task.timebox_fim}
+            {task.frequencia === 'diaria' ? '🔁 Diária' : '1️⃣ Única'}
           </Text>
           {task.exige_evidencia && (
             <View style={styles.tagEvidencia}>

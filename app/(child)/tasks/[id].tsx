@@ -131,9 +131,7 @@ export default function ChildTaskDetailScreen() {
           </View>
           {tarefa.descricao ? <Text style={styles.description}>{tarefa.descricao}</Text> : null}
           <Text style={styles.meta}>
-            {tarefa.timebox_inicio}
-            {' \u2192 '}
-            {tarefa.timebox_fim}
+            {tarefa.frequencia === 'diaria' ? '🔁 Diária' : '1️⃣ Única'}
           </Text>
           {tarefa.exige_evidencia && (
             <View style={styles.evidenceTag}>

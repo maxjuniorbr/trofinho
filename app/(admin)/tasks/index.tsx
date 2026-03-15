@@ -69,7 +69,9 @@ export default function AdminTasksScreen() {
                     <Text style={[styles.pontosTexto, { color: colors.brand.dim }]}>{item.pontos} pts</Text>
                   </View>
                 </View>
-                <Text style={[styles.cardPrazo, { color: colors.text.muted }]}>Prazo: {item.timebox_fim}</Text>
+                <Text style={[styles.cardPrazo, { color: colors.text.muted }]}>
+                  {item.frequencia === 'diaria' ? '🔁 Diária' : '1️⃣ Única'}
+                </Text>
                 <View style={styles.cardStats}>
                   {total === 0 ? (
                     <Text style={[styles.statTexto, { color: colors.text.muted }]}>Sem atribuições</Text>

@@ -11,6 +11,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import {
   listChildAssignments,
+  renewDailyTasks,
   getStatusLabel,
   getStatusColor,
   type ChildAssignment,
@@ -49,6 +50,7 @@ export default function ChildTasksScreen() {
     setLoading(true);
     setError(null);
     try {
+      await renewDailyTasks();
       const { data, error } = await listChildAssignments();
       if (error) setError(error);
       else setAssignments(data);
