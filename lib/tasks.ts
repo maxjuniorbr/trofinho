@@ -1,6 +1,7 @@
-import { File } from 'expo-file-system';
 import { toDateString } from './utils';
+import { readImageAsArrayBuffer, inferImageExtension, inferImageContentType, extractErrorMessage } from './image-utils';
 import { supabase } from './supabase';
+import type { ThemeColors } from '@/constants/theme';
 
 export type Child = {
   id: string;
@@ -99,14 +100,15 @@ export async function createTask(
   return { error: null };
 }
 
-export async function listAdminTasks(): Promise<{
+export async function listAdminTasks(limit = 50): Promise<{
   data: TaskListItem[];
   error: string | null;
 }> {
   const { data, error } = await supabase
     .from('tarefas')
     .select('id, titulo, pontos, frequencia, atribuicoes(status)')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(limit);
 
   if (error) return { data: [], error: error.message };
   return { data: (data ?? []) as unknown as TaskListItem[], error: null };
@@ -177,7 +179,8 @@ export async function listChildAssignments(): Promise<{
     .from('atribuicoes')
     .select('*, tarefas(*)')
     .or(visibleAssignmentsFilter)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(100);
 
   if (error) return { data: [], error: error.message };
   return { data: (data ?? []) as unknown as ChildAssignment[], error: null };
@@ -279,28 +282,6 @@ async function uploadEvidence(
   }
 }
 
-async function readImageAsArrayBuffer(imageUri: string): Promise<ArrayBuffer> {
-  const normalizedUri = imageUri.split('?')[0] ?? imageUri;
-
-  if (
-    !normalizedUri.startsWith('http://') &&
-    !normalizedUri.startsWith('https://')
-  ) {
-    try {
-      return await new File(normalizedUri).arrayBuffer();
-    } catch {
-    }
-  }
-
-  const response = await fetch(imageUri);
-
-  if (!response.ok) {
-    throw new Error('Não foi possível ler a imagem selecionada');
-  }
-
-  return response.arrayBuffer();
-}
-
 let evidenceSuffixCounter = 0;
 
 function createEvidenceSuffix(): string {
@@ -310,57 +291,6 @@ function createEvidenceSuffix(): string {
   const counterPart = evidenceSuffixCounter.toString(36).padStart(4, '0');
 
   return `${timePart}_${counterPart}`;
-}
-
-function inferImageExtension(imageUri: string): string {
-  const extension = imageUri.split('?')[0]?.split('.').pop()?.toLowerCase();
-
-  switch (extension) {
-    case 'jpg':
-    case 'jpeg':
-    case 'png':
-    case 'webp':
-    case 'heic':
-    case 'heif':
-      return extension;
-    default:
-      return 'jpg';
-  }
-}
-
-function inferImageContentType(extension: string): string {
-  switch (extension) {
-    case 'png':
-      return 'image/png';
-    case 'webp':
-      return 'image/webp';
-    case 'heic':
-      return 'image/heic';
-    case 'heif':
-      return 'image/heif';
-    case 'jpg':
-    case 'jpeg':
-    default:
-      return 'image/jpeg';
-  }
-}
-
-function extractErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
-  }
-
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof error.message === 'string' &&
-    error.message.trim()
-  ) {
-    return error.message;
-  }
-
-  return fallback;
 }
 
 const EVIDENCE_URL_TTL_SECONDS = 60 * 60;
@@ -441,15 +371,12 @@ export function getStatusLabel(status: AssignmentStatus): string {
   }
 }
 
-export function getStatusColor(status: AssignmentStatus): string {
-  switch (status) {
-    case 'pendente':
-      return '#F59F0A';
-    case 'aguardando_validacao':
-      return '#308CE8';
-    case 'aprovada':
-      return '#20C55D';
-    case 'rejeitada':
-      return '#DC2828';
-  }
+export function getStatusColor(status: AssignmentStatus, colors: ThemeColors): string {
+  const map: Record<AssignmentStatus, string> = {
+    pendente: colors.semantic.warning,
+    aguardando_validacao: colors.semantic.info,
+    aprovada: colors.semantic.success,
+    rejeitada: colors.semantic.error,
+  };
+  return map[status];
 }
