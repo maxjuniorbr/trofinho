@@ -26,6 +26,144 @@ import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 
+type AssignmentCardProps = Readonly<{
+  assignment: AssignmentWithChild;
+  action: 'rejecting' | 'processing' | null;
+  note: string;
+  assignmentError: string;
+  imageState?: 'loading' | 'loaded' | 'error';
+  colors: ThemeColors;
+  styles: ReturnType<typeof makeStyles>;
+  onApprove: () => void;
+  onReject: () => void;
+  onStartReject: () => void;
+  onCancelReject: () => void;
+  onNoteChange: (value: string) => void;
+  onImageStateChange: (state: 'loading' | 'loaded' | 'error') => void;
+}>;
+
+function AssignmentCard({
+  assignment,
+  action,
+  note,
+  assignmentError,
+  imageState,
+  colors,
+  styles,
+  onApprove,
+  onReject,
+  onStartReject,
+  onCancelReject,
+  onNoteChange,
+  onImageStateChange,
+}: AssignmentCardProps) {
+  const processing = action === 'processing';
+  const statusColor = getStatusColor(assignment.status);
+  const isRejecting = action === 'rejecting';
+  const evidenceUrl = assignment.evidencia_url ?? undefined;
+  const shouldShowImage = Boolean(evidenceUrl) && imageState !== 'error';
+  const shouldShowImageFallback = Boolean(evidenceUrl) && imageState === 'error';
+
+  return (
+    <View style={styles.atribCard}>
+      <View style={styles.atribTopo}>
+        <Text style={styles.filhoNome}>{assignment.filhos.nome}</Text>
+        <View style={[styles.statusTag, { backgroundColor: statusColor + '20' }]}>
+          <Text style={[styles.statusTexto, { color: statusColor }]}>
+            {getStatusLabel(assignment.status)}
+          </Text>
+        </View>
+      </View>
+
+      {shouldShowImage ? (
+        <View style={styles.evidenciaImgWrapper}>
+          <Image
+            source={{ uri: evidenceUrl }}
+            style={styles.evidenciaImg}
+            resizeMode="cover"
+            onLoadStart={() => onImageStateChange('loading')}
+            onLoadEnd={() => onImageStateChange('loaded')}
+            onError={() => onImageStateChange('error')}
+          />
+          {(!imageState || imageState === 'loading') ? (
+            <View style={styles.evidenciaLoading}>
+              <ActivityIndicator size="small" color={colors.accent.admin} />
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
+      {shouldShowImageFallback ? (
+        <View style={[styles.evidenciaImgWrapper, styles.evidenciaFallback, { backgroundColor: colors.bg.muted }]}>
+          <Text style={[styles.evidenciaFallbackText, { color: colors.text.muted }]}>Não foi possível carregar a imagem</Text>
+        </View>
+      ) : null}
+
+      {assignment.nota_rejeicao ? (
+        <View style={styles.notaRejeicaoBox}>
+          <Text style={styles.notaRejeicaoLabel}>Motivo da rejeição:</Text>
+          <Text style={styles.notaRejeicaoTexto}>{assignment.nota_rejeicao}</Text>
+        </View>
+      ) : null}
+
+      {assignment.status === 'aguardando_validacao' && (
+        <View style={styles.acoesBox}>
+          {isRejecting ? (
+            <>
+              <TextInput
+                style={styles.inputNota}
+                value={note}
+                onChangeText={onNoteChange}
+                placeholder="Motivo da rejeição (obrigatório)"
+                placeholderTextColor={colors.text.muted}
+                multiline
+              />
+              <View style={styles.botoesRejeitar}>
+                <Pressable
+                  style={[styles.botaoAcao, styles.botaoCancelar]}
+                  onPress={onCancelReject}
+                  disabled={processing}
+                >
+                  <Text style={styles.botaoCancelarTexto}>Cancelar</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.botaoAcao, styles.botaoRejeitar, processing && styles.botaoDesabilitado]}
+                  onPress={onReject}
+                  disabled={processing}
+                >
+                  {processing
+                    ? <ActivityIndicator color="#fff" size="small" />
+                    : <Text style={styles.botaoRejeitarTexto}>Confirmar rejeição</Text>}
+                </Pressable>
+              </View>
+            </>
+          ) : (
+            <View style={styles.botoesValidar}>
+              <Pressable
+                style={[styles.botaoAcao, styles.botaoRejeitar, processing && styles.botaoDesabilitado]}
+                onPress={onStartReject}
+                disabled={processing}
+              >
+                <Text style={styles.botaoRejeitarTexto}>Rejeitar</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.botaoAcao, styles.botaoAprovar, processing && styles.botaoDesabilitado]}
+                onPress={onApprove}
+                disabled={processing}
+              >
+                {processing
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <Text style={styles.botaoAprovarTexto}>Aprovar ✓</Text>}
+              </Pressable>
+            </View>
+          )}
+          {assignmentError ? <Text style={styles.erroAtrib}>{assignmentError}</Text> : null}
+        </View>
+      )}
+    </View>
+  );
+}
+
 export default function TaskDetailAdminScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -146,107 +284,23 @@ export default function TaskDetailAdminScreen() {
           <Text style={styles.semAtrib}>Nenhum filho atribuído.</Text>
         ) : (
           task.atribuicoes.map((assignment) => {
-            const action = assignmentActions[assignment.id] ?? null;
-            const note = rejectionNotes[assignment.id] ?? '';
-            const assignmentError = assignmentErrors[assignment.id] ?? '';
-            const processing = action === 'processing';
-
             return (
-              <View key={assignment.id} style={styles.atribCard}>
-                <View style={styles.atribTopo}>
-                  <Text style={styles.filhoNome}>{assignment.filhos.nome}</Text>
-                  <View style={[styles.statusTag, { backgroundColor: getStatusColor(assignment.status) + '20' }]}>
-                    <Text style={[styles.statusTexto, { color: getStatusColor(assignment.status) }]}>
-                      {getStatusLabel(assignment.status)}
-                    </Text>
-                  </View>
-                </View>
-
-                {assignment.evidencia_url && imgStates[assignment.id] !== 'error' ? (
-                  <View style={styles.evidenciaImgWrapper}>
-                    <Image
-                      source={{ uri: assignment.evidencia_url }}
-                      style={styles.evidenciaImg}
-                      resizeMode="cover"
-                      onLoadStart={() => setImgStates(prev => ({ ...prev, [assignment.id]: 'loading' }))}
-                      onLoadEnd={() => setImgStates(prev => ({ ...prev, [assignment.id]: 'loaded' }))}
-                      onError={() => setImgStates(prev => ({ ...prev, [assignment.id]: 'error' }))}
-                    />
-                    {(!imgStates[assignment.id] || imgStates[assignment.id] === 'loading') ? (
-                      <View style={styles.evidenciaLoading}>
-                        <ActivityIndicator size="small" color={colors.accent.admin} />
-                      </View>
-                    ) : null}
-                  </View>
-                ) : null}
-                {assignment.evidencia_url && imgStates[assignment.id] === 'error' ? (
-                  <View style={[styles.evidenciaImgWrapper, styles.evidenciaFallback, { backgroundColor: colors.bg.muted }]}>
-                    <Text style={[styles.evidenciaFallbackText, { color: colors.text.muted }]}>Não foi possível carregar a imagem</Text>
-                  </View>
-                ) : null}
-
-                {assignment.nota_rejeicao ? (
-                  <View style={styles.notaRejeicaoBox}>
-                    <Text style={styles.notaRejeicaoLabel}>Motivo da rejeição:</Text>
-                    <Text style={styles.notaRejeicaoTexto}>{assignment.nota_rejeicao}</Text>
-                  </View>
-                ) : null}
-
-                {assignment.status === 'aguardando_validacao' && (
-                  <View style={styles.acoesBox}>
-                    {action === 'rejecting' ? (
-                      <>
-                        <TextInput
-                          style={styles.inputNota}
-                          value={note}
-                          onChangeText={(t) => setRejectionNotes((prev) => ({ ...prev, [assignment.id]: t }))}
-                          placeholder="Motivo da rejeição (obrigatório)"
-                          placeholderTextColor={colors.text.muted}
-                          multiline
-                        />
-                        <View style={styles.botoesRejeitar}>
-                          <Pressable
-                            style={[styles.botaoAcao, styles.botaoCancelar]}
-                            onPress={() => setAssignmentActions((prev) => ({ ...prev, [assignment.id]: null }))}
-                            disabled={processing}
-                          >
-                            <Text style={styles.botaoCancelarTexto}>Cancelar</Text>
-                          </Pressable>
-                          <Pressable
-                            style={[styles.botaoAcao, styles.botaoRejeitar, processing && styles.botaoDesabilitado]}
-                            onPress={() => handleReject(assignment)}
-                            disabled={processing}
-                          >
-                            {processing
-                              ? <ActivityIndicator color="#fff" size="small" />
-                              : <Text style={styles.botaoRejeitarTexto}>Confirmar rejeição</Text>}
-                          </Pressable>
-                        </View>
-                      </>
-                    ) : (
-                      <View style={styles.botoesValidar}>
-                        <Pressable
-                          style={[styles.botaoAcao, styles.botaoRejeitar, processing && styles.botaoDesabilitado]}
-                          onPress={() => setAssignmentActions((prev) => ({ ...prev, [assignment.id]: 'rejecting' }))}
-                          disabled={processing}
-                        >
-                          <Text style={styles.botaoRejeitarTexto}>Rejeitar</Text>
-                        </Pressable>
-                        <Pressable
-                          style={[styles.botaoAcao, styles.botaoAprovar, processing && styles.botaoDesabilitado]}
-                          onPress={() => handleApprove(assignment)}
-                          disabled={processing}
-                        >
-                          {processing
-                            ? <ActivityIndicator color="#fff" size="small" />
-                            : <Text style={styles.botaoAprovarTexto}>Aprovar ✓</Text>}
-                        </Pressable>
-                      </View>
-                    )}
-                    {assignmentError ? <Text style={styles.erroAtrib}>{assignmentError}</Text> : null}
-                  </View>
-                )}
-              </View>
+              <AssignmentCard
+                key={assignment.id}
+                assignment={assignment}
+                action={assignmentActions[assignment.id] ?? null}
+                note={rejectionNotes[assignment.id] ?? ''}
+                assignmentError={assignmentErrors[assignment.id] ?? ''}
+                imageState={imgStates[assignment.id]}
+                colors={colors}
+                styles={styles}
+                onApprove={() => handleApprove(assignment)}
+                onReject={() => handleReject(assignment)}
+                onStartReject={() => setAssignmentActions((prev) => ({ ...prev, [assignment.id]: 'rejecting' }))}
+                onCancelReject={() => setAssignmentActions((prev) => ({ ...prev, [assignment.id]: null }))}
+                onNoteChange={(value) => setRejectionNotes((prev) => ({ ...prev, [assignment.id]: value }))}
+                onImageStateChange={(state) => setImgStates((prev) => ({ ...prev, [assignment.id]: state }))}
+              />
             );
           })
         )}

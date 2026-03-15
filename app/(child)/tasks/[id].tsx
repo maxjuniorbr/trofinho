@@ -24,6 +24,26 @@ import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 
+async function pickEvidenceImage(): Promise<string | null> {
+  const { status } = await ImagePicker.requestCameraPermissionsAsync();
+  if (status !== 'granted') {
+    throw new Error('Permissão da câmera negada. Habilite nas configurações do dispositivo.');
+  }
+
+  const result = await ImagePicker.launchCameraAsync({
+    mediaTypes: ['images'],
+    quality: 0.7,
+    allowsEditing: true,
+    aspect: [4, 3],
+  });
+
+  if (result.canceled || result.assets.length === 0) {
+    return null;
+  }
+
+  return result.assets[0].uri;
+}
+
 export default function ChildTaskDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -60,31 +80,27 @@ export default function ChildTaskDetailScreen() {
     if (!assignment) return;
     setCompletionError(null);
 
-    if (assignment.tarefas.exige_evidencia) {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') {
-        setCompletionError('Permissão da câmera negada. Habilite nas configurações do dispositivo.');
+    try {
+      const imageUri = assignment.tarefas.exige_evidencia
+        ? await pickEvidenceImage()
+        : null;
+
+      if (assignment.tarefas.exige_evidencia && !imageUri) {
         return;
       }
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
-        quality: 0.7,
-        allowsEditing: true,
-        aspect: [4, 3],
-      });
-      if (result.canceled || result.assets.length === 0) return;
-      const imageUri = result.assets[0].uri;
+
       setCompleting(true);
       const { error } = await completeAssignment(assignment.id, imageUri);
-      setCompleting(false);
       if (error) setCompletionError(error);
       else await loadData();
-    } else {
-      setCompleting(true);
-      const { error } = await completeAssignment(assignment.id, null);
+    } catch (completionError) {
+      setCompletionError(
+        completionError instanceof Error
+          ? completionError.message
+          : 'Não foi possível concluir a tarefa agora.',
+      );
+    } finally {
       setCompleting(false);
-      if (error) setCompletionError(error);
-      else await loadData();
     }
   }
 
@@ -109,7 +125,7 @@ export default function ChildTaskDetailScreen() {
     );
   }
 
-  const tarefa = assignment.tarefas;
+  const task = assignment.tarefas;
   const canComplete = assignment.status === 'pendente';
 
   return (
@@ -124,16 +140,16 @@ export default function ChildTaskDetailScreen() {
 
         <View style={styles.card}>
           <View style={styles.cardTop}>
-            <Text style={styles.cardTitle}>{tarefa.titulo}</Text>
+            <Text style={styles.cardTitle}>{task.titulo}</Text>
             <View style={styles.pointsTag}>
-              <Text style={styles.pointsText}>{tarefa.pontos} pts</Text>
+              <Text style={styles.pointsText}>{task.pontos} pts</Text>
             </View>
           </View>
-          {tarefa.descricao ? <Text style={styles.description}>{tarefa.descricao}</Text> : null}
+          {task.descricao ? <Text style={styles.description}>{task.descricao}</Text> : null}
           <Text style={styles.meta}>
-            {tarefa.frequencia === 'diaria' ? '🔁 Diária' : '1️⃣ Única'}
+            {task.frequencia === 'diaria' ? '🔁 Diária' : '1️⃣ Única'}
           </Text>
-          {tarefa.exige_evidencia && (
+          {task.exige_evidencia && (
             <View style={styles.evidenceTag}>
               <Text style={styles.evidenceTagText}>📷 Enviar foto como prova</Text>
             </View>
@@ -188,7 +204,7 @@ export default function ChildTaskDetailScreen() {
               {completing
                 ? <ActivityIndicator color="#fff" />
                 : <Text style={styles.completeBtnText}>
-                    {tarefa.exige_evidencia ? '📷 Tirar foto e concluir' : '✓ Concluir tarefa'}
+                    {task.exige_evidencia ? '📷 Tirar foto e concluir' : '✓ Concluir tarefa'}
                   </Text>
               }
             </Pressable>
@@ -203,7 +219,7 @@ export default function ChildTaskDetailScreen() {
 
         {assignment.status === 'aprovada' && (
           <View style={styles.approvedBox}>
-            <Text style={styles.approvedText}>🏆 Parabéns! {tarefa.pontos} pontos creditados no seu saldo.</Text>
+            <Text style={styles.approvedText}>🏆 Parabéns! {task.pontos} pontos creditados no seu saldo.</Text>
           </View>
         )}
       </ScrollView>

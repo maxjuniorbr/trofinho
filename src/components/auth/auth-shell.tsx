@@ -1,0 +1,177 @@
+import { StatusBar } from 'expo-status-bar';
+import { useEffect, useMemo, useRef, type ReactNode } from 'react';
+import {
+  Animated,
+  Image,
+  KeyboardAvoidingView,
+  ScrollView,
+  StyleSheet,
+  Text,
+} from 'react-native';
+import { useTheme } from '@/context/theme-context';
+import { radii, spacing, typography } from '@/constants/theme';
+
+const mascotImage = require('../../../assets/trofinho-mascot.png') as number;
+
+type AuthShellVariant = 'hero' | 'compact';
+
+type AuthShellProps = Readonly<{
+  title: string;
+  subtitle: string;
+  children: ReactNode;
+  variant?: AuthShellVariant;
+}>;
+
+export function AuthShell({
+  title,
+  subtitle,
+  children,
+  variant = 'compact',
+}: AuthShellProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(variant), [variant]);
+
+  const mascotScale = useRef(new Animated.Value(0.4)).current;
+  const mascotRotate = useRef(new Animated.Value(-12)).current;
+  const contentOpacity = useRef(new Animated.Value(0)).current;
+  const contentY = useRef(new Animated.Value(32)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(mascotScale, {
+        toValue: 1,
+        delay: 100,
+        friction: 5,
+        tension: 60,
+        useNativeDriver: true,
+      }),
+      Animated.spring(mascotRotate, {
+        toValue: 0,
+        delay: 100,
+        friction: 6,
+        tension: 55,
+        useNativeDriver: true,
+      }),
+      Animated.timing(contentOpacity, {
+        toValue: 1,
+        duration: 500,
+        delay: 250,
+        useNativeDriver: true,
+      }),
+      Animated.spring(contentY, {
+        toValue: 0,
+        delay: 250,
+        friction: 8,
+        tension: 50,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [contentOpacity, contentY, mascotRotate, mascotScale]);
+
+  const mascotRotateDeg = mascotRotate.interpolate({
+    inputRange: [-12, 0],
+    outputRange: ['-12deg', '0deg'],
+  });
+
+  return (
+    <KeyboardAvoidingView
+      style={[styles.flex, { backgroundColor: colors.bg.canvas }]}
+      behavior="padding"
+    >
+      <ScrollView
+        style={[styles.flex, { backgroundColor: colors.bg.canvas }]}
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <StatusBar style={colors.statusBar} />
+
+        <Animated.View
+          style={[
+            styles.mascotWrapper,
+            { transform: [{ scale: mascotScale }, { rotate: mascotRotateDeg }] },
+          ]}
+        >
+          <Image
+            source={mascotImage}
+            style={styles.mascot}
+            accessibilityLabel="Mascote do Trofinho"
+            accessibilityRole="image"
+          />
+        </Animated.View>
+
+        <Animated.View
+          style={[
+            styles.headline,
+            { opacity: contentOpacity, transform: [{ translateY: contentY }] },
+          ]}
+        >
+          <Text style={[styles.title, { color: colors.text.primary }]}>{title}</Text>
+          <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
+            {subtitle}
+          </Text>
+        </Animated.View>
+
+        <Animated.View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.bg.surface,
+              borderColor: colors.border.subtle,
+              opacity: contentOpacity,
+              transform: [{ translateY: contentY }],
+            },
+          ]}
+        >
+          {children}
+        </Animated.View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+function makeStyles(variant: AuthShellVariant) {
+  const isHero = variant === 'hero';
+
+  return StyleSheet.create({
+    flex: { flex: 1 },
+    container: {
+      flexGrow: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.screen,
+      paddingVertical: spacing['10'],
+    },
+    mascotWrapper: {
+      marginBottom: isHero ? spacing['6'] : spacing['4'],
+    },
+    mascot: {
+      width: isHero ? 140 : 100,
+      height: isHero ? 140 : 100,
+      resizeMode: 'contain',
+    },
+    headline: {
+      alignItems: 'center',
+      marginBottom: isHero ? spacing['8'] : spacing['6'],
+    },
+    title: {
+      fontFamily: typography.family.black,
+      fontSize: isHero ? typography.size['4xl'] : typography.size['3xl'],
+      lineHeight: isHero ? typography.lineHeight['4xl'] : typography.lineHeight['3xl'],
+      textAlign: 'center',
+    },
+    subtitle: {
+      fontFamily: typography.family.medium,
+      fontSize: isHero ? typography.size.md : typography.size.sm,
+      textAlign: 'center',
+      marginTop: isHero ? spacing['2'] : spacing['1'],
+      lineHeight: isHero ? typography.lineHeight.md : typography.lineHeight.sm,
+    },
+    card: {
+      width: '100%',
+      borderRadius: radii.outer,
+      borderWidth: 1,
+      padding: spacing['6'],
+    },
+  });
+}

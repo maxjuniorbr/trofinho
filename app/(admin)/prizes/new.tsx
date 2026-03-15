@@ -3,7 +3,6 @@ import {
   Text,
   View,
   Pressable,
-  TextInput,
   ScrollView,
   KeyboardAvoidingView,
 } from 'react-native';
@@ -15,6 +14,7 @@ import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { PrizeFormFields } from '@/components/prizes/prize-form-fields';
 
 export default function NewPrizeScreen() {
   const router = useRouter();
@@ -64,45 +64,15 @@ export default function NewPrizeScreen() {
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.campo}>
-          <Text style={styles.label}>Nome *</Text>
-          <TextInput
-            style={styles.input}
-            value={name}
-            onChangeText={setName}
-            placeholder="Ex: Sorvete, Filme no cinema…"
-            placeholderTextColor={colors.text.muted}
-            autoFocus
-            returnKeyType="next"
-          />
-        </View>
-
-        <View style={styles.campo}>
-          <Text style={styles.label}>Descrição</Text>
-          <TextInput
-            style={[styles.input, styles.inputMultilinha]}
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Detalhes opcionais…"
-            placeholderTextColor={colors.text.muted}
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
-          />
-        </View>
-
-        <View style={styles.campo}>
-          <Text style={styles.label}>Custo em pontos *</Text>
-          <TextInput
-            style={styles.input}
-            value={costStr}
-            onChangeText={setCostStr}
-            placeholder="Ex: 50"
-            placeholderTextColor={colors.text.muted}
-            keyboardType="numeric"
-            returnKeyType="done"
-          />
-        </View>
+        <PrizeFormFields
+          name={name}
+          description={description}
+          cost={costStr}
+          onNameChange={setName}
+          onDescriptionChange={setDescription}
+          onCostChange={setCostStr}
+          autoFocusName
+        />
 
         {error ? <Text style={styles.erro}>{error}</Text> : null}
 
@@ -121,21 +91,6 @@ export default function NewPrizeScreen() {
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     scroll: { padding: spacing['6'], gap: spacing['5'], flexGrow: 1 },
-    campo: { gap: spacing['2'] },
-    label: { fontSize: typography.size.sm, fontFamily: typography.family.semibold, color: colors.text.secondary },
-    input: {
-      backgroundColor: colors.bg.surface,
-      borderRadius: radii.lg,
-      borderCurve: 'continuous',
-      borderWidth: 1,
-      borderColor: colors.border.default,
-      paddingHorizontal: spacing['3'],
-      paddingVertical: spacing['3'],
-      fontSize: typography.size.md,
-      color: colors.text.primary,
-      minHeight: 48,
-    },
-    inputMultilinha: { minHeight: 80, paddingTop: spacing['3'] },
     erro: { color: colors.semantic.error, fontSize: typography.size.sm, fontFamily: typography.family.medium },
     botao: {
       backgroundColor: colors.accent.admin,
