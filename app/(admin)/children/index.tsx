@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Pressable, FlatList } from 'react-native';
+import { StyleSheet, Text, View, Pressable, FlatList, RefreshControl } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -61,10 +61,16 @@ export default function AdminChildrenScreen() {
           data={children}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
           renderItem={({ item }) => {
             const balance = balancesMap.get(item.id);
             return (
-              <View style={[styles.card, shadows.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
+              <Pressable
+                style={[styles.card, shadows.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}
+                onPress={() => router.push(`/(admin)/balances/${item.id}` as never)}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.nome}, ver saldo`}
+              >
                 <Avatar name={item.nome} size={44} />
                 <View style={styles.cardInfo}>
                   <Text style={[styles.cardNome, { color: colors.text.primary }]}>{item.nome}</Text>
@@ -77,7 +83,7 @@ export default function AdminChildrenScreen() {
                     </Text>
                   ) : null}
                 </View>
-              </View>
+              </Pressable>
             );
           }}
         />

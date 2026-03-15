@@ -1,55 +1,42 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-# dependencies
+# Dependencies
 node_modules/
 
-# Expo
+# Build outputs
 .expo/
 dist/
 web-build/
+
+# Generated types
 expo-env.d.ts
+*.tsbuildinfo
 
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-
-# Metro
-.metro-health-check*
-
-# debug
+# Debug logs
 npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# macOS
-.DS_Store
+# Native builds
+/ios/
+/android/
 
-# Variáveis de ambiente — nunca commitar
-# Cobre: .env.local, .env.local.dev, .env.cloud, .env.production, etc.
+# Environment variables (never commit sensitive data)
 .env.*
 !.env.example
 
-# Supabase local
-supabase/.branches
-supabase/.temp
-*.pem
+# OS
+.DS_Store
+.DS_Store?
+._*
+.AppleDouble
+.LSOverride
 
-# typescript
-*.tsbuildinfo
-
-# generated native folders
-/ios
-/android
-
-# local agent skills
-/.agents/
-
-# VS Code
+# IDE
 .vscode/
-skills-lock.json
-*.code-workspace
+.idea/
+
+# Local Supabase
+supabase/.branches/
+supabase/.temp/
+*.pem
