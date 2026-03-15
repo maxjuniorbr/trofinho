@@ -1,6 +1,5 @@
 import React, { type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
@@ -42,13 +41,12 @@ export function ScreenHeader({
       {onBack ? (
         <Pressable
           onPress={onBack}
-          style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
+          style={({ pressed }) => [styles.backBtn, { backgroundColor: accent, opacity: pressed ? 0.7 : 1 }]}
           hitSlop={12}
           accessibilityRole="button"
           accessibilityLabel={`Voltar para ${displayLabel}`}
         >
-          <Ionicons name="chevron-back" size={26} color={accent} />
-          <Text style={[styles.backLabel, { color: accent }]}>{displayLabel}</Text>
+          <Text style={[styles.backArrow, { color: colors.text.inverse }]}>‹</Text>
         </Pressable>
       ) : (
         <View style={styles.side} />
@@ -75,15 +73,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   side: {
-    minWidth: 80,
+    minWidth: 36,
   },
   backBtn: {
-    flexDirection: 'row',
     alignItems: 'center',
-    minWidth: 80,
-    minHeight: 48,
+    justifyContent: 'center',
+    width: 36,
+    height: 36,
     borderRadius: radii.md,
-    paddingRight: spacing['2'],
   },
   title: {
     fontSize: typography.size.lg,
@@ -91,9 +88,10 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
   },
-  backLabel: {
-    fontSize: typography.size.sm,
-    fontFamily: typography.family.semibold,
-    marginLeft: 2,
+  backArrow: {
+    fontSize: 22,
+    fontFamily: typography.family.black,
+    textAlign: 'center',
+    includeFontPadding: false,
   },
 });
