@@ -2,47 +2,50 @@
 applyTo: "**"
 ---
 
-# Regras de Commit
+# Instruções Para LLMs Sobre Commits
 
-## Formato
+Quando criar mensagem de commit neste repositório, siga exatamente estas regras.
 
+## Formato Obrigatório
+
+```text
+<type>: <short description in english>
 ```
-<tipo>: <descrição curta em inglês>
-```
 
-## Tipos permitidos
+## Tipos Permitidos
 
-| Tipo | Quando usar |
-|---|---|
-| `feat` | Nova funcionalidade |
-| `fix` | Correção de bug |
-| `refactor` | Refatoração sem mudança de comportamento |
-| `style` | Ajustes visuais/CSS, sem lógica |
-| `chore` | Tarefas de manutenção (deps, configs, CI) |
-| `docs` | Documentação |
-| `test` | Testes |
+- `feat`: nova funcionalidade
+- `fix`: correção de bug
+- `refactor`: refatoração sem mudança de comportamento
+- `style`: ajuste visual ou de CSS sem lógica
+- `chore`: manutenção, dependências, configuração ou CI
+- `docs`: documentação
+- `test`: testes
 
-## Regras
+## Regras Obrigatórias
 
-- **Nunca** use escopo em parênteses: use `feat:` e não `feat(scope):`
-- A descrição deve ser em **inglês**, no imperativo e em letras minúsculas
-- Máximo de 72 caracteres na linha do título
-- Sem ponto final na descrição
+- Nunca use escopo em parênteses.
+- Use `feat:` e não `feat(scope):`.
+- Escreva a descrição em inglês.
+- Escreva a descrição no imperativo.
+- Use apenas minúsculas na descrição.
+- Limite a linha do título a 72 caracteres.
+- Não termine a descrição com ponto final.
 
-## Exemplos válidos
+## Exemplos Válidos
 
-```
+```text
 feat: add avatar upload to user profile
 fix: handle missing child profile in daily task renewal
-refactor: extract RootNavigator from root layout
+refactor: extract root navigator from root layout
 chore: add vitest dependency
 style: improve button styling in screen header
 ```
 
-## Exemplos inválidos
+## Exemplos Inválidos
 
-```
-feat(auth): add login           ← escopo não permitido
-Fix: Login bug                  ← tipo capitalizado
-feat: Added login.              ← passado + ponto final
+```text
+feat(auth): add login
+Fix: Login bug
+feat: Added login.
 ```
