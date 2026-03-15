@@ -1,7 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const resizeImageMock = vi.hoisted(() => vi.fn((uri: string) => Promise.resolve(uri)));
+
 const fileArrayBufferMock = vi.hoisted(() => vi.fn());
 const fileConstructorMock = vi.hoisted(() => vi.fn());
+
+vi.mock('expo-image-manipulator', () => ({
+  ImageManipulator: { manipulate: vi.fn() },
+  SaveFormat: { JPEG: 'jpeg' },
+}));
+
+vi.mock('./image-utils', async (importOriginal) => {
+  const original = await importOriginal<typeof import('./image-utils')>();
+  return { ...original, resizeImage: resizeImageMock };
+});
 
 const storageBucketMock = vi.hoisted(() => ({
   createSignedUrl: vi.fn(),

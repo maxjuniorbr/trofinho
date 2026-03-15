@@ -98,13 +98,14 @@ export default function ChildRedemptionsScreen() {
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
-    list: { padding: spacing['4'], gap: spacing['2'], paddingBottom: spacing['10'] },
+    list: { padding: spacing['4'], paddingBottom: spacing['10'] },
     card: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,
       borderCurve: 'continuous',
       padding: spacing['4'],
       gap: spacing['2'],
+      marginBottom: spacing['2'],
       ...shadows.card,
     },
     cardTop: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
