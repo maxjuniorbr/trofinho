@@ -1,15 +1,101 @@
-export const lightColors = {
+const brandColors = {
+  vivid: '#FAC114',
+  dim: '#C57B0D',
+  subtle: 'rgba(250, 193, 20, 0.10)',
+  gradient: ['#FAC114', '#C57B0D'] as const,
+} as const;
+
+const sharedTextColors = {
+  inverse: '#FFFFFF',
+  inverseMuted: 'rgba(255, 255, 255, 0.85)',
+  inverseSubtle: 'rgba(255, 255, 255, 0.8)',
+  onBrand: '#030711',
+  onBrandMuted: 'rgba(42, 36, 16, 0.75)',
+} as const;
+
+const sharedOverlayColors = {
+  scrim: 'rgba(0, 0, 0, 0.45)',
+  scrimSoft: 'rgba(0, 0, 0, 0.4)',
+} as const;
+
+const sharedBorderColors = {
+  focus: '#FAC114',
+  error: '#DC2828',
+} as const;
+
+type ThemeConfig = Readonly<{
+  bg: {
+    canvas: string;
+    surface: string;
+    elevated: string;
+    muted: string;
+  };
+  accent: {
+    admin: string;
+    adminDim: string;
+    adminBg: string;
+    filho: string;
+    filhoDim: string;
+    filhoBg: string;
+  };
+  text: {
+    primary: string;
+    secondary: string;
+    muted: string;
+  };
+  semantic: {
+    success: string;
+    successBg: string;
+    error: string;
+    errorBg: string;
+    warning: string;
+    warningBg: string;
+    info: string;
+    infoBg: string;
+    successText: string;
+    errorText: string;
+    warningText: string;
+    infoText: string;
+  };
+  border: {
+    subtle: string;
+    default: string;
+  };
+  shadow: {
+    low: string;
+    medium: string;
+    high: string;
+    brand: string;
+  };
+  statusBar: 'dark' | 'light';
+}>;
+
+function createThemeColors(config: ThemeConfig) {
+  return {
+    bg: config.bg,
+    brand: brandColors,
+    accent: config.accent,
+    text: {
+      ...config.text,
+      ...sharedTextColors,
+    },
+    semantic: config.semantic,
+    border: {
+      ...config.border,
+      ...sharedBorderColors,
+    },
+    overlay: sharedOverlayColors,
+    shadow: config.shadow,
+    statusBar: config.statusBar,
+  } as const;
+}
+
+export const lightColors = createThemeColors({
   bg: {
     canvas: '#F9FAFB',
     surface: '#FFFFFF',
     elevated: '#EDF0F3',
     muted: '#EAEDF0',
-  },
-  brand: {
-    vivid: '#FAC114',
-    dim: '#C57B0D',
-    subtle: 'rgba(250, 193, 20, 0.10)',
-    gradient: ['#FAC114', '#C57B0D'] as const,
   },
   accent: {
     admin: '#1B284B',
@@ -23,11 +109,6 @@ export const lightColors = {
     primary: '#030711',
     secondary: '#65758B',
     muted: '#65758B',
-    inverse: '#FFFFFF',
-    inverseMuted: 'rgba(255, 255, 255, 0.85)',
-    inverseSubtle: 'rgba(255, 255, 255, 0.8)',
-    onBrand: '#030711',
-    onBrandMuted: 'rgba(42, 36, 16, 0.75)',
   },
   semantic: {
     success: '#20C55D',
@@ -46,12 +127,6 @@ export const lightColors = {
   border: {
     subtle: '#E0E5EB',
     default: '#E0E5EB',
-    focus: '#FAC114',
-    error: '#DC2828',
-  },
-  overlay: {
-    scrim: 'rgba(0, 0, 0, 0.45)',
-    scrimSoft: 'rgba(0, 0, 0, 0.4)',
   },
   shadow: {
     low: '0 1px 2px rgba(3, 7, 17, 0.04)',
@@ -59,21 +134,15 @@ export const lightColors = {
     high: '0 8px 24px rgba(3, 7, 17, 0.12)',
     brand: '0 4px 16px rgba(250, 193, 20, 0.30)',
   },
-  statusBar: 'dark' as const,
-} as const;
+  statusBar: 'dark',
+});
 
-export const darkColors = {
+export const darkColors = createThemeColors({
   bg: {
     canvas: '#131720',
     surface: '#1D212B',
     elevated: '#2A303C',
     muted: '#262B36',
-  },
-  brand: {
-    vivid: '#FAC114',
-    dim: '#C57B0D',
-    subtle: 'rgba(250, 193, 20, 0.10)',
-    gradient: ['#FAC114', '#C57B0D'] as const,
   },
   accent: {
     admin: '#DBE6F0',
@@ -87,11 +156,6 @@ export const darkColors = {
     primary: '#F1F5F9',
     secondary: '#7B899D',
     muted: '#7B899D',
-    inverse: '#FFFFFF',
-    inverseMuted: 'rgba(255, 255, 255, 0.85)',
-    inverseSubtle: 'rgba(255, 255, 255, 0.8)',
-    onBrand: '#030711',
-    onBrandMuted: 'rgba(42, 36, 16, 0.75)',
   },
   semantic: {
     success: '#20C55D',
@@ -110,12 +174,6 @@ export const darkColors = {
   border: {
     subtle: '#303541',
     default: '#303541',
-    focus: '#FAC114',
-    error: '#DC2828',
-  },
-  overlay: {
-    scrim: 'rgba(0, 0, 0, 0.45)',
-    scrimSoft: 'rgba(0, 0, 0, 0.4)',
   },
   shadow: {
     low: '0 1px 2px rgba(0, 0, 0, 0.20)',
@@ -123,7 +181,7 @@ export const darkColors = {
     high: '0 8px 24px rgba(0, 0, 0, 0.40)',
     brand: '0 4px 16px rgba(250, 193, 20, 0.20)',
   },
-  statusBar: 'light' as const,
-} as const;
+  statusBar: 'light',
+});
 
 export type ThemeColors = typeof lightColors;
