@@ -1,5 +1,5 @@
 import { toDateString } from './utils';
-import { readImageAsArrayBuffer, inferImageExtension, inferImageContentType, extractErrorMessage } from './image-utils';
+import { readImageAsArrayBuffer, inferImageExtension, inferImageContentType, extractErrorMessage, resizeImage } from './image-utils';
 import { supabase } from './supabase';
 
 export type Child = {
@@ -259,8 +259,9 @@ async function uploadEvidence(
       return { url: null, error: childError?.message ?? 'Filho não encontrado' };
     }
 
-    const extension = inferImageExtension(imageUri);
-    const buffer = await readImageAsArrayBuffer(imageUri);
+    const resizedUri = await resizeImage(imageUri);
+    const extension = inferImageExtension(resizedUri);
+    const buffer = await readImageAsArrayBuffer(resizedUri);
     const fileName = `evidencia_${createEvidenceSuffix()}.${extension}`;
     const filePath = `${profile.familia_id}/${child.id}/${fileName}`;
 
