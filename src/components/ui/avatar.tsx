@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, Text } from 'react-native';
+import React, { useState } from 'react';
+import { Image, StyleSheet, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { gradients, typography } from '@/constants/theme';
 
@@ -12,11 +12,27 @@ interface AvatarProps {
    * When set, the gold gradient is replaced by this solid background.
    */
   solidColor?: string;
+  /** When provided, renders an image instead of initials */
+  imageUri?: string | null;
 }
 
 type ReadonlyAvatarProps = Readonly<AvatarProps>;
 
-export function Avatar({ name, size = 44, solidColor }: ReadonlyAvatarProps) {
+export function Avatar({ name, size = 44, solidColor, imageUri }: ReadonlyAvatarProps) {
+  const borderRadius = size / 2;
+  const [imgError, setImgError] = useState(false);
+
+  if (imageUri && !imgError) {
+    return (
+      <Image
+        source={{ uri: imageUri }}
+        style={[styles.base, styles.image, { width: size, height: size, borderRadius }]}
+        accessibilityLabel={name}
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+
   const initials = name
     .trim()
     .split(' ')
@@ -26,7 +42,6 @@ export function Avatar({ name, size = 44, solidColor }: ReadonlyAvatarProps) {
     .join('') || '?';
 
   const fontSize = Math.round(size * 0.4);
-  const borderRadius = size / 2;
 
   if (solidColor) {
     // Solid color fallback (e.g. per-role accent)
@@ -56,6 +71,9 @@ const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  image: {
+    resizeMode: 'cover',
   },
   initial: {
     color: '#2a2410',  // onBrand — dark amber text on gold gradient

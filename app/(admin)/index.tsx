@@ -12,7 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { signOut, getProfile, type UserProfile } from '@lib/auth';
+import { getProfile, type UserProfile } from '@lib/auth';
 import { supabase } from '@lib/supabase';
 import { listAdminTasks } from '@lib/tasks';
 import { listAdminBalances, type BalanceWithChild } from '@lib/balances';
@@ -35,11 +35,11 @@ export default function AdminHomeScreen() {
   const styles = useMemo(() => makeStyles(), []);
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [family, setFamily] = useState<Family | null>(null);
   const [children, setChildren] = useState<Child[]>([]);
   const [balancesMap, setBalancesMap] = useState<Map<string, BalanceWithChild>>(new Map());
   const [loading, setLoading] = useState(true);
-  const [loggingOut, setLoggingOut] = useState(false);
   const [pendingValidationCount, setPendingValidationCount] = useState(0);
   const [pendingRedemptionCount, setPendingRedemptionCount] = useState(0);
 
@@ -60,6 +60,7 @@ export default function AdminHomeScreen() {
     try {
       const p = await getProfile();
       setProfile(p);
+      setAvatarUri(p?.avatarUrl ?? null);
       if (p?.familia_id) {
         const { data: fam } = await supabase.from('familias').select('nome').eq('id', p.familia_id).single();
         setFamily(fam);
@@ -88,8 +89,6 @@ export default function AdminHomeScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
-
-  async function handleSignOut() { setLoggingOut(true); await signOut(); }
 
   if (loading) {
     return (
@@ -122,13 +121,16 @@ export default function AdminHomeScreen() {
           ) : null}
         </View>
         <Pressable
-          onPress={handleSignOut}
-          disabled={loggingOut}
+          onPress={() => router.push('/(admin)/perfil')}
           accessibilityRole="button"
-          accessibilityLabel={loggingOut ? 'Saindo' : 'Sair'}
-          style={{ opacity: loggingOut ? 0.5 : 1 }}
+          accessibilityLabel="Abrir perfil"
         >
-          <Avatar name={profile?.nome ?? 'A'} size={52} />
+          <View style={styles.avatarWrapper}>
+            <Avatar name={profile?.nome ?? 'A'} size={52} imageUri={avatarUri} />
+            <View style={[styles.editBadge, { backgroundColor: colors.accent.admin }]}>
+              <Text style={styles.editBadgeIcon}>✏️</Text>
+            </View>
+          </View>
         </Pressable>
       </Animated.View>
 
@@ -264,6 +266,14 @@ function makeStyles() {
 
     hero:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing['5'] },
     heroText:      { flex: 1, paddingRight: spacing['4'] },
+
+    avatarWrapper: { position: 'relative' },
+    editBadge:     {
+      position: 'absolute', bottom: 0, right: 0,
+      width: 20, height: 20, borderRadius: radii.full,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    editBadgeIcon: { fontSize: 10 },
     heroSub:       { fontFamily: typography.family.bold, fontSize: typography.size.sm },
     heroTitle:     { fontFamily: typography.family.black, fontSize: typography.size['2xl'], marginTop: spacing['1'] },
     heroFamily:    { fontFamily: typography.family.semibold, fontSize: typography.size.sm, marginTop: spacing['1'] },
