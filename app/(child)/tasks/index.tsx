@@ -50,8 +50,10 @@ export default function ChildTasksScreen() {
     setLoading(true);
     setError(null);
     try {
-      await renewDailyTasks();
-      const { data, error } = await listChildAssignments();
+      const [, { data, error }] = await Promise.all([
+        renewDailyTasks(),
+        listChildAssignments(),
+      ]);
       if (error) setError(error);
       else setAssignments(data);
     } catch {
@@ -119,7 +121,7 @@ export default function ChildTasksScreen() {
                   <Text style={styles.pointsText}>{item.tarefas.pontos} pts</Text>
                 </View>
               </View>
-              <Text style={styles.cardDeadline}>Prazo: {item.tarefas.timebox_fim}</Text>
+              <Text style={styles.cardDeadline}>{item.tarefas.frequencia === 'diaria' ? '🔁 Diária' : '1️⃣ Única'}</Text>
               <View style={[styles.statusTag, { backgroundColor: getStatusColor(item.status) + '20' }]}>
                 <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
                   {getStatusLabel(item.status)}

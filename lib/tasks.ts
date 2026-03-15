@@ -168,7 +168,9 @@ export async function listChildAssignments(): Promise<{
   data: ChildAssignment[];
   error: string | null;
 }> {
-  const today = new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD'
+  // sv-SE locale produces 'YYYY-MM-DD' in the device's local timezone,
+  // matching CURRENT_DATE on Postgres when the server timezone aligns.
+  const today = new Date().toLocaleDateString('sv-SE');
 
   // Mostrar:
   //  • Tarefas únicas: sempre (competencia IS NULL)
