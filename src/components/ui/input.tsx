@@ -57,6 +57,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: typography.size.xs,
-    marginTop: 4,
+    marginTop: spacing['1'],
   },
 });

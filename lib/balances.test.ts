@@ -15,7 +15,6 @@ import {
   configureAppreciation,
   getAppreciationPeriodLabel,
   getBalance,
-  getTransactionTypeEmoji,
   getTransactionTypeLabel,
   isCredit,
   listAdminBalances,
@@ -39,9 +38,8 @@ describe('balances', () => {
     supabaseMock.rpc.mockReset();
   });
 
-  it('returns labels, emojis and credit flags for transaction types', () => {
+  it('returns labels and credit flags for transaction types', () => {
     expect(getTransactionTypeLabel('credito')).toBe('Tarefa aprovada');
-    expect(getTransactionTypeEmoji('penalizacao')).toBe('⚠️');
     expect(isCredit('credito')).toBe(true);
     expect(isCredit('debito')).toBe(false);
   });

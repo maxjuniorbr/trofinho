@@ -72,7 +72,7 @@ export function Button({
 
   function bg() {
     switch (variant) {
-      case 'primary':   return colors.brand.vivid; // fallback — LinearGradient covers this
+      case 'primary':   return colors.brand.vivid;
       case 'secondary': return colors.bg.elevated;
       case 'ghost':     return 'transparent';
       case 'danger':    return colors.semantic.errorBg;
@@ -123,7 +123,6 @@ export function Button({
             borderColor: borderColor(),
             borderWidth: variant === 'secondary' || variant === 'outline' ? 1 : 0,
             opacity,
-            // Primary: slight Y-translate on press to activate 3D effect
             transform: isPrimary && pressed ? [{ translateY: 2 }] : [],
           },
         ];

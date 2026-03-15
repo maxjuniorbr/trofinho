@@ -44,17 +44,6 @@ export function getTransactionTypeLabel(type: TransactionType): string {
   return map[type] ?? type;
 }
 
-export function getTransactionTypeEmoji(type: TransactionType): string {
-  const map: Record<TransactionType, string> = {
-    credito:                '✅',
-    debito:                 '🔻',
-    transferencia_cofrinho: '🐷',
-    valorizacao:            '📈',
-    penalizacao:            '⚠️',
-  };
-  return map[type] ?? '•';
-}
-
 export function isCredit(type: TransactionType): boolean {
   return type === 'credito' || type === 'valorizacao';
 }

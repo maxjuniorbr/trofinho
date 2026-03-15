@@ -11,10 +11,9 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Trophy } from 'lucide-react-native';
 import {
   listChildRedemptions,
-  getRedemptionStatusLabel,
-  getRedemptionStatusColor,
   type RedemptionWithPrize,
 } from '@lib/prizes';
+import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@/constants/status';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';

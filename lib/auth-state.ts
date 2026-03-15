@@ -48,8 +48,8 @@ export function createAuthStateHandler({
     const currentRequestId = ++requestId;
     clearPendingTimeout();
 
-    // Supabase runs auth listeners under an internal lock, so follow-up auth
-    // reads must be scheduled after the callback returns.
+    // O Supabase executa o listener de auth com lock interno.
+    // A leitura seguinte precisa acontecer depois que o callback termina.
     timeoutId = setTimeout(() => {
       timeoutId = null;
 
