@@ -11,7 +11,7 @@ import {
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 
-const mascotImage = require('../../../assets/trofinho-mascot.png') as number;
+const mascotImage = loadMascotImage();
 
 type AuthShellVariant = 'hero' | 'compact';
 
@@ -128,6 +128,14 @@ export function AuthShell({
       </ScrollView>
     </KeyboardAvoidingView>
   );
+}
+
+function loadMascotImage(): number {
+  try {
+    return require('../../../assets/trofinho-mascot.png') as number;
+  } catch {
+    return 0;
+  }
 }
 
 function makeStyles(variant: AuthShellVariant) {
