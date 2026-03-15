@@ -8,10 +8,10 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { Trophy } from 'lucide-react-native';
 import {
   listChildRedemptions,
   getRedemptionStatusLabel,
-  getRedemptionStatusEmoji,
   getRedemptionStatusColor,
   type RedemptionWithPrize,
 } from '@lib/prizes';
@@ -77,12 +77,15 @@ export default function ChildRedemptionsScreen() {
                 <Text style={styles.cardName}>{item.premios.nome}</Text>
                 <View style={[styles.statusBadge, { backgroundColor: getRedemptionStatusColor(item.status) + '22' }]}>
                   <Text style={[styles.statusText, { color: getRedemptionStatusColor(item.status) }]}>
-                    {getRedemptionStatusEmoji(item.status)} {getRedemptionStatusLabel(item.status)}
+                    {getRedemptionStatusLabel(item.status)}
                   </Text>
                 </View>
               </View>
               <View style={styles.cardFooter}>
-                <Text style={styles.cardPoints}>🏆 {item.pontos_debitados} pts</Text>
+                <View style={styles.cardPointsRow}>
+                  <Trophy size={12} color={colors.accent.filho} strokeWidth={2} />
+                  <Text style={styles.cardPoints}>{item.pontos_debitados} pts</Text>
+                </View>
                 <Text style={styles.cardDate}>{formatDate(new Date(item.created_at))}</Text>
               </View>
             </View>
@@ -110,6 +113,7 @@ function makeStyles(colors: ThemeColors) {
     statusBadge: { borderRadius: radii.md, borderCurve: 'continuous', paddingHorizontal: spacing['2'], paddingVertical: spacing['1'] },
     statusText: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
     cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    cardPointsRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     cardPoints: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.accent.filho },
     cardDate: { fontSize: typography.size.xs, color: colors.text.muted },
   });

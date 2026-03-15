@@ -1,5 +1,6 @@
 import React, { type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/theme-context';
@@ -54,7 +55,7 @@ export function ScreenHeader({
           accessibilityRole="button"
           accessibilityLabel={`Voltar para ${displayLabel}`}
         >
-          <Text style={[styles.backArrow, { color: colors.text.inverse }]}>‹</Text>
+          <ChevronLeft size={20} color={colors.text.inverse} strokeWidth={2.5} />
         </Pressable>
       ) : (
         <View style={styles.side} />
@@ -81,13 +82,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   side: {
-    minWidth: 36,
+    minWidth: 44,
   },
   backBtn: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: radii.md,
   },
   title: {
@@ -95,11 +96,5 @@ const styles = StyleSheet.create({
     fontFamily: typography.family.bold,
     flex: 1,
     textAlign: 'center',
-  },
-  backArrow: {
-    fontSize: 22,
-    fontFamily: typography.family.black,
-    textAlign: 'center',
-    includeFontPadding: false,
   },
 });

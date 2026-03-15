@@ -13,23 +13,40 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import {
+  Wallet,
+  TrendingUp,
+  CheckCircle2,
+  ArrowDownCircle,
+  AlertTriangle,
+} from 'lucide-react-native';
+import {
   getBalance,
   listTransactions,
   applyPenalty,
   configureAppreciation,
   applyAppreciation,
-  getTransactionTypeEmoji,
   getTransactionTypeLabel,
   getAppreciationPeriodLabel,
   isCredit,
   type Balance,
   type Transaction,
+  type TransactionType,
   type AppreciationPeriod,
 } from '@lib/balances';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
+
+import type { LucideIcon } from 'lucide-react-native';
+
+const TRANSACTION_ICONS: Record<TransactionType, LucideIcon> = {
+  credito:                CheckCircle2,
+  debito:                 ArrowDownCircle,
+  transferencia_cofrinho: Wallet,
+  valorizacao:            TrendingUp,
+  penalizacao:            AlertTriangle,
+};
 
 type ModalType = 'penalizar' | 'valorizacao_config' | null;
 
@@ -159,19 +176,28 @@ export default function ChildBalanceAdminScreen() {
           <>
             <View style={styles.cardsRow}>
               <View style={[styles.saldoCard, { backgroundColor: colors.accent.admin }]}>
-                <Text style={styles.saldoLabel}>💰 Saldo livre</Text>
+                <View style={styles.saldoLabelRow}>
+                  <Wallet size={14} color="rgba(255,255,255,0.85)" strokeWidth={2} />
+                  <Text style={styles.saldoLabel}>Saldo livre</Text>
+                </View>
                 <Text style={styles.saldoValor}>{saldoLivre}</Text>
                 <Text style={styles.saldoPts}>pontos</Text>
               </View>
               <View style={[styles.saldoCard, { backgroundColor: colors.semantic.warning }]}>
-                <Text style={styles.saldoLabel}>🐷 Cofrinho</Text>
+                <View style={styles.saldoLabelRow}>
+                  <Wallet size={14} color="rgba(255,255,255,0.85)" strokeWidth={2} />
+                  <Text style={styles.saldoLabel}>Cofrinho</Text>
+                </View>
                 <Text style={styles.saldoValor}>{cofrinho}</Text>
                 <Text style={styles.saldoPts}>pontos</Text>
               </View>
             </View>
 
             <View style={styles.boxConfig}>
-              <Text style={styles.boxConfigTitulo}>📈 Valorização do cofrinho</Text>
+              <View style={styles.boxConfigTituloRow}>
+                <TrendingUp size={16} color={colors.text.primary} strokeWidth={2} />
+                <Text style={styles.boxConfigTitulo}>Valorização do cofrinho</Text>
+              </View>
               {hasAppreciationConfigured ? (
                 <Text style={styles.boxConfigTexto}>
                   {balance!.indice_valorizacao}% ao {periodoAtual}{ultimaValorizacaoTexto}
@@ -199,7 +225,10 @@ export default function ChildBalanceAdminScreen() {
             </View>
 
             <Pressable style={styles.btnPenalizar} onPress={() => openModal('penalizar')}>
-              <Text style={styles.btnPenalizarTexto}>⚠️ Aplicar penalização</Text>
+              <View style={styles.btnPenalizarInner}>
+                <AlertTriangle size={14} color={colors.semantic.error} strokeWidth={2} />
+                <Text style={styles.btnPenalizarTexto}>Aplicar penalização</Text>
+              </View>
             </Pressable>
 
             <Text style={styles.secaoTitulo}>Histórico</Text>
@@ -210,7 +239,11 @@ export default function ChildBalanceAdminScreen() {
         }
         renderItem={({ item }) => (
           <View style={styles.movItem}>
-            <Text style={styles.movEmoji}>{getTransactionTypeEmoji(item.tipo)}</Text>
+            {(() => { const Icon = TRANSACTION_ICONS[item.tipo]; return (
+            <View style={[styles.movIconBox, { backgroundColor: isCredit(item.tipo) ? colors.semantic.successBg : colors.semantic.errorBg }]}>
+              <Icon size={16} color={isCredit(item.tipo) ? colors.semantic.successText : colors.semantic.errorText} strokeWidth={2} />
+            </View>
+            ); })()}
             <View style={styles.movInfo}>
               <Text style={styles.movLabel}>{getTransactionTypeLabel(item.tipo)}</Text>
               <Text style={styles.movDesc} numberOfLines={1}>{item.descricao}</Text>
@@ -233,7 +266,7 @@ export default function ChildBalanceAdminScreen() {
           behavior="padding"
         >
           <View style={styles.modalBox}>
-            <Text style={styles.modalTitulo}>⚠️ Penalização — {nome}</Text>
+            <Text style={styles.modalTitulo}>Penalização — {nome}</Text>
             <Text style={styles.label}>Valor (pontos) *</Text>
             <TextInput
               style={styles.input}
@@ -279,7 +312,7 @@ export default function ChildBalanceAdminScreen() {
           behavior="padding"
         >
           <View style={styles.modalBox}>
-            <Text style={styles.modalTitulo}>📈 Configurar valorização</Text>
+            <Text style={styles.modalTitulo}>Configurar valorização</Text>
             <Text style={styles.label}>Índice (%) *</Text>
             <TextInput
               style={styles.input}
@@ -339,7 +372,8 @@ function makeStyles(colors: ThemeColors) {
       alignItems: 'center',
       ...shadows.card,
     },
-    saldoLabel: { color: 'rgba(255,255,255,0.85)', fontSize: typography.size.xs, fontFamily: typography.family.semibold, marginBottom: spacing['1'] },
+    saldoLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: spacing['1'] },
+    saldoLabel: { color: 'rgba(255,255,255,0.85)', fontSize: typography.size.xs, fontFamily: typography.family.semibold },
     saldoValor: { color: '#fff', fontSize: typography.size['4xl'], fontFamily: typography.family.extrabold },
     saldoPts: { color: 'rgba(255,255,255,0.8)', fontSize: typography.size.xs, marginTop: spacing['1'] },
     boxConfig: {
@@ -349,7 +383,8 @@ function makeStyles(colors: ThemeColors) {
       marginBottom: spacing['3'],
       ...shadows.card,
     },
-    boxConfigTitulo: { fontSize: typography.size.md, fontFamily: typography.family.bold, color: colors.text.primary, marginBottom: spacing['1'] },
+    boxConfigTituloRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing['1'] },
+    boxConfigTitulo: { fontSize: typography.size.md, fontFamily: typography.family.bold, color: colors.text.primary },
     boxConfigTexto: { fontSize: typography.size.sm, color: colors.text.secondary, marginBottom: spacing['3'] },
     acoesBtns: { flexDirection: 'row', gap: spacing['2'] },
     btnAcao: {
@@ -371,6 +406,7 @@ function makeStyles(colors: ThemeColors) {
       minHeight: 44,
       justifyContent: 'center',
     },
+    btnPenalizarInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     btnPenalizarTexto: { color: colors.semantic.error, fontFamily: typography.family.bold, fontSize: typography.size.sm },
     secaoTitulo: { fontSize: typography.size.md, fontFamily: typography.family.bold, color: colors.text.primary, marginBottom: spacing['3'] },
     vazio: { color: colors.text.muted, fontSize: typography.size.sm, textAlign: 'center', marginTop: spacing['2'] },
@@ -382,7 +418,7 @@ function makeStyles(colors: ThemeColors) {
       padding: spacing['3'],
       marginBottom: spacing['2'],
     },
-    movEmoji: { fontSize: 22, marginRight: spacing['3'] },
+    movIconBox: { width: 36, height: 36, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center', marginRight: spacing['3'] },
     movInfo: { flex: 1 },
     movLabel: { fontSize: typography.size.sm, fontFamily: typography.family.semibold, color: colors.text.primary },
     movDesc: { fontSize: typography.size.xs, color: colors.text.secondary, marginTop: spacing['1'] },

@@ -11,11 +11,17 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
+  Clock,
+  Trophy,
+  User,
+  CheckCircle2,
+  XCircle,
+} from 'lucide-react-native';
+import {
   listRedemptions,
   confirmRedemption,
   cancelRedemption,
   getRedemptionStatusLabel,
-  getRedemptionStatusEmoji,
   getRedemptionStatusColor,
   type RedemptionWithChildAndPrize,
 } from '@lib/prizes';
@@ -130,7 +136,10 @@ export default function AdminRedemptionsScreen() {
               {hasActionError ? <Text style={styles.erroAcao}>{actionError}</Text> : null}
               {pending.length > 0 && (
                 <View style={styles.secaoHeader}>
-                  <Text style={styles.secaoTitulo}>⏳ Pendentes ({pending.length})</Text>
+                  <View style={styles.secaoTituloRow}>
+                    <Clock size={14} color={colors.text.muted} strokeWidth={2} />
+                    <Text style={styles.secaoTitulo}>Pendentes ({pending.length})</Text>
+                  </View>
                 </View>
               )}
             </>
@@ -152,19 +161,25 @@ export default function AdminRedemptionsScreen() {
                   <View style={styles.cardTopo}>
                     <View style={{ flex: 1, gap: spacing['1'] }}>
                     <Text style={[styles.premioNome, { color: colors.text.primary }]}>{item.premios.nome}</Text>
-                      <Text style={styles.cardFilho}>👤 {item.filhos.nome}</Text>
+                      <View style={styles.cardFilhoRow}>
+                        <User size={12} color={colors.text.secondary} strokeWidth={2} />
+                        <Text style={styles.cardFilho}>{item.filhos.nome}</Text>
+                      </View>
                     </View>
                     <View>
                       <View style={[styles.statusBadge, { backgroundColor: getRedemptionStatusColor(item.status) + '22' }]}>
                         <Text style={[styles.statusTexto, { color: getRedemptionStatusColor(item.status) }]}>
-                          {getRedemptionStatusEmoji(item.status)} {getRedemptionStatusLabel(item.status)}
+                          {getRedemptionStatusLabel(item.status)}
                         </Text>
                       </View>
                       <Text style={styles.cardData}>{formatDate(new Date(item.created_at))}</Text>
                     </View>
                   </View>
 
-                  <Text style={styles.cardPontos}>🏆 {item.pontos_debitados} pts</Text>
+                  <View style={styles.cardPontosRow}>
+                    <Trophy size={12} color={colors.accent.admin} strokeWidth={2} />
+                    <Text style={styles.cardPontos}>{item.pontos_debitados} pts</Text>
+                  </View>
 
                   {isPending ? (
                     <View style={styles.acoesRow}>
@@ -173,14 +188,24 @@ export default function AdminRedemptionsScreen() {
                         onPress={() => handleConfirm(item.id, item.filhos.nome, item.premios.nome)}
                         disabled={isProcessing}
                       >
-                        <Text style={styles.botaoConfirmarTexto}>{isProcessing ? '…' : '✓ Confirmar'}</Text>
+                        {isProcessing ? <Text style={styles.botaoConfirmarTexto}>…</Text> : (
+                          <View style={styles.botaoInner}>
+                            <CheckCircle2 size={14} color="#fff" strokeWidth={2} />
+                            <Text style={styles.botaoConfirmarTexto}>Confirmar</Text>
+                          </View>
+                        )}
                       </Pressable>
                       <Pressable
                         style={({ pressed }) => [styles.botaoCancelar, isProcessing && styles.botaoDesabilitado, pressed && !isProcessing && { opacity: 0.85 }]}
                         onPress={() => handleCancel(item.id, item.filhos.nome, item.premios.nome, item.pontos_debitados)}
                         disabled={isProcessing}
                       >
-                        <Text style={styles.botaoCancelarTexto}>{isProcessing ? '…' : '✕ Cancelar'}</Text>
+                        {isProcessing ? <Text style={styles.botaoCancelarTexto}>…</Text> : (
+                          <View style={styles.botaoInner}>
+                            <XCircle size={14} color={colors.semantic.error} strokeWidth={2} />
+                            <Text style={styles.botaoCancelarTexto}>Cancelar</Text>
+                          </View>
+                        )}
                       </Pressable>
                     </View>
                   ) : null}
@@ -234,6 +259,7 @@ function makeStyles(colors: ThemeColors) {
     lista: { padding: spacing['4'], gap: spacing['2'], paddingBottom: spacing['10'] },
     erroAcao: { color: colors.semantic.error, fontSize: typography.size.sm, fontFamily: typography.family.medium, marginBottom: spacing['2'], textAlign: 'center' },
     secaoHeader: { paddingVertical: spacing['2'] },
+    secaoTituloRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     secaoTitulo: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.text.muted, textTransform: 'uppercase', letterSpacing: 0.5 },
     card: {
       backgroundColor: colors.bg.surface,
@@ -246,17 +272,20 @@ function makeStyles(colors: ThemeColors) {
     cardPendente: { borderLeftWidth: 3, borderLeftColor: colors.semantic.warning },
     cardTopo: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing['2'] },
     premioNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
+    cardFilhoRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     cardFilho: { fontSize: typography.size.xs, color: colors.text.secondary },
     alertaIcone: { fontSize: 24, marginBottom: spacing['2'] },
     statusBadge: { borderRadius: radii.md, borderCurve: 'continuous', paddingHorizontal: spacing['2'], paddingVertical: spacing['1'], alignSelf: 'flex-end' },
     statusTexto: { fontSize: typography.size.xs, fontFamily: typography.family.bold },
     cardData: { fontSize: typography.size.xs, color: colors.text.muted, textAlign: 'right', marginTop: spacing['1'] },
+    cardPontosRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     cardPontos: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.accent.admin },
     dataSolicitacao: { fontSize: typography.size.xs, color: colors.text.muted },
     acoesRow: { flexDirection: 'row', gap: spacing['2'], marginTop: spacing['1'] },
-    botaoConfirmar: { flex: 1, backgroundColor: colors.semantic.success, borderRadius: radii.lg, borderCurve: 'continuous', paddingVertical: spacing['2'], alignItems: 'center', minHeight: 44 },
+    botaoInner: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    botaoConfirmar: { flex: 1, backgroundColor: colors.semantic.success, borderRadius: radii.lg, borderCurve: 'continuous', paddingVertical: spacing['2'], alignItems: 'center', justifyContent: 'center', minHeight: 44 },
     botaoConfirmarTexto: { color: '#fff', fontFamily: typography.family.bold, fontSize: typography.size.sm },
-    botaoCancelar: { flex: 1, borderRadius: radii.lg, borderCurve: 'continuous', borderWidth: 1.5, borderColor: colors.semantic.error, paddingVertical: spacing['2'], alignItems: 'center', minHeight: 44 },
+    botaoCancelar: { flex: 1, borderRadius: radii.lg, borderCurve: 'continuous', borderWidth: 1.5, borderColor: colors.semantic.error, paddingVertical: spacing['2'], alignItems: 'center', justifyContent: 'center', minHeight: 44 },
     botaoCancelarTexto: { color: colors.semantic.error, fontFamily: typography.family.bold, fontSize: typography.size.sm },
     botaoDesabilitado: { opacity: 0.5 },
     modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)', padding: spacing['6'] },

@@ -6,36 +6,90 @@ process.env.EXPO_PUBLIC_SUPABASE_URL ??= 'https://example.supabase.co';
 process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??= 'example-anon-key';
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
+type Props = Record<string, unknown> & { children?: React.ReactNode };
+
+function createIcon(name: string) {
+  return React.forwardRef((props: Record<string, unknown>, ref: React.ForwardedRef<unknown>) =>
+    React.createElement(name, { ...props, ref }));
+}
+
+function createHostComponent(name: string) {
+  return React.forwardRef(function HostComponent(
+    props: Props,
+    ref: React.ForwardedRef<unknown>
+  ) {
+    return React.createElement(name, { ...props, ref }, props.children);
+  });
+}
+
+function flattenStyle(style: unknown): Record<string, unknown> {
+  if (Array.isArray(style)) {
+    return style.reduce<Record<string, unknown>>((acc, item) => ({
+      ...acc,
+      ...flattenStyle(item),
+    }), {});
+  }
+
+  if (style && typeof style === 'object') {
+    return style as Record<string, unknown>;
+  }
+
+  return {};
+}
+
+vi.mock('@/constants/assets', () => ({
+  mascotImage: 'mascot-mock',
+  celebratingImage: 'celebrating-mock',
+  emptyImage: 'empty-mock',
+}));
+
+vi.mock('react-native-svg', () => {
+  const Svg = createHostComponent('Svg');
+  return {
+    __esModule: true,
+    default: Svg,
+    Svg,
+    Path: createHostComponent('Path'),
+    Circle: createHostComponent('Circle'),
+    Rect: createHostComponent('Rect'),
+    Line: createHostComponent('Line'),
+    Polyline: createHostComponent('Polyline'),
+    G: createHostComponent('G'),
+  };
+});
+
+vi.mock('lucide-react-native', () => ({
+  Clock: createIcon('Clock'),
+  Eye: createIcon('Eye'),
+  CheckCircle2: createIcon('CheckCircle2'),
+  XCircle: createIcon('XCircle'),
+  AlertTriangle: createIcon('AlertTriangle'),
+  ClipboardList: createIcon('ClipboardList'),
+  Users: createIcon('Users'),
+  Wallet: createIcon('Wallet'),
+  Gift: createIcon('Gift'),
+  ShoppingBag: createIcon('ShoppingBag'),
+  Pencil: createIcon('Pencil'),
+  Camera: createIcon('Camera'),
+  LogOut: createIcon('LogOut'),
+  Sun: createIcon('Sun'),
+  Moon: createIcon('Moon'),
+  Smartphone: createIcon('Smartphone'),
+  ChevronLeft: createIcon('ChevronLeft'),
+  ChevronRight: createIcon('ChevronRight'),
+  RefreshCw: createIcon('RefreshCw'),
+  Trophy: createIcon('Trophy'),
+  TrendingUp: createIcon('TrendingUp'),
+  ArrowDownCircle: createIcon('ArrowDownCircle'),
+  User: createIcon('User'),
+}));
+
 vi.mock('expo-linear-gradient', () => ({
-  LinearGradient: ({ children, ...props }: Record<string, unknown> & { children?: React.ReactNode }) =>
-    React.createElement('LinearGradient', props, children as React.ReactNode),
+  LinearGradient: ({ children, ...props }: Props) =>
+    React.createElement('LinearGradient', props, children),
 }));
 
 vi.mock('react-native', () => {
-  function createHostComponent(name: string) {
-    return React.forwardRef(function HostComponent(
-      props: Record<string, unknown> & { children?: React.ReactNode },
-      ref: React.ForwardedRef<unknown>
-    ) {
-      return React.createElement(name, { ...props, ref }, props.children as React.ReactNode);
-    });
-  }
-
-  function flattenStyle(style: unknown): Record<string, unknown> {
-    if (Array.isArray(style)) {
-      return style.reduce<Record<string, unknown>>((acc, item) => ({
-        ...acc,
-        ...flattenStyle(item),
-      }), {});
-    }
-
-    if (style && typeof style === 'object') {
-      return style as Record<string, unknown>;
-    }
-
-    return {};
-  }
-
   class AnimatedValue {
     constructor(private readonly initialValue: number) {}
 

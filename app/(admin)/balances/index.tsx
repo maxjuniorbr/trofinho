@@ -2,6 +2,7 @@ import { StyleSheet, Text, View, Pressable, FlatList, RefreshControl } from 'rea
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { ChevronRight } from 'lucide-react-native';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Avatar } from '@/components/ui/avatar';
@@ -48,13 +49,13 @@ export default function BalancesAdminScreen() {
               <View style={styles.info}>
                 <Text style={[styles.nome, { color: colors.text.primary }]}>{item.filhos.nome}</Text>
                 <Text style={[styles.detalhe, { color: colors.text.secondary }]}>
-                  💰 {item.saldo_livre} livre · 🐷 {item.cofrinho} cofrinho
+                  {item.saldo_livre} livre · {item.cofrinho} cofrinho
                 </Text>
                 {item.indice_valorizacao > 0 && (
-                  <Text style={[styles.detalhe, { color: colors.text.muted }]}>📈 {item.indice_valorizacao}%/{item.periodo_valorizacao}</Text>
+                  <Text style={[styles.detalhe, { color: colors.text.muted }]}>{item.indice_valorizacao}%/{item.periodo_valorizacao}</Text>
                 )}
               </View>
-              <Text style={[styles.seta, { color: colors.text.muted }]}>›</Text>
+              <ChevronRight size={20} color={colors.text.muted} strokeWidth={2} />
             </Pressable>
           )}
         />
@@ -71,6 +72,5 @@ function makeStyles() {
     info: { flex: 1, marginLeft: spacing['3'] },
     nome: { fontSize: typography.size.md, fontFamily: typography.family.bold },
     detalhe: { fontSize: typography.size.sm, marginTop: spacing['1'] },
-    seta: { fontSize: 22 },
   });
 }

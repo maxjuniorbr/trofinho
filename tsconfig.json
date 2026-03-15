@@ -2,6 +2,7 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "strict": true,
+    "types": ["vitest/globals"],
     "baseUrl": ".",
     "paths": {
       "@lib/*": ["lib/*"],
