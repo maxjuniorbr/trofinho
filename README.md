@@ -71,48 +71,6 @@ O projeto segue uma divisão simples e direta:
 - `lib/auth-state.ts` trata mudanças de autenticação sem bloquear o listener do Supabase.
 - Tipos de apresentação baseados em tema ficam em `src/constants/*`, não em `lib/*`.
 
-## Estrutura De Pastas
-
-```text
-app/
-  _layout.tsx
-  index.tsx
-  (auth)/
-  (admin)/
-  (child)/
-lib/
-  auth.ts
-  balances.ts
-  children.ts
-  prizes.ts
-  tasks.ts
-  supabase.ts
-  validation.ts
-src/
-  components/
-    auth/
-    balance/
-    prizes/
-    profile/
-    ui/
-  constants/
-    assets.ts
-    colors.ts
-    radius.ts
-    shadows.ts
-    spacing.ts
-    status.ts
-    theme.ts
-    typography.ts
-  context/
-    theme-context.tsx
-  types/
-supabase/
-  migrations/
-  schema.sql
-  seed.sql
-```
-
 ## Design System
 
 Os tokens ficam em `src/constants/`:
@@ -136,7 +94,7 @@ Regra obrigatória: não criar cor, fonte, espaçamento, radius ou sombra direta
 - Expo Go ou simulador/emulador
 - Docker, se for usar o Supabase local
 
-### Setup
+### Setup do Repositório
 
 ```bash
 git clone <url-do-repositorio>
@@ -145,11 +103,45 @@ npm install
 cp .env.example .env.local
 ```
 
-Preencha `.env.local`:
+### Setup do Backend (Supabase)
+
+O Trofinho depende ativamente de tabelas e funções (RPCs) no Postgres (`supabase/migrations/`). Você pode rodar local com Docker ou na nuvem.
+
+> ⚠️ **IMPORTANTE: Desligue a confirmação de e-mail.** 
+> Para testar o cadastro livremente em ambiente de desenvolvimento (sem configurar SMTP), acesse o painel/Studio do Supabase, vá em **Authentication > Providers > Email** e **desative** a opção "Confirm email". 
+
+#### Opção A: Supabase Local (Recomendado)
+
+Inicia o banco via Docker e aplica o schema automaticamente:
+
+```bash
+npm run db:start
+```
+
+O terminal exibirá uma URL e uma key. Cole-as no seu `.env.local`:
+
+```env
+EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+```
+
+Use `npm run db:studio` para acessar a interface visual de banco no navegador.
+
+#### Opção B: Supabase Remoto (Nuvem)
+
+Se você criou um projeto no site do Supabase, preencha o `.env.local`:
 
 ```env
 EXPO_PUBLIC_SUPABASE_URL=https://SEU_PROJECT_ID.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=SEU_ANON_KEY_AQUI
+```
+
+Em seguida, faça o push do schema local para o seu banco na nuvem:
+
+```bash
+npx supabase login
+npx supabase link --project-ref SEU_PROJECT_REF
+npx supabase db push
 ```
 
 ## Desenvolvimento
@@ -169,15 +161,6 @@ npm run tunnel
 ```bash
 npm run typecheck
 npm test
-```
-
-### Supabase local
-
-```bash
-npm run db:start
-npm run db:status
-npm run db:reset
-npm run db:stop
 ```
 
 ## Build
