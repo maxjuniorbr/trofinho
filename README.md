@@ -165,12 +165,19 @@ npm test
 
 ## Build
 
-O repositório não versiona `eas.json` neste momento.
+**Desenvolvimento** — use o Expo Go para iteração rápida no dia a dia:
 
-- Bundle web/local: `npx expo export --platform web`
-- Build nativo: configure o EAS antes de usar `npx eas build --platform android` ou `npx eas build --platform ios`
+```bash
+npm start
+```
 
-Se a equipe decidir formalizar pipeline de build, o próximo passo recomendado é versionar `eas.json` e documentar perfis de ambiente.
+**Distribuição interna (Android)** — gera um APK via EAS e disponibiliza um link/QR code para instalação direta, sem passar pela Play Store:
+
+```bash
+npm run build
+```
+
+Usa o perfil `preview` do `eas.json` (`distribution: internal`). Ideal para testes com usuários externos antes de uma release oficial.
 
 ## Convenções De Código
 
