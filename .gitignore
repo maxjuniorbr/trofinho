@@ -36,7 +36,12 @@ yarn-error.*
 .claude/
 .vscode/
 .idea/
+.codex/
 *.code-workspace
+
+# Local agent instructions
+.github/copilot-instructions.md
+.github/instructions/
 
 # Local Supabase
 supabase/.branches/
