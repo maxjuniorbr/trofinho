@@ -47,3 +47,6 @@ AGENTS.md
 supabase/.branches/
 supabase/.temp/
 *.pem
+
+# Others
+temp/
