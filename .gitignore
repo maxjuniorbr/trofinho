@@ -36,10 +36,10 @@ yarn-error.*
 .claude/
 .vscode/
 .idea/
-.codex/
 *.code-workspace
 
 # Local agent instructions
+AGENTS.md
 .github/copilot-instructions.md
 .github/instructions/
 
