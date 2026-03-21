@@ -16,7 +16,8 @@
     "db:reset": "supabase db reset && docker restart supabase_rest_trofinho",
     "db:status": "supabase status",
     "db:diff": "supabase db diff",
-    "db:studio": "echo 'Acesse http://127.0.0.1:54323'"
+    "db:studio": "echo 'Acesse http://127.0.0.1:54323'",
+    "build": "EAS_BUILD_NO_EXPO_GO_WARNING=true npx eas-cli@latest build --platform android --auto-submit"
   },
   "dependencies": {
     "@expo-google-fonts/nunito": "^0.4.2",
