@@ -18,17 +18,17 @@ import { PasswordCard } from '@/components/profile/password-card';
 import { ThemeCard } from '@/components/profile/theme-card';
 import {
   NotificationCard,
-  normalizeNotificationPreferences,
-  DEFAULT_NOTIFICATION_PREFERENCES,
-  type NotificationPreferences,
 } from '@/components/profile/notification-card';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 import { supabase } from '@lib/supabase';
-import { deviceStorage } from '@lib/device-storage';
 import { getProfile, signOut, type UserProfile } from '@lib/auth';
-
-const NOTIFICATION_PREFERENCES_KEY = 'notification_prefs';
+import {
+  DEFAULT_NOTIFICATION_PREFS,
+  getNotificationPrefs,
+  setNotificationPrefs,
+  type NotificationPrefs,
+} from '@lib/notifications';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -38,9 +38,11 @@ export default function ProfileScreen() {
   const [email, setEmail] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>(
-    DEFAULT_NOTIFICATION_PREFERENCES,
+  const [notificationPreferences, setNotificationPreferencesState] = useState<NotificationPrefs>(
+    DEFAULT_NOTIFICATION_PREFS,
   );
+  const [notificationPreferencesError, setNotificationPreferencesError] = useState<string | null>(null);
+  const [savingNotificationPreferences, setSavingNotificationPreferences] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
   useFocusEffect(
@@ -50,10 +52,10 @@ export default function ProfileScreen() {
       async function load() {
         setLoading(true);
         try {
-          const [p, { data: authData, error: authError }, rawPrefs] = await Promise.all([
+          const [p, { data: authData, error: authError }, notificationPrefs] = await Promise.all([
             getProfile(),
             supabase.auth.getUser(),
-            deviceStorage.getItem(NOTIFICATION_PREFERENCES_KEY),
+            getNotificationPrefs(),
           ]);
 
           if (!active) return;
@@ -68,7 +70,8 @@ export default function ProfileScreen() {
           setAvatarUri(
             (authData.user.user_metadata?.avatar_url as string | undefined) ?? null,
           );
-          setNotificationPreferences(normalizeNotificationPreferences(rawPrefs));
+          setNotificationPreferencesState(notificationPrefs);
+          setNotificationPreferencesError(null);
         } finally {
           if (active) setLoading(false);
         }
@@ -82,6 +85,23 @@ export default function ProfileScreen() {
   async function handleSignOut() {
     setLoggingOut(true);
     try { await signOut(); } catch { setLoggingOut(false); }
+  }
+
+  async function handleNotificationPreferencesChange(next: NotificationPrefs) {
+    const previous = notificationPreferences;
+
+    setNotificationPreferencesState(next);
+    setNotificationPreferencesError(null);
+    setSavingNotificationPreferences(true);
+
+    try {
+      await setNotificationPrefs(next);
+    } catch {
+      setNotificationPreferencesState(previous);
+      setNotificationPreferencesError('Não foi possível salvar as preferências agora.');
+    } finally {
+      setSavingNotificationPreferences(false);
+    }
   }
 
   if (loading) {
@@ -122,7 +142,9 @@ export default function ProfileScreen() {
 
         <NotificationCard
           preferences={notificationPreferences}
-          onPreferencesChange={setNotificationPreferences}
+          saving={savingNotificationPreferences}
+          error={notificationPreferencesError}
+          onPreferencesChange={handleNotificationPreferencesChange}
         />
 
         <Pressable

@@ -27,11 +27,13 @@ import { listChildren } from '@lib/children';
 import type { Child } from '@lib/tasks';
 import { countPendingRedemptions } from '@lib/prizes';
 import { getFamily, type Family } from '@lib/family';
+import { isNotificationPermissionDenied } from '@lib/notifications';
 import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { Avatar } from '@/components/ui/avatar';
 import { PointsDisplay } from '@/components/ui/points-display';
 import { Badge } from '@/components/ui/badge';
+import { NotificationPermissionBanner } from '@/components/ui/notification-permission-banner';
 
 import type { LucideIcon } from 'lucide-react-native';
 
@@ -103,11 +105,16 @@ export default function AdminHomeScreen() {
   const [loading, setLoading] = useState(true);
   const [pendingValidationCount, setPendingValidationCount] = useState(0);
   const [pendingRedemptionCount, setPendingRedemptionCount] = useState(0);
+  const [showNotificationBanner, setShowNotificationBanner] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await loadAdminDashboard();
+      const [data, notificationPermissionDenied] = await Promise.all([
+        loadAdminDashboard(),
+        isNotificationPermissionDenied(),
+      ]);
+
       setProfile(data.profile);
       setAvatarUri(data.profile?.avatarUrl ?? null);
       setFamily(data.family);
@@ -115,12 +122,14 @@ export default function AdminHomeScreen() {
       setBalancesMap(data.balancesMap);
       setPendingValidationCount(data.pendingValidationCount);
       setPendingRedemptionCount(data.pendingRedemptionCount);
+      setShowNotificationBanner(notificationPermissionDenied);
     } catch {
       setFamily(null);
       setChildren([]);
       setBalancesMap(new Map());
       setPendingValidationCount(0);
       setPendingRedemptionCount(0);
+      setShowNotificationBanner(false);
     } finally {
       setLoading(false);
     }
@@ -169,6 +178,8 @@ export default function AdminHomeScreen() {
           </View>
         </Pressable>
       </View>
+
+      {showNotificationBanner ? <NotificationPermissionBanner /> : null}
 
       <View style={styles.statsRow}>
         <View style={[styles.statCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
