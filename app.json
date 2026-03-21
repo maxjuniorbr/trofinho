@@ -13,9 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.maxjuniorbr.trofinho"
     },
     "android": {
+      "package": "com.maxjuniorbr.trofinho",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -32,6 +34,13 @@
       "expo-router",
       "expo-secure-store",
       "@react-native-community/datetimepicker"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "164239ef-e9de-42c0-855d-46f26972177d"
+      }
+    },
+    "owner": "maxjuniorbrs-organization"
   }
 }
