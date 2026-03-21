@@ -91,7 +91,7 @@ Regra obrigatória: não criar cor, fonte, espaçamento, radius ou sombra direta
 
 - Node.js 18+
 - npm
-- Expo Go ou simulador/emulador
+- Expo Go, simulador/emulador, ou development build quando precisar validar notificações push no Android
 - Docker, se for usar o Supabase local
 
 ### Setup do Repositório
@@ -156,6 +156,8 @@ npm run web
 npm run tunnel
 ```
 
+Observação: no Android, o Expo Go continua útil para navegação e validação visual. Para testar registro de token e push remoto com `expo-notifications`, use um development build.
+
 ### Validação
 
 ```bash
@@ -165,10 +167,16 @@ npm test
 
 ## Build
 
-**Desenvolvimento** — use o Expo Go para iteração rápida no dia a dia:
+**Desenvolvimento** — use o Expo Go para iteração rápida no dia a dia quando o foco não for push remoto no Android:
 
 ```bash
 npm start
+```
+
+Para validar push remoto no Android, gere um development build com o perfil `development` do `eas.json`:
+
+```bash
+npx eas-cli@latest build --profile development --platform android
 ```
 
 **Distribuição interna (Android)** — gera um APK via EAS e disponibiliza um link/QR code para instalação direta, sem passar pela Play Store:

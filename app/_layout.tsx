@@ -1,5 +1,5 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts,
@@ -12,6 +12,11 @@ import { useFonts,
 import { supabase } from '@lib/supabase';
 import { getProfile, type UserProfile } from '@lib/auth';
 import { createAuthStateHandler } from '@lib/auth-state';
+import {
+  registerForPushNotifications,
+  savePushToken,
+  subscribeToNotificationNavigation,
+} from '@lib/notifications';
 import { ThemeProvider, useTheme } from '@/context/theme-context';
 
 SplashScreen.preventAutoHideAsync();
@@ -69,6 +74,60 @@ function RootNavigator({
   const router = useRouter();
   const segments = useSegments();
   const { colors } = useTheme();
+  const [pushToken, setPushToken] = useState<string | null>(null);
+  const lastSavedPushTokenKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function registerPush() {
+      try {
+        const token = await registerForPushNotifications();
+        if (mounted) {
+          setPushToken(token);
+        }
+      } catch {
+        if (mounted) {
+          setPushToken(null);
+        }
+      }
+    }
+
+    registerPush();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!profile?.id || !pushToken) return;
+
+    const currentPushToken = pushToken;
+    const saveKey = `${profile.id}:${currentPushToken}`;
+    if (lastSavedPushTokenKeyRef.current === saveKey) return;
+
+    let mounted = true;
+
+    async function persistPushToken() {
+      try {
+        await savePushToken(currentPushToken);
+        if (mounted) {
+          lastSavedPushTokenKeyRef.current = saveKey;
+        }
+      } catch {
+        if (mounted) {
+          lastSavedPushTokenKeyRef.current = null;
+        }
+      }
+    }
+
+    persistPushToken();
+
+    return () => {
+      mounted = false;
+    };
+  }, [profile?.id, pushToken]);
 
   useEffect(() => {
     if (!ready) return;
@@ -97,6 +156,30 @@ function RootNavigator({
       router.replace(profile.papel === 'admin' ? '/(admin)/' : '/(child)/');
     }
   }, [ready, profile, router, segments]);
+
+  useEffect(() => {
+    let active = true;
+    let unsubscribe: () => void = () => undefined;
+
+    async function setupNotificationNavigation() {
+      const cleanup = await subscribeToNotificationNavigation((route) => {
+        router.push(route);
+      });
+
+      if (active) {
+        unsubscribe = cleanup;
+      } else {
+        cleanup();
+      }
+    }
+
+    setupNotificationNavigation();
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [router]);
 
   if (!ready || !fontsLoaded) {
     return (
