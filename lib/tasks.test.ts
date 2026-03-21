@@ -4,6 +4,8 @@ const resizeImageMock = vi.hoisted(() => vi.fn((uri: string) => Promise.resolve(
 
 const fileArrayBufferMock = vi.hoisted(() => vi.fn());
 const fileConstructorMock = vi.hoisted(() => vi.fn());
+const notifyTaskCompletedMock = vi.hoisted(() => vi.fn());
+const notifyTaskCreatedMock = vi.hoisted(() => vi.fn());
 
 vi.mock('expo-image-manipulator', () => ({
   ImageManipulator: { manipulate: vi.fn() },
@@ -14,6 +16,11 @@ vi.mock('./image-utils', async (importOriginal) => {
   const original = await importOriginal<typeof import('./image-utils')>();
   return { ...original, resizeImage: resizeImageMock };
 });
+
+vi.mock('./notifications', () => ({
+  notifyTaskCompleted: notifyTaskCompletedMock,
+  notifyTaskCreated: notifyTaskCreatedMock,
+}));
 
 const storageBucketMock = vi.hoisted(() => ({
   createSignedUrl: vi.fn(),
@@ -131,6 +138,8 @@ describe('tasks', () => {
     fileConstructorMock.mockReset();
     storageBucketMock.createSignedUrl.mockReset();
     storageBucketMock.upload.mockReset();
+    notifyTaskCompletedMock.mockReset();
+    notifyTaskCreatedMock.mockReset();
 
     supabaseMock.auth.getUser.mockReset();
     supabaseMock.from.mockReset();
@@ -208,6 +217,7 @@ describe('tasks', () => {
     });
 
     await expect(renewDailyTasks()).resolves.toBeUndefined();
+    expect(notifyTaskCreatedMock).toHaveBeenCalledWith('Arrumar a cama');
   });
 
   it('gets task details and signs evidence urls from multiple shapes', async () => {
@@ -409,6 +419,7 @@ describe('tasks', () => {
       evidencia_url: null,
       concluida_em: expect.any(String),
     });
+    expect(notifyTaskCompletedMock).toHaveBeenCalledTimes(1);
   });
 
   it.each([
@@ -441,6 +452,7 @@ describe('tasks', () => {
       { contentType, upsert: false }
     );
     expect(result).toEqual({ error: null });
+    expect(notifyTaskCompletedMock).toHaveBeenCalled();
   });
 
   it('returns upload errors from evidence completion', async () => {

@@ -1,3 +1,4 @@
+import { notifyRedemptionRequested } from './notifications';
 import { supabase } from './supabase';
 
 export type Prize = {
@@ -204,6 +205,7 @@ export async function requestRedemption(prizeId: string): Promise<{
   });
 
   if (error) return { data: null, error: error.message };
+  await notifyRedemptionRequested();
   return { data: data as string, error: null };
 }
 

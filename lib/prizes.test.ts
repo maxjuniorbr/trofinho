@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const notifyRedemptionRequestedMock = vi.hoisted(() => vi.fn());
+
 const supabaseMock = vi.hoisted(() => ({
   from: vi.fn(),
   rpc: vi.fn(),
@@ -10,6 +12,10 @@ const supabaseMock = vi.hoisted(() => ({
 
 vi.mock('./supabase', () => ({
   supabase: supabaseMock,
+}));
+
+vi.mock('./notifications', () => ({
+  notifyRedemptionRequested: notifyRedemptionRequestedMock,
 }));
 
 import {
@@ -71,6 +77,7 @@ function createEqQuery(result: QueryResult) {
 
 describe('prizes', () => {
   beforeEach(() => {
+    notifyRedemptionRequestedMock.mockReset();
     supabaseMock.from.mockReset();
     supabaseMock.rpc.mockReset();
     supabaseMock.auth.getUser.mockReset();
@@ -182,6 +189,7 @@ describe('prizes', () => {
     await expect(cancelRedemption('red-1')).resolves.toEqual({ error: 'cancel failed' });
     await expect(requestRedemption('prize-1')).resolves.toEqual({ data: 'redemption-1', error: null });
     await expect(confirmRedemption('red-2')).resolves.toEqual({ error: 'confirm failed' });
+    expect(notifyRedemptionRequestedMock).toHaveBeenCalledTimes(1);
   });
 
   it('returns empty lists and success defaults for remaining prize branches', async () => {

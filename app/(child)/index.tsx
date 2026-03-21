@@ -22,10 +22,12 @@ import { getFamily, type Family } from '@lib/family';
 import { listChildAssignments } from '@lib/tasks';
 import { getBalance } from '@lib/balances';
 import { getGreeting } from '@lib/utils';
+import { isNotificationPermissionDenied } from '@lib/notifications';
 import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PointsDisplay } from '@/components/ui/points-display';
+import { NotificationPermissionBanner } from '@/components/ui/notification-permission-banner';
 import { mascotImage, celebratingImage } from '@/constants/assets';
 
 import type { LucideIcon } from 'lucide-react-native';
@@ -50,6 +52,7 @@ export default function FilhoHomeScreen() {
   const [pendingCount, setPendingCount] = useState(0);
   const [freeBalance,  setFreeBalance]  = useState(0);
   const [piggyBank,    setPiggyBank]    = useState(0);
+  const [showNotificationBanner, setShowNotificationBanner] = useState(false);
 
   const hasPending = pendingCount > 0;
   const pendingTaskLabel = pendingCount === 1 ? 'tarefa pendente' : 'tarefas pendentes';
@@ -57,16 +60,18 @@ export default function FilhoHomeScreen() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [p, { data: atribuicoes }, { data: s }] = await Promise.all([
+      const [p, { data: atribuicoes }, { data: s }, notificationPermissionDenied] = await Promise.all([
         getProfile(),
         listChildAssignments(),
         getBalance(),
+        isNotificationPermissionDenied(),
       ]);
 
       setProfile(p);
       setPendingCount(atribuicoes.filter((a) => a.status === 'pendente').length);
       setFreeBalance(s?.saldo_livre ?? 0);
       setPiggyBank(s?.cofrinho ?? 0);
+      setShowNotificationBanner(notificationPermissionDenied);
 
       if (p?.familia_id) {
         const fam = await getFamily(p.familia_id);
@@ -79,6 +84,7 @@ export default function FilhoHomeScreen() {
       setPendingCount(0);
       setFreeBalance(0);
       setPiggyBank(0);
+      setShowNotificationBanner(false);
     } finally {
       setLoading(false);
     }
@@ -114,6 +120,8 @@ export default function FilhoHomeScreen() {
           <Text style={[styles.heroFamily, { color: colors.accent.filho }]}>Família {family.nome}</Text>
         ) : null}
       </View>
+
+      {showNotificationBanner ? <NotificationPermissionBanner /> : null}
 
       <View style={styles.mascotContainer}>
         <Image

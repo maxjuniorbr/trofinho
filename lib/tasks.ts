@@ -1,5 +1,6 @@
 import { toDateString } from './utils';
 import { readImageAsArrayBuffer, inferImageExtension, inferImageContentType, extractErrorMessage, resizeImage } from './image-utils';
+import { notifyTaskCompleted, notifyTaskCreated } from './notifications';
 import { supabase } from './supabase';
 
 export type Child = {
@@ -96,6 +97,7 @@ export async function createTask(
   });
 
   if (error) return { error: error.message };
+  await notifyTaskCreated(input.titulo);
   return { error: null };
 }
 
@@ -222,6 +224,7 @@ export async function completeAssignment(
     .eq('status', 'pendente');
 
   if (error) return { error: error.message };
+  await notifyTaskCompleted();
   return { error: null };
 }
 
