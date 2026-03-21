@@ -14,7 +14,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.maxjuniorbr.trofinho"
+      "bundleIdentifier": "com.maxjuniorbr.trofinho",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.maxjuniorbr.trofinho",
@@ -38,7 +41,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "164239ef-e9de-42c0-855d-46f26972177d"
+        "projectId": "8493d389-e92f-4a23-854d-bea1b62ae83a"
       }
     },
     "owner": "maxjuniorbrs-organization"
