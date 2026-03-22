@@ -83,9 +83,10 @@ type QueryResult = {
 function createOrderQuery(result: QueryResult, orderCallsBeforeResolve = 0) {
   const query = {
     eq: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockResolvedValue(result),
+    limit: vi.fn().mockReturnThis(),
     or: vi.fn().mockReturnThis(),
     order: vi.fn(),
+    returns: vi.fn().mockResolvedValue(result),
     select: vi.fn().mockReturnThis(),
   };
 
@@ -93,7 +94,7 @@ function createOrderQuery(result: QueryResult, orderCallsBeforeResolve = 0) {
     query.order.mockImplementationOnce(() => query);
   }
 
-  // Return self so that a chained .limit() can resolve
+  // Return self so that a chained .limit().returns() can resolve
   query.order.mockReturnValueOnce(query);
 
   return query;
@@ -113,6 +114,7 @@ function createSimpleOrderQuery(result: QueryResult) {
 function createSingleQuery(result: QueryResult) {
   return {
     eq: vi.fn().mockReturnThis(),
+    returns: vi.fn().mockReturnThis(),
     select: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue(result),
   };
