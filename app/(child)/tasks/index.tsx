@@ -17,6 +17,7 @@ import {
   type ChildAssignment,
   type AssignmentStatus,
 } from '@lib/tasks';
+import { formatDate } from '@lib/utils';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
@@ -24,10 +25,11 @@ import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
+import { SegmentedBar, type SegmentOption } from '@/components/ui/segmented-bar';
 
 type Filter = 'pendente' | 'aguardando_validacao' | 'historico';
 
-const FILTERS: { key: Filter; label: string }[] = [
+const FILTERS: SegmentOption<Filter>[] = [
   { key: 'pendente', label: 'Pendentes' },
   { key: 'aguardando_validacao', label: 'Em validação' },
   { key: 'historico', label: 'Histórico' },
@@ -36,6 +38,42 @@ const FILTERS: { key: Filter; label: string }[] = [
 function belongsToFilter(status: AssignmentStatus, filter: Filter): boolean {
   if (filter === 'historico') return status === 'aprovada' || status === 'rejeitada';
   return status === filter;
+}
+
+function sortChildAssignments(assignments: ChildAssignment[], filter: Filter): ChildAssignment[] {
+  const arr = assignments.slice();
+  if (filter === 'pendente') {
+    return arr.sort((a, b) => getAssignmentPoints(b) - getAssignmentPoints(a));
+  }
+  if (filter === 'aguardando_validacao') {
+    return arr.sort((a, b) => {
+      const aTime = a.concluida_em ?? a.created_at;
+      const bTime = b.concluida_em ?? b.created_at;
+      return bTime.localeCompare(aTime);
+    });
+  }
+  return arr.sort((a, b) => {
+    const aTime = a.validada_em ?? a.concluida_em ?? a.created_at;
+    const bTime = b.validada_em ?? b.concluida_em ?? b.created_at;
+    return bTime.localeCompare(aTime);
+  });
+}
+
+type DateLine = { label: string; value: string };
+
+function getAssignmentDateLine(assignment: ChildAssignment, filter: Filter): DateLine | null {
+  if (filter === 'pendente') return null;
+  if (filter === 'aguardando_validacao') {
+    return assignment.concluida_em
+      ? { label: 'Enviada em ', value: formatDate(assignment.concluida_em) }
+      : null;
+  }
+  const date = assignment.validada_em ?? assignment.concluida_em;
+  if (!date) return null;
+  return {
+    label: assignment.validada_em ? 'Validada em ' : 'Concluída em ',
+    value: formatDate(date),
+  };
 }
 
 export default function ChildTasksScreen() {
@@ -52,11 +90,11 @@ export default function ChildTasksScreen() {
     setLoading(true);
     setError(null);
     try {
-      const [, { data, error }] = await Promise.all([
+      const [, { data, error: loadError }] = await Promise.all([
         renewDailyTasks(),
         listChildAssignments(),
       ]);
-      if (error) setError(error);
+      if (loadError) setError(loadError);
       else setAssignments(data);
     } catch {
       setError('Não foi possível carregar suas tarefas agora.');
@@ -68,14 +106,14 @@ export default function ChildTasksScreen() {
 
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
-  const filtered = assignments.filter((a) => belongsToFilter(a.status, filter));
-  let emptyMessage = 'Nenhuma tarefa concluída ainda.';
+  const filtered = useMemo(
+    () => sortChildAssignments(assignments.filter((a) => belongsToFilter(a.status, filter)), filter),
+    [assignments, filter],
+  );
 
-  if (filter === 'pendente') {
-    emptyMessage = 'Nenhuma tarefa pendente.';
-  } else if (filter === 'aguardando_validacao') {
-    emptyMessage = 'Nada aguardando validação.';
-  }
+  let emptyMessage = 'Nenhuma tarefa concluída ainda.';
+  if (filter === 'pendente') emptyMessage = 'Nenhuma tarefa pendente.';
+  else if (filter === 'aguardando_validacao') emptyMessage = 'Nada aguardando validação.';
 
   const shouldShowEmptyState = loading || Boolean(error) || filtered.length === 0;
 
@@ -84,19 +122,12 @@ export default function ChildTasksScreen() {
       <StatusBar style={colors.statusBar} />
       <ScreenHeader title="Minhas Tarefas" onBack={() => router.back()} backLabel="Início" role="filho" />
 
-      <View style={styles.filtersRow}>
-        {FILTERS.map((f) => (
-          <Pressable
-            key={f.key}
-            style={[styles.filterBtn, filter === f.key && styles.filterBtnActive]}
-            onPress={() => setFilter(f.key)}
-          >
-            <Text style={[styles.filterText, filter === f.key && [styles.filterTextActive, { color: colors.text.inverse }]]}>
-              {f.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+      <SegmentedBar
+        options={FILTERS}
+        value={filter}
+        onChange={setFilter}
+        role="filho"
+      />
 
       {shouldShowEmptyState ? (
         <EmptyState
@@ -112,32 +143,42 @@ export default function ChildTasksScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
-          renderItem={({ item }) => (
-            <Pressable
-              style={styles.card}
-              onPress={() => router.push(`/(child)/tasks/${item.id}` as never)}
-            >
-              <View style={styles.cardTop}>
+          renderItem={({ item }) => {
+            const dateLine = getAssignmentDateLine(item, filter);
+            return (
+              <Pressable
+                style={styles.card}
+                onPress={() => router.push(`/(child)/tasks/${item.id}` as never)}
+                accessibilityRole="button"
+                accessibilityLabel={`Ver detalhes da tarefa ${item.tarefas.titulo}`}
+              >
+                <View style={styles.cardTop}>
                   <Text style={styles.cardTitle} numberOfLines={2}>{item.tarefas.titulo}</Text>
-                <View style={styles.pointsTag}>
-                  <Text style={styles.pointsText}>{getAssignmentPoints(item)} pts</Text>
+                  <View style={styles.pointsTag}>
+                    <Text style={styles.pointsText}>{getAssignmentPoints(item)} pts</Text>
+                  </View>
                 </View>
-              </View>
-              <View style={styles.freqRow}>
-                {item.tarefas.frequencia === 'diaria' ? (
-                  <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
+                <View style={styles.freqRow}>
+                  {item.tarefas.frequencia === 'diaria' ? (
+                    <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
+                  ) : null}
+                  <Text style={styles.cardDeadline}>
+                    {item.tarefas.frequencia === 'diaria' ? 'Diária' : 'Única'}
+                  </Text>
+                </View>
+                {dateLine ? (
+                  <Text style={styles.cardDeadline}>{dateLine.label}{dateLine.value}</Text>
                 ) : null}
-                <Text style={styles.cardDeadline}>
-                  {item.tarefas.frequencia === 'diaria' ? 'Diária' : 'Única'}
-                </Text>
-              </View>
-              <View style={[styles.statusTag, { backgroundColor: getAssignmentStatusColor(item.status, colors) + '20' }]}>
-                <Text style={[styles.statusText, { color: getAssignmentStatusColor(item.status, colors) }]}>
-                  {getAssignmentStatusLabel(item.status)}
-                </Text>
-              </View>
-            </Pressable>
-          )}
+                {filter === 'historico' ? (
+                  <View style={[styles.statusTag, { backgroundColor: getAssignmentStatusColor(item.status, colors) + '20' }]}>
+                    <Text style={[styles.statusText, { color: getAssignmentStatusColor(item.status, colors) }]}>
+                      {getAssignmentStatusLabel(item.status)}
+                    </Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            );
+          }}
         />
       )}
     </SafeScreenFrame>
@@ -146,28 +187,6 @@ export default function ChildTasksScreen() {
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    container: { flex: 1 },
-    filtersRow: {
-      flexDirection: 'row',
-      backgroundColor: colors.bg.surface,
-      paddingHorizontal: spacing['4'],
-      paddingBottom: spacing['3'],
-      gap: spacing['2'],
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border.default,
-    },
-    filterBtn: {
-      flex: 1,
-      paddingVertical: spacing['2'],
-      borderRadius: radii.md,
-      alignItems: 'center',
-      backgroundColor: colors.accent.filhoBg,
-      minHeight: 44,
-      justifyContent: 'center',
-    },
-    filterBtnActive: { backgroundColor: colors.accent.filho },
-    filterText: { fontSize: typography.size.xs, fontFamily: typography.family.semibold, color: colors.text.secondary },
-    filterTextActive: {},
     list: { padding: spacing['4'], paddingBottom: spacing['12'] },
     card: {
       backgroundColor: colors.bg.surface,
@@ -180,8 +199,8 @@ function makeStyles(colors: ThemeColors) {
     cardTitle: { flex: 1, fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary, marginRight: spacing['2'] },
     pointsTag: { backgroundColor: colors.accent.filhoBg, borderRadius: radii.sm, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'] },
     pointsText: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.accent.filho },
-    freqRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'], marginBottom: spacing['2'] },
-    cardDeadline: { fontSize: typography.size.xs, color: colors.text.muted },
+    freqRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'], marginBottom: spacing['1'] },
+    cardDeadline: { fontSize: typography.size.xs, color: colors.text.muted, marginBottom: spacing['2'] },
     statusTag: { borderRadius: radii.sm, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'], alignSelf: 'flex-start' },
     statusText: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
   });

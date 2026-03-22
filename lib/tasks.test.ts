@@ -68,9 +68,10 @@ import {
   listFamilyChildren,
   rejectAssignment,
   renewDailyTasks,
+  sortAdminTasks,
   updateTask,
 } from './tasks';
-import type { AssignmentWithChild } from './tasks';
+import type { AssignmentWithChild, TaskListItem } from './tasks';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
 
 type QueryResult = {
@@ -147,6 +148,7 @@ function createAssignmentWithChild(
     validada_em: null,
     validada_por: null,
     created_at: '2026-03-21T00:00:00Z',
+    competencia: null,
     filhos: { nome: 'Lia' },
     ...overrides,
   };
@@ -171,6 +173,78 @@ describe('tasks', () => {
     supabaseMock.storage.from.mockReset();
 
     supabaseMock.storage.from.mockReturnValue(storageBucketMock);
+  });
+
+  describe('sortAdminTasks', () => {
+    function makeTask(id: string, statuses: string[]): TaskListItem {
+      return {
+        id,
+        titulo: `Tarefa ${id}`,
+        pontos: 10,
+        frequencia: 'unica',
+        created_at: `2026-03-${id.padStart(2, '0')}T00:00:00Z`,
+        atribuicoes: statuses.map((status) => ({ status }) as TaskListItem['atribuicoes'][number]),
+      };
+    }
+
+    it('places aguardando_validacao tasks first in action_first mode', () => {
+      const tasks = [
+        makeTask('1', ['pendente']),
+        makeTask('2', ['aguardando_validacao']),
+        makeTask('3', ['aprovada']),
+      ];
+      const result = sortAdminTasks(tasks, 'action_first');
+      expect(result.map((t) => t.id)).toEqual(['2', '1', '3']);
+    });
+
+    it('places pendente before fully completed in action_first mode', () => {
+      const tasks = [
+        makeTask('1', ['aprovada']),
+        makeTask('2', ['pendente']),
+      ];
+      const result = sortAdminTasks(tasks, 'action_first');
+      expect(result.map((t) => t.id)).toEqual(['2', '1']);
+    });
+
+    it('treats empty atribuicoes as lowest priority', () => {
+      const tasks = [
+        makeTask('1', []),
+        makeTask('2', ['pendente']),
+        makeTask('3', ['aguardando_validacao']),
+      ];
+      const result = sortAdminTasks(tasks, 'action_first');
+      expect(result.map((t) => t.id)).toEqual(['3', '2', '1']);
+    });
+
+    it('preserves relative order within the same priority group', () => {
+      const tasks = [
+        makeTask('1', ['pendente']),
+        makeTask('2', ['pendente']),
+        makeTask('3', ['aguardando_validacao']),
+        makeTask('4', ['aguardando_validacao']),
+      ];
+      const result = sortAdminTasks(tasks, 'action_first');
+      expect(result.map((t) => t.id)).toEqual(['3', '4', '1', '2']);
+    });
+
+    it('preserves original order in newest_first mode', () => {
+      const tasks = [
+        makeTask('1', ['pendente']),
+        makeTask('2', ['aguardando_validacao']),
+      ];
+      const result = sortAdminTasks(tasks, 'newest_first');
+      expect(result.map((t) => t.id)).toEqual(['1', '2']);
+    });
+
+    it('does not mutate the input array', () => {
+      const tasks = [
+        makeTask('1', ['aprovada']),
+        makeTask('2', ['aguardando_validacao']),
+      ];
+      const original = [...tasks];
+      sortAdminTasks(tasks, 'action_first');
+      expect(tasks).toEqual(original);
+    });
   });
 
   it('returns status labels and colors', () => {
