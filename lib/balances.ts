@@ -16,6 +16,7 @@ export interface Balance {
   indice_valorizacao: number;
   periodo_valorizacao: AppreciationPeriod;
   data_ultima_valorizacao: string | null;
+  proxima_valorizacao_em: string | null;
   updated_at: string;
 }
 
@@ -58,6 +59,8 @@ export function getAppreciationPeriodLabel(period: AppreciationPeriod): string {
 }
 
 export async function getBalance(childId?: string): Promise<{ data: Balance | null; error: string | null }> {
+  await syncAutomaticAppreciation(childId);
+
   let query = supabase
     .from('saldos')
     .select('*');
@@ -77,6 +80,8 @@ export async function getBalance(childId?: string): Promise<{ data: Balance | nu
 }
 
 export async function listAdminBalances(): Promise<{ data: BalanceWithChild[]; error: string | null }> {
+  await syncAutomaticAppreciation();
+
   const { data, error } = await supabase
     .from('saldos')
     .select('*, filhos(nome)')
@@ -90,6 +95,8 @@ export async function listTransactions(
   childId: string,
   limit = 30
 ): Promise<{ data: Transaction[]; error: string | null }> {
+  await syncAutomaticAppreciation(childId);
+
   const { data, error } = await supabase
     .from('movimentacoes')
     .select('*')
@@ -111,16 +118,6 @@ export async function transferToPiggyBank(
   });
   if (error) return { error: error.message };
   return { error: null };
-}
-
-export async function applyAppreciation(
-  childId: string
-): Promise<{ data: number | null; error: string | null }> {
-  const { data, error } = await supabase.rpc('aplicar_valorizacao', {
-    p_filho_id: childId,
-  });
-  if (error) return { data: null, error: error.message };
-  return { data: data as number, error: null };
 }
 
 export async function applyPenalty(
@@ -149,4 +146,15 @@ export async function configureAppreciation(
   });
   if (error) return { error: error.message };
   return { error: null };
+}
+
+async function syncAutomaticAppreciation(childId?: string): Promise<void> {
+  try {
+    const args = childId ? { p_filho_id: childId } : undefined;
+    args
+      ? await supabase.rpc('sincronizar_valorizacoes_automaticas', args)
+      : await supabase.rpc('sincronizar_valorizacoes_automaticas');
+  } catch {
+    // Best-effort: sync failure must not block balance reads
+  }
 }
