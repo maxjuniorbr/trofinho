@@ -35,8 +35,9 @@ export function FormFooter({
 }
 
 function makeStyles(compact: boolean, bottomInset: number, includeSafeBottom: boolean) {
+  const minPadding = compact ? spacing['2'] : spacing['4'];
   const paddingBottom = includeSafeBottom
-    ? getSafeBottomPadding({ top: 0, bottom: bottomInset }, compact ? spacing['2'] : spacing['4'])
+    ? getSafeBottomPadding({ top: 0, bottom: bottomInset }, minPadding)
     : 0;
 
   return StyleSheet.create({
