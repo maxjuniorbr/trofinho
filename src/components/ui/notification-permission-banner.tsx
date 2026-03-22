@@ -4,12 +4,12 @@ import { Button } from '@/components/ui/button';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 
+async function openNotificationSettings() {
+  await Linking.openSettings();
+}
+
 export function NotificationPermissionBanner() {
   const { colors } = useTheme();
-
-  async function handleOpenSettings() {
-    await Linking.openSettings();
-  }
 
   return (
     <View
@@ -48,7 +48,7 @@ export function NotificationPermissionBanner() {
         label="Abrir ajustes"
         size="sm"
         variant="secondary"
-        onPress={handleOpenSettings}
+        onPress={openNotificationSettings}
         accessibilityLabel="Abrir ajustes do app"
       />
     </View>
