@@ -47,7 +47,7 @@
         "@sentry/react-native/expo",
         {
           "url": "https://sentry.io/",
-          "project": "trofinho",
+          "project": "react-native",
           "organization": "maxjuniorbrs-organization"
         }
       ]
