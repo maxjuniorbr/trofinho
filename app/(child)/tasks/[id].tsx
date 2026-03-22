@@ -87,7 +87,13 @@ type StatusFooterProps = Readonly<{
   styles: ReturnType<typeof makeStyles>;
 }>;
 
-function CompleteButtonContent({ requiresEvidence, colors, styles }: { requiresEvidence: boolean; colors: ThemeColors; styles: ReturnType<typeof makeStyles> }) {
+type CompleteButtonContentProps = Readonly<{
+  requiresEvidence: boolean;
+  colors: ThemeColors;
+  styles: ReturnType<typeof makeStyles>;
+}>;
+
+function CompleteButtonContent({ requiresEvidence, colors, styles }: CompleteButtonContentProps) {
   const Icon = requiresEvidence ? Camera : CheckCircle2;
   const label = requiresEvidence ? 'Tirar foto e concluir' : 'Concluir tarefa';
 
