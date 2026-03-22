@@ -1,3 +1,4 @@
+import { localizeRpcError } from './api-error';
 import { toDateString } from './utils';
 import { extractErrorMessage } from './image-utils';
 import { notifyTaskCompleted, notifyTaskCreated } from './notifications';
@@ -97,7 +98,7 @@ export async function listFamilyChildren(): Promise<{
     .select('id, nome, usuario_id')
     .order('nome');
 
-  if (error) return { data: [], error: error.message };
+  if (error) return { data: [], error: localizeRpcError(error.message) };
   return { data: (data ?? []) as Child[], error: null };
 }
 
@@ -113,7 +114,7 @@ export async function createTask(
     p_filho_ids: input.filhoIds,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeRpcError(error.message) };
   await notifyTaskCreated(input.titulo);
   return { error: null };
 }
@@ -130,7 +131,7 @@ export async function updateTask(
     p_requer_evidencia: input.exige_evidencia,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeRpcError(error.message) };
   return { error: null };
 }
 
@@ -144,7 +145,7 @@ export async function listAdminTasks(limit = 50): Promise<{
     .order('created_at', { ascending: false })
     .limit(limit);
 
-  if (error) return { data: [], error: error.message };
+  if (error) return { data: [], error: localizeRpcError(error.message) };
   return { data: (data ?? []) as unknown as TaskListItem[], error: null };
 }
 
@@ -157,7 +158,7 @@ export async function getTaskWithAssignments(
     .eq('id', taskId)
     .single();
 
-  if (error) return { data: null, error: error.message };
+  if (error) return { data: null, error: localizeRpcError(error.message) };
   const task = await signTaskEvidence(data as unknown as TaskDetail);
   return { data: task, error: null };
 }
@@ -169,7 +170,7 @@ export async function approveAssignment(
     atribuicao_id: assignmentId,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeRpcError(error.message) };
   return { error: null };
 }
 
@@ -193,7 +194,7 @@ export async function rejectAssignment(
     .eq('id', assignmentId)
     .eq('status', 'aguardando_validacao');
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeRpcError(error.message) };
   return { error: null };
 }
 
@@ -216,7 +217,7 @@ export async function listChildAssignments(): Promise<{
     .order('created_at', { ascending: false })
     .limit(100);
 
-  if (error) return { data: [], error: error.message };
+  if (error) return { data: [], error: localizeRpcError(error.message) };
   return { data: (data ?? []) as unknown as ChildAssignment[], error: null };
 }
 
@@ -229,7 +230,7 @@ export async function getChildAssignment(
     .eq('id', assignmentId)
     .single();
 
-  if (error) return { data: null, error: error.message };
+  if (error) return { data: null, error: localizeRpcError(error.message) };
   const assignment = await signEvidence(data as unknown as ChildAssignment);
   return { data: assignment, error: null };
 }
@@ -256,7 +257,7 @@ export async function completeAssignment(
     .eq('id', assignmentId)
     .eq('status', 'pendente');
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeRpcError(error.message) };
   await notifyTaskCompleted();
   return { error: null };
 }
@@ -331,11 +332,11 @@ async function uploadEvidence(
       ]);
 
     if (profileError || !profile?.familia_id) {
-      return { url: null, error: profileError?.message ?? 'Perfil não encontrado' };
+      return { url: null, error: 'Perfil não encontrado' };
     }
 
     if (childError || !child?.id) {
-      return { url: null, error: childError?.message ?? 'Filho não encontrado' };
+      return { url: null, error: 'Filho não encontrado' };
     }
 
     const { buffer, contentType, extension } = await prepareImageUpload(imageUri);
@@ -349,7 +350,7 @@ async function uploadEvidence(
         upsert: false,
       });
 
-    if (error) return { url: null, error: error.message };
+    if (error) return { url: null, error: 'Erro ao fazer upload da imagem.' };
     return { url: data.path, error: null };
   } catch (error) {
     return {

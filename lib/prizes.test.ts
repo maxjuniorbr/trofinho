@@ -168,8 +168,8 @@ describe('prizes', () => {
       nome: 'Novo',
       descricao: 'D',
       custo_pontos: 10,
-    })).resolves.toEqual({ error: 'cannot update', imageUrl: null, pointsMessage: null });
-    await expect(deactivatePrize('prize-1')).resolves.toEqual({ error: 'cannot deactivate' });
+    })).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.', imageUrl: null, pointsMessage: null });
+    await expect(deactivatePrize('prize-1')).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
     await expect(reactivatePrize('prize-1')).resolves.toEqual({ error: null });
   });
 
@@ -257,9 +257,9 @@ describe('prizes', () => {
       .mockResolvedValueOnce({ error: { message: 'confirm failed' } });
 
     await expect(confirmRedemption('red-1')).resolves.toEqual({ error: null });
-    await expect(cancelRedemption('red-1')).resolves.toEqual({ error: 'cancel failed' });
+    await expect(cancelRedemption('red-1')).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
     await expect(requestRedemption('prize-1')).resolves.toEqual({ data: 'redemption-1', error: null });
-    await expect(confirmRedemption('red-2')).resolves.toEqual({ error: 'confirm failed' });
+    await expect(confirmRedemption('red-2')).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
     expect(notifyRedemptionRequestedMock).toHaveBeenCalledTimes(1);
   });
 

@@ -134,7 +134,7 @@ describe('children', () => {
 
     await expect(listChildren()).resolves.toEqual({
       data: [],
-      error: 'broken query',
+      error: 'Algo deu errado. Tente novamente.',
     });
   });
 
@@ -171,7 +171,7 @@ describe('children', () => {
 
     await expect(getChild('child-2')).resolves.toEqual({
       data: null,
-      error: 'rpc failed',
+      error: 'Algo deu errado. Tente novamente.',
     });
   });
 

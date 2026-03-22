@@ -93,8 +93,8 @@ describe('balances', () => {
       .mockReturnValueOnce(balanceQuery)
       .mockReturnValueOnce(listQuery);
 
-    await expect(getBalance()).resolves.toEqual({ data: null, error: 'boom' });
-    await expect(listAdminBalances()).resolves.toEqual({ data: [], error: 'list failed' });
+    await expect(getBalance()).resolves.toEqual({ data: null, error: 'Algo deu errado. Tente novamente.' });
+    await expect(listAdminBalances()).resolves.toEqual({ data: [], error: 'Algo deu errado. Tente novamente.' });
   });
 
   it('lists transactions with limit, ordering and sync', async () => {
@@ -124,9 +124,9 @@ describe('balances', () => {
       .mockResolvedValueOnce({ error: { message: 'transfer failed' } });
 
     await expect(transferToPiggyBank('child-1', 10)).resolves.toEqual({ error: null });
-    await expect(applyPenalty('child-1', 3, 'Late')).resolves.toEqual({ error: 'penalty failed' });
+    await expect(applyPenalty('child-1', 3, 'Late')).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
     await expect(configureAppreciation('child-1', 12, 'mensal')).resolves.toEqual({ error: null });
-    await expect(transferToPiggyBank('child-1', 4)).resolves.toEqual({ error: 'transfer failed' });
+    await expect(transferToPiggyBank('child-1', 4)).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
 
     expect(supabaseMock.rpc).toHaveBeenNthCalledWith(1, 'transferir_para_cofrinho', {
       p_filho_id: 'child-1',
@@ -160,7 +160,7 @@ describe('balances', () => {
       .mockResolvedValueOnce({ error: null });
 
     await expect(listAdminBalances()).resolves.toEqual({ data: [], error: null });
-    await expect(listTransactions('child-1')).resolves.toEqual({ data: [], error: 'list failed' });
+    await expect(listTransactions('child-1')).resolves.toEqual({ data: [], error: 'Algo deu errado. Tente novamente.' });
     await expect(applyPenalty('child-1', 2, 'Atraso')).resolves.toEqual({ error: null });
   });
 });
