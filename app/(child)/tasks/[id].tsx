@@ -3,7 +3,6 @@ import {
   Text,
   View,
   Pressable,
-  ScrollView,
   ActivityIndicator,
   Image,
 } from 'react-native';
@@ -21,6 +20,7 @@ import {
 import {
   getChildAssignment,
   completeAssignment,
+  getAssignmentPoints,
   type ChildAssignment,
 } from '@lib/tasks';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
@@ -29,6 +29,7 @@ import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { StickyFooterScreen } from '@/components/ui/sticky-footer-screen';
 
 type EvidenceSectionProps = Readonly<{
   evidenceUrl: string | null | undefined;
@@ -86,10 +87,21 @@ type StatusFooterProps = Readonly<{
   styles: ReturnType<typeof makeStyles>;
 }>;
 
-function StatusFooter({ assignment, completing, completionError, onComplete, colors, styles }: StatusFooterProps) {
-  const task = assignment.tarefas;
+function CompleteButtonContent({ requiresEvidence, colors, styles }: { requiresEvidence: boolean; colors: ThemeColors; styles: ReturnType<typeof makeStyles> }) {
+  const Icon = requiresEvidence ? Camera : CheckCircle2;
+  const label = requiresEvidence ? 'Tirar foto e concluir' : 'Concluir tarefa';
 
+  return (
+    <View style={styles.completeBtnInner}>
+      <Icon size={16} color={colors.text.inverse} strokeWidth={2} />
+      <Text style={[styles.completeBtnText, { color: colors.text.inverse }]}>{label}</Text>
+    </View>
+  );
+}
+
+function StatusFooter({ assignment, completing, completionError, onComplete, colors, styles }: StatusFooterProps) {
   if (assignment.status === 'pendente') {
+    const requiresEvidence = assignment.tarefas.exige_evidencia;
     return (
       <>
         {completionError ? <Text style={styles.errorText}>{completionError}</Text> : null}
@@ -97,18 +109,12 @@ function StatusFooter({ assignment, completing, completionError, onComplete, col
           style={[styles.completeBtn, completing && styles.disabledBtn]}
           onPress={onComplete}
           disabled={completing}
+          accessibilityRole="button"
+          accessibilityLabel={requiresEvidence ? 'Tirar foto e concluir tarefa' : 'Concluir tarefa'}
         >
           {completing
             ? <ActivityIndicator color={colors.text.inverse} />
-            : <View style={styles.completeBtnInner}>
-                {task.exige_evidencia
-                  ? <Camera size={16} color={colors.text.inverse} strokeWidth={2} />
-                  : <CheckCircle2 size={16} color={colors.text.inverse} strokeWidth={2} />}
-                <Text style={[styles.completeBtnText, { color: colors.text.inverse }]}>
-                  {task.exige_evidencia ? 'Tirar foto e concluir' : 'Concluir tarefa'}
-                </Text>
-              </View>
-          }
+            : <CompleteButtonContent requiresEvidence={requiresEvidence} colors={colors} styles={styles} />}
         </Pressable>
       </>
     );
@@ -130,7 +136,7 @@ function StatusFooter({ assignment, completing, completionError, onComplete, col
       <View style={styles.approvedBox}>
         <View style={styles.statusRow}>
           <Trophy size={14} color={colors.semantic.success} strokeWidth={2} />
-          <Text style={styles.approvedText}>Parabéns! {task.pontos} pontos creditados no seu saldo.</Text>
+          <Text style={styles.approvedText}>Parabéns! {getAssignmentPoints(assignment)} pontos creditados no seu saldo.</Text>
         </View>
       </View>
     );
@@ -178,8 +184,8 @@ export default function ChildTaskDetailScreen() {
     setLoading(true);
     setError(null);
     try {
-      const { data, error } = await getChildAssignment(id);
-      if (error) setError(error);
+      const { data, error: loadError } = await getChildAssignment(id);
+      if (loadError) setError(loadError);
       else setAssignment(data);
     } catch {
       setError('Não foi possível carregar a tarefa agora.');
@@ -205,13 +211,13 @@ export default function ChildTaskDetailScreen() {
       }
 
       setCompleting(true);
-      const { error } = await completeAssignment(assignment.id, imageUri);
-      if (error) setCompletionError(error);
+      const { error: completeError } = await completeAssignment(assignment.id, imageUri);
+      if (completeError) setCompletionError(completeError);
       else await loadData();
-    } catch (completionError) {
+    } catch (error_) {
       setCompletionError(
-        completionError instanceof Error
-          ? completionError.message
+        error_ instanceof Error
+          ? error_.message
           : 'Não foi possível concluir a tarefa agora.',
       );
     } finally {
@@ -241,72 +247,79 @@ export default function ChildTaskDetailScreen() {
   }
 
   const task = assignment.tarefas;
+  const footer = assignment.status === 'rejeitada'
+    ? undefined
+    : (
+      <StatusFooter
+        assignment={assignment}
+        completing={completing}
+        completionError={completionError}
+        onComplete={handleComplete}
+        colors={colors}
+        styles={styles}
+      />
+    );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
+    <StickyFooterScreen
+      title="Detalhe"
+      onBack={() => router.back()}
+      backLabel="Tarefas"
+      role="filho"
+      keyboardAvoiding={assignment.status === 'pendente'}
+      contentPadding={spacing['4']}
+      footer={footer}
+    >
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader title="Detalhe" onBack={() => router.back()} backLabel="Tarefas" role="filho" />
+      <View style={[styles.statusBadge, { backgroundColor: getAssignmentStatusColor(assignment.status, colors) }]}>
+        <Text style={[styles.statusBadgeText, { color: colors.text.inverse }]}>{getAssignmentStatusLabel(assignment.status)}</Text>
+      </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={[styles.statusBadge, { backgroundColor: getAssignmentStatusColor(assignment.status, colors) }]}>
-          <Text style={[styles.statusBadgeText, { color: colors.text.inverse }]}>{getAssignmentStatusLabel(assignment.status)}</Text>
-        </View>
-
-        <View style={styles.card}>
-          <View style={styles.cardTop}>
-            <Text style={styles.cardTitle}>{task.titulo}</Text>
-            <View style={styles.pointsTag}>
-              <Text style={styles.pointsText}>{task.pontos} pts</Text>
-            </View>
+      <View style={styles.card}>
+        <View style={styles.cardTop}>
+          <Text style={styles.cardTitle}>{task.titulo}</Text>
+          <View style={styles.pointsTag}>
+            <Text style={styles.pointsText}>{getAssignmentPoints(assignment)} pts</Text>
           </View>
-          {task.descricao ? <Text style={styles.description}>{task.descricao}</Text> : null}
-          <View style={styles.metaRow}>
-            {task.frequencia === 'diaria' ? (
-              <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
-            ) : null}
-            <Text style={styles.meta}>
-              {task.frequencia === 'diaria' ? 'Diária' : 'Única'}
-            </Text>
-          </View>
-          {task.exige_evidencia && (
-            <View style={styles.evidenceTag}>
-              <View style={styles.evidenceTagRow}>
-                <Camera size={12} color={colors.semantic.warningText} strokeWidth={2} />
-                <Text style={styles.evidenceTagText}>Enviar foto como prova</Text>
-              </View>
-            </View>
-          )}
         </View>
-
-        <EvidenceSection
-          evidenceUrl={assignment.evidencia_url}
-          imgLoading={imgLoading}
-          imgError={imgError}
-          onImgLoadStart={() => setImgLoading(true)}
-          onImgLoadEnd={() => setImgLoading(false)}
-          onImgError={() => { setImgLoading(false); setImgError(true); }}
-          colors={colors}
-          styles={styles}
-        />
-
-        {assignment.nota_rejeicao ? (
-          <View style={styles.rejectionNoteBox}>
-            <Text style={styles.rejectionNoteLabel}>Motivo da rejeição:</Text>
-            <Text style={styles.rejectionNoteText}>{assignment.nota_rejeicao}</Text>
-            <Text style={styles.rejectionNoteHint}>Converse com o responsável para alinhar os próximos passos.</Text>
+        {task.descricao ? <Text style={styles.description}>{task.descricao}</Text> : null}
+        <View style={styles.metaRow}>
+          {task.frequencia === 'diaria' ? (
+            <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
+          ) : null}
+          <Text style={styles.meta}>
+            {task.frequencia === 'diaria' ? 'Diária' : 'Única'}
+          </Text>
+        </View>
+        {task.exige_evidencia ? (
+          <View style={styles.evidenceTag}>
+            <View style={styles.evidenceTagRow}>
+              <Camera size={12} color={colors.semantic.warningText} strokeWidth={2} />
+              <Text style={styles.evidenceTagText}>Enviar foto como prova</Text>
+            </View>
           </View>
         ) : null}
+      </View>
 
-        <StatusFooter
-          assignment={assignment}
-          completing={completing}
-          completionError={completionError}
-          onComplete={handleComplete}
-          colors={colors}
-          styles={styles}
-        />
-      </ScrollView>
-    </View>
+      <EvidenceSection
+        evidenceUrl={assignment.evidencia_url}
+        imgLoading={imgLoading}
+        imgError={imgError}
+        onImgLoadStart={() => setImgLoading(true)}
+        onImgLoadEnd={() => setImgLoading(false)}
+        onImgError={() => { setImgLoading(false); setImgError(true); }}
+        colors={colors}
+        styles={styles}
+      />
+
+      {assignment.nota_rejeicao ? (
+        <View style={styles.rejectionNoteBox}>
+          <Text style={styles.rejectionNoteLabel}>Motivo da rejeição:</Text>
+          <Text style={styles.rejectionNoteText}>{assignment.nota_rejeicao}</Text>
+          <Text style={styles.rejectionNoteHint}>Converse com o responsável para alinhar os próximos passos.</Text>
+        </View>
+      ) : null}
+    </StickyFooterScreen>
   );
 }
 
@@ -314,7 +327,6 @@ function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing['6'] },
     container: { flex: 1 },
-    scrollContent: { padding: spacing['4'], paddingBottom: spacing['12'] },
     statusBadge: {
       borderRadius: radii.lg,
       paddingVertical: spacing['2'],

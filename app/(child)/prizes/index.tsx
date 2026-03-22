@@ -24,6 +24,7 @@ import type { ThemeColors } from '@/constants/theme';
 import { gradients, radii, shadows, spacing, typography } from '@/constants/theme';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 
 export default function ChildPrizesScreen() {
   const router = useRouter();
@@ -79,7 +80,7 @@ export default function ChildPrizesScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
+    <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
       <ScreenHeader title="Meus Prêmios" onBack={() => router.back()} backLabel="Início" role="filho" />
 
@@ -95,7 +96,6 @@ export default function ChildPrizesScreen() {
         <FlatList
           data={prizes}
           keyExtractor={(item) => item.id}
-          contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
           numColumns={2}
@@ -126,14 +126,14 @@ export default function ChildPrizesScreen() {
           )}
         />
       )}
-    </View>
+    </SafeScreenFrame>
   );
 }
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
-    list: { padding: spacing['4'], gap: spacing['3'], paddingBottom: spacing['10'] },
+    list: { padding: spacing['4'], gap: spacing['3'], paddingBottom: spacing['12'] },
     balanceBanner: {
       borderRadius: radii.xl,
       borderCurve: 'continuous',

@@ -6,6 +6,11 @@ export type ChildWithBalance = Child & {
   usuarios: { nome: string } | null;
 };
 
+export type AdminChildProfile = Child & {
+  avatar_url: string | null;
+  email: string | null;
+};
+
 function createTempClient() {
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -68,11 +73,23 @@ export async function listChildren(): Promise<{
 }> {
   const { data, error } = await supabase
     .from('filhos')
-    .select('id, nome, usuario_id')
+    .select('id, nome, usuario_id, avatar_url')
     .order('nome');
 
   if (error) return { data: [], error: error.message };
   return { data: (data ?? []) as Child[], error: null };
+}
+
+export async function getChild(
+  childId: string,
+): Promise<{ data: AdminChildProfile | null; error: string | null }> {
+  const { data, error } = await supabase.rpc('obter_filho_admin', {
+    p_filho_id: childId,
+  });
+
+  if (error) return { data: null, error: error.message };
+  const child = Array.isArray(data) ? data[0] : null;
+  return { data: (child ?? null) as AdminChildProfile | null, error: null };
 }
 
 export async function getMyChildId(): Promise<string | null> {
@@ -93,7 +110,7 @@ function translateSignUpError(msg: string): string {
   if (msg.includes('Password should be at least')) return 'A senha deve ter ao menos 6 caracteres.';
   if (msg.includes('Unable to validate email')) return 'E-mail inválido.';
   if (msg.includes('email rate limit')) return 'Limite de e-mails atingido. Aguarde alguns minutos.';
-  return msg;
+  return 'Não foi possível cadastrar o filho. Tente novamente.';
 }
 
 function translateChildRegistrationError(msg: string): string {

@@ -3,25 +3,27 @@ import { useState } from 'react';
 import { updateUserPassword } from '@lib/auth';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
+import { useTransientMessage } from '@/hooks/use-transient-message';
 
 export function PasswordCard() {
   const { colors } = useTheme();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const visibleSuccessMessage = useTransientMessage(success);
 
   async function handleSave() {
     setError(null);
-    setSuccess(false);
+    setSuccess(null);
     if (newPassword.length < 6) return setError('A nova senha deve ter ao menos 6 caracteres.');
     if (newPassword !== confirmPassword) return setError('As senhas não coincidem.');
     setSaving(true);
     const { error: saveError } = await updateUserPassword(newPassword);
     setSaving(false);
     if (saveError) { setError(saveError.message); return; }
-    setSuccess(true);
+    setSuccess('Senha alterada com sucesso!');
     setNewPassword('');
     setConfirmPassword('');
   }
@@ -35,7 +37,7 @@ export function PasswordCard() {
       <TextInput
         style={[styles.input, { backgroundColor: colors.bg.elevated, borderColor: colors.border.default, color: colors.text.primary }]}
         value={newPassword}
-        onChangeText={(v) => { setNewPassword(v); setSuccess(false); setError(null); }}
+        onChangeText={(v) => { setNewPassword(v); setSuccess(null); setError(null); }}
         placeholder="Mínimo 6 caracteres"
         placeholderTextColor={colors.text.muted}
         secureTextEntry
@@ -48,7 +50,7 @@ export function PasswordCard() {
       <TextInput
         style={[styles.input, { backgroundColor: colors.bg.elevated, borderColor: colors.border.default, color: colors.text.primary }]}
         value={confirmPassword}
-        onChangeText={(v) => { setConfirmPassword(v); setSuccess(false); setError(null); }}
+        onChangeText={(v) => { setConfirmPassword(v); setSuccess(null); setError(null); }}
         placeholder="Repita a nova senha"
         placeholderTextColor={colors.text.muted}
         secureTextEntry
@@ -58,7 +60,7 @@ export function PasswordCard() {
       />
 
       {error ? <Text style={[styles.feedback, { color: colors.semantic.error }]}>{error}</Text> : null}
-      {success ? <Text style={[styles.feedback, { color: colors.semantic.success }]}>Senha alterada com sucesso!</Text> : null}
+      {visibleSuccessMessage ? <Text style={[styles.feedback, { color: colors.semantic.success }]}>{visibleSuccessMessage}</Text> : null}
 
       <Pressable
         style={[styles.btn, { backgroundColor: colors.accent.adminDim, opacity: saving ? 0.55 : 1 }]}

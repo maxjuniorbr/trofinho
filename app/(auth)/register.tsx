@@ -13,6 +13,7 @@ import { spacing, typography } from '@/constants/theme';
 import { AuthPrimaryButton } from '@/components/auth/auth-primary-button';
 import { AuthShell } from '@/components/auth/auth-shell';
 import { AuthTextField } from '@/components/auth/auth-text-field';
+import { FormFooter } from '@/components/ui/form-footer';
 
 type RegisterField = 'name' | 'email' | 'password' | 'confirmPassword';
 
@@ -118,51 +119,39 @@ export default function RegisterScreen() {
         editable={!loading}
         accessibilityLabel="Campo de confirmar senha"
       />
+      <FormFooter message={shouldShowError ? error : null}>
+        <AuthPrimaryButton
+          label="Criar conta"
+          loadingLabel="Criando conta…"
+          loading={loading}
+          onPress={handleSignUp}
+          accessibilityLabel={loading ? 'Criando conta' : 'Criar conta'}
+        />
 
-      {shouldShowError ? (
-        <Text style={[styles.error, { color: colors.semantic.error }]} accessibilityRole="alert">
-          {error}
-        </Text>
-      ) : null}
-
-      <AuthPrimaryButton
-        label="Criar conta"
-        loadingLabel="Criando conta…"
-        loading={loading}
-        onPress={handleSignUp}
-        accessibilityLabel={loading ? 'Criando conta' : 'Criar conta'}
-      />
-
-      <Pressable
-        style={({ pressed }) => [styles.secondaryButton, { opacity: pressed ? 0.65 : 1 }]}
-        onPress={() => router.back()}
-        disabled={loading}
-        accessibilityRole="button"
-        accessibilityLabel="Voltar ao login"
-      >
-        <Text style={[styles.secondaryButtonText, { color: colors.text.secondary }]}>
-          Já tem conta?{' '}
-          <Text style={{ color: colors.brand.vivid, fontFamily: typography.family.bold }}>
-            Entrar
+        <Pressable
+          style={({ pressed }) => [styles.secondaryButton, { opacity: pressed ? 0.65 : 1 }]}
+          onPress={() => router.back()}
+          disabled={loading}
+          accessibilityRole="button"
+          accessibilityLabel="Voltar ao login"
+        >
+          <Text style={[styles.secondaryButtonText, { color: colors.text.secondary }]}>
+            Já tem conta?{' '}
+            <Text style={{ color: colors.brand.vivid, fontFamily: typography.family.bold }}>
+              Entrar
+            </Text>
           </Text>
-        </Text>
-      </Pressable>
+        </Pressable>
+      </FormFooter>
     </AuthShell>
   );
 }
 
 function makeStyles() {
   return StyleSheet.create({
-    error: {
-      fontFamily: typography.family.medium,
-      fontSize: typography.size.sm,
-      marginTop: spacing['3'],
-      textAlign: 'center',
-    },
     secondaryButton: {
-      paddingVertical: spacing['4'],
+      paddingVertical: spacing['3'],
       alignItems: 'center',
-      marginTop: spacing['1'],
     },
     secondaryButtonText: {
       fontFamily: typography.family.medium,

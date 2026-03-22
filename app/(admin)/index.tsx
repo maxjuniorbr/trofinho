@@ -9,7 +9,6 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ClipboardList,
   Users,
@@ -29,13 +28,15 @@ import { countPendingRedemptions } from '@lib/prizes';
 import { getFamily, type Family } from '@lib/family';
 import { isNotificationPermissionDenied } from '@lib/notifications';
 import { useTheme } from '@/context/theme-context';
-import { radii, shadows, spacing, typography } from '@/constants/theme';
+import { radii, shadows, spacing, typography, type ThemeColors } from '@/constants/theme';
 import { Avatar } from '@/components/ui/avatar';
-import { PointsDisplay } from '@/components/ui/points-display';
 import { Badge } from '@/components/ui/badge';
 import { NotificationPermissionBanner } from '@/components/ui/notification-permission-banner';
+import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 
 import type { LucideIcon } from 'lucide-react-native';
+
+const CHILDREN_PREVIEW_LIMIT = 3;
 
 const QUICK_ACTIONS: ReadonlyArray<{
   icon: LucideIcon;
@@ -91,10 +92,45 @@ async function loadAdminDashboard(): Promise<AdminDashboardData> {
   };
 }
 
+type MetricTone = 'neutral' | 'gold' | 'danger';
+
+type MetricCard = Readonly<{
+  key: string;
+  value: string;
+  label: string;
+  tone: MetricTone;
+}>;
+
+function getMetricAppearance(tone: MetricTone, colors: ThemeColors) {
+  if (tone === 'gold') {
+    return {
+      backgroundColor: colors.bg.surface,
+      borderColor: colors.border.subtle,
+      valueColor: colors.brand.vivid,
+      labelColor: colors.text.secondary,
+    };
+  }
+
+  if (tone === 'danger') {
+    return {
+      backgroundColor: colors.semantic.errorBg,
+      borderColor: colors.semantic.error + '40',
+      valueColor: colors.semantic.error,
+      labelColor: colors.semantic.error,
+    };
+  }
+
+  return {
+    backgroundColor: colors.bg.surface,
+    borderColor: colors.border.subtle,
+    valueColor: colors.text.primary,
+    labelColor: colors.text.secondary,
+  };
+}
+
 export default function AdminHomeScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
   const styles = useMemo(() => makeStyles(), []);
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -139,21 +175,48 @@ export default function AdminHomeScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.loading, { backgroundColor: colors.bg.canvas, paddingTop: insets.top }]}>
+      <View style={[styles.loading, { backgroundColor: colors.bg.canvas }]}>
         <ActivityIndicator size="large" color={colors.brand.vivid} />
       </View>
     );
   }
 
   const totalPoints = Array.from(balancesMap.values()).reduce((acc, s) => acc + s.saldo_livre + s.cofrinho, 0);
+  const metricCards: MetricCard[] = [
+    {
+      key: 'children',
+      value: children.length.toLocaleString('pt-BR'),
+      label: 'filhos',
+      tone: 'neutral',
+    },
+    {
+      key: 'family-points',
+      value: totalPoints.toLocaleString('pt-BR'),
+      label: 'pts da família',
+      tone: 'gold',
+    },
+    {
+      key: 'pending',
+      value: pendingValidationCount.toLocaleString('pt-BR'),
+      label: 'para validar',
+      tone: pendingValidationCount > 0 ? 'danger' : 'neutral',
+    },
+  ];
 
   return (
-    <ScrollView
-      style={{ backgroundColor: colors.bg.canvas }}
-      contentContainerStyle={[styles.container, { paddingTop: insets.top + spacing['6'] }]}
-      showsVerticalScrollIndicator={false}
-    >
+    <SafeScreenFrame topInset bottomInset>
       <StatusBar style={colors.statusBar} />
+      <ScrollView
+        style={{ backgroundColor: colors.bg.canvas }}
+        contentContainerStyle={[
+          styles.container,
+          {
+            paddingTop: spacing['6'],
+            paddingBottom: spacing['12'],
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
 
       <View style={styles.hero}>
         <View style={styles.heroText}>
@@ -162,7 +225,9 @@ export default function AdminHomeScreen() {
             Olá, {profile?.nome ?? 'Admin'}
           </Text>
           {family ? (
-            <Text style={[styles.heroFamily, { color: colors.accent.admin }]}>Família {family.nome}</Text>
+            <View style={[styles.familyPill, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
+              <Text style={[styles.heroFamily, { color: colors.accent.admin }]}>Família {family.nome}</Text>
+            </View>
           ) : null}
         </View>
         <Pressable
@@ -182,35 +247,50 @@ export default function AdminHomeScreen() {
       {showNotificationBanner ? <NotificationPermissionBanner /> : null}
 
       <View style={styles.statsRow}>
-        <View style={[styles.statCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
-          <Text style={[styles.statValue, { color: colors.accent.admin }]}>{children.length}</Text>
-          <Text style={[styles.statLabel, { color: colors.text.secondary }]}>filhos</Text>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
-          <PointsDisplay value={totalPoints} label="pts família" variant="gold" size="sm" />
-        </View>
-        {pendingValidationCount > 0 ? (
-          <View style={[styles.statCard, { backgroundColor: colors.semantic.errorBg, borderColor: colors.semantic.error + '40' }]}>
-            <Text style={[styles.statValue, { color: colors.semantic.error }]}>{pendingValidationCount}</Text>
-            <Text style={[styles.statLabel, { color: colors.semantic.error }]}>pendentes</Text>
-          </View>
-        ) : null}
+        {metricCards.map((card) => {
+          const metricAppearance = getMetricAppearance(card.tone, colors);
+
+          return (
+            <View
+              key={card.key}
+              style={[
+                styles.statCard,
+                {
+                  backgroundColor: metricAppearance.backgroundColor,
+                  borderColor: metricAppearance.borderColor,
+                },
+              ]}
+            >
+              <Text style={[styles.statValue, { color: metricAppearance.valueColor }]}>
+                {card.value}
+              </Text>
+              <Text style={[styles.statLabel, { color: metricAppearance.labelColor }]}>
+                {card.label}
+              </Text>
+            </View>
+          );
+        })}
       </View>
 
       {children.length > 0 ? (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Seus filhos</Text>
-            <Pressable
-              onPress={() => router.push('/(admin)/children')}
-              accessibilityRole="button"
-              hitSlop={12}
-            >
-              <Text style={[styles.sectionLink, { color: colors.accent.admin }]}>Ver todos</Text>
-            </Pressable>
+            {children.length > CHILDREN_PREVIEW_LIMIT ? (
+              <Pressable
+                style={[styles.seeAllBtn, { backgroundColor: colors.accent.adminBg }]}
+                onPress={() => router.push('/(admin)/children')}
+                accessibilityRole="button"
+                accessibilityLabel="Ver todos os filhos"
+                hitSlop={8}
+              >
+                <Text style={[styles.seeAllBtnText, { color: colors.accent.admin }]}>Ver todos</Text>
+                <ChevronRight size={14} color={colors.accent.admin} strokeWidth={2} />
+              </Pressable>
+            ) : null}
           </View>
           <View style={styles.childrenList}>
-            {children.map((item) => {
+            {children.slice(0, CHILDREN_PREVIEW_LIMIT).map((item) => {
               const saldo = balancesMap.get(item.id);
               const pts = saldo ? saldo.saldo_livre + saldo.cofrinho : 0;
               return (
@@ -222,9 +302,9 @@ export default function AdminHomeScreen() {
                     shadows.card,
                     pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
                   ]}
-                  onPress={() => router.push(`/(admin)/balances/${item.id}` as never)}
+                  onPress={() => router.push(`/(admin)/children/${item.id}` as never)}
                   accessibilityRole="button"
-                  accessibilityLabel={`${item.nome}, ${pts} pontos`}
+                  accessibilityLabel={`${item.nome}, ver nome e e-mail`}
                 >
                   <Avatar name={item.nome} size={48} />
                   <View style={styles.childBody}>
@@ -266,12 +346,16 @@ export default function AdminHomeScreen() {
             accessibilityRole="button"
             accessibilityLabel={`${pendingValidationCount} tarefas aguardando validação`}
           >
-            <ClipboardList size={28} color={colors.text.secondary} strokeWidth={1.5} />
-            <View style={styles.navCardBody}>
-              <Text style={[styles.navCardTitle, { color: colors.text.primary }]}>Tarefas</Text>
-              <Text style={[styles.navCardSub, { color: colors.text.secondary }]}>
-                {pendingValidationCount} {pendingValidationCount === 1 ? 'tarefa aguardando' : 'tarefas aguardando'} validação
-              </Text>
+            <View style={styles.navCardLead}>
+              <View style={[styles.navIconBox, { backgroundColor: colors.semantic.errorBg }]}>
+                <ClipboardList size={20} color={colors.semantic.error} strokeWidth={1.75} />
+              </View>
+              <View style={styles.navCardBody}>
+                <Text style={[styles.navCardTitle, { color: colors.text.primary }]}>Tarefas</Text>
+                <Text style={[styles.navCardSub, { color: colors.text.secondary }]}>
+                  {pendingValidationCount} {pendingValidationCount === 1 ? 'tarefa aguardando' : 'tarefas aguardando'} validação
+                </Text>
+              </View>
             </View>
             <Badge label="Validar" variant="error" />
           </Pressable>
@@ -317,16 +401,17 @@ export default function AdminHomeScreen() {
         </View>
       </View>
 
-    </ScrollView>
+      </ScrollView>
+    </SafeScreenFrame>
   );
 }
 
 function makeStyles() {
   return StyleSheet.create({
     loading:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    container:     { flexGrow: 1, paddingHorizontal: spacing.screen, paddingBottom: spacing['12'] },
+    container:     { flexGrow: 1, paddingHorizontal: spacing.screen },
 
-    hero:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing['5'] },
+    hero:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing['6'] },
     heroText:      { flex: 1, paddingRight: spacing['4'] },
 
     avatarWrapper: { position: 'relative' },
@@ -337,22 +422,54 @@ function makeStyles() {
     },
     editBadgeIcon: { alignItems: 'center' as const, justifyContent: 'center' as const },
     heroSub:       { fontFamily: typography.family.bold, fontSize: typography.size.sm },
-    heroTitle:     { fontFamily: typography.family.black, fontSize: typography.size['2xl'], marginTop: spacing['1'] },
-    heroFamily:    { fontFamily: typography.family.semibold, fontSize: typography.size.sm, marginTop: spacing['1'] },
+    heroTitle:     { fontFamily: typography.family.black, fontSize: typography.size['2xl'], marginTop: spacing['1'], lineHeight: typography.lineHeight['3xl'] },
+    familyPill:    {
+      marginTop: spacing['2'],
+      alignSelf: 'flex-start',
+      borderRadius: radii.full,
+      borderWidth: 1,
+      paddingHorizontal: spacing['3'],
+      paddingVertical: spacing['1.5'],
+    },
+    heroFamily:    { fontFamily: typography.family.semibold, fontSize: typography.size.sm },
 
     statsRow:      { flexDirection: 'row', gap: spacing['3'], marginBottom: spacing['6'] },
     statCard:      {
-      flex: 1, borderRadius: radii.inner, borderWidth: 1,
-      padding: spacing['3'], alignItems: 'center',
+      flex: 1,
+      minHeight: 112,
+      borderRadius: radii.inner,
+      borderWidth: 1,
+      paddingHorizontal: spacing['3'],
+      paddingVertical: spacing['4'],
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing['1'],
+      borderCurve: 'continuous',
     },
-    statValue:     { fontFamily: typography.family.black, fontSize: typography.size.xl },
-    statLabel:     { fontFamily: typography.family.semibold, fontSize: typography.size.xs, marginTop: spacing['1'] },
+    statValue:     {
+      fontFamily: typography.family.black,
+      fontSize: typography.size['2xl'],
+      lineHeight: typography.lineHeight['2xl'],
+      fontVariant: ['tabular-nums'],
+      textAlign: 'center',
+    },
+    statLabel:     {
+      fontFamily: typography.family.semibold,
+      fontSize: typography.size.xs,
+      lineHeight: typography.lineHeight.xs,
+      textAlign: 'center',
+    },
 
     section:       { marginBottom: spacing['6'], gap: spacing['3'] },
     sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
     sectionTitle:  { fontFamily: typography.family.bold, fontSize: typography.size.md },
     sectionLink:   { fontFamily: typography.family.bold, fontSize: typography.size.sm },
+    seeAllBtn:     {
+      flexDirection: 'row', alignItems: 'center', gap: spacing['1'],
+      borderRadius: radii.md, paddingVertical: spacing['1.5'], paddingHorizontal: spacing['3'],
+    },
+    seeAllBtnText: { fontFamily: typography.family.bold, fontSize: typography.size.sm },
     countBadge:    { width: 24, height: 24, borderRadius: radii.full, alignItems: 'center', justifyContent: 'center' },
     countBadgeText:{ fontFamily: typography.family.black, fontSize: typography.size.xs },
 
@@ -366,10 +483,20 @@ function makeStyles() {
     childPoints:   { fontFamily: typography.family.black, fontSize: typography.size.sm },
 
     navCard:       {
-      flexDirection: 'row', alignItems: 'center', gap: spacing['3'],
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing['3'],
       borderRadius: radii.outer, borderWidth: 1, padding: spacing['4'],
     },
-    navCardIcon:   { width: 44, height: 44, borderRadius: radii.md, alignItems: 'center' as const, justifyContent: 'center' as const },
+    navCardLead:   { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing['3'] },
+    navIconBox:    {
+      width: 44,
+      height: 44,
+      borderRadius: radii.md,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
     navCardBody:   { flex: 1 },
     navCardTitle:  { fontFamily: typography.family.bold, fontSize: typography.size.md },
     navCardSub:    { fontFamily: typography.family.medium, fontSize: typography.size.xs, marginTop: spacing['1'] },

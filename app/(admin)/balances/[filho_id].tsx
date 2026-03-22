@@ -18,7 +18,6 @@ import {
   listTransactions,
   applyPenalty,
   configureAppreciation,
-  applyAppreciation,
   getTransactionTypeLabel,
   getAppreciationPeriodLabel,
   isCredit,
@@ -29,6 +28,7 @@ import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { PenaltyModal, PenaltyButton } from '@/components/balance/penalty-modal';
 import { AppreciationModal } from '@/components/balance/appreciation-modal';
 import { TransactionIcon } from '@/components/balance/transaction-icon';
@@ -45,8 +45,6 @@ export default function ChildBalanceAdminScreen() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalType, setModalType] = useState<ModalType>(null);
-  const [appreciationSaving, setAppreciationSaving] = useState(false);
-  const [appreciationSuccess, setAppreciationSuccess] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!filho_id) return;
@@ -64,17 +62,6 @@ export default function ChildBalanceAdminScreen() {
   }, [filho_id]);
 
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
-
-  async function handleApplyAppreciation() {
-    if (!filho_id) return;
-    setAppreciationSaving(true);
-    setAppreciationSuccess(null);
-    const { data: ganho, error } = await applyAppreciation(filho_id);
-    setAppreciationSaving(false);
-    if (error) { setAppreciationSuccess(null); return; }
-    setAppreciationSuccess(`+${ganho} pontos creditados no cofrinho!`);
-    await loadData();
-  }
 
   async function handlePenalty(amount: number, description: string) {
     if (!filho_id) return { error: 'ID do filho não encontrado' };
@@ -106,11 +93,17 @@ export default function ChildBalanceAdminScreen() {
   const ultimaValorizacaoTexto = balance?.data_ultima_valorizacao
     ? ` · última em ${new Date(balance.data_ultima_valorizacao).toLocaleDateString('pt-BR')}`
     : '';
+  const proximaValorizacaoTexto = balance?.proxima_valorizacao_em
+    ? ` · próxima em ${new Date(balance.proxima_valorizacao_em).toLocaleDateString('pt-BR')}`
+    : '';
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
+    <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader title={nome ?? 'Filho'} onBack={() => router.back()} />
+      <ScreenHeader
+        title={nome ?? 'Filho'}
+        onBack={() => router.back()}
+      />
 
       <FlatList
         data={transactions}
@@ -144,28 +137,19 @@ export default function ChildBalanceAdminScreen() {
               </View>
               {hasAppreciationConfigured ? (
                 <Text style={styles.boxConfigTexto}>
-                  {balance!.indice_valorizacao}% ao {periodoAtual}{ultimaValorizacaoTexto}
+                  {balance!.indice_valorizacao}% ao {periodoAtual}{ultimaValorizacaoTexto}{proximaValorizacaoTexto}
                 </Text>
               ) : (
                 <Text style={styles.boxConfigTexto}>Não configurada</Text>
               )}
               <View style={styles.acoesBtns}>
-                <Pressable style={styles.btnAcao} onPress={() => setModalType('valorizacao_config')}>
+                <Pressable style={styles.btnAcao} onPress={() => setModalType('valorizacao_config')} accessibilityRole="button" accessibilityLabel="Configurar valorização">
                   <Text style={styles.btnAcaoTexto}>Configurar</Text>
                 </Pressable>
-                {hasAppreciationConfigured ? (
-                  <Pressable
-                    style={[styles.btnAcao, { backgroundColor: colors.semantic.successBg }]}
-                    onPress={handleApplyAppreciation}
-                    disabled={appreciationSaving}
-                  >
-                    <Text style={[styles.btnAcaoTexto, { color: colors.semantic.success }]}>
-                      {appreciationSaving ? '…' : 'Aplicar agora'}
-                    </Text>
-                  </Pressable>
-                ) : null}
               </View>
-              {appreciationSuccess ? <Text style={styles.sucTexto}>{appreciationSuccess}</Text> : null}
+              <Text style={styles.boxConfigAjuda}>
+                A valorização é lançada automaticamente no cofrinho quando o período vence.
+              </Text>
             </View>
 
             <PenaltyButton onPress={() => setModalType('penalizar')} />
@@ -209,14 +193,13 @@ export default function ChildBalanceAdminScreen() {
         onClose={() => setModalType(null)}
         onSave={handleConfigure}
       />
-    </View>
+    </SafeScreenFrame>
   );
 }
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    container: { flex: 1 },
     lista: { padding: spacing['5'], paddingBottom: spacing['12'] },
     cardsRow: { flexDirection: 'row', gap: spacing['3'], marginBottom: spacing['4'] },
     saldoCard: {
@@ -240,7 +223,7 @@ function makeStyles(colors: ThemeColors) {
       paddingVertical: spacing['2'], paddingHorizontal: spacing['3'], minHeight: 44, justifyContent: 'center',
     },
     btnAcaoTexto: { fontSize: typography.size.sm, fontFamily: typography.family.semibold, color: colors.accent.admin },
-    sucTexto: { color: colors.semantic.success, fontSize: typography.size.sm, fontFamily: typography.family.semibold, marginTop: spacing['2'] },
+    boxConfigAjuda: { color: colors.text.muted, fontSize: typography.size.xs, marginTop: spacing['2'] },
     secaoTitulo: { fontSize: typography.size.md, fontFamily: typography.family.bold, color: colors.text.primary, marginBottom: spacing['3'] },
     vazio: { color: colors.text.muted, fontSize: typography.size.sm, textAlign: 'center', marginTop: spacing['2'] },
     movItem: {
