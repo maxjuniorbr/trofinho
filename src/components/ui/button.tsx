@@ -13,6 +13,7 @@ interface ButtonProps extends Omit<PressableProps, 'style'> {
   size?: Size;
   loading?: boolean;
   label: string;
+  loadingLabel?: string;
 }
 
 type ReadonlyButtonProps = Readonly<ButtonProps>;
@@ -59,6 +60,7 @@ export function Button({
   size = 'md',
   loading = false,
   label,
+  loadingLabel,
   disabled,
   onPress,
   ...rest
@@ -138,13 +140,17 @@ export function Button({
           ]}
         >
           {loading
-            ? <ActivityIndicator color={fg()} size="small" />
+            ? loadingLabel
+              ? <View style={styles.loadingRow}><ActivityIndicator color={fg()} size="small" /><Text style={[styles.label, { color: fg(), fontSize, lineHeight, fontFamily: typography.family.bold }]}>{loadingLabel}</Text></View>
+              : <ActivityIndicator color={fg()} size="small" />
             : <Text style={[styles.label, { color: fg(), fontSize, lineHeight, fontFamily: typography.family.bold }]}>{label}</Text>}
         </LinearGradient>
       ) : (
         <View style={[styles.innerPad, { paddingHorizontal, paddingVertical, minHeight }]}>
           {loading
-            ? <ActivityIndicator color={fg()} size="small" />
+            ? loadingLabel
+              ? <View style={styles.loadingRow}><ActivityIndicator color={fg()} size="small" /><Text style={[styles.label, { color: fg(), fontSize, lineHeight, fontFamily: typography.family.semibold }]}>{loadingLabel}</Text></View>
+              : <ActivityIndicator color={fg()} size="small" />
             : <Text style={[styles.label, { color: fg(), fontSize, lineHeight, fontFamily: typography.family.semibold }]}>{label}</Text>}
         </View>
       )}
@@ -176,5 +182,10 @@ const styles = StyleSheet.create({
   },
   label: {
     fontWeight: typography.weight.bold,
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['2'],
   },
 });

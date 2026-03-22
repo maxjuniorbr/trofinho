@@ -208,6 +208,7 @@ export default function AdminHomeScreen() {
       <StatusBar style={colors.statusBar} />
       <ScrollView
         style={{ backgroundColor: colors.bg.canvas }}
+        overScrollMode="never"
         contentContainerStyle={[
           styles.container,
           {

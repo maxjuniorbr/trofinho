@@ -23,6 +23,7 @@ import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { gradients, radii, shadows, spacing, typography } from '@/constants/theme';
 import { EmptyState } from '@/components/ui/empty-state';
+import { InlineMessage } from '@/components/ui/inline-message';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 
@@ -38,8 +39,6 @@ export default function ChildPrizesScreen() {
   const [redeeming, setRedeeming] = useState<string | null>(null);
   const [redemptionError, setRedemptionError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const hasRedemptionError = Boolean(redemptionError);
-  const hasSuccess = Boolean(success);
   const hasError = Boolean(error);
   const shouldShowEmptyState = loading || hasError || prizes.length === 0;
   const emptyStateMessage = 'Nenhum prêmio disponível no momento.\nPergunte ao responsável!';
@@ -112,8 +111,8 @@ export default function ChildPrizesScreen() {
                 <Text style={styles.balanceValue}>{freeBalance}</Text>
                 <Text style={styles.balancePts}>pontos</Text>
               </LinearGradient>
-              {hasRedemptionError ? <Text style={styles.errorText}>{redemptionError}</Text> : null}
-              {hasSuccess ? <Text style={styles.successText}>{success}</Text> : null}
+              {redemptionError ? <InlineMessage message={redemptionError} variant="error" /> : null}
+              {success ? <InlineMessage message={success} variant="success" /> : null}
             </>
           }
           renderItem={({ item }) => (
@@ -132,7 +131,6 @@ export default function ChildPrizesScreen() {
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    container: { flex: 1 },
     list: { padding: spacing['4'], gap: spacing['3'], paddingBottom: spacing['12'] },
     balanceBanner: {
       borderRadius: radii.xl,
@@ -145,8 +143,6 @@ function makeStyles(colors: ThemeColors) {
     balanceLabel: { fontSize: typography.size.xs, color: colors.text.onBrandMuted, fontFamily: typography.family.semibold },
     balanceValue: { fontSize: typography.size['3xl'], fontFamily: typography.family.black, color: colors.text.onBrand },
     balancePts: { fontSize: typography.size.xs, color: colors.text.onBrandMuted, fontFamily: typography.family.medium },
-    errorText: { color: colors.semantic.error, fontSize: typography.size.sm, fontFamily: typography.family.medium, marginBottom: spacing['1'] },
-    successText: { color: colors.semantic.success, fontSize: typography.size.sm, fontFamily: typography.family.semibold, marginBottom: spacing['1'] },
   });
 }
 

@@ -79,6 +79,7 @@ export default function AdminChildDetailScreen() {
 
       <ScrollView
         style={{ backgroundColor: colors.bg.canvas }}
+        overScrollMode="never"
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: getSafeBottomPadding(insets, spacing['10']) },

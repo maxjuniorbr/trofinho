@@ -10,9 +10,9 @@ import { localizeSupabaseError } from '@lib/api-error';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
 import { useTheme } from '@/context/theme-context';
 import { spacing, typography } from '@/constants/theme';
-import { AuthPrimaryButton } from '@/components/auth/auth-primary-button';
 import { AuthShell } from '@/components/auth/auth-shell';
 import { AuthTextField } from '@/components/auth/auth-text-field';
+import { Button } from '@/components/ui/button';
 import { FormFooter } from '@/components/ui/form-footer';
 
 type LoginField = 'email' | 'password';
@@ -90,12 +90,14 @@ export default function LoginScreen() {
         accessibilityLabel="Campo de senha"
       />
       <FormFooter message={shouldShowError ? error : null}>
-        <AuthPrimaryButton
+        <Button
           label="Entrar"
           loadingLabel="Entrando…"
           loading={loading}
           onPress={handleSignIn}
+          size="lg"
           accessibilityLabel={loading ? 'Entrando' : 'Entrar'}
+          accessibilityState={{ busy: loading }}
         />
 
         <Pressable
