@@ -86,7 +86,7 @@ export function TaskFormFields({
         keyboardType="numeric"
         maxLength={4}
         editable={pointsEditable}
-        style={!pointsEditable ? styles.disabledInput : undefined}
+        style={pointsEditable ? undefined : styles.disabledInput}
         accessibilityLabel="Quantidade de pontos da tarefa"
       />
 

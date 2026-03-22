@@ -178,16 +178,14 @@ describe('tasks', () => {
   });
 
   describe('sortAdminTasks', () => {
-    function makeTask(id: string, statuses: string[]): TaskListItem {
-      return {
-        id,
-        titulo: `Tarefa ${id}`,
-        pontos: 10,
-        frequencia: 'unica',
-        created_at: `2026-03-${id.padStart(2, '0')}T00:00:00Z`,
-        atribuicoes: statuses.map((status) => ({ status }) as TaskListItem['atribuicoes'][number]),
-      };
-    }
+    const makeTask = (id: string, statuses: string[]): TaskListItem => ({
+      id,
+      titulo: `Tarefa ${id}`,
+      pontos: 10,
+      frequencia: 'unica',
+      created_at: `2026-03-${id.padStart(2, '0')}T00:00:00Z`,
+      atribuicoes: statuses.map((status) => ({ status }) as TaskListItem['atribuicoes'][number]),
+    });
 
     it('places aguardando_validacao tasks first in action_first mode', () => {
       const tasks = [

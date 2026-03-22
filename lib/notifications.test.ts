@@ -142,9 +142,8 @@ describe('notifications', () => {
   });
 
   describe('preference gating', () => {
-    function storedPrefs(overrides: Partial<typeof DEFAULT_NOTIFICATION_PREFS>): string {
-      return JSON.stringify({ ...DEFAULT_NOTIFICATION_PREFS, ...overrides });
-    }
+    const storedPrefs = (overrides: Partial<typeof DEFAULT_NOTIFICATION_PREFS>): string =>
+      JSON.stringify({ ...DEFAULT_NOTIFICATION_PREFS, ...overrides });
 
     describe('notifyTaskCompleted', () => {
       it('sends notification when tarefaConcluida is enabled', async () => {
