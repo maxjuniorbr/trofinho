@@ -13,6 +13,17 @@ Aplicativo mobile de educação financeira familiar. Um adulto administra a fam�
 | Backend | Supabase (`Auth`, Postgres, Storage, RLS) |
 | Testes | Vitest |
 
+## Ferramentas e Serviços
+
+| Ferramenta | Papel no projeto |
+| --- | --- |
+| Supabase | Banco de dados Postgres gerenciado, com autenticação, storage e políticas de RLS |
+| Notion | Planejamento e organização do desenvolvimento: roadmap, tarefas e anotações internas |
+| SonarCloud | Análise contínua de qualidade de código: cobertura, dívida técnica e inspeção estática |
+| EAS Build | Geração de builds Android e iOS via Expo Application Services |
+| Expo Go | Testes locais rápidos em dispositivos físicos durante o desenvolvimento |
+| Jules | Revisão automatizada de código com IA para monitoramento de qualidade e consistência |
+
 ## Estado Atual Do Produto
 
 ### Fluxo de autenticação
