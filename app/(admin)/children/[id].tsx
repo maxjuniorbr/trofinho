@@ -48,7 +48,7 @@ export default function AdminChildDetailScreen() {
   }, [id]);
 
   useFocusEffect(useCallback(() => {
-    void loadData();
+    loadData();
   }, [loadData]));
 
   if (loading) {

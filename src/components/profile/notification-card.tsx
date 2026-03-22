@@ -28,7 +28,7 @@ export function NotificationCard({
   const { colors } = useTheme();
 
   function handleToggle(key: keyof NotificationPrefs, value: boolean) {
-    void onPreferencesChange({ ...preferences, [key]: value });
+    onPreferencesChange({ ...preferences, [key]: value });
   }
 
   return (
