@@ -44,6 +44,7 @@ export type Assignment = {
   validada_em: string | null;
   validada_por: string | null;
   created_at: string;
+  competencia: string | null;
 };
 
 export type TaskListItem = {
@@ -51,8 +52,22 @@ export type TaskListItem = {
   titulo: string;
   pontos: number;
   frequencia: TaskFrequencia;
+  created_at: string;
   atribuicoes: { status: AssignmentStatus }[];
 };
+
+export type AdminTaskSort = 'action_first' | 'newest_first';
+
+function assignmentPriority(atribuicoes: { status: AssignmentStatus }[]): number {
+  if (atribuicoes.some((a) => a.status === 'aguardando_validacao')) return 0;
+  if (atribuicoes.some((a) => a.status === 'pendente')) return 1;
+  return 2;
+}
+
+export function sortAdminTasks(tasks: TaskListItem[], sort: AdminTaskSort): TaskListItem[] {
+  if (sort === 'newest_first') return tasks.slice();
+  return tasks.slice().sort((a, b) => assignmentPriority(a.atribuicoes) - assignmentPriority(b.atribuicoes));
+}
 
 export type AssignmentWithChild = Assignment & {
   filhos: { nome: string };
@@ -141,7 +156,7 @@ export async function listAdminTasks(limit = 50): Promise<{
 }> {
   const { data, error } = await supabase
     .from('tarefas')
-    .select('id, titulo, pontos, frequencia, atribuicoes(status)')
+    .select('id, titulo, pontos, frequencia, created_at, atribuicoes(status)')
     .order('created_at', { ascending: false })
     .limit(limit);
 

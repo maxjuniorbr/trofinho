@@ -20,6 +20,7 @@ import {
   type AssignmentWithChild,
 } from '@lib/tasks';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
+import { formatDate, toDateString } from '@lib/utils';
 import { useAssignmentActions } from '@/hooks/use-assignment-actions';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
@@ -28,6 +29,36 @@ import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { getSafeBottomPadding } from '@lib/safe-area';
+
+type DateLine = { label: string; date: string };
+
+function getAssignmentDateLine(assignment: AssignmentWithChild): DateLine | null {
+  switch (assignment.status) {
+    case 'pendente': {
+      if (!assignment.competencia) {
+        return { label: 'Atribuída em ', date: formatDate(assignment.created_at) };
+      }
+      const today = toDateString(new Date());
+      if (assignment.competencia === today) {
+        return { label: 'Para ', date: 'hoje' };
+      }
+      // Append T12:00:00 so the date-only string parses as local noon, not UTC midnight
+      return { label: 'Não realizada em ', date: formatDate(assignment.competencia + 'T12:00:00') };
+    }
+    case 'aguardando_validacao':
+      return assignment.concluida_em
+        ? { label: 'Enviada em ', date: formatDate(assignment.concluida_em) }
+        : null;
+    case 'aprovada': {
+      const date = assignment.validada_em ?? assignment.concluida_em;
+      return date ? { label: 'Aprovada em ', date: formatDate(date) } : null;
+    }
+    case 'rejeitada': {
+      const date = assignment.validada_em ?? assignment.concluida_em;
+      return date ? { label: 'Rejeitada em ', date: formatDate(date) } : null;
+    }
+  }
+}
 
 type AssignmentCardProps = Readonly<{
   assignment: AssignmentWithChild;
@@ -64,6 +95,7 @@ function AssignmentCard({
   const statusColor = getAssignmentStatusColor(assignment.status, colors);
   const isRejecting = action === 'rejecting';
   const evidenceUrl = assignment.evidencia_url ?? undefined;
+  const dateLine = getAssignmentDateLine(assignment);
 
   return (
     <View style={styles.atribCard}>
@@ -75,6 +107,9 @@ function AssignmentCard({
           </Text>
         </View>
       </View>
+      {dateLine ? (
+        <Text style={styles.dataLinha}>{dateLine.label}{dateLine.date}</Text>
+      ) : null}
 
       {evidenceUrl && (
         imageState === 'error' ? (
@@ -385,6 +420,7 @@ function makeStyles(colors: ThemeColors) {
     filhoNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary },
     statusTag: { borderRadius: radii.sm, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'] },
     statusTexto: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
+    dataLinha: { fontSize: typography.size.xs, color: colors.text.muted, marginBottom: spacing['2'] },
     evidenciaImgWrapper: { width: '100%', height: 200, borderRadius: radii.lg, overflow: 'hidden', marginBottom: spacing['2'] },
     evidenciaImg: { width: '100%', height: 200 },
     evidenciaLoading: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg.muted },
