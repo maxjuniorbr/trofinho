@@ -274,4 +274,93 @@ describe('prizes', () => {
     await expect(listRedemptions()).resolves.toEqual({ data: [], error: null });
     await expect(reactivatePrize('prize-2')).resolves.toEqual({ error: null });
   });
+
+  it('returns errors from prize read and list operations', async () => {
+    const listErrorQuery = createOrderQuery({ data: null, error: { message: 'list error' } }, 1);
+    const getErrorQuery = createSingleQuery({ data: null, error: { message: 'not found' } });
+    const redemptionErrorQuery = createOrderQuery({ data: null, error: { message: 'redemption error' } });
+    const activeErrorQuery = createOrderQuery({ data: null, error: { message: 'active error' } });
+    const childRedErrorQuery = createOrderQuery({ data: null, error: { message: 'child error' } });
+
+    supabaseMock.from
+      .mockReturnValueOnce(listErrorQuery)
+      .mockReturnValueOnce(getErrorQuery)
+      .mockReturnValueOnce(redemptionErrorQuery)
+      .mockReturnValueOnce(activeErrorQuery)
+      .mockReturnValueOnce(childRedErrorQuery);
+
+    await expect(listPrizes()).resolves.toEqual({ data: [], error: 'Algo deu errado. Tente novamente.' });
+    await expect(getPrize('prize-x')).resolves.toEqual({ data: null, error: 'Algo deu errado. Tente novamente.' });
+    await expect(listRedemptions()).resolves.toEqual({ data: [], error: 'Algo deu errado. Tente novamente.' });
+    await expect(listActivePrizes()).resolves.toEqual({ data: [], error: 'Algo deu errado. Tente novamente.' });
+    await expect(listChildRedemptions()).resolves.toEqual({ data: [], error: 'Algo deu errado. Tente novamente.' });
+  });
+
+  it('returns errors from write operations and handles edge cases', async () => {
+    const countErrorQuery = createEqQuery({ count: null, error: { message: 'count error' } });
+    const countNullQuery = createEqQuery({ count: null, error: null });
+    const deactivateSuccessQuery = createEqQuery({ error: null });
+    const profileQuery = createSingleQuery({ data: { familia_id: 'fam-1' }, error: null });
+    const insertErrorQuery = createSingleQuery({ data: null, error: { message: 'constraint violation' } });
+
+    supabaseMock.from
+      .mockReturnValueOnce(countErrorQuery)
+      .mockReturnValueOnce(countNullQuery)
+      .mockReturnValueOnce(deactivateSuccessQuery)
+      .mockReturnValueOnce(profileQuery)
+      .mockReturnValueOnce(insertErrorQuery);
+
+    supabaseMock.rpc
+      .mockResolvedValueOnce({ data: null, error: { message: 'request failed' } })
+      .mockResolvedValueOnce({ error: null });
+
+    supabaseMock.auth.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+
+    await expect(countPendingRedemptions()).resolves.toEqual({ data: 0, error: 'Algo deu errado. Tente novamente.' });
+    await expect(countPendingRedemptions()).resolves.toEqual({ data: 0, error: null });
+    await expect(deactivatePrize('prize-1')).resolves.toEqual({ error: null });
+    await expect(requestRedemption('prize-1')).resolves.toEqual({ data: null, error: 'Algo deu errado. Tente novamente.' });
+    await expect(cancelRedemption('red-2')).resolves.toEqual({ error: null });
+    await expect(createPrize({ nome: 'A', descricao: null, custo_pontos: 1 })).resolves.toEqual({
+      data: null,
+      error: 'Algo deu errado. Tente novamente.',
+    });
+  });
+
+  it('returns error from reactivating and handles null data from list queries', async () => {
+    const reactivateErrorQuery = createEqQuery({ error: { message: 'reactivate failed' } });
+    const listNullQuery = createOrderQuery({ data: null, error: null }, 1);
+    const activeNullQuery = createOrderQuery({ data: null, error: null });
+    const childNullQuery = createOrderQuery({ data: null, error: null });
+
+    supabaseMock.from
+      .mockReturnValueOnce(reactivateErrorQuery)
+      .mockReturnValueOnce(listNullQuery)
+      .mockReturnValueOnce(activeNullQuery)
+      .mockReturnValueOnce(childNullQuery);
+
+    await expect(reactivatePrize('prize-1')).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
+    await expect(listPrizes()).resolves.toEqual({ data: [], error: null });
+    await expect(listActivePrizes()).resolves.toEqual({ data: [], error: null });
+    await expect(listChildRedemptions()).resolves.toEqual({ data: [], error: null });
+  });
+
+  it('returns upload errors when the prize image upload fails', async () => {
+    uploadImageToPublicBucketMock
+      .mockResolvedValueOnce({ error: 'upload failed', publicUrl: null })
+      .mockResolvedValueOnce({ error: null, publicUrl: null });
+
+    const input = { nome: 'A', descricao: null, custo_pontos: 10, imageUri: 'file:///cache/img.jpg' };
+
+    await expect(updatePrize('prize-1', input)).resolves.toEqual({
+      error: 'upload failed',
+      imageUrl: null,
+      pointsMessage: null,
+    });
+    await expect(updatePrize('prize-1', input)).resolves.toEqual({
+      error: 'Não foi possível fazer upload da imagem do prêmio.',
+      imageUrl: null,
+      pointsMessage: null,
+    });
+  });
 });
