@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/theme-context';
 import { spacing } from '@/constants/theme';
-import { getSafeHorizontalPadding } from '@lib/safe-area';
+import { getSafeBottomPadding, getSafeHorizontalPadding } from '@lib/safe-area';
 import { ScreenHeader } from '@/components/ui/screen-header';
 
 type StickyFooterScreenProps = Readonly<{
@@ -79,6 +79,7 @@ export function StickyFooterScreen({
           contentContainerStyle={[contentBaseStyle, contentStyle]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          overScrollMode="never"
         >
           {children}
         </ScrollView>
@@ -90,7 +91,7 @@ export function StickyFooterScreen({
               {
                 backgroundColor: footerBackground,
                 borderTopColor: colors.border.subtle,
-                paddingBottom: Math.max(insets.bottom - spacing['2'], spacing['1']),
+                paddingBottom: getSafeBottomPadding(insets, spacing['2']),
                 ...getSafeHorizontalPadding(insets, spacing['5']),
               },
             ]}
