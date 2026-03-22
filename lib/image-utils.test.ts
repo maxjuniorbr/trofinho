@@ -103,7 +103,7 @@ describe('extractErrorMessage', () => {
 
   it('retorna fallback para Error com mensagem vazia', () => {
     expect(extractErrorMessage(new Error('   '), 'fallback')).toBe('fallback');
-    expect(extractErrorMessage(new Error(''), 'fallback')).toBe('fallback');
+    expect(extractErrorMessage(new Error(''), 'fallback')).toBe('fallback'); // NOSONAR typescript:S7722 — intentionally testing empty-message Error
   });
 
   it('retorna fallback para objeto com message vazia', () => {

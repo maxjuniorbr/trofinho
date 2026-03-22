@@ -28,6 +28,7 @@ import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { EmptyState } from '@/components/ui/empty-state';
+import { InlineMessage } from '@/components/ui/inline-message';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { formatDate } from '@lib/utils';
@@ -62,7 +63,6 @@ export default function AdminRedemptionsScreen() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [modal, setModal] = useState<ConfirmModalState>(MODAL_INITIAL);
   const hasError = Boolean(error);
-  const hasActionError = Boolean(actionError);
   const shouldShowEmptyState = loading || hasError || redemptions.length === 0;
 
   const loadData = useCallback(async () => {
@@ -83,17 +83,17 @@ export default function AdminRedemptionsScreen() {
 
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
-  function handleConfirm(redemptionId: string, childName: string, prizeName: string) {
+  const handleConfirm = (redemptionId: string, childName: string, prizeName: string) => {
     setActionError(null);
     setModal({ visible: true, type: 'confirm', redemptionId, childName, prizeName, points: 0 });
-  }
+  };
 
-  function handleCancel(redemptionId: string, childName: string, prizeName: string, points: number) {
+  const handleCancel = (redemptionId: string, childName: string, prizeName: string, points: number) => {
     setActionError(null);
     setModal({ visible: true, type: 'cancel', redemptionId, childName, prizeName, points });
-  }
+  };
 
-  async function handleModalConfirm() {
+  const handleModalConfirm = async () => {
     setProcessing(modal.redemptionId);
     setModal(MODAL_INITIAL);
     if (modal.type === 'confirm') {
@@ -132,7 +132,7 @@ export default function AdminRedemptionsScreen() {
           refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
           ListHeaderComponent={
             <>
-              {hasActionError ? <Text style={styles.erroAcao}>{actionError}</Text> : null}
+              {actionError ? <InlineMessage message={actionError} variant="error" /> : null}
               {pending.length > 0 && (
                 <View style={styles.secaoHeader}>
                   <View style={styles.secaoTituloRow}>
@@ -256,7 +256,6 @@ function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
     lista: { padding: spacing['4'], paddingBottom: spacing['12'] },
-    erroAcao: { color: colors.semantic.error, fontSize: typography.size.sm, fontFamily: typography.family.medium, marginBottom: spacing['2'], textAlign: 'center' },
     secaoHeader: { paddingVertical: spacing['2'] },
     secaoTituloRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     secaoTitulo: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.text.muted, textTransform: 'uppercase', letterSpacing: 0.5 },

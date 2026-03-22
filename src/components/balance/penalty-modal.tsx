@@ -29,14 +29,14 @@ export function PenaltyModal({ visible, childName, onClose, onApply }: PenaltyMo
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function handleClose() {
+  const handleClose = () => {
     setAmount('');
     setDescription('');
     setError(null);
     onClose();
-  }
+  };
 
-  async function handleApply() {
+  const handleApply = async () => {
     setError(null);
     const v = Number.parseInt(amount, 10);
     if (!amount || Number.isNaN(v) || v <= 0) { setError('Informe um valor válido.'); return; }

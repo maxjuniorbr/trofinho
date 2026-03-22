@@ -33,13 +33,13 @@ export default function OnboardingScreen() {
   const submitLabel = loading ? 'Criando família…' : 'Criar família';
   const backLabel = loggingOut ? 'Saindo…' : 'Voltar para o login';
 
-  function validate(): string | null {
+  const validate = (): string | null => {
     if (!familyName.trim()) return 'Informe o nome da família.';
     if (!adminName.trim()) return 'Informe seu nome.';
     return null;
-  }
+  };
 
-  async function handleCreateFamily() {
+  const handleCreateFamily = async () => {
     const validationError = validate();
     if (validationError) { setError(validationError); return; }
 
@@ -50,13 +50,13 @@ export default function OnboardingScreen() {
 
     if (createError) { setError(localizeSupabaseError(createError.message)); return; }
     router.replace('/(admin)/');
-  }
+  };
 
-  async function handleBack() {
+  const handleBack = async () => {
     setLoggingOut(true);
     await signOut();
     router.replace('/(auth)/login');
-  }
+  };
 
   return (
     <AuthShell
