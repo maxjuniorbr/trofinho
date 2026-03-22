@@ -23,7 +23,7 @@ vi.mock('expo-router', () => ({
   }),
 }));
 
-import { AuthPrimaryButton } from './auth-primary-button';
+import { Button } from '../ui/button';
 import { AuthShell } from './auth-shell';
 import { AuthTextField } from './auth-text-field';
 
@@ -48,10 +48,10 @@ describe('auth components', () => {
     (Animated.timing as unknown as Mock).mockClear();
   });
 
-  it('renders the primary auth button in idle and loading states', () => {
+  it('renders the primary button in idle and loading states with loadingLabel', () => {
     const onPress = vi.fn();
     const idleRenderer = render(
-      <AuthPrimaryButton
+      <Button
         label="Entrar"
         loadingLabel="Entrando..."
         loading={false}
@@ -62,11 +62,12 @@ describe('auth components', () => {
     const idlePressable = idleRenderer.root.findByType(Pressable);
 
     expect(idlePressable.props.disabled).toBe(false);
-    expect(flattenStyle(idlePressable.props.style({ pressed: true })).opacity).toBe(1);
+    // Primary button uses 0.82 opacity when pressed (not loading)
+    expect(flattenStyle(idlePressable.props.style({ pressed: true })).opacity).toBe(0.82);
     expect(idleRenderer.root.findByType(Text).props.children).toBe('Entrar');
 
     const loadingRenderer = render(
-      <AuthPrimaryButton
+      <Button
         label="Entrar"
         loadingLabel="Entrando..."
         loading

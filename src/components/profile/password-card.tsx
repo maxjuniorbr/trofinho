@@ -4,6 +4,7 @@ import { updateUserPassword } from '@lib/auth';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 import { useTransientMessage } from '@/hooks/use-transient-message';
+import { InlineMessage } from '@/components/ui/inline-message';
 
 export function PasswordCard() {
   const { colors } = useTheme();
@@ -59,8 +60,8 @@ export function PasswordCard() {
         maxLength={72}
       />
 
-      {error ? <Text style={[styles.feedback, { color: colors.semantic.error }]}>{error}</Text> : null}
-      {visibleSuccessMessage ? <Text style={[styles.feedback, { color: colors.semantic.success }]}>{visibleSuccessMessage}</Text> : null}
+      {error ? <InlineMessage message={error} variant="error" /> : null}
+      {visibleSuccessMessage ? <InlineMessage message={visibleSuccessMessage} variant="success" /> : null}
 
       <Pressable
         style={[styles.btn, { backgroundColor: colors.accent.adminDim, opacity: saving ? 0.55 : 1 }]}
@@ -81,7 +82,7 @@ const styles = StyleSheet.create({
   subtitle: { fontFamily: typography.family.semibold, fontSize: typography.size.sm, marginBottom: spacing['2'] },
   label: { fontSize: typography.size.sm, fontFamily: typography.family.semibold, marginTop: spacing['3'], marginBottom: spacing['1'] },
   input: { borderWidth: 1, borderRadius: radii.md, paddingHorizontal: spacing['4'], paddingVertical: spacing['3'], fontSize: typography.size.md },
-  feedback: { fontSize: typography.size.sm, marginTop: spacing['2'] },
+
   btn: { borderRadius: radii.md, paddingVertical: spacing['3'], alignItems: 'center', minHeight: 48, justifyContent: 'center', marginTop: spacing['3'] },
   btnText: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
 });

@@ -295,6 +295,7 @@ export default function TaskDetailAdminScreen() {
       />
 
       <ScrollView
+        overScrollMode="never"
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: getSafeBottomPadding(insets, spacing['12']) },
