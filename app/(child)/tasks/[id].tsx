@@ -30,6 +30,7 @@ import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { StickyFooterScreen } from '@/components/ui/sticky-footer-screen';
+import { InlineMessage } from '@/components/ui/inline-message';
 
 type EvidenceSectionProps = Readonly<{
   evidenceUrl: string | null | undefined;
@@ -110,7 +111,7 @@ function StatusFooter({ assignment, completing, completionError, onComplete, col
     const requiresEvidence = assignment.tarefas.exige_evidencia;
     return (
       <>
-        {completionError ? <Text style={styles.errorText}>{completionError}</Text> : null}
+        {completionError ? <InlineMessage message={completionError} variant="error" /> : null}
         <Pressable
           style={[styles.completeBtn, completing && styles.disabledBtn]}
           onPress={onComplete}
@@ -376,7 +377,6 @@ function makeStyles(colors: ThemeColors) {
     rejectionNoteLabel: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.semantic.error, marginBottom: spacing['1'] },
     rejectionNoteText: { fontSize: typography.size.sm, color: colors.text.primary, marginBottom: spacing['2'] },
     rejectionNoteHint: { fontSize: typography.size.xs, color: colors.text.muted, fontStyle: 'italic' },
-    errorText: { color: colors.semantic.error, fontSize: typography.size.sm, textAlign: 'center', marginBottom: spacing['3'], marginTop: spacing['2'] },
     completeBtn: { backgroundColor: colors.accent.filho, borderRadius: radii.xl, paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['2'], minHeight: 48, justifyContent: 'center' },
     completeBtnInner: { flexDirection: 'row', alignItems: 'center', gap: spacing['1.5'] },
     disabledBtn: { opacity: 0.6 },
