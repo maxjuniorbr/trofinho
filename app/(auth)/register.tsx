@@ -10,9 +10,9 @@ import { localizeSupabaseError } from '@lib/api-error';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
 import { useTheme } from '@/context/theme-context';
 import { spacing, typography } from '@/constants/theme';
-import { AuthPrimaryButton } from '@/components/auth/auth-primary-button';
 import { AuthShell } from '@/components/auth/auth-shell';
 import { AuthTextField } from '@/components/auth/auth-text-field';
+import { Button } from '@/components/ui/button';
 import { FormFooter } from '@/components/ui/form-footer';
 
 type RegisterField = 'name' | 'email' | 'password' | 'confirmPassword';
@@ -120,12 +120,14 @@ export default function RegisterScreen() {
         accessibilityLabel="Campo de confirmar senha"
       />
       <FormFooter message={shouldShowError ? error : null}>
-        <AuthPrimaryButton
+        <Button
           label="Criar conta"
           loadingLabel="Criando conta…"
           loading={loading}
           onPress={handleSignUp}
+          size="lg"
           accessibilityLabel={loading ? 'Criando conta' : 'Criar conta'}
+          accessibilityState={{ busy: loading }}
         />
 
         <Pressable

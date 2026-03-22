@@ -4,6 +4,7 @@ import { updateUserName, type UserProfile } from '@lib/auth';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 import { useTransientMessage } from '@/hooks/use-transient-message';
+import { InlineMessage } from '@/components/ui/inline-message';
 
 type PersonalDataCardProps = Readonly<{
   profile: UserProfile | null;
@@ -53,8 +54,8 @@ export function PersonalDataCard({ profile, email, onNameUpdated }: PersonalData
         <Text style={[styles.inputReadonlyText, { color: colors.text.muted }]}>{email}</Text>
       </View>
 
-      {error ? <Text style={[styles.feedback, { color: colors.semantic.error }]}>{error}</Text> : null}
-      {visibleSuccessMessage ? <Text style={[styles.feedback, { color: colors.semantic.success }]}>{visibleSuccessMessage}</Text> : null}
+      {error ? <InlineMessage message={error} variant="error" /> : null}
+      {visibleSuccessMessage ? <InlineMessage message={visibleSuccessMessage} variant="success" /> : null}
 
       <Pressable
         style={[styles.btn, { backgroundColor: colors.accent.adminDim, opacity: saving ? 0.55 : 1 }]}
@@ -76,7 +77,7 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderRadius: radii.md, paddingHorizontal: spacing['4'], paddingVertical: spacing['3'], fontSize: typography.size.md },
   inputReadonly: { borderWidth: 1, borderRadius: radii.md, paddingHorizontal: spacing['4'], paddingVertical: spacing['3'], minHeight: 48, justifyContent: 'center' },
   inputReadonlyText: { fontSize: typography.size.md },
-  feedback: { fontSize: typography.size.sm, marginTop: spacing['2'] },
+
   btn: { borderRadius: radii.md, paddingVertical: spacing['3'], alignItems: 'center', minHeight: 48, justifyContent: 'center', marginTop: spacing['3'] },
   btnText: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
 });
