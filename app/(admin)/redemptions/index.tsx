@@ -32,6 +32,7 @@ import { InlineMessage } from '@/components/ui/inline-message';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { formatDate } from '@lib/utils';
+import { captureException } from '@lib/sentry';
 
 type ConfirmModalState = {
   visible: boolean;
@@ -73,7 +74,8 @@ export default function AdminRedemptionsScreen() {
       const { data, error } = await listRedemptions();
       if (error) setError(error);
       else setRedemptions(data);
-    } catch {
+    } catch (e) {
+      captureException(e);
       setError('Não foi possível carregar os resgates agora.');
       setRedemptions([]);
     } finally {

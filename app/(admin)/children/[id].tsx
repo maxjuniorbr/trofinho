@@ -11,6 +11,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing } from '@/constants/theme';
 import { getSafeBottomPadding } from '@lib/safe-area';
+import { captureException } from '@lib/sentry';
 
 export default function AdminChildDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -39,7 +40,8 @@ export default function AdminChildDetailScreen() {
       }
 
       setChild(data);
-    } catch {
+    } catch (e) {
+      captureException(e);
       setError('Não foi possível carregar o filho agora.');
       setChild(null);
     } finally {

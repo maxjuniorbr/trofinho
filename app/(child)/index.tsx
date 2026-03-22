@@ -23,6 +23,7 @@ import { listChildAssignments } from '@lib/tasks';
 import { getBalance } from '@lib/balances';
 import { getGreeting } from '@lib/utils';
 import { isNotificationPermissionDenied } from '@lib/notifications';
+import { captureException } from '@lib/sentry';
 import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { PointsDisplay } from '@/components/ui/points-display';
@@ -78,7 +79,8 @@ export default function FilhoHomeScreen() {
       } else {
         setFamily(null);
       }
-    } catch {
+    } catch (e) {
+      captureException(e);
       setFamily(null);
       setPendingCount(0);
       setFreeBalance(0);

@@ -23,6 +23,7 @@ import {
   getAssignmentPoints,
   type ChildAssignment,
 } from '@lib/tasks';
+import { captureException } from '@lib/sentry';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
@@ -194,7 +195,8 @@ export default function ChildTaskDetailScreen() {
       const { data, error: loadError } = await getChildAssignment(id);
       if (loadError) setError(loadError);
       else setAssignment(data);
-    } catch {
+    } catch (e) {
+      captureException(e);
       setError('Não foi possível carregar a tarefa agora.');
       setAssignment(null);
     } finally {

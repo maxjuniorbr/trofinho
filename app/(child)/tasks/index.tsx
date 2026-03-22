@@ -18,6 +18,7 @@ import {
   type AssignmentStatus,
 } from '@lib/tasks';
 import { formatDate } from '@lib/utils';
+import { captureException } from '@lib/sentry';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
@@ -96,7 +97,8 @@ export default function ChildTasksScreen() {
       ]);
       if (loadError) setError(loadError);
       else setAssignments(data);
-    } catch {
+    } catch (e) {
+      captureException(e);
       setError('Não foi possível carregar suas tarefas agora.');
       setAssignments([]);
     } finally {

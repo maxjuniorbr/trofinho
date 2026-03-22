@@ -20,6 +20,7 @@ Aplicativo mobile de educação financeira familiar. Um adulto administra a fam�
 | Supabase | Banco de dados Postgres gerenciado, com autenticação, storage e políticas de RLS |
 | Notion | Planejamento e organização do desenvolvimento: roadmap, tarefas e anotações internas |
 | SonarCloud | Análise contínua de qualidade de código: cobertura, dívida técnica e inspeção estática |
+| Sentry | Monitoramento de erros, logs operacionais e navegação em produção, com suporte a source maps nos builds |
 | EAS Build | Geração de builds Android e iOS via Expo Application Services |
 | Expo Go | Testes locais rápidos em dispositivos físicos durante o desenvolvimento |
 | Jules | Revisão automatizada de código com IA para monitoramento de qualidade e consistência |
@@ -113,6 +114,15 @@ cd trofinho
 npm install
 cp .env.example .env.local
 ```
+
+### Configuração Do Sentry
+
+O projeto usa Sentry para monitoramento em produção. A integração captura erros e contexto básico de navegação, mas é inicializada somente quando `EXPO_PUBLIC_SENTRY_DSN` estiver definido.
+
+- `EXPO_PUBLIC_SENTRY_DSN`: DSN público do projeto Sentry para envio de eventos do app.
+- `SENTRY_AUTH_TOKEN`: token usado apenas em build time para upload de source maps no EAS Build.
+
+Sem `EXPO_PUBLIC_SENTRY_DSN`, o app continua funcionando normalmente e as chamadas ao Sentry viram no-op.
 
 ### Setup do Backend (Supabase)
 
