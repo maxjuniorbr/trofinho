@@ -158,10 +158,11 @@ export async function listAdminTasks(limit = 50): Promise<{
     .from('tarefas')
     .select('id, titulo, pontos, frequencia, created_at, atribuicoes(status)')
     .order('created_at', { ascending: false })
-    .limit(limit);
+    .limit(limit)
+    .returns<TaskListItem[]>();
 
   if (error) return { data: [], error: localizeRpcError(error.message) };
-  return { data: (data ?? []) as unknown as TaskListItem[], error: null };
+  return { data: data ?? [], error: null };
 }
 
 export async function getTaskWithAssignments(
@@ -171,10 +172,11 @@ export async function getTaskWithAssignments(
     .from('tarefas')
     .select('*, atribuicoes(*, filhos(nome))')
     .eq('id', taskId)
+    .returns<TaskDetail>()
     .single();
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
-  const task = await signTaskEvidence(data as unknown as TaskDetail);
+  const task = await signTaskEvidence(data as TaskDetail);
   return { data: task, error: null };
 }
 
@@ -230,10 +232,11 @@ export async function listChildAssignments(): Promise<{
     .select('*, tarefas(*)')
     .or(visibleAssignmentsFilter)
     .order('created_at', { ascending: false })
-    .limit(100);
+    .limit(100)
+    .returns<ChildAssignment[]>();
 
   if (error) return { data: [], error: localizeRpcError(error.message) };
-  return { data: (data ?? []) as unknown as ChildAssignment[], error: null };
+  return { data: data ?? [], error: null };
 }
 
 export async function getChildAssignment(
@@ -243,10 +246,11 @@ export async function getChildAssignment(
     .from('atribuicoes')
     .select('*, tarefas(*)')
     .eq('id', assignmentId)
+    .returns<ChildAssignment>()
     .single();
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
-  const assignment = await signEvidence(data as unknown as ChildAssignment);
+  const assignment = await signEvidence(data as ChildAssignment);
   return { data: assignment, error: null };
 }
 
