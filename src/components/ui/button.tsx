@@ -72,7 +72,7 @@ export function Button({
 
   const isPrimary = variant === 'primary';
 
-  function bg() {
+  const bg = () => {
     switch (variant) {
       case 'primary':   return colors.brand.vivid;
       case 'secondary': return colors.bg.elevated;
@@ -80,9 +80,9 @@ export function Button({
       case 'danger':    return colors.semantic.errorBg;
       case 'outline':   return 'transparent';
     }
-  }
+  };
 
-  function fg() {
+  const fg = () => {
     switch (variant) {
       case 'primary':   return colors.text.onBrand;
       case 'secondary': return colors.text.primary;
@@ -90,22 +90,22 @@ export function Button({
       case 'danger':    return colors.semantic.error;
       case 'outline':   return colors.brand.vivid;
     }
-  }
+  };
 
-  function borderColor() {
+  const borderColor = () => {
     switch (variant) {
       case 'secondary': return colors.border.default;
       case 'outline':   return colors.brand.vivid + '4D'; // 30% opacity
       default:          return 'transparent';
     }
-  }
+  };
 
-  async function handlePress(e: Parameters<NonNullable<PressableProps['onPress']>>[0]) {
+  const handlePress = async (e: Parameters<NonNullable<PressableProps['onPress']>>[0]) => {
     if (!isDisabled) {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onPress?.(e);
     }
-  }
+  };
 
   const fontFamily = isPrimary ? typography.family.bold : typography.family.semibold;
   const fgColor = fg();

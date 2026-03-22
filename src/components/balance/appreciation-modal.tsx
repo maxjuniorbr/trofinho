@@ -42,12 +42,12 @@ export function AppreciationModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function handleClose() {
+  const handleClose = () => {
     setError(null);
     onClose();
-  }
+  };
 
-  async function handleSave() {
+  const handleSave = async () => {
     setError(null);
     const idx = Number.parseFloat(rate.replace(',', '.'));
     if (Number.isNaN(idx) || idx < 0 || idx > 100) {
