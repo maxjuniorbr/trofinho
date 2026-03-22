@@ -53,7 +53,7 @@ export function createAuthStateHandler({
     timeoutId = setTimeout(() => {
       timeoutId = null;
 
-      void getProfile()
+      getProfile()
         .then((profile) => {
           applyResolvedProfile(profile, currentRequestId);
         })

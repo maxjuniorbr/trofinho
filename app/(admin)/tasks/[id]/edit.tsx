@@ -67,7 +67,7 @@ export default function EditTaskScreen() {
   }, [id]);
 
   useFocusEffect(useCallback(() => {
-    void loadData();
+    loadData();
   }, [loadData]));
   useEffect(() => {
     if (loading || !task || !editState || editState.canEdit) {
