@@ -86,7 +86,8 @@ describe('balances', () => {
     const balanceQuery = createQuery({ data: null, error: { message: 'boom' } });
     const listQuery = {
       select: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: null, error: { message: 'list failed' } }),
+      order: vi.fn().mockReturnThis(),
+      returns: vi.fn().mockResolvedValue({ data: null, error: { message: 'list failed' } }),
     };
 
     supabaseMock.from
@@ -141,7 +142,8 @@ describe('balances', () => {
 
   it('returns empty lists and successful penalty results for remaining branches', async () => {
     const emptyBalancesQuery = {
-      order: vi.fn().mockResolvedValue({ data: null, error: null }),
+      order: vi.fn().mockReturnThis(),
+      returns: vi.fn().mockResolvedValue({ data: null, error: null }),
       select: vi.fn().mockReturnThis(),
     };
     const listErrorQuery = {
