@@ -245,6 +245,7 @@ describe('ui components', () => {
     });
 
     expect(routerMock.replace).toHaveBeenCalledWith('/(child)/');
+    expect(flattenStyle(childBackButton.props.style({ pressed: false })).backgroundColor).toBe(lightColors.bg.muted);
     expect(childRenderer.root.findAllByType(Text).map((node) => node.props.children).join(' '))
       .toContain('Acao');
 
