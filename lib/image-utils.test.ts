@@ -9,7 +9,44 @@ vi.mock('expo-image-manipulator', () => ({
   SaveFormat: { JPEG: 'jpeg' },
 }));
 
-import { inferImageExtension, inferImageContentType, extractErrorMessage } from './image-utils';
+import { inferImageExtension, inferImageContentType, extractErrorMessage, resizeImage } from './image-utils';
+import { ImageManipulator } from 'expo-image-manipulator';
+
+describe('resizeImage', () => {
+  it('resizes with default options', async () => {
+    const saveAsync = vi.fn().mockResolvedValue({ uri: 'file:///resized.jpg' });
+    const renderAsync = vi.fn().mockResolvedValue({ saveAsync });
+    const resize = vi.fn().mockReturnValue(undefined);
+
+    vi.mocked(ImageManipulator.manipulate).mockReturnValue({
+      resize,
+      renderAsync,
+    } as any);
+
+    const result = await resizeImage('file:///photo.jpg');
+
+    expect(ImageManipulator.manipulate).toHaveBeenCalledWith('file:///photo.jpg');
+    expect(resize).toHaveBeenCalledWith({ width: 1024 });
+    expect(saveAsync).toHaveBeenCalledWith({ format: 'jpeg', compress: 0.7 });
+    expect(result).toBe('file:///resized.jpg');
+  });
+
+  it('uses custom options when provided', async () => {
+    const saveAsync = vi.fn().mockResolvedValue({ uri: 'file:///resized.jpg' });
+    const renderAsync = vi.fn().mockResolvedValue({ saveAsync });
+    const resize = vi.fn().mockReturnValue(undefined);
+
+    vi.mocked(ImageManipulator.manipulate).mockReturnValue({
+      resize,
+      renderAsync,
+    } as any);
+
+    await resizeImage('file:///photo.jpg', { maxDimension: 512, compress: 0.5 });
+
+    expect(resize).toHaveBeenCalledWith({ width: 512 });
+    expect(saveAsync).toHaveBeenCalledWith({ format: 'jpeg', compress: 0.5 });
+  });
+});
 
 describe('inferImageExtension', () => {
   it('retorna a extensão de uma URI com extensão conhecida', () => {

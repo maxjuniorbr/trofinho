@@ -10,7 +10,6 @@ vi.mock('./supabase', () => ({
 }));
 
 import {
-  applyAppreciation,
   applyPenalty,
   configureAppreciation,
   getAppreciationPeriodLabel,
@@ -36,6 +35,7 @@ describe('balances', () => {
   beforeEach(() => {
     supabaseMock.from.mockReset();
     supabaseMock.rpc.mockReset();
+    supabaseMock.rpc.mockResolvedValue({ error: null });
   });
 
   it('returns labels and credit flags for transaction types', () => {
@@ -50,12 +50,15 @@ describe('balances', () => {
     expect(getAppreciationPeriodLabel('mensal')).toBe('mês');
   });
 
-  it('loads a balance with and without child filter', async () => {
+  it('loads a balance with sync and child filter', async () => {
     const query = createQuery({ data: { saldo_livre: 10 }, error: null });
     supabaseMock.from.mockReturnValue(query);
 
     const result = await getBalance('child-1');
 
+    expect(supabaseMock.rpc).toHaveBeenCalledWith('sincronizar_valorizacoes_automaticas', {
+      p_filho_id: 'child-1',
+    });
     expect(query.eq).toHaveBeenCalledWith('filho_id', 'child-1');
     expect(result).toEqual({ data: { saldo_livre: 10 }, error: null });
   });
@@ -66,7 +69,17 @@ describe('balances', () => {
 
     const result = await getBalance();
 
+    expect(supabaseMock.rpc).toHaveBeenCalledWith('sincronizar_valorizacoes_automaticas');
     expect(result).toEqual({ data: null, error: null });
+  });
+
+  it('proceeds to query data even when sync fails', async () => {
+    const balanceQuery = createQuery({ data: { saldo_livre: 5 }, error: null });
+    supabaseMock.rpc.mockResolvedValueOnce({ error: { message: 'sync failed' } });
+    supabaseMock.from.mockReturnValue(balanceQuery);
+
+    const result = await getBalance();
+    expect(result).toEqual({ data: { saldo_livre: 5 }, error: null });
   });
 
   it('surfaces query errors for balances and listings', async () => {
@@ -84,7 +97,7 @@ describe('balances', () => {
     await expect(listAdminBalances()).resolves.toEqual({ data: [], error: 'list failed' });
   });
 
-  it('lists transactions with limit and ordering', async () => {
+  it('lists transactions with limit, ordering and sync', async () => {
     const query = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -95,6 +108,9 @@ describe('balances', () => {
 
     const result = await listTransactions('child-1', 5);
 
+    expect(supabaseMock.rpc).toHaveBeenCalledWith('sincronizar_valorizacoes_automaticas', {
+      p_filho_id: 'child-1',
+    });
     expect(query.eq).toHaveBeenCalledWith('filho_id', 'child-1');
     expect(query.limit).toHaveBeenCalledWith(5);
     expect(result).toEqual({ data: [{ id: 'tx-1' }], error: null });
@@ -103,24 +119,20 @@ describe('balances', () => {
   it('delegates balance mutations to RPC calls', async () => {
     supabaseMock.rpc
       .mockResolvedValueOnce({ error: null })
-      .mockResolvedValueOnce({ data: 7, error: null })
       .mockResolvedValueOnce({ error: { message: 'penalty failed' } })
       .mockResolvedValueOnce({ error: null })
-      .mockResolvedValueOnce({ error: { message: 'transfer failed' } })
-      .mockResolvedValueOnce({ data: null, error: { message: 'appreciation failed' } });
+      .mockResolvedValueOnce({ error: { message: 'transfer failed' } });
 
     await expect(transferToPiggyBank('child-1', 10)).resolves.toEqual({ error: null });
-    await expect(applyAppreciation('child-1')).resolves.toEqual({ data: 7, error: null });
     await expect(applyPenalty('child-1', 3, 'Late')).resolves.toEqual({ error: 'penalty failed' });
     await expect(configureAppreciation('child-1', 12, 'mensal')).resolves.toEqual({ error: null });
     await expect(transferToPiggyBank('child-1', 4)).resolves.toEqual({ error: 'transfer failed' });
-    await expect(applyAppreciation('child-1')).resolves.toEqual({ data: null, error: 'appreciation failed' });
 
     expect(supabaseMock.rpc).toHaveBeenNthCalledWith(1, 'transferir_para_cofrinho', {
       p_filho_id: 'child-1',
       p_valor: 10,
     });
-    expect(supabaseMock.rpc).toHaveBeenNthCalledWith(4, 'configurar_valorizacao', {
+    expect(supabaseMock.rpc).toHaveBeenNthCalledWith(3, 'configurar_valorizacao', {
       p_filho_id: 'child-1',
       p_indice: 12,
       p_periodo: 'mensal',
@@ -142,7 +154,10 @@ describe('balances', () => {
     supabaseMock.from
       .mockReturnValueOnce(emptyBalancesQuery)
       .mockReturnValueOnce(listErrorQuery);
-    supabaseMock.rpc.mockResolvedValueOnce({ error: null });
+    supabaseMock.rpc
+      .mockResolvedValueOnce({ error: null })
+      .mockResolvedValueOnce({ error: null })
+      .mockResolvedValueOnce({ error: null });
 
     await expect(listAdminBalances()).resolves.toEqual({ data: [], error: null });
     await expect(listTransactions('child-1')).resolves.toEqual({ data: [], error: 'list failed' });
