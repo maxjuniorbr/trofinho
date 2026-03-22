@@ -37,8 +37,8 @@ yarn-error.*
 .vscode/
 .idea/
 *.code-workspace
-skills-lock.json
 .sonarcloud.properties
+.skills-lock.json
 
 # Local agent instructions
 .github/copilot-instructions.md
