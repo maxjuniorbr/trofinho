@@ -23,7 +23,7 @@ export function PasswordCard() {
     const { error: saveError } = await updateUserPassword(newPassword);
     setSaving(false);
     if (saveError) { setError(saveError.message); return; }
-    setSuccess('Senha alterada com sucesso!');
+    setSuccess('Senha alterada com sucesso.');
     setNewPassword('');
     setConfirmPassword('');
   }
