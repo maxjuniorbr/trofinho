@@ -47,7 +47,7 @@ export function Badge({ label, variant = 'neutral', size = 'sm' }: ReadonlyBadge
   const { colors } = useTheme();
   const resolved = resolveVariant(variant);
 
-  function bg() {
+  const bg = () => {
     switch (resolved) {
       case 'success': return colors.semantic.successBg;
       case 'error':   return colors.semantic.errorBg;
@@ -56,9 +56,9 @@ export function Badge({ label, variant = 'neutral', size = 'sm' }: ReadonlyBadge
       case 'brand':   return colors.brand.subtle;
       default:        return colors.bg.muted;
     }
-  }
+  };
 
-  function fg() {
+  const fg = () => {
     switch (resolved) {
       case 'success': return colors.semantic.successText;
       case 'error':   return colors.semantic.errorText;
@@ -67,7 +67,7 @@ export function Badge({ label, variant = 'neutral', size = 'sm' }: ReadonlyBadge
       case 'brand':   return colors.brand.vivid;
       default:        return colors.text.secondary;
     }
-  }
+  };
 
   const paddingV = size === 'md' ? spacing['2'] : spacing['0.75'];
   const paddingH = size === 'md' ? spacing['3'] : spacing['2'];

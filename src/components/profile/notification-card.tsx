@@ -1,5 +1,6 @@
 import { StyleSheet, Switch, Text, View } from 'react-native';
 import { useTheme } from '@/context/theme-context';
+import { InlineMessage } from '@/components/ui/inline-message';
 import { radii, spacing, typography } from '@/constants/theme';
 import type { NotificationPrefs } from '@lib/notifications';
 
@@ -27,9 +28,9 @@ export function NotificationCard({
 }: NotificationCardProps) {
   const { colors } = useTheme();
 
-  function handleToggle(key: keyof NotificationPrefs, value: boolean) {
+  const handleToggle = (key: keyof NotificationPrefs, value: boolean) => {
     onPreferencesChange({ ...preferences, [key]: value });
-  }
+  };
 
   return (
     <View
@@ -74,11 +75,7 @@ export function NotificationCard({
         </Text>
       ) : null}
 
-      {error ? (
-        <Text style={[styles.feedbackText, { color: colors.semantic.error }]}>
-          {error}
-        </Text>
-      ) : null}
+      {error ? <InlineMessage message={error} variant="error" /> : null}
     </View>
   );
 }

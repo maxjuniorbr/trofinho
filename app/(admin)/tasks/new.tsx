@@ -32,7 +32,7 @@ export default function NewTaskScreen() {
     listFamilyChildren().then(({ data }) => { setChildren(data); setLoadingChildren(false); });
   }, []);
 
-  function toggleChild(id: string) {
+  const toggleChild = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
@@ -42,9 +42,9 @@ export default function NewTaskScreen() {
       }
       return next;
     });
-  }
+  };
 
-  async function handleCreate() {
+  const handleCreate = async () => {
     setError(null);
     if (!titulo.trim()) return setError('Informe o título da tarefa.');
     const pontosNum = Number.parseInt(pontos, 10);
@@ -61,7 +61,7 @@ export default function NewTaskScreen() {
     router.dismissTo('/(admin)/tasks');
   }
 
-  function renderChildrenList() {
+  const renderChildrenList = () => {
     if (loadingChildren) return <ActivityIndicator color={colors.accent.admin} style={{ marginVertical: spacing['3'] }} />;
     if (children.length === 0) return <Text style={[styles.semFilhos, { color: colors.text.muted }]}>Nenhum filho cadastrado.</Text>;
     return children.map((child) => {

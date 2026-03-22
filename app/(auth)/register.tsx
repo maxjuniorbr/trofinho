@@ -31,7 +31,7 @@ export default function RegisterScreen() {
   const [focusedField, setFocusedField] = useState<RegisterField | null>(null);
   const shouldShowError = Boolean(error);
 
-  function validate(): string | null {
+  const validate = (): string | null => {
     const emailValue = email.trim();
     if (!name.trim()) return 'Informe seu nome.';
     if (!emailValue) return 'Informe seu e-mail.';
@@ -40,9 +40,9 @@ export default function RegisterScreen() {
     if (password.length < 6) return 'A senha deve ter ao menos 6 caracteres.';
     if (password !== confirmPassword) return 'As senhas não coincidem.';
     return null;
-  }
+  };
 
-  async function handleSignUp() {
+  const handleSignUp = async () => {
     const validationError = validate();
     if (validationError) { setError(validationError); return; }
 

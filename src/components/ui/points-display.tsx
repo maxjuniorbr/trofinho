@@ -15,13 +15,13 @@ type ReadonlyPointsDisplayProps = Readonly<PointsDisplayProps>;
 export function PointsDisplay({ value, label, variant = 'gold', size = 'sm' }: ReadonlyPointsDisplayProps) {
   const { colors } = useTheme();
 
-  function valueColor() {
+  const valueColor = () => {
     switch (variant) {
       case 'gold':  return colors.brand.vivid;
       case 'amber': return colors.brand.dim;
       default:      return colors.text.primary;
     }
-  }
+  };
 
   const valueFontSize = size === 'lg' ? typography.size['3xl'] : typography.lineHeight.lg;
 
