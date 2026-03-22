@@ -35,12 +35,14 @@ export function FormFooter({
 }
 
 function makeStyles(compact: boolean, bottomInset: number, includeSafeBottom: boolean) {
+  const paddingBottom = includeSafeBottom
+    ? getSafeBottomPadding({ top: 0, bottom: bottomInset }, compact ? spacing['2'] : spacing['4'])
+    : 0;
+
   return StyleSheet.create({
     container: {
       paddingTop: compact ? 0 : spacing['2'],
-      paddingBottom: includeSafeBottom
-        ? getSafeBottomPadding({ top: 0, bottom: bottomInset }, compact ? spacing['2'] : spacing['4'])
-        : 0,
+      paddingBottom,
       gap: spacing['3'],
     },
   });
