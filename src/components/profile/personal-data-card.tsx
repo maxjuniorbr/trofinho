@@ -29,7 +29,7 @@ export function PersonalDataCard({ profile, email, onNameUpdated }: PersonalData
     setSaving(false);
     if (saveError) { setError(saveError.message); return; }
     onNameUpdated(trimmed);
-    setSuccess('Nome atualizado!');
+    setSuccess('Nome atualizado.');
   }
 
   return (
