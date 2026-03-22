@@ -119,6 +119,7 @@ export default function ProfileScreen() {
 
         <ScrollView
           style={{ backgroundColor: colors.bg.canvas }}
+          overScrollMode="never"
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}

@@ -72,6 +72,7 @@ export function AuthShell({
       ) : null}
       <ScrollView
         style={[styles.flex, { backgroundColor: colors.bg.canvas }]}
+        overScrollMode="never"
         contentContainerStyle={[
           styles.container,
           {
