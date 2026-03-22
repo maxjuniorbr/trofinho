@@ -60,7 +60,7 @@ export default function AdminPrizesScreen() {
       setSuccessFeedback(feedback);
     }
 
-    void loadData();
+    loadData();
   }, [loadData]));
 
   const active = prizes.filter((p) => p.ativo);

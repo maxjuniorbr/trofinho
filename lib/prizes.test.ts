@@ -186,7 +186,7 @@ describe('prizes', () => {
       descricao: 'Sessão especial',
       custo_pontos: 120,
       ativo: false,
-      imageUri: '/tmp/prize.jpg',
+      imageUri: 'file:///data/user/0/com.trofinho/cache/prize.jpg',
     })).resolves.toEqual({
       error: null,
       imageUrl: 'https://cdn.example.com/prize-2/capa.jpg?t=2',
@@ -195,7 +195,7 @@ describe('prizes', () => {
 
     expect(uploadImageToPublicBucketMock).toHaveBeenCalledWith({
       bucket: 'premios',
-      imageUri: '/tmp/prize.jpg',
+      imageUri: 'file:///data/user/0/com.trofinho/cache/prize.jpg',
       imageOptions: { maxDimension: 768, compress: 0.65 },
       pathWithoutExtension: 'prize-2/capa',
     });
