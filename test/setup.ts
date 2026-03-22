@@ -59,11 +59,14 @@ vi.mock('react-native-svg', () => {
 });
 
 vi.mock('lucide-react-native', () => ({
+  AlertCircle: createIcon('AlertCircle'),
   Clock: createIcon('Clock'),
   Eye: createIcon('Eye'),
   CheckCircle2: createIcon('CheckCircle2'),
   XCircle: createIcon('XCircle'),
   AlertTriangle: createIcon('AlertTriangle'),
+  TriangleAlert: createIcon('TriangleAlert'),
+  Info: createIcon('Info'),
   ClipboardList: createIcon('ClipboardList'),
   Users: createIcon('Users'),
   Wallet: createIcon('Wallet'),
@@ -144,5 +147,4 @@ vi.mock('@/context/theme-context', () => ({
 
 afterEach(() => {
   vi.restoreAllMocks();
-  vi.clearAllMocks();
 });
