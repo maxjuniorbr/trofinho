@@ -1,3 +1,4 @@
+import { localizeRpcError } from './api-error';
 import { supabase } from './supabase';
 
 export type TransactionType =
@@ -73,7 +74,7 @@ export async function getBalance(childId?: string): Promise<{ data: Balance | nu
 
   if (error) {
     if (error.code === 'PGRST116') return { data: null, error: null };
-    return { data: null, error: error.message };
+    return { data: null, error: localizeRpcError(error.message) };
   }
 
   return { data: data as Balance, error: null };
@@ -87,7 +88,7 @@ export async function listAdminBalances(): Promise<{ data: BalanceWithChild[]; e
     .select('*, filhos(nome)')
     .order('filhos(nome)');
 
-  if (error) return { data: [], error: error.message };
+  if (error) return { data: [], error: localizeRpcError(error.message) };
   return { data: (data ?? []) as unknown as BalanceWithChild[], error: null };
 }
 
@@ -104,7 +105,7 @@ export async function listTransactions(
     .order('created_at', { ascending: false })
     .limit(limit);
 
-  if (error) return { data: [], error: error.message };
+  if (error) return { data: [], error: localizeRpcError(error.message) };
   return { data: (data ?? []) as Transaction[], error: null };
 }
 
@@ -116,7 +117,7 @@ export async function transferToPiggyBank(
     p_filho_id: childId,
     p_valor: amount,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: localizeRpcError(error.message) };
   return { error: null };
 }
 
@@ -130,7 +131,7 @@ export async function applyPenalty(
     p_valor: amount,
     p_descricao: description,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: localizeRpcError(error.message) };
   return { error: null };
 }
 
@@ -144,7 +145,7 @@ export async function configureAppreciation(
     p_indice: rate,
     p_periodo: period,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: localizeRpcError(error.message) };
   return { error: null };
 }
 

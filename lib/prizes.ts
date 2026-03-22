@@ -1,3 +1,4 @@
+import { localizeRpcError } from './api-error';
 import { notifyRedemptionRequested } from './notifications';
 import { uploadImageToPublicBucket } from './storage';
 import { supabase } from './supabase';
@@ -62,7 +63,7 @@ export async function listPrizes(limit = 50): Promise<{
     .order('nome')
     .limit(limit);
 
-  if (error) return { data: [], error: error.message };
+  if (error) return { data: [], error: localizeRpcError(error.message) };
   return { data: (data ?? []) as Prize[], error: null };
 }
 
@@ -76,7 +77,7 @@ export async function getPrize(id: string): Promise<{
     .eq('id', id)
     .single();
 
-  if (error) return { data: null, error: error.message };
+  if (error) return { data: null, error: localizeRpcError(error.message) };
   return { data: data as Prize, error: null };
 }
 
@@ -106,7 +107,7 @@ export async function createPrize(input: PrizeInput): Promise<{
     .select()
     .single();
 
-  if (error) return { data: null, error: error.message };
+  if (error) return { data: null, error: localizeRpcError(error.message) };
   return { data: data as Prize, error: null };
 }
 
@@ -146,7 +147,7 @@ export async function updatePrize(
 
   if (error) {
     return {
-      error: error.message,
+      error: localizeRpcError(error.message),
       imageUrl: nextImageUrl,
       pointsMessage: null,
     };
@@ -165,7 +166,7 @@ export async function deactivatePrize(id: string): Promise<{ error: string | nul
     .update({ ativo: false })
     .eq('id', id);
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeRpcError(error.message) };
   return { error: null };
 }
 
@@ -175,7 +176,7 @@ export async function reactivatePrize(id: string): Promise<{ error: string | nul
     .update({ ativo: true })
     .eq('id', id);
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeRpcError(error.message) };
   return { error: null };
 }
 
@@ -189,7 +190,7 @@ export async function listRedemptions(): Promise<{
     .order('created_at', { ascending: false })
     .limit(100);
 
-  if (error) return { data: [], error: error.message };
+  if (error) return { data: [], error: localizeRpcError(error.message) };
   return { data: (data ?? []) as RedemptionWithChildAndPrize[], error: null };
 }
 
@@ -198,7 +199,7 @@ export async function confirmRedemption(redemptionId: string): Promise<{ error: 
     p_resgate_id: redemptionId,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeRpcError(error.message) };
   return { error: null };
 }
 
@@ -207,7 +208,7 @@ export async function cancelRedemption(redemptionId: string): Promise<{ error: s
     p_resgate_id: redemptionId,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeRpcError(error.message) };
   return { error: null };
 }
 
@@ -222,7 +223,7 @@ export async function listActivePrizes(): Promise<{
     .order('custo_pontos')
     .limit(50);
 
-  if (error) return { data: [], error: error.message };
+  if (error) return { data: [], error: localizeRpcError(error.message) };
   return { data: (data ?? []) as Prize[], error: null };
 }
 
@@ -236,7 +237,7 @@ export async function listChildRedemptions(): Promise<{
     .order('created_at', { ascending: false })
     .limit(100);
 
-  if (error) return { data: [], error: error.message };
+  if (error) return { data: [], error: localizeRpcError(error.message) };
   return { data: (data ?? []) as RedemptionWithPrize[], error: null };
 }
 
@@ -248,7 +249,7 @@ export async function requestRedemption(prizeId: string): Promise<{
     p_premio_id: prizeId,
   });
 
-  if (error) return { data: null, error: error.message };
+  if (error) return { data: null, error: localizeRpcError(error.message) };
   await notifyRedemptionRequested();
   return { data: data as string, error: null };
 }
@@ -262,6 +263,6 @@ export async function countPendingRedemptions(): Promise<{
     .select('*', { count: 'exact', head: true })
     .eq('status', 'pendente');
 
-  if (error) return { data: 0, error: error.message };
+  if (error) return { data: 0, error: localizeRpcError(error.message) };
   return { data: count ?? 0, error: null };
 }
