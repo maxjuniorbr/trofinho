@@ -16,6 +16,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { StickyFooterScreen } from '@/components/ui/sticky-footer-screen';
 import { TaskFormFields } from '@/components/tasks/task-form-fields';
 import { useTheme } from '@/context/theme-context';
+import { captureException } from '@lib/sentry';
 import { radii, spacing, typography } from '@/constants/theme';
 
 export default function EditTaskScreen() {
@@ -58,7 +59,8 @@ export default function EditTaskScreen() {
       setTitle(data.titulo);
       setDescription(data.descricao ?? '');
       setPoints(String(data.pontos));
-    } catch {
+    } catch (e) {
+      captureException(e);
       setError('Não foi possível carregar a tarefa agora.');
       setTask(null);
     } finally {

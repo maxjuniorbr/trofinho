@@ -9,6 +9,7 @@ import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { Avatar } from '@/components/ui/avatar';
 import { listChildren } from '@lib/children';
 import { listAdminBalances, type BalanceWithChild } from '@lib/balances';
+import { captureException } from '@lib/sentry';
 import type { Child } from '@lib/tasks';
 import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -36,7 +37,7 @@ export default function AdminChildrenScreen() {
           setBalancesMap(new Map(balancesData.map((s) => [s.filho_id, s])));
         }
       }
-    } catch { setError('Não foi possível carregar os filhos agora.'); setChildren([]); }
+    } catch (e) { captureException(e); setError('Não foi possível carregar os filhos agora.'); setChildren([]); }
     finally { setLoading(false); }
   }, []);
 

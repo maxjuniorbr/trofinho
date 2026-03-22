@@ -27,6 +27,7 @@ import type { Child } from '@lib/tasks';
 import { countPendingRedemptions } from '@lib/prizes';
 import { getFamily, type Family } from '@lib/family';
 import { isNotificationPermissionDenied } from '@lib/notifications';
+import { captureException } from '@lib/sentry';
 import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing, typography, type ThemeColors } from '@/constants/theme';
 import { Avatar } from '@/components/ui/avatar';
@@ -159,7 +160,8 @@ export default function AdminHomeScreen() {
       setPendingValidationCount(data.pendingValidationCount);
       setPendingRedemptionCount(data.pendingRedemptionCount);
       setShowNotificationBanner(notificationPermissionDenied);
-    } catch {
+    } catch (e) {
+      captureException(e);
       setFamily(null);
       setChildren([]);
       setBalancesMap(new Map());

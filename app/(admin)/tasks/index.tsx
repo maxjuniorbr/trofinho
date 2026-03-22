@@ -22,6 +22,7 @@ import {
   type TaskListItem,
 } from '@lib/tasks';
 import { formatDate } from '@lib/utils';
+import { captureException } from '@lib/sentry';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -106,7 +107,7 @@ export default function AdminTasksScreen() {
     try {
       const { data, error: loadError } = await listAdminTasks();
       if (loadError) setError(loadError); else setTasks(data);
-    } catch { setError('Não foi possível carregar as tarefas agora.'); setTasks([]); }
+    } catch (e) { captureException(e); setError('Não foi possível carregar as tarefas agora.'); setTasks([]); }
     finally { setLoading(false); }
   }, []);
 

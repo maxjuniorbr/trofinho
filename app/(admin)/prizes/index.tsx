@@ -11,6 +11,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Pencil, Plus, Trophy } from 'lucide-react-native';
 import { listPrizes, type Prize } from '@lib/prizes';
+import { captureException } from '@lib/sentry';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -45,7 +46,8 @@ export default function AdminPrizesScreen() {
       const { data, error } = await listPrizes();
       if (error) setError(error);
       else setPrizes(data);
-    } catch {
+    } catch (e) {
+      captureException(e);
       setError('Não foi possível carregar os prêmios agora.');
       setPrizes([]);
     } finally {
