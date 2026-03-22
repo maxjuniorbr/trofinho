@@ -170,6 +170,44 @@ export default function AdminPrizeDetailScreen() {
     );
   }
 
+  let mediaPreviewContent = (
+    <View style={[styles.mediaPreview, styles.mediaPlaceholder]}>
+      <ImagePlus size={28} color={colors.text.muted} strokeWidth={2} />
+      <Text style={styles.mediaPlaceholderText}>Sem capa</Text>
+    </View>
+  );
+
+  if (imagePreview) {
+    if (imageState === 'error') {
+      mediaPreviewContent = (
+        <View style={[styles.mediaWrapper, styles.mediaFallback, { backgroundColor: colors.bg.muted }]}>
+          <Text style={[styles.mediaFallbackText, { color: colors.text.muted }]}>
+            Não foi possível carregar a imagem
+          </Text>
+        </View>
+      );
+    } else {
+      mediaPreviewContent = (
+        <View style={styles.mediaWrapper}>
+          <Image
+            source={{ uri: imagePreview }}
+            style={styles.mediaPreview}
+            resizeMode="cover"
+            accessibilityLabel={`Imagem do prêmio ${name || prize.nome}`}
+            onLoadStart={() => setImageState('loading')}
+            onLoadEnd={() => setImageState('loaded')}
+            onError={() => setImageState('error')}
+          />
+          {imageState === 'loaded' ? null : (
+            <View style={[styles.mediaLoading, { backgroundColor: colors.bg.muted }]}>
+              <ActivityIndicator size="small" color={colors.accent.admin} />
+            </View>
+          )}
+        </View>
+      );
+    }
+  }
+
   return (
     <StickyFooterScreen
       title="Editar Prêmio"
@@ -189,45 +227,15 @@ export default function AdminPrizeDetailScreen() {
       )}
     >
       <StatusBar style={colors.statusBar} />
-      {!isActive ? (
+      {isActive ? null : (
         <InlineMessage
           message="Este prêmio está inativo e não aparece para os filhos."
           variant="warning"
         />
-      ) : null}
+      )}
 
       <View style={styles.mediaCard}>
-        {imagePreview ? (
-          imageState === 'error' ? (
-            <View style={[styles.mediaWrapper, styles.mediaFallback, { backgroundColor: colors.bg.muted }]}>
-              <Text style={[styles.mediaFallbackText, { color: colors.text.muted }]}>
-                Não foi possível carregar a imagem
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.mediaWrapper}>
-              <Image
-                source={{ uri: imagePreview }}
-                style={styles.mediaPreview}
-                resizeMode="cover"
-                accessibilityLabel={`Imagem do prêmio ${name || prize.nome}`}
-                onLoadStart={() => setImageState('loading')}
-                onLoadEnd={() => setImageState('loaded')}
-                onError={() => setImageState('error')}
-              />
-              {imageState !== 'loaded' ? (
-                <View style={[styles.mediaLoading, { backgroundColor: colors.bg.muted }]}>
-                  <ActivityIndicator size="small" color={colors.accent.admin} />
-                </View>
-              ) : null}
-            </View>
-          )
-        ) : (
-          <View style={[styles.mediaPreview, styles.mediaPlaceholder]}>
-            <ImagePlus size={28} color={colors.text.muted} strokeWidth={2} />
-            <Text style={styles.mediaPlaceholderText}>Sem capa</Text>
-          </View>
-        )}
+        {mediaPreviewContent}
 
         <Button
           label={pickingImage ? 'Abrindo galeria…' : 'Escolher capa'}
