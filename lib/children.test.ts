@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const tempSignUpMock = vi.hoisted(() => vi.fn());
 const createClientMock = vi.hoisted(() => vi.fn());
-
 const supabaseMock = vi.hoisted(() => ({
   auth: {
     getUser: vi.fn(),
@@ -19,7 +18,7 @@ vi.mock('./supabase', () => ({
   supabase: supabaseMock,
 }));
 
-import { getMyChildId, listChildren, registerChild } from './children';
+import { getChild, getMyChildId, listChildren, registerChild } from './children';
 
 function createOrderQuery(result: { data?: unknown; error?: { message: string } | null }) {
   return {
@@ -76,7 +75,7 @@ describe('children', () => {
     ['Password should be at least 6 characters', 'A senha deve ter ao menos 6 caracteres.'],
     ['Unable to validate email address', 'E-mail inválido.'],
     ['email rate limit exceeded', 'Limite de e-mails atingido. Aguarde alguns minutos.'],
-    ['unexpected', 'unexpected'],
+    ['unexpected', 'Não foi possível cadastrar o filho. Tente novamente.'],
   ])('translates sign up error "%s"', async (message, expected) => {
     tempSignUpMock.mockResolvedValue({
       data: { user: null },
@@ -136,6 +135,43 @@ describe('children', () => {
     await expect(listChildren()).resolves.toEqual({
       data: [],
       error: 'broken query',
+    });
+  });
+
+  it('fetches a child profile for admin view', async () => {
+    supabaseMock.rpc.mockResolvedValueOnce({
+      data: [{
+        id: 'child-1',
+        nome: 'Lia',
+        usuario_id: 'user-1',
+        avatar_url: null,
+        email: 'lia@example.com',
+      }],
+      error: null,
+    });
+
+    await expect(getChild('child-1')).resolves.toEqual({
+      data: {
+        id: 'child-1',
+        nome: 'Lia',
+        usuario_id: 'user-1',
+        avatar_url: null,
+        email: 'lia@example.com',
+      },
+      error: null,
+    });
+
+    expect(supabaseMock.rpc).toHaveBeenCalledWith('obter_filho_admin', {
+      p_filho_id: 'child-1',
+    });
+  });
+
+  it('returns rpc errors when loading a child fails', async () => {
+    supabaseMock.rpc.mockResolvedValueOnce({ error: { message: 'rpc failed' } });
+
+    await expect(getChild('child-2')).resolves.toEqual({
+      data: null,
+      error: 'rpc failed',
     });
   });
 
