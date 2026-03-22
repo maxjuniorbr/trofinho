@@ -6,16 +6,17 @@ import { radii, spacing, typography } from '@/constants/theme';
 interface InputProps extends TextInputProps {
   label: string;
   error?: string | null;
+  noMarginBottom?: boolean;
 }
 
 export const Input = forwardRef<TextInput, InputProps>(function Input(
-  { label, error, style, ...rest },
+  { label, error, noMarginBottom = false, style, ...rest },
   ref,
 ) {
   const { colors } = useTheme();
 
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, noMarginBottom ? styles.noMarginBottom : null]}>
       <Text style={[styles.label, { color: colors.text.secondary }]}>{label}</Text>
       <TextInput
         ref={ref}
@@ -42,6 +43,9 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
 const styles = StyleSheet.create({
   wrapper: {
     marginBottom: spacing['4'],
+  },
+  noMarginBottom: {
+    marginBottom: 0,
   },
   label: {
     fontSize: typography.size.sm,

@@ -11,6 +11,7 @@ import {
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 
 const mascotImage = loadMascotImage();
 
@@ -57,11 +58,8 @@ export function AuthShell({
     outputRange: ['-10deg', '5deg', '0deg'],
   });
 
-  return (
-    <KeyboardAvoidingView
-      style={[styles.flex, { backgroundColor: colors.bg.canvas }]}
-      behavior="padding"
-    >
+  const body = (
+    <SafeScreenFrame topInset={!headerTitle} bottomInset>
       {headerTitle ? (
         <ScreenHeader
           title={headerTitle}
@@ -74,7 +72,15 @@ export function AuthShell({
       ) : null}
       <ScrollView
         style={[styles.flex, { backgroundColor: colors.bg.canvas }]}
-        contentContainerStyle={styles.container}
+        contentContainerStyle={[
+          styles.container,
+          {
+            paddingTop: headerTitle
+              ? styles.container.paddingTop
+              : spacing['4'],
+            paddingBottom: spacing['10'],
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -114,6 +120,15 @@ export function AuthShell({
           {children}
         </Animated.View>
       </ScrollView>
+    </SafeScreenFrame>
+  );
+
+  return (
+    <KeyboardAvoidingView
+      style={[styles.flex, { backgroundColor: colors.bg.canvas }]}
+      behavior="padding"
+    >
+      {body}
     </KeyboardAvoidingView>
   );
 }

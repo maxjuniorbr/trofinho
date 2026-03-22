@@ -29,6 +29,7 @@ import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { formatDate } from '@lib/utils';
 
 type ConfirmModalState = {
@@ -111,7 +112,7 @@ export default function AdminRedemptionsScreen() {
   const pending = redemptions.filter((r) => r.status === 'pendente');
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
+    <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
       <ScreenHeader title="Resgates" onBack={() => router.back()} backLabel="Início" />
 
@@ -247,14 +248,14 @@ export default function AdminRedemptionsScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeScreenFrame>
   );
 }
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
-    lista: { padding: spacing['4'], paddingBottom: spacing['10'] },
+    lista: { padding: spacing['4'], paddingBottom: spacing['12'] },
     erroAcao: { color: colors.semantic.error, fontSize: typography.size.sm, fontFamily: typography.family.medium, marginBottom: spacing['2'], textAlign: 'center' },
     secaoHeader: { paddingVertical: spacing['2'] },
     secaoTituloRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },

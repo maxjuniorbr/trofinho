@@ -9,10 +9,12 @@ import {
   Image,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import { RefreshCw, Camera } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { RefreshCw, Camera, Pencil } from 'lucide-react-native';
 import {
+  getTaskEditState,
   getTaskWithAssignments,
   type TaskDetail,
   type AssignmentWithChild,
@@ -22,8 +24,10 @@ import { useAssignmentActions } from '@/hooks/use-assignment-actions';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
-import { ScreenHeader } from '@/components/ui/screen-header';
+import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { InlineMessage } from '@/components/ui/inline-message';
+import { getSafeBottomPadding } from '@lib/safe-area';
 
 type AssignmentCardProps = Readonly<{
   assignment: AssignmentWithChild;
@@ -154,7 +158,11 @@ function AssignmentCard({
               </Pressable>
             </View>
           )}
-          {assignmentError ? <Text style={styles.erroAtrib}>{assignmentError}</Text> : null}
+          {assignmentError ? (
+            <View style={styles.erroAtribWrapper}>
+              <InlineMessage message={assignmentError} variant="error" />
+            </View>
+          ) : null}
         </View>
       )}
     </View>
@@ -162,14 +170,16 @@ function AssignmentCard({
 }
 
 export default function TaskDetailAdminScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, updated } = useLocalSearchParams<{ id: string; updated?: string }>();
   const router = useRouter();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [task, setTask] = useState<TaskDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showUpdatedMessage, setShowUpdatedMessage] = useState(updated === '1');
 
   const loadData = useCallback(async () => {
     if (!id) return;
@@ -190,6 +200,25 @@ export default function TaskDetailAdminScreen() {
   const assignmentActions = useAssignmentActions(loadData);
 
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  useEffect(() => {
+    if (updated === '1') {
+      setShowUpdatedMessage(true);
+    }
+  }, [updated]);
+  useEffect(() => {
+    if (loading || updated !== '1' || !showUpdatedMessage) {
+      return;
+    }
+
+    const timeoutId = globalThis.setTimeout(() => {
+      setShowUpdatedMessage(false);
+      router.setParams({ updated: undefined });
+    }, 4000);
+
+    return () => {
+      globalThis.clearTimeout(timeoutId);
+    };
+  }, [loading, router, showUpdatedMessage, updated]);
 
   if (loading) {
     return (
@@ -212,12 +241,36 @@ export default function TaskDetailAdminScreen() {
     );
   }
 
+  const editState = getTaskEditState(task);
+
   return (
     <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader title="Detalhes" onBack={() => router.back()} backLabel="Tarefas" />
+      <ScreenHeader
+        title="Detalhes"
+        onBack={() => router.back()}
+        backLabel="Tarefas"
+        rightAction={editState.canEdit ? (
+          <HeaderIconButton
+            icon={Pencil}
+            onPress={() => router.push(`/(admin)/tasks/${task.id}/edit` as never)}
+            accessibilityLabel="Editar tarefa"
+          />
+        ) : undefined}
+      />
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: getSafeBottomPadding(insets, spacing['12']) },
+        ]}
+      >
+        {showUpdatedMessage ? (
+          <View style={styles.feedbackWrapper}>
+            <InlineMessage message="Tarefa atualizada com sucesso." variant="success" />
+          </View>
+        ) : null}
+
         <View style={styles.card}>
           <View style={styles.cardTopo}>
             <Text style={styles.cardTitulo}>{task.titulo}</Text>
@@ -280,6 +333,9 @@ function makeStyles(colors: ThemeColors) {
     center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing['6'] },
     container: { flex: 1 },
     scrollContent: { padding: spacing['4'], paddingBottom: spacing['12'] },
+    feedbackWrapper: {
+      marginBottom: spacing['4'],
+    },
     card: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,
@@ -365,6 +421,6 @@ function makeStyles(colors: ThemeColors) {
     botaoAprovar: { backgroundColor: colors.semantic.success },
     botaoAprovarTexto: { color: colors.text.inverse, fontFamily: typography.family.bold, fontSize: typography.size.sm },
     botaoDesabilitado: { opacity: 0.5 },
-    erroAtrib: { color: colors.semantic.error, fontSize: typography.size.xs, marginTop: spacing['2'] },
+    erroAtribWrapper: { marginTop: spacing['2'] },
   });
 }

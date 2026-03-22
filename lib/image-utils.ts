@@ -3,16 +3,28 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
 const SUPPORTED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'] as const;
 
-const MAX_IMAGE_DIMENSION = 1024;
-const IMAGE_COMPRESS_QUALITY = 0.7;
+const DEFAULT_MAX_IMAGE_DIMENSION = 1024;
+const DEFAULT_IMAGE_COMPRESS_QUALITY = 0.7;
 
-export async function resizeImage(uri: string): Promise<string> {
+export type ResizeImageOptions = Readonly<{
+  maxDimension?: number;
+  compress?: number;
+}>;
+
+export async function resizeImage(
+  uri: string,
+  options: ResizeImageOptions = {},
+): Promise<string> {
+  const {
+    maxDimension = DEFAULT_MAX_IMAGE_DIMENSION,
+    compress = DEFAULT_IMAGE_COMPRESS_QUALITY,
+  } = options;
   const context = ImageManipulator.manipulate(uri);
-  context.resize({ width: MAX_IMAGE_DIMENSION });
+  context.resize({ width: maxDimension });
   const imageRef = await context.renderAsync();
   const result = await imageRef.saveAsync({
     format: SaveFormat.JPEG,
-    compress: IMAGE_COMPRESS_QUALITY,
+    compress,
   });
   return result.uri;
 }
@@ -27,7 +39,7 @@ export async function readImageAsArrayBuffer(imageUri: string): Promise<ArrayBuf
     try {
       return await new File(normalizedUri).arrayBuffer();
     } catch {
-      // Se a leitura local falhar, tenta via fetch.
+      // If local read fails, fall back to fetch.
     }
   }
 
