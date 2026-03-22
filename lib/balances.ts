@@ -86,10 +86,11 @@ export async function listAdminBalances(): Promise<{ data: BalanceWithChild[]; e
   const { data, error } = await supabase
     .from('saldos')
     .select('*, filhos(nome)')
-    .order('filhos(nome)');
+    .order('filhos(nome)')
+    .returns<BalanceWithChild[]>();
 
   if (error) return { data: [], error: localizeRpcError(error.message) };
-  return { data: (data ?? []) as unknown as BalanceWithChild[], error: null };
+  return { data: data ?? [], error: null };
 }
 
 export async function listTransactions(
