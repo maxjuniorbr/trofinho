@@ -25,13 +25,13 @@ Aplicativo mobile de educação financeira familiar. Um adulto administra a fam�
 ### Área do administrador
 
 - Home com resumo da família, filhos, pendências e ações rápidas
-- Cadastro de filhos
-- Criação de tarefas
+- Cadastro de filhos e consulta de nome/e-mail em tela somente leitura
+- Criação e edição de tarefas com regras de bloqueio por execução
 - Validação e rejeição de atribuições com motivo
 - Consulta de saldos e histórico por filho
-- Configuração e aplicação manual de valorização do cofrinho
+- Configuração de valorização automática do cofrinho, com lançamento no histórico e no saldo
 - Aplicação de penalização
-- Cadastro, edição, ativação e desativação de prêmios
+- Cadastro, edição, ativação e desativação de prêmios com capa opcional
 - Acompanhamento e confirmação/cancelamento de resgates
 - Edição básica de perfil, avatar, senha, tema e preferências locais de notificação
 
