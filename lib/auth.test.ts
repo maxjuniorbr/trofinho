@@ -53,6 +53,7 @@ vi.mock('./supabase', () => ({
 
 import {
   createFamily,
+  getCurrentAuthUser,
   getProfile,
   signIn,
   signOut,
@@ -106,6 +107,46 @@ describe('auth', () => {
     supabaseMock.storage.from.mockReset();
 
     supabaseMock.storage.from.mockReturnValue(storageBucketMock);
+  });
+
+  describe('getCurrentAuthUser', () => {
+    it('returns email and avatarUrl when authenticated', async () => {
+      supabaseMock.auth.getUser.mockResolvedValue({
+        data: { user: { id: 'u1', email: 'max@test.com', user_metadata: { avatar_url: 'https://avatar' } } },
+        error: null,
+      });
+
+      const result = await getCurrentAuthUser();
+      expect(result).toEqual({ email: 'max@test.com', avatarUrl: 'https://avatar' });
+    });
+
+    it('returns null when there is an auth error', async () => {
+      supabaseMock.auth.getUser.mockResolvedValue({
+        data: { user: null },
+        error: { message: 'not authenticated' },
+      });
+
+      expect(await getCurrentAuthUser()).toBeNull();
+    });
+
+    it('returns null when user is null', async () => {
+      supabaseMock.auth.getUser.mockResolvedValue({
+        data: { user: null },
+        error: null,
+      });
+
+      expect(await getCurrentAuthUser()).toBeNull();
+    });
+
+    it('defaults email to empty string and avatarUrl to null', async () => {
+      supabaseMock.auth.getUser.mockResolvedValue({
+        data: { user: { id: 'u1', user_metadata: {} } },
+        error: null,
+      });
+
+      const result = await getCurrentAuthUser();
+      expect(result).toEqual({ email: '', avatarUrl: null });
+    });
   });
 
   it('signs in and returns the profile with avatar metadata', async () => {
@@ -187,11 +228,40 @@ describe('auth', () => {
     await expect(getProfile()).resolves.toBeNull();
   });
 
+  it('falls back to the child avatar stored in the family profile', async () => {
+    supabaseMock.auth.getUser.mockResolvedValue({
+      data: { user: { id: 'child-1', user_metadata: {} } },
+      error: null,
+    });
+    supabaseMock.from
+      .mockReturnValueOnce(
+        createMaybeSingleQuery({
+          data: { id: 'child-1', familia_id: 'family-1', papel: 'filho', nome: 'Lia' },
+          error: null,
+        }),
+      )
+      .mockReturnValueOnce(
+        createMaybeSingleQuery({
+          data: { avatar_url: 'https://cdn.example.com/child-avatar.jpg' },
+          error: null,
+        }),
+      );
+
+    await expect(getProfile()).resolves.toEqual({
+      id: 'child-1',
+      familia_id: 'family-1',
+      papel: 'filho',
+      nome: 'Lia',
+      avatarUrl: 'https://cdn.example.com/child-avatar.jpg',
+    });
+  });
+
   it('creates a family and translates rpc failures', async () => {
     supabaseMock.rpc
       .mockResolvedValueOnce({ data: 'family-1', error: null })
       .mockResolvedValueOnce({ data: null, error: { message: 'usuário já pertence a uma família' } })
-      .mockResolvedValueOnce({ data: null, error: { message: 'usuário não autenticado' } });
+      .mockResolvedValueOnce({ data: null, error: { message: 'usuário não autenticado' } })
+      .mockResolvedValueOnce({ data: null, error: { message: 'unexpected db error' } });
 
     await expect(createFamily('Silva', 'Max')).resolves.toEqual({
       familiaId: 'family-1',
@@ -206,6 +276,11 @@ describe('auth', () => {
     await expect(createFamily('Silva', 'Max')).resolves.toEqual({
       familiaId: null,
       error: { message: 'Sessão expirada. Faça login novamente.' },
+    });
+
+    await expect(createFamily('Silva', 'Max')).resolves.toEqual({
+      familiaId: null,
+      error: { message: 'Algo deu errado. Tente novamente.' },
     });
   });
 
@@ -227,7 +302,7 @@ describe('auth', () => {
     });
 
     await expect(updateUserName('Novo Nome')).resolves.toEqual({
-      error: { message: 'cannot update' },
+      error: { message: 'Algo deu errado. Tente novamente.' },
     });
 
     await expect(updateUserName('Novo Nome')).resolves.toEqual({ error: null });
@@ -304,7 +379,7 @@ describe('auth', () => {
     );
     expect(result).toEqual({
       url: 'https://cdn.example.com/user-2/avatar.webp?t=5678',
-      error: { message: 'metadata failed' },
+      error: { message: 'Algo deu errado. Tente novamente.' },
     });
   });
 

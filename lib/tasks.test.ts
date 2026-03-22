@@ -59,6 +59,8 @@ import {
   approveAssignment,
   completeAssignment,
   createTask,
+  getAssignmentPoints,
+  getTaskEditState,
   getChildAssignment,
   getTaskWithAssignments,
   listAdminTasks,
@@ -66,7 +68,9 @@ import {
   listFamilyChildren,
   rejectAssignment,
   renewDailyTasks,
+  updateTask,
 } from './tasks';
+import type { AssignmentWithChild } from './tasks';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
 
 type QueryResult = {
@@ -126,6 +130,26 @@ function createUpdateQuery(result: QueryResult, eqCallsBeforeResolve = 1) {
   query.eq.mockResolvedValueOnce(result);
 
   return query;
+}
+
+function createAssignmentWithChild(
+  overrides: Partial<AssignmentWithChild>,
+): AssignmentWithChild {
+  return {
+    id: 'assignment-1',
+    tarefa_id: 'task-1',
+    filho_id: 'child-1',
+    status: 'pendente',
+    pontos_snapshot: null,
+    evidencia_url: null,
+    nota_rejeicao: null,
+    concluida_em: null,
+    validada_em: null,
+    validada_por: null,
+    created_at: '2026-03-21T00:00:00Z',
+    filhos: { nome: 'Lia' },
+    ...overrides,
+  };
 }
 
 describe('tasks', () => {
@@ -218,6 +242,70 @@ describe('tasks', () => {
 
     await expect(renewDailyTasks()).resolves.toBeUndefined();
     expect(notifyTaskCreatedMock).toHaveBeenCalledWith('Arrumar a cama');
+  });
+
+  it('updates tasks through rpc and exposes the edit-state rules', async () => {
+    supabaseMock.rpc
+      .mockResolvedValueOnce({ error: null })
+      .mockResolvedValueOnce({ error: { message: 'edit failed' } });
+
+    await expect(updateTask('task-1', {
+      titulo: 'Nova tarefa',
+      descricao: 'Detalhes',
+      pontos: 20,
+      exige_evidencia: true,
+    })).resolves.toEqual({ error: null });
+
+    await expect(updateTask('task-1', {
+      titulo: 'Nova tarefa',
+      descricao: 'Detalhes',
+      pontos: 20,
+      exige_evidencia: false,
+    })).resolves.toEqual({ error: 'edit failed' });
+
+    expect(getTaskEditState({
+      frequencia: 'diaria',
+      atribuicoes: [createAssignmentWithChild({
+        status: 'aprovada',
+        concluida_em: '2026-03-21T12:00:00Z',
+      })],
+    })).toEqual({
+      canEdit: true,
+      canEditPoints: true,
+      errorMessage: null,
+      infoMessage: 'Se você alterar os pontos, o novo valor será usado apenas nas próximas atribuições diárias.',
+    });
+
+    expect(getTaskEditState({
+      frequencia: 'unica',
+      atribuicoes: [createAssignmentWithChild({
+        status: 'pendente',
+        concluida_em: null,
+      })],
+    })).toEqual({
+      canEdit: true,
+      canEditPoints: false,
+      errorMessage: null,
+      infoMessage: 'Os pontos desta tarefa única já foram definidos na atribuição criada e não podem ser alterados.',
+    });
+
+    expect(getTaskEditState({
+      frequencia: 'unica',
+      atribuicoes: [createAssignmentWithChild({
+        status: 'aprovada',
+        concluida_em: '2026-03-21T12:00:00Z',
+      })],
+    })).toEqual({
+      canEdit: false,
+      canEditPoints: false,
+      errorMessage: 'Esta tarefa já foi concluída e não pode ser editada.',
+      infoMessage: null,
+    });
+
+    expect(getAssignmentPoints({
+      pontos_snapshot: 15,
+      tarefas: { pontos: 30 },
+    })).toBe(15);
   });
 
   it('gets task details and signs evidence urls from multiple shapes', async () => {

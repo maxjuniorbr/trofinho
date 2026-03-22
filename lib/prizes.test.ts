@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const notifyRedemptionRequestedMock = vi.hoisted(() => vi.fn());
+const uploadImageToPublicBucketMock = vi.hoisted(() => vi.fn());
 
 const supabaseMock = vi.hoisted(() => ({
   from: vi.fn(),
@@ -16,6 +17,10 @@ vi.mock('./supabase', () => ({
 
 vi.mock('./notifications', () => ({
   notifyRedemptionRequested: notifyRedemptionRequestedMock,
+}));
+
+vi.mock('./storage', () => ({
+  uploadImageToPublicBucket: uploadImageToPublicBucketMock,
 }));
 
 import {
@@ -78,6 +83,7 @@ function createEqQuery(result: QueryResult) {
 describe('prizes', () => {
   beforeEach(() => {
     notifyRedemptionRequestedMock.mockReset();
+    uploadImageToPublicBucketMock.mockReset();
     supabaseMock.from.mockReset();
     supabaseMock.rpc.mockReset();
     supabaseMock.auth.getUser.mockReset();
@@ -143,18 +149,83 @@ describe('prizes', () => {
   });
 
   it('updates, deactivates and reactivates prizes', async () => {
-    const updateQuery = createEqQuery({ error: null });
     const deactivateQuery = createEqQuery({ error: { message: 'cannot deactivate' } });
     const reactivateQuery = createEqQuery({ error: null });
 
+    supabaseMock.rpc
+      .mockResolvedValueOnce({ data: null, error: null })
+      .mockResolvedValueOnce({ error: { message: 'cannot update' } });
     supabaseMock.from
-      .mockReturnValueOnce(updateQuery)
       .mockReturnValueOnce(deactivateQuery)
       .mockReturnValueOnce(reactivateQuery);
 
-    await expect(updatePrize('prize-1', { nome: 'Novo', descricao: 'D', custo_pontos: 10 })).resolves.toEqual({ error: null });
+    await expect(updatePrize('prize-1', {
+      nome: 'Novo',
+      descricao: 'D',
+      custo_pontos: 10,
+    })).resolves.toEqual({ error: null, imageUrl: null, pointsMessage: null });
+    await expect(updatePrize('prize-1', {
+      nome: 'Novo',
+      descricao: 'D',
+      custo_pontos: 10,
+    })).resolves.toEqual({ error: 'cannot update', imageUrl: null, pointsMessage: null });
     await expect(deactivatePrize('prize-1')).resolves.toEqual({ error: 'cannot deactivate' });
     await expect(reactivatePrize('prize-1')).resolves.toEqual({ error: null });
+  });
+
+  it('uploads the prize image before calling the edit rpc', async () => {
+    uploadImageToPublicBucketMock.mockResolvedValue({
+      error: null,
+      path: 'prize-2/capa.jpg',
+      publicUrl: 'https://cdn.example.com/prize-2/capa.jpg?t=2',
+    });
+    supabaseMock.rpc.mockResolvedValue({ data: null, error: null });
+
+    await expect(updatePrize('prize-2', {
+      nome: 'Cinema',
+      descricao: 'Sessão especial',
+      custo_pontos: 120,
+      ativo: false,
+      imageUri: '/tmp/prize.jpg',
+    })).resolves.toEqual({
+      error: null,
+      imageUrl: 'https://cdn.example.com/prize-2/capa.jpg?t=2',
+      pointsMessage: null,
+    });
+
+    expect(uploadImageToPublicBucketMock).toHaveBeenCalledWith({
+      bucket: 'premios',
+      imageUri: '/tmp/prize.jpg',
+      imageOptions: { maxDimension: 768, compress: 0.65 },
+      pathWithoutExtension: 'prize-2/capa',
+    });
+    expect(supabaseMock.rpc).toHaveBeenCalledWith('editar_premio', {
+      p_premio_id: 'prize-2',
+      p_nome: 'Cinema',
+      p_descricao: 'Sessão especial',
+      p_custo_pontos: 120,
+      p_imagem_url: 'https://cdn.example.com/prize-2/capa.jpg?t=2',
+      p_ativo: false,
+    });
+  });
+
+  it('returns the inline points warning when the rpc preserves other prize fields', async () => {
+    supabaseMock.rpc.mockResolvedValue({
+      data: 'Não é possível alterar os pontos pois há resgates em aberto.',
+      error: null,
+    });
+
+    await expect(updatePrize('prize-3', {
+      nome: 'Livro',
+      descricao: 'Edição nova',
+      custo_pontos: 80,
+      ativo: true,
+      imagem_url: 'https://cdn.example.com/prize-3/capa.jpg',
+    })).resolves.toEqual({
+      error: null,
+      imageUrl: 'https://cdn.example.com/prize-3/capa.jpg',
+      pointsMessage: 'Não é possível alterar os pontos pois há resgates em aberto.',
+    });
   });
 
   it('lists redemption data and counts pending requests', async () => {

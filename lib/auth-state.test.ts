@@ -74,6 +74,58 @@ describe('createAuthStateHandler', () => {
     expect(onProfileChange).toHaveBeenCalledTimes(1);
   });
 
+  it('calls onProfileChange(null) when getProfile rejects', async () => {
+    getProfile.mockRejectedValue(new Error('network error'));
+
+    const handler = createAuthStateHandler({
+      getProfile,
+      onProfileChange,
+      onReadyChange,
+    });
+
+    handler.handleAuthStateChange('SIGNED_IN', { access_token: 'token' } as never);
+    await vi.runAllTimersAsync();
+
+    expect(onProfileChange).toHaveBeenCalledWith(null);
+    expect(onReadyChange).toHaveBeenCalledWith(true);
+  });
+
+  it('stops reacting to events after dispose', async () => {
+    getProfile.mockResolvedValue({
+      id: 'user-1',
+      familia_id: 'family-1',
+      papel: 'admin',
+      nome: 'Max',
+    });
+
+    const handler = createAuthStateHandler({
+      getProfile,
+      onProfileChange,
+      onReadyChange,
+    });
+
+    handler.handleAuthStateChange('SIGNED_IN', { access_token: 'token' } as never);
+    handler.dispose();
+
+    await vi.runAllTimersAsync();
+
+    expect(onProfileChange).not.toHaveBeenCalled();
+    expect(onReadyChange).not.toHaveBeenCalled();
+  });
+
+  it('handles SIGNED_OUT after dispose without calling callbacks', () => {
+    const handler = createAuthStateHandler({
+      getProfile,
+      onProfileChange,
+      onReadyChange,
+    });
+
+    handler.dispose();
+    handler.handleAuthStateChange('SIGNED_OUT', null);
+
+    expect(onProfileChange).not.toHaveBeenCalled();
+  });
+
   it('ignores stale profile fetches after a newer auth event', async () => {
     let resolveFirst: ((profile: UserProfile | null) => void) | undefined;
 
