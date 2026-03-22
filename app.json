@@ -23,7 +23,7 @@
       "package": "com.maxjuniorbr.trofinho",
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundColor": "#000000",
+        "backgroundColor": "#1e1e28",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
