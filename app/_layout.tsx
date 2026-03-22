@@ -1,4 +1,4 @@
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useNavigationContainerRef, useRouter, useSegments } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
@@ -9,6 +9,7 @@ import { useFonts,
   Nunito_800ExtraBold,
   Nunito_900Black,
 } from '@expo-google-fonts/nunito';
+import * as Sentry from '@sentry/react-native';
 import { supabase } from '@lib/supabase';
 import { getProfile, type UserProfile } from '@lib/auth';
 import { createAuthStateHandler } from '@lib/auth-state';
@@ -18,10 +19,20 @@ import {
   subscribeToNotificationNavigation,
 } from '@lib/notifications';
 import { ThemeProvider, useTheme } from '@/context/theme-context';
+import {
+  initSentry,
+  registerNavigationRef,
+  setUserContext,
+  clearUserContext,
+} from '@lib/sentry';
+
+// Initialize Sentry before the React tree. Reads DSN from EXPO_PUBLIC_SENTRY_DSN;
+// if not set, all Sentry calls become no-ops.
+initSentry();
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+function RootLayout() {
   const [ready, setReady] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null | undefined>(undefined);
 
@@ -62,6 +73,10 @@ export default function RootLayout() {
   );
 }
 
+// Sentry.wrap adds a root error boundary and performance profiling.
+// Must receive a named reference so Sentry can identify the component in traces.
+export default Sentry.wrap(RootLayout);
+
 function RootNavigator({
   ready,
   fontsLoaded,
@@ -76,11 +91,27 @@ function RootNavigator({
   const { colors } = useTheme();
   const [pushToken, setPushToken] = useState<string | null>(null);
   const lastSavedPushTokenKeyRef = useRef<string | null>(null);
+  const navigationRef = useNavigationContainerRef();
+
+  // Wire up Sentry navigation instrumentation once the container is available.
+  useEffect(() => {
+    registerNavigationRef(navigationRef);
+  }, [navigationRef]);
+
+  // Sync user context with Sentry on every profile change.
+  // undefined = still loading, skip. null = signed out, clear context.
+  useEffect(() => {
+    if (profile?.id) {
+      setUserContext(profile.id, profile.papel);
+    } else if (profile === null) {
+      clearUserContext();
+    }
+  }, [profile]);
 
   useEffect(() => {
     let mounted = true;
 
-    async function registerPush() {
+    const registerPush = async () => {
       try {
         const token = await registerForPushNotifications();
         if (mounted) {
@@ -91,7 +122,7 @@ function RootNavigator({
           setPushToken(null);
         }
       }
-    }
+    };
 
     registerPush();
 
@@ -109,7 +140,7 @@ function RootNavigator({
 
     let mounted = true;
 
-    async function persistPushToken() {
+    const persistPushToken = async () => {
       try {
         await savePushToken(currentPushToken);
         if (mounted) {
@@ -120,7 +151,7 @@ function RootNavigator({
           lastSavedPushTokenKeyRef.current = null;
         }
       }
-    }
+    };
 
     persistPushToken();
 
@@ -161,7 +192,7 @@ function RootNavigator({
     let active = true;
     let unsubscribe: () => void = () => undefined;
 
-    async function setupNotificationNavigation() {
+    const setupNotificationNavigation = async () => {
       const cleanup = await subscribeToNotificationNavigation((route) => {
         router.push(route);
       });
@@ -171,7 +202,7 @@ function RootNavigator({
       } else {
         cleanup();
       }
-    }
+    };
 
     setupNotificationNavigation();
 

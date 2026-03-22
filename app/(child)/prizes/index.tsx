@@ -19,6 +19,7 @@ import {
   type Prize,
 } from '@lib/prizes';
 import { getBalance } from '@lib/balances';
+import { captureException } from '@lib/sentry';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { gradients, radii, shadows, spacing, typography } from '@/constants/theme';
@@ -54,7 +55,8 @@ export default function ChildPrizesScreen() {
       if (prizesError) { setError(prizesError); } else { setPrizes(prizeList); }
       setFreeBalance(balanceData?.saldo_livre ?? 0);
       if (balanceError && !prizesError) setError(balanceError);
-    } catch {
+    } catch (e) {
+      captureException(e);
       setError('Não foi possível carregar os prêmios agora.');
       setPrizes([]);
     } finally {

@@ -13,6 +13,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { ImagePlus } from 'lucide-react-native';
 import { setNavigationFeedback } from '@lib/navigation-feedback';
 import { getPrize, updatePrize, type Prize } from '@lib/prizes';
+import { captureException } from '@lib/sentry';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FormFooter } from '@/components/ui/form-footer';
@@ -95,7 +96,8 @@ export default function AdminPrizeDetailScreen() {
       setSelectedImageUri(result.assets[0].uri);
       setImagePreview(result.assets[0].uri);
       setImageState('loading');
-    } catch {
+    } catch (e) {
+      captureException(e);
       setFormError('Não foi possível selecionar a imagem agora.');
     } finally {
       setPickingImage(false);

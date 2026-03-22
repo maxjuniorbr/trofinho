@@ -50,3 +50,5 @@ supabase/.temp/
 
 # Others
 temp/
+
+.env.local

@@ -29,6 +29,7 @@ import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { getSafeBottomPadding } from '@lib/safe-area';
+import { captureException } from '@lib/sentry';
 
 type DateLine = { label: string; date: string };
 
@@ -224,7 +225,8 @@ export default function TaskDetailAdminScreen() {
       const { data, error } = await getTaskWithAssignments(id);
       if (error) setError(error);
       else setTask(data);
-    } catch {
+    } catch (e) {
+      captureException(e);
       setError('Não foi possível carregar a tarefa agora.');
       setTask(null);
     } finally {

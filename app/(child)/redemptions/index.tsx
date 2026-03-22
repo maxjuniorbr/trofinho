@@ -13,6 +13,7 @@ import {
   listChildRedemptions,
   type RedemptionWithPrize,
 } from '@lib/prizes';
+import { captureException } from '@lib/sentry';
 import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@/constants/status';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
@@ -41,7 +42,8 @@ export default function ChildRedemptionsScreen() {
       const { data, error } = await listChildRedemptions();
       if (error) setError(error);
       else setRedemptions(data);
-    } catch {
+    } catch (e) {
+      captureException(e);
       setError('Não foi possível carregar o histórico agora.');
       setRedemptions([]);
     } finally {

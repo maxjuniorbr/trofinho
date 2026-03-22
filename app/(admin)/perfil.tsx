@@ -23,6 +23,7 @@ import {
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 import { getCurrentAuthUser, getProfile, signOut, type UserProfile } from '@lib/auth';
+import { captureException } from '@lib/sentry';
 import {
   DEFAULT_NOTIFICATION_PREFS,
   getNotificationPrefs,
@@ -82,7 +83,7 @@ export default function ProfileScreen() {
 
   async function handleSignOut() {
     setLoggingOut(true);
-    try { await signOut(); } catch { setLoggingOut(false); }
+    try { await signOut(); } catch (e) { captureException(e); setLoggingOut(false); }
   }
 
   async function handleNotificationPreferencesChange(next: NotificationPrefs) {
@@ -94,7 +95,8 @@ export default function ProfileScreen() {
 
     try {
       await setNotificationPrefs(next);
-    } catch {
+    } catch (e) {
+      captureException(e);
       setNotificationPreferencesState(previous);
       setNotificationPreferencesError('Não foi possível salvar as preferências agora.');
     } finally {
