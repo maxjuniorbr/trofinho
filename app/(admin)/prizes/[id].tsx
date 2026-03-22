@@ -1,28 +1,28 @@
 import {
+  ActivityIndicator,
+  Image,
   StyleSheet,
+  Switch,
   Text,
   View,
-  Pressable,
-  ScrollView,
-  KeyboardAvoidingView,
-  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback, useMemo } from 'react';
-import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import {
-  getPrize,
-  updatePrize,
-  deactivatePrize,
-  reactivatePrize,
-  type Prize,
-} from '@lib/prizes';
+import { useCallback, useMemo, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+import { ImagePlus } from 'lucide-react-native';
+import { setNavigationFeedback } from '@lib/navigation-feedback';
+import { getPrize, updatePrize, type Prize } from '@lib/prizes';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
+import { FormFooter } from '@/components/ui/form-footer';
+import { InlineMessage } from '@/components/ui/inline-message';
+import { ScreenHeader } from '@/components/ui/screen-header';
+import { StickyFooterScreen } from '@/components/ui/sticky-footer-screen';
+import { PrizeFormFields } from '@/components/prizes/prize-form-fields';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, spacing, typography } from '@/constants/theme';
-import { ScreenHeader } from '@/components/ui/screen-header';
-import { EmptyState } from '@/components/ui/empty-state';
-import { PrizeFormFields } from '@/components/prizes/prize-form-fields';
 
 export default function AdminPrizeDetailScreen() {
   const router = useRouter();
@@ -36,52 +36,119 @@ export default function AdminPrizeDetailScreen() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [costStr, setCostStr] = useState('');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageState, setImageState] = useState<'loading' | 'loaded' | 'error'>('loaded');
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+  const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [pickingImage, setPickingImage] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [togglingActive, setTogglingActive] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!id) return;
+
     setLoading(true);
     setError(null);
-    const { data, error } = await getPrize(id);
-    if (error) {
-      setError(error);
-    } else if (data) {
+
+    const { data, error: prizeError } = await getPrize(id);
+
+    if (prizeError) {
+      setError(prizeError);
+      setLoading(false);
+      return;
+    }
+
+    if (data) {
       setPrize(data);
       setName(data.nome);
       setDescription(data.descricao ?? '');
       setCostStr(String(data.custo_pontos));
+      setImagePreview(data.imagem_url ?? null);
+      setImageState(data.imagem_url ? 'loading' : 'loaded');
+      setSelectedImageUri(null);
+      setIsActive(data.ativo);
     }
+
     setLoading(false);
   }, [id]);
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  useFocusEffect(useCallback(() => {
+    void loadData();
+  }, [loadData]));
 
-  async function handleSave() {
+  async function handlePickImage() {
+    setPickingImage(true);
     setFormError(null);
-    setSuccess(null);
-    if (!name.trim()) return setFormError('Informe o nome do prêmio.');
-    const cost = Number.parseInt(costStr, 10);
-    if (Number.isNaN(cost) || cost <= 0) return setFormError('Custo em pontos deve ser um número maior que zero.');
-    setSaving(true);
-    const { error } = await updatePrize(id, { nome: name.trim(), descricao: description.trim() || null, custo_pontos: cost });
-    setSaving(false);
-    if (error) return setFormError(error);
-    setSuccess('Prêmio atualizado!');
-    loadData();
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [16, 10],
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets[0]) {
+        return;
+      }
+
+      setSelectedImageUri(result.assets[0].uri);
+      setImagePreview(result.assets[0].uri);
+      setImageState('loading');
+    } catch {
+      setFormError('Não foi possível selecionar a imagem agora.');
+    } finally {
+      setPickingImage(false);
+    }
   }
 
-  async function handleToggleActive() {
-    if (!prize) return;
-    setTogglingActive(true);
+  async function handleSave() {
+    if (!id || !prize) return;
+
     setFormError(null);
-    setSuccess(null);
-    const { error } = prize.ativo ? await deactivatePrize(id) : await reactivatePrize(id);
-    setTogglingActive(false);
-    if (error) return setFormError(error);
-    loadData();
+
+    if (!name.trim()) {
+      setFormError('Informe o nome do prêmio.');
+      return;
+    }
+
+    const cost = Number.parseInt(costStr, 10);
+
+    if (Number.isNaN(cost) || cost <= 0) {
+      setFormError('Custo em pontos deve ser um número maior que zero.');
+      return;
+    }
+
+    setSaving(true);
+
+    const { error: updateError, imageUrl, pointsMessage } = await updatePrize(id, {
+      nome: name.trim(),
+      descricao: description.trim() || null,
+      custo_pontos: cost,
+      ativo: isActive,
+      imagem_url: prize.imagem_url ?? null,
+      imageUri: selectedImageUri,
+    });
+
+    setSaving(false);
+
+    if (updateError) {
+      setFormError(updateError);
+      return;
+    }
+
+    setSelectedImageUri(null);
+    setImagePreview(imageUrl ?? prize.imagem_url ?? null);
+    setImageState((imageUrl ?? prize.imagem_url) ? 'loading' : 'loaded');
+    setFormError(pointsMessage);
+
+    if (pointsMessage) {
+      await loadData();
+      return;
+    }
+
+    setNavigationFeedback('admin-prize-list', 'Prêmio atualizado com sucesso.');
+    router.dismissTo('/(admin)/prizes');
   }
 
   if (loading) {
@@ -103,81 +170,178 @@ export default function AdminPrizeDetailScreen() {
     );
   }
 
-  let toggleActiveLabel = 'Reativar prêmio';
-
-  if (togglingActive) {
-    toggleActiveLabel = 'Aguarde…';
-  } else if (prize.ativo) {
-    toggleActiveLabel = 'Desativar prêmio';
-  }
-
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg.canvas }} behavior="padding">
+    <StickyFooterScreen
+      title="Editar Prêmio"
+      onBack={() => router.back()}
+      keyboardAvoiding
+      contentPadding={spacing['6']}
+      contentGap={spacing['5']}
+      footer={(
+        <FormFooter message={formError} compact includeSafeBottom={false}>
+          <Button
+            label="Salvar alterações"
+            onPress={handleSave}
+            loading={saving}
+            accessibilityLabel="Salvar alterações do prêmio"
+          />
+        </FormFooter>
+      )}
+    >
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader title="Editar Prêmio" onBack={() => router.back()} />
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        {!prize.ativo && (
-          <View style={styles.avisoInativo}>
-            <Text style={styles.avisoInativoTexto}>
-              Este prêmio está inativo e não aparece para os filhos.
-            </Text>
+      {!isActive ? (
+        <InlineMessage
+          message="Este prêmio está inativo e não aparece para os filhos."
+          variant="warning"
+        />
+      ) : null}
+
+      <View style={styles.mediaCard}>
+        {imagePreview ? (
+          imageState === 'error' ? (
+            <View style={[styles.mediaWrapper, styles.mediaFallback, { backgroundColor: colors.bg.muted }]}>
+              <Text style={[styles.mediaFallbackText, { color: colors.text.muted }]}>
+                Não foi possível carregar a imagem
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.mediaWrapper}>
+              <Image
+                source={{ uri: imagePreview }}
+                style={styles.mediaPreview}
+                resizeMode="cover"
+                accessibilityLabel={`Imagem do prêmio ${name || prize.nome}`}
+                onLoadStart={() => setImageState('loading')}
+                onLoadEnd={() => setImageState('loaded')}
+                onError={() => setImageState('error')}
+              />
+              {imageState !== 'loaded' ? (
+                <View style={[styles.mediaLoading, { backgroundColor: colors.bg.muted }]}>
+                  <ActivityIndicator size="small" color={colors.accent.admin} />
+                </View>
+              ) : null}
+            </View>
+          )
+        ) : (
+          <View style={[styles.mediaPreview, styles.mediaPlaceholder]}>
+            <ImagePlus size={28} color={colors.text.muted} strokeWidth={2} />
+            <Text style={styles.mediaPlaceholderText}>Sem capa</Text>
           </View>
         )}
 
-        <PrizeFormFields
-          name={name}
-          description={description}
-          cost={costStr}
-          onNameChange={setName}
-          onDescriptionChange={setDescription}
-          onCostChange={setCostStr}
+        <Button
+          label={pickingImage ? 'Abrindo galeria…' : 'Escolher capa'}
+          variant="secondary"
+          onPress={handlePickImage}
+          disabled={pickingImage}
+          accessibilityLabel="Escolher imagem do prêmio"
         />
+      </View>
 
-        {formError ? <Text style={styles.erroTexto}>{formError}</Text> : null}
-        {success ? <Text style={styles.sucessoTexto}>{success}</Text> : null}
-
-        <Pressable
-          style={({ pressed }) => [styles.botao, saving && styles.botaoDesabilitado, pressed && !saving && { opacity: 0.85 }]}
-          onPress={handleSave}
-          disabled={saving}
-        >
-          <Text style={styles.botaoTexto}>{saving ? 'Salvando…' : 'Salvar alterações'}</Text>
-        </Pressable>
-
-        <Pressable
-          style={({ pressed }) => [styles.botaoSecundario, togglingActive && styles.botaoDesabilitado, pressed && !togglingActive && { opacity: 0.85 }]}
-          onPress={handleToggleActive}
-          disabled={togglingActive}
-        >
-          <Text style={[styles.botaoSecundarioTexto, !prize.ativo && { color: colors.semantic.success }]}>
-            {toggleActiveLabel}
+      <View style={styles.statusCard}>
+        <View style={styles.statusText}>
+          <Text style={styles.statusTitle}>Disponibilidade</Text>
+          <Text style={styles.statusDescription}>
+            Filhos veem e podem resgatar apenas prêmios ativos.
           </Text>
-        </Pressable>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </View>
+        <Switch
+          value={isActive}
+          onValueChange={setIsActive}
+          trackColor={{ false: colors.border.default, true: colors.accent.admin }}
+          thumbColor={colors.text.inverse}
+          accessibilityLabel="Alternar disponibilidade do prêmio"
+        />
+      </View>
+
+      <PrizeFormFields
+        name={name}
+        description={description}
+        cost={costStr}
+        onNameChange={setName}
+        onDescriptionChange={setDescription}
+        onCostChange={setCostStr}
+      />
+    </StickyFooterScreen>
   );
 }
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing['6'] },
-    scroll: { padding: spacing['6'], gap: spacing['5'], flexGrow: 1 },
-    avisoInativo: { backgroundColor: colors.semantic.warningBg, borderRadius: radii.lg, borderCurve: 'continuous', padding: spacing['3'] },
-    avisoInativoTexto: { fontSize: typography.size.xs, color: colors.semantic.warning, textAlign: 'center' },
-    erroTexto: { color: colors.semantic.error, fontSize: typography.size.sm, fontFamily: typography.family.medium },
-    sucessoTexto: { color: colors.semantic.success, fontSize: typography.size.sm, fontFamily: typography.family.semibold },
-    botao: { backgroundColor: colors.accent.adminDim, borderRadius: radii.xl, borderCurve: 'continuous', paddingVertical: spacing['3'], alignItems: 'center', marginTop: spacing['1'], minHeight: 48 },
-    botaoDesabilitado: { opacity: 0.55 },
-    botaoTexto: { color: colors.text.inverse, fontFamily: typography.family.bold, fontSize: typography.size.md },
-    botaoSecundario: {
+    mediaCard: {
       borderRadius: radii.xl,
       borderCurve: 'continuous',
-      borderWidth: 1.5,
-      borderColor: colors.semantic.error,
-      paddingVertical: spacing['3'],
-      alignItems: 'center',
-      minHeight: 48,
+      borderWidth: 1,
+      borderColor: colors.border.default,
+      backgroundColor: colors.bg.surface,
+      padding: spacing['4'],
+      gap: spacing['3'],
     },
-    botaoSecundarioTexto: { color: colors.semantic.error, fontFamily: typography.family.bold, fontSize: typography.size.md },
+    mediaWrapper: {
+      width: '100%',
+      height: 180,
+      borderRadius: radii.xl,
+      borderCurve: 'continuous',
+      overflow: 'hidden',
+    },
+    mediaPreview: {
+      width: '100%',
+      height: 180,
+      borderRadius: radii.xl,
+      borderCurve: 'continuous',
+    },
+    mediaLoading: {
+      ...StyleSheet.absoluteFillObject,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    mediaFallback: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: spacing['4'],
+    },
+    mediaFallbackText: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.medium,
+      textAlign: 'center',
+    },
+    mediaPlaceholder: {
+      backgroundColor: colors.bg.muted,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing['2'],
+    },
+    mediaPlaceholderText: {
+      fontSize: typography.size.sm,
+      color: colors.text.muted,
+      fontFamily: typography.family.medium,
+    },
+    statusCard: {
+      borderRadius: radii.xl,
+      borderCurve: 'continuous',
+      borderWidth: 1,
+      borderColor: colors.border.default,
+      backgroundColor: colors.bg.surface,
+      padding: spacing['4'],
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing['3'],
+    },
+    statusText: {
+      flex: 1,
+      gap: spacing['1'],
+    },
+    statusTitle: {
+      fontSize: typography.size.md,
+      fontFamily: typography.family.semibold,
+      color: colors.text.primary,
+    },
+    statusDescription: {
+      fontSize: typography.size.sm,
+      color: colors.text.secondary,
+      lineHeight: typography.lineHeight.md,
+    },
   });
 }

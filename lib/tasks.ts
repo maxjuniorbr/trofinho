@@ -1,12 +1,14 @@
 import { toDateString } from './utils';
-import { readImageAsArrayBuffer, inferImageExtension, inferImageContentType, extractErrorMessage, resizeImage } from './image-utils';
+import { extractErrorMessage } from './image-utils';
 import { notifyTaskCompleted, notifyTaskCreated } from './notifications';
+import { prepareImageUpload } from './storage';
 import { supabase } from './supabase';
 
 export type Child = {
   id: string;
   nome: string;
   usuario_id: string | null;
+  avatar_url?: string | null;
 };
 
 export type TaskFrequencia = 'diaria' | 'unica';
@@ -34,6 +36,7 @@ export type Assignment = {
   tarefa_id: string;
   filho_id: string;
   status: AssignmentStatus;
+  pontos_snapshot?: number | null;
   evidencia_url: string | null;
   nota_rejeicao: string | null;
   concluida_em: string | null;
@@ -71,6 +74,20 @@ export type NewTaskInput = {
   filhoIds: string[];
 };
 
+export type UpdateTaskInput = Readonly<{
+  titulo: string;
+  descricao: string | null;
+  pontos: number;
+  exige_evidencia: boolean;
+}>;
+
+export type TaskEditState = Readonly<{
+  canEdit: boolean;
+  canEditPoints: boolean;
+  errorMessage: string | null;
+  infoMessage: string | null;
+}>;
+
 export async function listFamilyChildren(): Promise<{
   data: Child[];
   error: string | null;
@@ -98,6 +115,22 @@ export async function createTask(
 
   if (error) return { error: error.message };
   await notifyTaskCreated(input.titulo);
+  return { error: null };
+}
+
+export async function updateTask(
+  taskId: string,
+  input: UpdateTaskInput,
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('editar_tarefa', {
+    p_tarefa_id: taskId,
+    p_titulo: input.titulo,
+    p_descricao: input.descricao,
+    p_pontos: input.pontos,
+    p_requer_evidencia: input.exige_evidencia,
+  });
+
+  if (error) return { error: error.message };
   return { error: null };
 }
 
@@ -228,6 +261,49 @@ export async function completeAssignment(
   return { error: null };
 }
 
+export function getTaskEditState(
+  task: Pick<TaskDetail, 'atribuicoes' | 'frequencia'>,
+): TaskEditState {
+  if (task.frequencia === 'diaria') {
+    return {
+      canEdit: true,
+      canEditPoints: true,
+      errorMessage: null,
+      infoMessage: 'Se você alterar os pontos, o novo valor será usado apenas nas próximas atribuições diárias.',
+    };
+  }
+
+  const hasCompletedAssignment = task.atribuicoes.some((assignment) =>
+    assignment.status === 'aguardando_validacao' ||
+    assignment.status === 'aprovada' ||
+    assignment.concluida_em !== null,
+  );
+
+  if (hasCompletedAssignment) {
+    return {
+      canEdit: false,
+      canEditPoints: false,
+      errorMessage: 'Esta tarefa já foi concluída e não pode ser editada.',
+      infoMessage: null,
+    };
+  }
+
+  return {
+    canEdit: true,
+    canEditPoints: false,
+    errorMessage: null,
+    infoMessage: 'Os pontos desta tarefa única já foram definidos na atribuição criada e não podem ser alterados.',
+  };
+}
+
+export function getAssignmentPoints(
+  assignment: Pick<Assignment, 'pontos_snapshot'> & {
+    tarefas: Pick<Task, 'pontos'>;
+  },
+): number {
+  return assignment.pontos_snapshot ?? assignment.tarefas.pontos;
+}
+
 async function uploadEvidence(
   imageUri: string
 ): Promise<{ url: string | null; error: string | null }> {
@@ -262,16 +338,14 @@ async function uploadEvidence(
       return { url: null, error: childError?.message ?? 'Filho não encontrado' };
     }
 
-    const resizedUri = await resizeImage(imageUri);
-    const extension = inferImageExtension(resizedUri);
-    const buffer = await readImageAsArrayBuffer(resizedUri);
+    const { buffer, contentType, extension } = await prepareImageUpload(imageUri);
     const fileName = `evidencia_${createEvidenceSuffix()}.${extension}`;
     const filePath = `${profile.familia_id}/${child.id}/${fileName}`;
 
     const { data, error } = await supabase.storage
       .from('evidencias')
       .upload(filePath, buffer, {
-        contentType: inferImageContentType(extension),
+        contentType,
         upsert: false,
       });
 
