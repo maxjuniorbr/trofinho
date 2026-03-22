@@ -82,7 +82,7 @@ export default function NewChildScreen() {
 
       {[
         { label: 'Nome *', value: name, setter: setName, placeholder: 'Nome do filho', maxLength: 60, autoCapitalize: 'words' as const, keyboardType: undefined, secure: false },
-        { label: 'E-mail *', value: email, setter: setEmail, placeholder: 'email@exemplo.com', maxLength: MAX_EMAIL_LENGTH, autoCapitalize: 'none' as const, keyboardType: 'email-address' as const, secure: false },
+        { label: 'E-mail *', value: email, setter: setEmail, placeholder: 'seu@email.com', maxLength: MAX_EMAIL_LENGTH, autoCapitalize: 'none' as const, keyboardType: 'email-address' as const, secure: false },
         { label: 'Senha temporária *', value: tempPassword, setter: setTempPassword, placeholder: 'Mínimo 6 caracteres', maxLength: 40, autoCapitalize: 'none' as const, keyboardType: undefined, secure: true },
         { label: 'Confirmar senha *', value: confirmPassword, setter: setConfirmPassword, placeholder: 'Repita a senha', maxLength: 40, autoCapitalize: 'none' as const, keyboardType: undefined, secure: true },
       ].map(({ label, value, setter, placeholder, maxLength, autoCapitalize, keyboardType, secure }) => (
