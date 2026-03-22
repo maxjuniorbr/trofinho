@@ -12,6 +12,7 @@ import { useState, useCallback } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { LogOut } from 'lucide-react-native';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { AvatarSection } from '@/components/profile/avatar-section';
 import { PersonalDataCard } from '@/components/profile/personal-data-card';
 import { PasswordCard } from '@/components/profile/password-card';
@@ -21,8 +22,7 @@ import {
 } from '@/components/profile/notification-card';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
-import { supabase } from '@lib/supabase';
-import { getProfile, signOut, type UserProfile } from '@lib/auth';
+import { getCurrentAuthUser, getProfile, signOut, type UserProfile } from '@lib/auth';
 import {
   DEFAULT_NOTIFICATION_PREFS,
   getNotificationPrefs,
@@ -52,24 +52,22 @@ export default function ProfileScreen() {
       async function load() {
         setLoading(true);
         try {
-          const [p, { data: authData, error: authError }, notificationPrefs] = await Promise.all([
+          const [p, authUser, notificationPrefs] = await Promise.all([
             getProfile(),
-            supabase.auth.getUser(),
+            getCurrentAuthUser(),
             getNotificationPrefs(),
           ]);
 
           if (!active) return;
 
-          if (authError || !authData.user) {
+          if (!authUser) {
             router.replace('/(auth)/login');
             return;
           }
 
           setProfile(p);
-          setEmail(authData.user.email ?? '');
-          setAvatarUri(
-            (authData.user.user_metadata?.avatar_url as string | undefined) ?? null,
-          );
+          setEmail(authUser.email);
+          setAvatarUri(authUser.avatarUrl);
           setNotificationPreferencesState(notificationPrefs);
           setNotificationPreferencesError(null);
         } finally {
@@ -115,55 +113,57 @@ export default function ProfileScreen() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg.canvas }} behavior="padding">
-      <StatusBar style={colors.statusBar} />
-      <ScreenHeader title="Meu Perfil" onBack={() => router.back()} />
+      <SafeScreenFrame bottomInset>
+        <StatusBar style={colors.statusBar} />
+        <ScreenHeader title="Meu Perfil" onBack={() => router.back()} />
 
-      <ScrollView
-        style={{ backgroundColor: colors.bg.canvas }}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <AvatarSection
-          name={profile?.nome ?? 'A'}
-          avatarUri={avatarUri}
-          onAvatarChange={setAvatarUri}
-        />
-
-        <PersonalDataCard
-          profile={profile}
-          email={email}
-          onNameUpdated={(name) => setProfile((prev) => prev ? { ...prev, nome: name } : null)}
-        />
-
-        <PasswordCard />
-
-        <ThemeCard />
-
-        <NotificationCard
-          preferences={notificationPreferences}
-          saving={savingNotificationPreferences}
-          error={notificationPreferencesError}
-          onPreferencesChange={handleNotificationPreferencesChange}
-        />
-
-        <Pressable
-          style={[styles.btnLogout, { borderColor: colors.semantic.error + '60', opacity: loggingOut ? 0.55 : 1 }]}
-          onPress={handleSignOut}
-          disabled={loggingOut}
-          accessibilityRole="button"
-          accessibilityLabel="Sair da conta"
+        <ScrollView
+          style={{ backgroundColor: colors.bg.canvas }}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {loggingOut
-            ? <ActivityIndicator color={colors.semantic.error} />
-            : (
-              <View style={styles.btnLogoutInner}>
-                <LogOut size={16} color={colors.semantic.error} strokeWidth={2} />
-                <Text style={[styles.btnLogoutText, { color: colors.semantic.error }]}>Sair</Text>
-              </View>
-            )}
-        </Pressable>
-      </ScrollView>
+          <AvatarSection
+            name={profile?.nome ?? 'A'}
+            avatarUri={avatarUri}
+            onAvatarChange={setAvatarUri}
+          />
+
+          <PersonalDataCard
+            profile={profile}
+            email={email}
+            onNameUpdated={(name) => setProfile((prev) => prev ? { ...prev, nome: name } : null)}
+          />
+
+          <PasswordCard />
+
+          <ThemeCard />
+
+          <NotificationCard
+            preferences={notificationPreferences}
+            saving={savingNotificationPreferences}
+            error={notificationPreferencesError}
+            onPreferencesChange={handleNotificationPreferencesChange}
+          />
+
+          <Pressable
+            style={[styles.btnLogout, { borderColor: colors.semantic.error + '60', opacity: loggingOut ? 0.55 : 1 }]}
+            onPress={handleSignOut}
+            disabled={loggingOut}
+            accessibilityRole="button"
+            accessibilityLabel="Sair da conta"
+          >
+            {loggingOut
+              ? <ActivityIndicator color={colors.semantic.error} />
+              : (
+                <View style={styles.btnLogoutInner}>
+                  <LogOut size={16} color={colors.semantic.error} strokeWidth={2} />
+                  <Text style={[styles.btnLogoutText, { color: colors.semantic.error }]}>Sair</Text>
+                </View>
+              )}
+          </Pressable>
+        </ScrollView>
+      </SafeScreenFrame>
     </KeyboardAvoidingView>
   );
 }
