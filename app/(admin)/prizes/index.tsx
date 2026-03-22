@@ -9,13 +9,20 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Plus, Trophy } from 'lucide-react-native';
+import { Pencil, Plus, Trophy } from 'lucide-react-native';
 import { listPrizes, type Prize } from '@lib/prizes';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { InlineMessage } from '@/components/ui/inline-message';
+import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
+import { useTransientMessage } from '@/hooks/use-transient-message';
+import {
+  consumeNavigationFeedback,
+  type NavigationFeedback,
+} from '@lib/navigation-feedback';
 
 export default function AdminPrizesScreen() {
   const router = useRouter();
@@ -25,6 +32,11 @@ export default function AdminPrizesScreen() {
   const [prizes, setPrizes] = useState<Prize[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successFeedback, setSuccessFeedback] = useState<NavigationFeedback | null>(null);
+  const visibleSuccessMessage = useTransientMessage(
+    successFeedback?.message ?? null,
+    { resetKey: successFeedback?.id },
+  );
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -41,7 +53,15 @@ export default function AdminPrizesScreen() {
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  useFocusEffect(useCallback(() => {
+    const feedback = consumeNavigationFeedback('admin-prize-list');
+
+    if (feedback) {
+      setSuccessFeedback(feedback);
+    }
+
+    void loadData();
+  }, [loadData]));
 
   const active = prizes.filter((p) => p.ativo);
   const inactive = prizes.filter((p) => !p.ativo);
@@ -54,7 +74,7 @@ export default function AdminPrizesScreen() {
     : '';
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
+    <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
       <ScreenHeader
         title="Prêmios"
@@ -69,6 +89,12 @@ export default function AdminPrizesScreen() {
         }
       />
 
+      {visibleSuccessMessage ? (
+        <View style={styles.feedbackWrapper}>
+          <InlineMessage message={visibleSuccessMessage} variant="success" />
+        </View>
+      ) : null}
+
       {shouldShowEmptyState ? (
         <EmptyState
           loading={loading}
@@ -81,7 +107,6 @@ export default function AdminPrizesScreen() {
         <FlatList
           data={prizes}
           keyExtractor={(item) => item.id}
-          contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={styles.lista}
           refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
           ListHeaderComponent={
@@ -91,46 +116,62 @@ export default function AdminPrizesScreen() {
             </Text>
           }
           renderItem={({ item }) => (
-            <Pressable
-              style={({ pressed }) => [
+            <View
+              style={[
                 styles.card,
                 !item.ativo && styles.cardInativo,
-                pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
               ]}
-              onPress={() => router.push(`/(admin)/prizes/${item.id}` as never)}
-              accessibilityRole="button"
-              accessibilityLabel={`${item.nome}, ${item.custo_pontos} pontos${item.ativo ? '' : ', inativo'}`}
             >
-              <View style={styles.cardTopo}>
-                <Text style={[styles.cardNome, !item.ativo && styles.textoInativo]}>{item.nome}</Text>
-                {!item.ativo && (
-                  <View style={styles.badgeInativo}>
-                    <Text style={styles.badgeInativoTexto}>inativo</Text>
-                  </View>
-                )}
-              </View>
-              {item.descricao ? (
-                <Text style={[styles.cardDescricao, !item.ativo && styles.textoInativo]} numberOfLines={2}>
-                  {item.descricao}
-                </Text>
-              ) : null}
-              <View style={styles.cardCustoRow}>
-                <Trophy size={12} color={item.ativo ? colors.accent.admin : colors.text.muted} strokeWidth={2} />
-                <Text style={[styles.cardCusto, !item.ativo && styles.textoInativo]}>
-                  {item.custo_pontos} pts
-                </Text>
-              </View>
-            </Pressable>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.cardMain,
+                  pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+                ]}
+                onPress={() => router.push(`/(admin)/prizes/${item.id}` as never)}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.nome}, ${item.custo_pontos} pontos${item.ativo ? '' : ', inativo'}`}
+              >
+                <View style={styles.cardTopo}>
+                  <Text style={[styles.cardNome, !item.ativo && styles.textoInativo]}>{item.nome}</Text>
+                  {!item.ativo && (
+                    <View style={styles.badgeInativo}>
+                      <Text style={styles.badgeInativoTexto}>inativo</Text>
+                    </View>
+                  )}
+                </View>
+                {item.descricao ? (
+                  <Text style={[styles.cardDescricao, !item.ativo && styles.textoInativo]} numberOfLines={2}>
+                    {item.descricao}
+                  </Text>
+                ) : null}
+                <View style={styles.cardCustoRow}>
+                  <Trophy size={12} color={item.ativo ? colors.accent.admin : colors.text.muted} strokeWidth={2} />
+                  <Text style={[styles.cardCusto, !item.ativo && styles.textoInativo]}>
+                    {item.custo_pontos} pts
+                  </Text>
+                </View>
+              </Pressable>
+
+              <HeaderIconButton
+                icon={Pencil}
+                onPress={() => router.push(`/(admin)/prizes/${item.id}` as never)}
+                accessibilityLabel={`Editar prêmio ${item.nome}`}
+              />
+            </View>
           )}
         />
       )}
-    </View>
+    </SafeScreenFrame>
   );
 }
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
+    feedbackWrapper: {
+      paddingHorizontal: spacing['4'],
+      paddingTop: spacing['4'],
+    },
     lista: { padding: spacing['4'], gap: spacing['3'], paddingBottom: spacing['12'] },
     resumo: { fontSize: typography.size.xs, color: colors.text.muted, marginBottom: spacing['1'] },
     card: {
@@ -138,10 +179,13 @@ function makeStyles(colors: ThemeColors) {
       borderRadius: radii.xl,
       borderCurve: 'continuous',
       padding: spacing['4'],
-      gap: spacing['2'],
+      gap: spacing['3'],
+      flexDirection: 'row',
+      alignItems: 'center',
       ...shadows.card,
     },
     cardInativo: { opacity: 0.55 },
+    cardMain: { flex: 1, gap: spacing['2'] },
     cardTopo: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
     cardNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary, flex: 1 },
     textoInativo: { color: colors.text.muted },

@@ -11,6 +11,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { RefreshCw } from 'lucide-react-native';
 import {
+  getAssignmentPoints,
   listChildAssignments,
   renewDailyTasks,
   type ChildAssignment,
@@ -22,6 +23,7 @@ import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 
 type Filter = 'pendente' | 'aguardando_validacao' | 'historico';
 
@@ -78,7 +80,7 @@ export default function ChildTasksScreen() {
   const shouldShowEmptyState = loading || Boolean(error) || filtered.length === 0;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
+    <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
       <ScreenHeader title="Minhas Tarefas" onBack={() => router.back()} backLabel="Início" role="filho" />
 
@@ -116,9 +118,9 @@ export default function ChildTasksScreen() {
               onPress={() => router.push(`/(child)/tasks/${item.id}` as never)}
             >
               <View style={styles.cardTop}>
-                <Text style={styles.cardTitle} numberOfLines={2}>{item.tarefas.titulo}</Text>
+                  <Text style={styles.cardTitle} numberOfLines={2}>{item.tarefas.titulo}</Text>
                 <View style={styles.pointsTag}>
-                  <Text style={styles.pointsText}>{item.tarefas.pontos} pts</Text>
+                  <Text style={styles.pointsText}>{getAssignmentPoints(item)} pts</Text>
                 </View>
               </View>
               <View style={styles.freqRow}>
@@ -138,7 +140,7 @@ export default function ChildTasksScreen() {
           )}
         />
       )}
-    </View>
+    </SafeScreenFrame>
   );
 }
 
@@ -166,7 +168,7 @@ function makeStyles(colors: ThemeColors) {
     filterBtnActive: { backgroundColor: colors.accent.filho },
     filterText: { fontSize: typography.size.xs, fontFamily: typography.family.semibold, color: colors.text.secondary },
     filterTextActive: {},
-    list: { padding: spacing['4'] },
+    list: { padding: spacing['4'], paddingBottom: spacing['12'] },
     card: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,

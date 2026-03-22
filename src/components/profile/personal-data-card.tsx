@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { updateUserName, type UserProfile } from '@lib/auth';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
+import { useTransientMessage } from '@/hooks/use-transient-message';
 
 type PersonalDataCardProps = Readonly<{
   profile: UserProfile | null;
@@ -14,12 +15,13 @@ export function PersonalDataCard({ profile, email, onNameUpdated }: PersonalData
   const { colors } = useTheme();
   const [name, setName] = useState(profile?.nome ?? '');
   const [saving, setSaving] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const visibleSuccessMessage = useTransientMessage(success);
 
   async function handleSave() {
     setError(null);
-    setSuccess(false);
+    setSuccess(null);
     const trimmed = name.trim();
     if (!trimmed) return setError('Informe seu nome.');
     setSaving(true);
@@ -27,7 +29,7 @@ export function PersonalDataCard({ profile, email, onNameUpdated }: PersonalData
     setSaving(false);
     if (saveError) { setError(saveError.message); return; }
     onNameUpdated(trimmed);
-    setSuccess(true);
+    setSuccess('Nome atualizado!');
   }
 
   return (
@@ -38,7 +40,7 @@ export function PersonalDataCard({ profile, email, onNameUpdated }: PersonalData
       <TextInput
         style={[styles.input, { backgroundColor: colors.bg.elevated, borderColor: colors.border.default, color: colors.text.primary }]}
         value={name}
-        onChangeText={(v) => { setName(v); setSuccess(false); setError(null); }}
+        onChangeText={(v) => { setName(v); setSuccess(null); setError(null); }}
         placeholder="Seu nome"
         placeholderTextColor={colors.text.muted}
         autoCapitalize="words"
@@ -52,7 +54,7 @@ export function PersonalDataCard({ profile, email, onNameUpdated }: PersonalData
       </View>
 
       {error ? <Text style={[styles.feedback, { color: colors.semantic.error }]}>{error}</Text> : null}
-      {success ? <Text style={[styles.feedback, { color: colors.semantic.success }]}>Nome atualizado!</Text> : null}
+      {visibleSuccessMessage ? <Text style={[styles.feedback, { color: colors.semantic.success }]}>{visibleSuccessMessage}</Text> : null}
 
       <Pressable
         style={[styles.btn, { backgroundColor: colors.accent.adminDim, opacity: saving ? 0.55 : 1 }]}

@@ -1,12 +1,14 @@
-import { StyleSheet, Text, View, Pressable, TextInput, ScrollView, KeyboardAvoidingView, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, Pressable, TextInput } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo } from 'react';
 import { useRouter } from 'expo-router';
-import { ScreenHeader } from '@/components/ui/screen-header';
+import { Button } from '@/components/ui/button';
+import { FormFooter } from '@/components/ui/form-footer';
 import { registerChild } from '@lib/children';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
+import { StickyFooterScreen } from '@/components/ui/sticky-footer-screen';
 
 export default function NewChildScreen() {
   const router = useRouter();
@@ -30,9 +32,9 @@ export default function NewChildScreen() {
     if (tempPassword.length < 6) return setError('A senha temporária deve ter ao menos 6 caracteres.');
     if (tempPassword !== confirmPassword) return setError('As senhas não coincidem.');
     setSubmitting(true);
-    const { error } = await registerChild(name.trim(), emailValue, tempPassword);
+    const { error: registerError } = await registerChild(name.trim(), emailValue, tempPassword);
     setSubmitting(false);
-    if (error) { setError(error); return; }
+    if (registerError) { setError(registerError); return; }
     setSuccess(true);
   }
 
@@ -46,9 +48,9 @@ export default function NewChildScreen() {
           Compartilhe as credenciais com {name}:{'\n\n'}
           <Text style={{ color: colors.accent.admin, fontFamily: typography.family.bold }}>E-mail: {email}</Text>
           {'\n'}
-          <Text style={{ color: colors.accent.admin, fontFamily: typography.family.bold }}>Senha: {tempPassword}</Text>
+          <Text style={{ color: colors.accent.admin, fontFamily: typography.family.bold }}>Senha: {'•'.repeat(tempPassword.length)}</Text>
         </Text>
-        <Pressable style={[styles.botaoConcluir, { backgroundColor: colors.accent.adminDim }]} onPress={() => router.back()}>
+        <Pressable style={[styles.botaoConcluir, { backgroundColor: colors.accent.adminDim }]} onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Concluir cadastro">
           <Text style={[styles.botaoConcluirTexto, { color: colors.text.inverse }]}>Concluir</Text>
         </Pressable>
       </View>
@@ -56,73 +58,60 @@ export default function NewChildScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={[{ flex: 1, backgroundColor: colors.bg.canvas }]}
-      behavior="padding"
+    <StickyFooterScreen
+      title="Novo Filho"
+      onBack={() => router.back()}
+      keyboardAvoiding
+      footer={(
+        <FormFooter message={shouldShowError ? error : null} compact includeSafeBottom={false}>
+          <Button
+            label="Cadastrar filho"
+            onPress={handleRegister}
+            loading={submitting}
+            accessibilityLabel="Cadastrar filho"
+          />
+        </FormFooter>
+      )}
     >
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader title="Novo Filho" onBack={() => router.back()} />
+      <View style={[styles.infoBox, { backgroundColor: colors.accent.adminBg, borderColor: colors.border.subtle }]}>
+        <Text style={[styles.infoTexto, { color: colors.text.secondary }]}>
+          O sistema criará uma conta para o filho. Compartilhe o e-mail e senha temporária para o primeiro acesso.
+        </Text>
+      </View>
 
-      <ScrollView
-        style={{ backgroundColor: colors.bg.canvas }}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={[styles.infoBox, { backgroundColor: colors.accent.adminBg, borderColor: colors.border.subtle }]}>
-          <Text style={[styles.infoTexto, { color: colors.text.secondary }]}>
-            O sistema criará uma conta para o filho. Compartilhe o e-mail e senha temporária para o primeiro acesso.
-          </Text>
+      {[
+        { label: 'Nome *', value: name, setter: setName, placeholder: 'Nome do filho', maxLength: 60, autoCapitalize: 'words' as const, keyboardType: undefined, secure: false },
+        { label: 'E-mail *', value: email, setter: setEmail, placeholder: 'email@exemplo.com', maxLength: MAX_EMAIL_LENGTH, autoCapitalize: 'none' as const, keyboardType: 'email-address' as const, secure: false },
+        { label: 'Senha temporária *', value: tempPassword, setter: setTempPassword, placeholder: 'Mínimo 6 caracteres', maxLength: 40, autoCapitalize: 'none' as const, keyboardType: undefined, secure: true },
+        { label: 'Confirmar senha *', value: confirmPassword, setter: setConfirmPassword, placeholder: 'Repita a senha', maxLength: 40, autoCapitalize: 'none' as const, keyboardType: undefined, secure: true },
+      ].map(({ label, value, setter, placeholder, maxLength, autoCapitalize, keyboardType, secure }) => (
+        <View key={label}>
+          <Text style={[styles.label, { color: colors.text.secondary }]}>{label}</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.bg.surface, borderColor: colors.border.default, color: colors.text.primary }]}
+            value={value}
+            onChangeText={setter}
+            placeholder={placeholder}
+            placeholderTextColor={colors.text.muted}
+            maxLength={maxLength}
+            autoCapitalize={autoCapitalize}
+            keyboardType={keyboardType}
+            autoCorrect={false}
+            secureTextEntry={secure}
+          />
         </View>
-
-        {[
-          { label: 'Nome *', value: name, setter: setName, placeholder: 'Nome do filho', maxLength: 60, autoCapitalize: 'words' as const, keyboardType: undefined, secure: false },
-          { label: 'E-mail *', value: email, setter: setEmail, placeholder: 'email@exemplo.com', maxLength: MAX_EMAIL_LENGTH, autoCapitalize: 'none' as const, keyboardType: 'email-address' as const, secure: false },
-          { label: 'Senha temporária *', value: tempPassword, setter: setTempPassword, placeholder: 'Mínimo 6 caracteres', maxLength: 40, autoCapitalize: 'none' as const, keyboardType: undefined, secure: true },
-          { label: 'Confirmar senha *', value: confirmPassword, setter: setConfirmPassword, placeholder: 'Repita a senha', maxLength: 40, autoCapitalize: 'none' as const, keyboardType: undefined, secure: true },
-        ].map(({ label, value, setter, placeholder, maxLength, autoCapitalize, keyboardType, secure }) => (
-          <View key={label}>
-            <Text style={[styles.label, { color: colors.text.secondary }]}>{label}</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.bg.surface, borderColor: colors.border.default, color: colors.text.primary }]}
-              value={value}
-              onChangeText={setter}
-              placeholder={placeholder}
-              placeholderTextColor={colors.text.muted}
-              maxLength={maxLength}
-              autoCapitalize={autoCapitalize}
-              keyboardType={keyboardType}
-              autoCorrect={false}
-              secureTextEntry={secure}
-            />
-          </View>
-        ))}
-
-        {shouldShowError ? (
-          <Text style={[styles.erroTexto, { color: colors.semantic.error }]}>{error}</Text>
-        ) : null}
-
-        <Pressable
-          style={[styles.botaoCadastrar, { backgroundColor: colors.accent.adminDim, opacity: submitting ? 0.55 : 1 }]}
-          onPress={handleRegister}
-          disabled={submitting}
-        >
-          {submitting ? <ActivityIndicator color={colors.text.inverse} /> : <Text style={[styles.botaoCadastrarTexto, { color: colors.text.inverse }]}>Cadastrar filho</Text>}
-        </Pressable>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      ))}
+    </StickyFooterScreen>
   );
 }
 
 function makeStyles() {
   return StyleSheet.create({
-    scrollContent: { padding: spacing['5'], paddingBottom: spacing['10'] },
     infoBox: { borderRadius: radii.md, borderWidth: 1, padding: spacing['3'], marginBottom: spacing['4'] },
     infoTexto: { fontSize: typography.size.sm, lineHeight: typography.lineHeight.sm },
     label: { fontSize: typography.size.sm, fontFamily: typography.family.semibold, marginBottom: spacing['1'], marginTop: spacing['4'] },
     input: { borderWidth: 1, borderRadius: radii.md, paddingHorizontal: spacing['4'], paddingVertical: spacing['3'], fontSize: typography.size.md },
-    erroTexto: { fontSize: typography.size.sm, marginTop: spacing['3'], textAlign: 'center' },
-    botaoCadastrar: { borderRadius: radii.md, paddingVertical: spacing['4'], alignItems: 'center', marginTop: spacing['6'], minHeight: 48 },
-    botaoCadastrarTexto: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
     sucessoContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing['8'] },
     sucessoEmoji: { fontSize: typography.size['5xl'], marginBottom: spacing['4'] },
     sucessoTitulo: { fontSize: typography.size['2xl'], fontFamily: typography.family.bold, marginBottom: spacing['3'] },
