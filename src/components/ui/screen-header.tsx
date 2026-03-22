@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
+import { getSafeHorizontalPadding, getSafeTopPadding } from '@lib/safe-area';
 
 interface ScreenHeaderProps {
   title: string;
@@ -78,14 +79,15 @@ export function ScreenHeader({
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const displayLabel = backLabel.replace(/^←\s*/, '');
-  const resolvedBackTone = backTone ?? (role === 'filho' ? 'accent' : 'muted');
+  const resolvedBackTone = backTone ?? 'muted';
 
   return (
     <View
       style={[
         styles.container,
         {
-          paddingTop: insets.top + spacing['3'],
+          paddingTop: getSafeTopPadding(insets, spacing['3']),
+          ...getSafeHorizontalPadding(insets, spacing['4']),
           backgroundColor: surface === 'canvas' ? colors.bg.canvas : colors.bg.surface,
           borderBottomColor: colors.border.subtle,
           borderBottomWidth: showBorder ? 1 : 0,
@@ -127,7 +129,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingBottom: spacing['3'],
-    paddingHorizontal: spacing['4'],
   },
   side: {
     minWidth: 40,

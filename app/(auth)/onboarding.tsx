@@ -12,6 +12,7 @@ import { spacing, typography } from '@/constants/theme';
 import { AuthPrimaryButton } from '@/components/auth/auth-primary-button';
 import { AuthShell } from '@/components/auth/auth-shell';
 import { AuthTextField } from '@/components/auth/auth-text-field';
+import { FormFooter } from '@/components/ui/form-footer';
 
 type OnboardingField = 'familyName' | 'adminName';
 
@@ -90,55 +91,43 @@ export default function OnboardingScreen() {
         editable={!isBusy}
         accessibilityLabel="Campo de nome do administrador"
       />
+      <FormFooter message={shouldShowError ? error : null}>
+        <AuthPrimaryButton
+          label="Criar família"
+          loadingLabel="Criando família…"
+          loading={loading}
+          onPress={handleCreateFamily}
+          accessibilityLabel={submitLabel}
+        />
 
-      {shouldShowError ? (
-        <Text style={[styles.error, { color: colors.semantic.error }]} accessibilityRole="alert">
-          {error}
-        </Text>
-      ) : null}
+        <Pressable
+          style={({ pressed }) => {
+            const opacity = isBusy ? 0.55 : 1;
 
-      <AuthPrimaryButton
-        label="Criar família"
-        loadingLabel="Criando família…"
-        loading={loading}
-        onPress={handleCreateFamily}
-        accessibilityLabel={submitLabel}
-      />
-
-      <Pressable
-        style={({ pressed }) => {
-          const opacity = isBusy ? 0.55 : 1;
-
-          return [
-            styles.secondaryButton,
-            { opacity: !isBusy && pressed ? 0.65 : opacity },
-          ];
-        }}
-        onPress={handleBack}
-        disabled={isBusy}
-        accessibilityRole="button"
-        accessibilityLabel="Voltar ao login"
-      >
-        <Text style={[styles.secondaryButtonText, { color: colors.text.secondary }]}>
-          {backLabel}
-        </Text>
-      </Pressable>
+            return [
+              styles.secondaryButton,
+              { opacity: !isBusy && pressed ? 0.65 : opacity },
+            ];
+          }}
+          onPress={handleBack}
+          disabled={isBusy}
+          accessibilityRole="button"
+          accessibilityLabel="Voltar ao login"
+        >
+          <Text style={[styles.secondaryButtonText, { color: colors.text.secondary }]}>
+            {backLabel}
+          </Text>
+        </Pressable>
+      </FormFooter>
     </AuthShell>
   );
 }
 
 function makeStyles() {
   return StyleSheet.create({
-    error: {
-      fontFamily: typography.family.medium,
-      fontSize: typography.size.sm,
-      marginTop: spacing['3'],
-      textAlign: 'center',
-    },
     secondaryButton: {
-      paddingVertical: spacing['4'],
+      paddingVertical: spacing['3'],
       alignItems: 'center',
-      marginTop: spacing['1'],
     },
     secondaryButtonText: {
       fontFamily: typography.family.medium,

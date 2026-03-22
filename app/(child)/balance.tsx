@@ -13,6 +13,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Wallet,
   TrendingUp,
@@ -32,12 +33,15 @@ import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { TransactionIcon } from '@/components/balance/transaction-icon';
 import { PointsDisplay } from '@/components/ui/points-display';
+import { getSafeBottomPadding } from '@lib/safe-area';
 
 export default function ChildBalanceScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [childId, setChildId] = useState<string | null>(null);
@@ -101,9 +105,12 @@ export default function ChildBalanceScreen() {
   const lastAppreciationText = balance?.data_ultima_valorizacao
     ? ` · última em ${new Date(balance.data_ultima_valorizacao).toLocaleDateString('pt-BR')}`
     : '';
+  const nextAppreciationText = balance?.proxima_valorizacao_em
+    ? ` · próxima em ${new Date(balance.proxima_valorizacao_em).toLocaleDateString('pt-BR')}`
+    : '';
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
+    <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
       <ScreenHeader title="Meu Saldo" onBack={() => router.back()} backLabel="Início" role="filho" />
 
@@ -138,8 +145,12 @@ export default function ChildBalanceScreen() {
                   <Text style={styles.appreciationText}>
                     Seu cofrinho rende {balance!.indice_valorizacao}% ao {appreciationPeriod}
                     {lastAppreciationText}
+                    {nextAppreciationText}
                   </Text>
                 </View>
+                <Text style={styles.appreciationHint}>
+                  A valorização entra automaticamente no cofrinho quando o período vence.
+                </Text>
               </View>
             )}
 
@@ -147,6 +158,8 @@ export default function ChildBalanceScreen() {
               style={[styles.transferBtn, freeBalance === 0 && styles.disabledBtn]}
               onPress={() => { setModalVisible(true); setAmountStr(''); setModalError(null); }}
               disabled={freeBalance === 0}
+              accessibilityRole="button"
+              accessibilityLabel="Guardar pontos no cofrinho"
             >
               <Text style={styles.transferBtnText}>Guardar no cofrinho</Text>
             </Pressable>
@@ -177,7 +190,7 @@ export default function ChildBalanceScreen() {
           style={styles.modalOverlay}
           behavior="padding"
         >
-          <View style={styles.modalBox}>
+          <View style={[styles.modalBox, { paddingBottom: getSafeBottomPadding(insets, spacing['12']) }]}>
             <Text style={styles.modalTitle}>Guardar no cofrinho</Text>
             <Text style={styles.modalSub}>
               Saldo livre disponível: <Text style={{ fontFamily: typography.family.bold }}>{freeBalance}</Text> pts
@@ -194,13 +207,15 @@ export default function ChildBalanceScreen() {
             />
             {hasModalError ? <Text style={styles.modalErrorText}>{modalError}</Text> : null}
             <View style={styles.modalBtns}>
-              <Pressable style={styles.cancelBtn} onPress={() => setModalVisible(false)}>
+              <Pressable style={styles.cancelBtn} onPress={() => setModalVisible(false)} accessibilityRole="button" accessibilityLabel="Cancelar transferência">
                 <Text style={styles.cancelBtnText}>Cancelar</Text>
               </Pressable>
               <Pressable
                 style={[styles.confirmBtn, transferring && { opacity: 0.6 }]}
                 onPress={handleTransfer}
                 disabled={transferring}
+                accessibilityRole="button"
+                accessibilityLabel="Confirmar transferência para cofrinho"
               >
                 {transferring
                   ? <ActivityIndicator color={colors.text.inverse} />
@@ -210,14 +225,13 @@ export default function ChildBalanceScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </View>
+    </SafeScreenFrame>
   );
 }
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    container: { flex: 1 },
     list: { padding: spacing['5'], paddingBottom: spacing['12'] },
     cardsRow: { flexDirection: 'row', gap: spacing['3'], marginBottom: spacing['3'] },
     balanceCard: {
@@ -232,6 +246,7 @@ function makeStyles(colors: ThemeColors) {
     appreciationBox: { backgroundColor: colors.semantic.successBg, borderRadius: radii.lg, padding: spacing['2'], marginBottom: spacing['3'] },
     appreciationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     appreciationText: { color: colors.semantic.success, fontSize: typography.size.xs, flex: 1 },
+    appreciationHint: { color: colors.text.secondary, fontSize: typography.size.xs, marginTop: spacing['1.5'] },
     transferBtn: {
       backgroundColor: colors.accent.filho,
       borderRadius: radii.xl,

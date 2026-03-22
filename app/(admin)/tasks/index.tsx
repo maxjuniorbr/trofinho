@@ -7,6 +7,13 @@ import { Plus, RefreshCw } from 'lucide-react-native';
 import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Badge } from '@/components/ui/badge';
+import { InlineMessage } from '@/components/ui/inline-message';
+import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
+import { useTransientMessage } from '@/hooks/use-transient-message';
+import {
+  consumeNavigationFeedback,
+  type NavigationFeedback,
+} from '@lib/navigation-feedback';
 import { listAdminTasks, type TaskListItem } from '@lib/tasks';
 import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -19,6 +26,11 @@ export default function AdminTasksScreen() {
   const [tasks, setTasks] = useState<TaskListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successFeedback, setSuccessFeedback] = useState<NavigationFeedback | null>(null);
+  const visibleSuccessMessage = useTransientMessage(
+    successFeedback?.message ?? null,
+    { resetKey: successFeedback?.id },
+  );
   const hasError = Boolean(error);
   const shouldShowEmptyState = loading || hasError || tasks.length === 0;
 
@@ -31,10 +43,18 @@ export default function AdminTasksScreen() {
     finally { setLoading(false); }
   }, []);
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  useFocusEffect(useCallback(() => {
+    const feedback = consumeNavigationFeedback('admin-task-list');
+
+    if (feedback) {
+      setSuccessFeedback(feedback);
+    }
+
+    void loadData();
+  }, [loadData]));
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
+    <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
       <ScreenHeader
         title="Tarefas"
@@ -48,6 +68,12 @@ export default function AdminTasksScreen() {
           />
         }
       />
+
+      {visibleSuccessMessage ? (
+        <View style={styles.feedbackWrapper}>
+          <InlineMessage message={visibleSuccessMessage} variant="success" />
+        </View>
+      ) : null}
 
       {shouldShowEmptyState ? (
         <EmptyState loading={loading} error={error} empty={tasks.length === 0} emptyMessage={'Nenhuma tarefa criada ainda.\nToque em "+" para criar a primeira tarefa.'} onRetry={loadData} />
@@ -97,14 +123,15 @@ export default function AdminTasksScreen() {
           }}
         />
       )}
-    </View>
+    </SafeScreenFrame>
   );
 }
 
 function makeStyles() {
   return StyleSheet.create({
     container: { flex: 1 },
-    lista: { padding: spacing['4'], paddingBottom: spacing['10'] },
+    feedbackWrapper: { paddingHorizontal: spacing['4'], paddingTop: spacing['4'] },
+    lista: { padding: spacing['4'], paddingBottom: spacing['12'] },
     card: { borderRadius: radii.xl, borderWidth: 1, padding: spacing['4'], marginBottom: spacing['3'] },
     cardTopo: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing['2'] },
     cardTitulo: { flex: 1, fontSize: typography.size.md, fontFamily: typography.family.semibold, marginRight: spacing['2'] },

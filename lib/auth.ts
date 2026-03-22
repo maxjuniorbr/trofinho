@@ -1,5 +1,5 @@
 import { localizeSupabaseError } from './api-error';
-import { readImageAsArrayBuffer, inferImageExtension, inferImageContentType, resizeImage } from './image-utils';
+import { uploadImageToPublicBucket } from './storage';
 import { supabase } from './supabase';
 
 const AVATAR_BUCKET = 'avatars';
@@ -43,6 +43,18 @@ export async function signUp(
   return { error: null };
 }
 
+export async function getCurrentAuthUser(): Promise<{
+  email: string;
+  avatarUrl: string | null;
+} | null> {
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) return null;
+  return {
+    email: data.user.email ?? '',
+    avatarUrl: (data.user.user_metadata?.avatar_url as string | undefined) ?? null,
+  };
+}
+
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut({ scope: 'local' });
 }
@@ -62,9 +74,21 @@ export async function getProfile(): Promise<UserProfile | null> {
 
   if (error || !data) return null;
 
+  let avatarUrl = (user.user_metadata?.avatar_url as string | undefined) ?? null;
+
+  if (data.papel === 'filho' && !avatarUrl) {
+    const { data: childData } = await supabase
+      .from('filhos')
+      .select('avatar_url')
+      .eq('usuario_id', user.id)
+      .maybeSingle();
+
+    avatarUrl = (childData as { avatar_url: string | null } | null)?.avatar_url ?? null;
+  }
+
   return {
     ...(data as UserProfile),
-    avatarUrl: (user.user_metadata?.avatar_url as string | undefined) ?? null,
+    avatarUrl,
   };
 }
 
@@ -98,7 +122,7 @@ export async function updateUserName(
     .update({ nome: name })
     .eq('id', authData.user.id);
 
-  if (error) return { error: { message: error.message } };
+  if (error) return { error: { message: localizeSupabaseError(error.message) } };
 
   return { error: null };
 }
@@ -118,54 +142,38 @@ export async function updateUserPassword(
 export async function updateUserAvatar(
   imageUri: string
 ): Promise<{ url: string | null; error: AuthError | null }> {
-  try {
-    const { data: authData, error: authError } = await supabase.auth.getUser();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
 
-    if (authError || !authData.user) {
-      return { url: null, error: { message: 'Sessão expirada. Faça login novamente.' } };
-    }
-
-    const userId = authData.user.id;
-    const resizedUri = await resizeImage(imageUri);
-    const extension = inferImageExtension(resizedUri);
-    const buffer = await readImageAsArrayBuffer(resizedUri);
-    const filePath = `${userId}/avatar.${extension}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from(AVATAR_BUCKET)
-      .upload(filePath, buffer, {
-        contentType: inferImageContentType(extension),
-        upsert: true,
-      });
-
-    if (uploadError) {
-      return { url: null, error: { message: uploadError.message } };
-    }
-
-    const { data: publicData } = supabase.storage
-      .from(AVATAR_BUCKET)
-      .getPublicUrl(filePath);
-
-    const publicUrl = `${publicData.publicUrl}?t=${Date.now()}`;
-
-    const { error: metaError } = await supabase.auth.updateUser({
-      data: { avatar_url: publicUrl },
-    });
-
-    if (metaError) {
-      return { url: publicUrl, error: { message: metaError.message } };
-    }
-
-    return { url: publicUrl, error: null };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Erro ao fazer upload do avatar';
-    return { url: null, error: { message: msg } };
+  if (authError || !authData.user) {
+    return { url: null, error: { message: 'Sessão expirada. Faça login novamente.' } };
   }
+
+  const uploadResult = await uploadImageToPublicBucket({
+    bucket: AVATAR_BUCKET,
+    imageUri,
+    pathWithoutExtension: `${authData.user.id}/avatar`,
+  });
+
+  if (uploadResult.error || !uploadResult.publicUrl) {
+    return {
+      url: null,
+      error: { message: uploadResult.error ?? 'Erro ao fazer upload do avatar' },
+    };
+  }
+
+  const { error: metaError } = await supabase.auth.updateUser({
+    data: { avatar_url: uploadResult.publicUrl },
+  });
+
+  if (metaError) {
+    return { url: uploadResult.publicUrl, error: { message: localizeSupabaseError(metaError.message) } };
+  }
+
+  return { url: uploadResult.publicUrl, error: null };
 }
 
 function translateRpcError(msg: string): string {
   if (msg.includes('já pertence a uma família')) return 'Você já tem uma família cadastrada.';
   if (msg.includes('não autenticado')) return 'Sessão expirada. Faça login novamente.';
-  return msg;
+  return 'Algo deu errado. Tente novamente.';
 }
-

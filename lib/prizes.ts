@@ -1,4 +1,5 @@
 import { notifyRedemptionRequested } from './notifications';
+import { uploadImageToPublicBucket } from './storage';
 import { supabase } from './supabase';
 
 export type Prize = {
@@ -7,6 +8,7 @@ export type Prize = {
   nome: string;
   descricao: string | null;
   custo_pontos: number;
+  imagem_url: string | null;
   ativo: boolean;
   created_at: string;
 };
@@ -38,6 +40,16 @@ export type PrizeInput = {
   custo_pontos: number;
 };
 
+export type UpdatePrizeInput = PrizeInput & {
+  ativo?: boolean | null;
+  imagem_url?: string | null;
+  imageUri?: string | null;
+};
+
+const PRIZE_IMAGE_OPTIONS = {
+  maxDimension: 768,
+  compress: 0.65,
+} as const;
 
 export async function listPrizes(limit = 50): Promise<{
   data: Prize[];
@@ -100,19 +112,51 @@ export async function createPrize(input: PrizeInput): Promise<{
 
 export async function updatePrize(
   id: string,
-  input: PrizeInput
-): Promise<{ error: string | null }> {
-  const { error } = await supabase
-    .from('premios')
-    .update({
-      nome:         input.nome,
-      descricao:    input.descricao,
-      custo_pontos: input.custo_pontos,
-    })
-    .eq('id', id);
+  input: UpdatePrizeInput
+): Promise<{ error: string | null; imageUrl: string | null; pointsMessage: string | null }> {
+  let nextImageUrl = input.imagem_url ?? null;
 
-  if (error) return { error: error.message };
-  return { error: null };
+  if (input.imageUri) {
+    const uploadResult = await uploadImageToPublicBucket({
+      bucket: 'premios',
+      imageUri: input.imageUri,
+      imageOptions: PRIZE_IMAGE_OPTIONS,
+      pathWithoutExtension: `${id}/capa`,
+    });
+
+    if (uploadResult.error || !uploadResult.publicUrl) {
+      return {
+        error: uploadResult.error ?? 'Não foi possível fazer upload da imagem do prêmio.',
+        imageUrl: null,
+        pointsMessage: null,
+      };
+    }
+
+    nextImageUrl = uploadResult.publicUrl;
+  }
+
+  const { data, error } = await supabase.rpc('editar_premio', {
+    p_premio_id: id,
+    p_nome: input.nome,
+    p_descricao: input.descricao,
+    p_custo_pontos: input.custo_pontos,
+    p_imagem_url: nextImageUrl,
+    p_ativo: input.ativo ?? null,
+  });
+
+  if (error) {
+    return {
+      error: error.message,
+      imageUrl: nextImageUrl,
+      pointsMessage: null,
+    };
+  }
+
+  return {
+    error: null,
+    imageUrl: nextImageUrl,
+    pointsMessage: (data as string | null) ?? null,
+  };
 }
 
 export async function deactivatePrize(id: string): Promise<{ error: string | null }> {

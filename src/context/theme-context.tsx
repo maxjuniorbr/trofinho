@@ -54,7 +54,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     return currentScheme === 'dark';
   }, [currentScheme, systemScheme]);
 
-  const colors = (isDark ? darkColors : lightColors) as ThemeColors;
+  const colors: ThemeColors = isDark ? darkColors : lightColors;
 
   const value = useMemo<ThemeContextValue>(
     () => ({ colors, isDark, scheme: currentScheme, setScheme }),

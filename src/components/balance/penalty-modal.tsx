@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { AlertTriangle } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
+import { FormFooter } from '@/components/ui/form-footer';
 
 type PenaltyModalProps = Readonly<{
   visible: boolean;
@@ -76,23 +77,22 @@ export function PenaltyModal({ visible, childName, onClose, onApply }: PenaltyMo
             multiline
             maxLength={200}
           />
-
-          {error ? <Text style={[styles.error, { color: colors.semantic.error }]}>{error}</Text> : null}
-
-          <View style={styles.buttons}>
-            <Pressable style={[styles.btn, styles.btnCancel, { borderColor: colors.border.default }]} onPress={handleClose}>
-              <Text style={[styles.btnCancelText, { color: colors.text.secondary }]}>Cancelar</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.btn, styles.btnConfirm, { backgroundColor: colors.semantic.error }, saving && styles.btnDisabled]}
-              onPress={handleApply}
-              disabled={saving}
-            >
-              {saving
-                ? <ActivityIndicator color={colors.text.inverse} />
-                : <Text style={[styles.btnConfirmText, { color: colors.text.inverse }]}>Penalizar</Text>}
-            </Pressable>
-          </View>
+          <FormFooter message={error} compact>
+            <View style={styles.buttons}>
+              <Pressable style={[styles.btn, styles.btnCancel, { borderColor: colors.border.default }]} onPress={handleClose}>
+                <Text style={[styles.btnCancelText, { color: colors.text.secondary }]}>Cancelar</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.btn, styles.btnConfirm, { backgroundColor: colors.semantic.error }, saving && styles.btnDisabled]}
+                onPress={handleApply}
+                disabled={saving}
+              >
+                {saving
+                  ? <ActivityIndicator color={colors.text.inverse} />
+                  : <Text style={[styles.btnConfirmText, { color: colors.text.inverse }]}>Penalizar</Text>}
+              </Pressable>
+            </View>
+          </FormFooter>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -129,7 +129,6 @@ const styles = StyleSheet.create({
     fontSize: typography.size.md, minHeight: 48,
   },
   inputMultiline: { height: 80, textAlignVertical: 'top' },
-  error: { fontSize: typography.size.xs },
   buttons: { flexDirection: 'row', gap: spacing['3'] },
   btn: { flex: 1, borderRadius: radii.lg, paddingVertical: spacing['3'], alignItems: 'center', minHeight: 48 },
   btnCancel: { borderWidth: 1 },

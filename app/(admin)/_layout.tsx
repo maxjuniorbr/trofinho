@@ -7,8 +7,10 @@ export default function AdminLayout() {
       <Stack.Screen name="tasks/index" />
       <Stack.Screen name="tasks/new" />
       <Stack.Screen name="tasks/[id]" />
+      <Stack.Screen name="tasks/[id]/edit" />
       <Stack.Screen name="children/index" />
       <Stack.Screen name="children/new" />
+      <Stack.Screen name="children/[id]" />
       <Stack.Screen name="balances/index" />
       <Stack.Screen name="balances/[filho_id]" />
       <Stack.Screen name="prizes/index" />

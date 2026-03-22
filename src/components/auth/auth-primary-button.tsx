@@ -61,7 +61,6 @@ function makeStyles() {
     button: {
       borderRadius: radii.inner,
       overflow: 'hidden',
-      marginTop: spacing['6'],
       minHeight: 56,
     },
     gradient: {

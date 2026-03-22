@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 import type { AppreciationPeriod } from '@lib/balances';
+import { FormFooter } from '@/components/ui/form-footer';
 
 const PERIODOS: { label: string; value: AppreciationPeriod }[] = [
   { label: 'Dia', value: 'diario' },
@@ -103,23 +104,22 @@ export function AppreciationModal({
               </Pressable>
             ))}
           </View>
-
-          {error ? <Text style={[styles.error, { color: colors.semantic.error }]}>{error}</Text> : null}
-
-          <View style={styles.buttons}>
-            <Pressable style={[styles.btn, styles.btnCancel, { borderColor: colors.border.default }]} onPress={handleClose}>
-              <Text style={[styles.btnCancelText, { color: colors.text.secondary }]}>Cancelar</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.btn, styles.btnConfirm, { backgroundColor: colors.accent.adminDim }, saving && styles.btnDisabled]}
-              onPress={handleSave}
-              disabled={saving}
-            >
-              {saving
-                ? <ActivityIndicator color={colors.text.inverse} />
-                : <Text style={[styles.btnConfirmText, { color: colors.text.inverse }]}>Salvar</Text>}
-            </Pressable>
-          </View>
+          <FormFooter message={error} compact>
+            <View style={styles.buttons}>
+              <Pressable style={[styles.btn, styles.btnCancel, { borderColor: colors.border.default }]} onPress={handleClose}>
+                <Text style={[styles.btnCancelText, { color: colors.text.secondary }]}>Cancelar</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.btn, styles.btnConfirm, { backgroundColor: colors.accent.adminDim }, saving && styles.btnDisabled]}
+                onPress={handleSave}
+                disabled={saving}
+              >
+                {saving
+                  ? <ActivityIndicator color={colors.text.inverse} />
+                  : <Text style={[styles.btnConfirmText, { color: colors.text.inverse }]}>Salvar</Text>}
+              </Pressable>
+            </View>
+          </FormFooter>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -146,7 +146,6 @@ const styles = StyleSheet.create({
   },
   periodActive: {},
   periodText: { fontSize: typography.size.sm, fontFamily: typography.family.medium },
-  error: { fontSize: typography.size.xs },
   buttons: { flexDirection: 'row', gap: spacing['3'] },
   btn: { flex: 1, borderRadius: radii.lg, paddingVertical: spacing['3'], alignItems: 'center', minHeight: 48 },
   btnCancel: { borderWidth: 1 },

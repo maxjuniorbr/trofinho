@@ -5,6 +5,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { ChevronRight } from 'lucide-react-native';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { Avatar } from '@/components/ui/avatar';
 import { listAdminBalances, type BalanceWithChild } from '@lib/balances';
 import { useTheme } from '@/context/theme-context';
@@ -27,7 +28,7 @@ export default function BalancesAdminScreen() {
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
+    <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
       <ScreenHeader title="Saldos dos Filhos" onBack={() => router.back()} backLabel="Início" />
 
@@ -60,7 +61,7 @@ export default function BalancesAdminScreen() {
           )}
         />
       )}
-    </View>
+    </SafeScreenFrame>
   );
 }
 

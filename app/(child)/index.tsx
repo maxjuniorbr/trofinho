@@ -25,9 +25,9 @@ import { getGreeting } from '@lib/utils';
 import { isNotificationPermissionDenied } from '@lib/notifications';
 import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PointsDisplay } from '@/components/ui/points-display';
 import { NotificationPermissionBanner } from '@/components/ui/notification-permission-banner';
+import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { mascotImage, celebratingImage } from '@/constants/assets';
 
 import type { LucideIcon } from 'lucide-react-native';
@@ -43,7 +43,6 @@ export default function FilhoHomeScreen() {
   const router  = useRouter();
   const { colors } = useTheme();
   const styles  = useMemo(() => makeStyles(), []);
-  const insets  = useSafeAreaInsets();
 
   const [profile,      setProfile]      = useState<UserProfile | null>(null);
   const [family,       setFamily]       = useState<Family | null>(null);
@@ -104,12 +103,19 @@ export default function FilhoHomeScreen() {
   }
 
   return (
-    <ScrollView
-      style={{ backgroundColor: colors.bg.canvas }}
-      contentContainerStyle={[styles.container, { paddingTop: insets.top + spacing['6'] }]}
-      showsVerticalScrollIndicator={false}
-    >
+    <SafeScreenFrame topInset bottomInset>
       <StatusBar style={colors.statusBar} />
+      <ScrollView
+        style={{ backgroundColor: colors.bg.canvas }}
+        contentContainerStyle={[
+          styles.container,
+          {
+            paddingTop: spacing['6'],
+            paddingBottom: spacing['12'],
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
 
       <View style={styles.hero}>
         <Text style={[styles.heroSub, { color: colors.text.secondary }]}>{getGreeting()} 🏆</Text>
@@ -234,14 +240,15 @@ export default function FilhoHomeScreen() {
         }
       </Pressable>
 
-    </ScrollView>
+      </ScrollView>
+    </SafeScreenFrame>
   );
 }
 
 function makeStyles() {
   return StyleSheet.create({
     loading:         { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    container:       { flexGrow: 1, alignItems: 'center', paddingHorizontal: spacing.screen, paddingBottom: spacing['12'] },
+    container:       { flexGrow: 1, alignItems: 'center', paddingHorizontal: spacing.screen },
 
     hero:            { alignItems: 'center', width: '100%', marginBottom: spacing['4'] },
     heroSub:         { fontFamily: typography.family.bold, fontSize: typography.size.sm },

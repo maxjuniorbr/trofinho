@@ -19,6 +19,7 @@ import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { formatDate } from '@lib/utils';
 
 export default function ChildRedemptionsScreen() {
@@ -51,7 +52,7 @@ export default function ChildRedemptionsScreen() {
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
+    <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
       <ScreenHeader title="Meus Resgates" onBack={() => router.back()} backLabel="Início" role="filho" />
 
@@ -90,7 +91,7 @@ export default function ChildRedemptionsScreen() {
           )}
         />
       )}
-    </View>
+    </SafeScreenFrame>
   );
 }
 
@@ -98,7 +99,7 @@ export default function ChildRedemptionsScreen() {
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
-    list: { padding: spacing['4'], paddingBottom: spacing['10'] },
+    list: { padding: spacing['4'], paddingBottom: spacing['12'] },
     card: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,
