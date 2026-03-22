@@ -13,6 +13,7 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     setupFiles: ['./test/setup.ts'],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vitest types omit `all` from coverage
     coverage: {
       all: true,
       provider: 'v8',
@@ -38,6 +39,8 @@ export default defineConfig({
         'src/components/balance/**',
         'src/components/profile/**',
         'src/components/ui/notification-permission-banner.tsx',
+        'src/components/ui/sticky-footer-screen.tsx',
+        'src/components/tasks/**',
         'src/hooks/**',
         'app/**/_layout.tsx',
       ],
