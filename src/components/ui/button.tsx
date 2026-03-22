@@ -107,6 +107,29 @@ export function Button({
     }
   }
 
+  const fontFamily = isPrimary ? typography.family.bold : typography.family.semibold;
+  const fgColor = fg();
+
+  let buttonContent: React.ReactNode;
+  if (loading && loadingLabel) {
+    buttonContent = (
+      <View style={styles.loadingRow}>
+        <ActivityIndicator color={fgColor} size="small" />
+        <Text style={[styles.label, { color: fgColor, fontSize, lineHeight, fontFamily }]}>
+          {loadingLabel}
+        </Text>
+      </View>
+    );
+  } else if (loading) {
+    buttonContent = <ActivityIndicator color={fgColor} size="small" />;
+  } else {
+    buttonContent = (
+      <Text style={[styles.label, { color: fgColor, fontSize, lineHeight, fontFamily }]}>
+        {label}
+      </Text>
+    );
+  }
+
   return (
     <Pressable
       {...rest}
@@ -139,19 +162,11 @@ export function Button({
             { paddingHorizontal, paddingVertical, minHeight, borderRadius: radii.inner },
           ]}
         >
-          {loading
-            ? loadingLabel
-              ? <View style={styles.loadingRow}><ActivityIndicator color={fg()} size="small" /><Text style={[styles.label, { color: fg(), fontSize, lineHeight, fontFamily: typography.family.bold }]}>{loadingLabel}</Text></View>
-              : <ActivityIndicator color={fg()} size="small" />
-            : <Text style={[styles.label, { color: fg(), fontSize, lineHeight, fontFamily: typography.family.bold }]}>{label}</Text>}
+          {buttonContent}
         </LinearGradient>
       ) : (
         <View style={[styles.innerPad, { paddingHorizontal, paddingVertical, minHeight }]}>
-          {loading
-            ? loadingLabel
-              ? <View style={styles.loadingRow}><ActivityIndicator color={fg()} size="small" /><Text style={[styles.label, { color: fg(), fontSize, lineHeight, fontFamily: typography.family.semibold }]}>{loadingLabel}</Text></View>
-              : <ActivityIndicator color={fg()} size="small" />
-            : <Text style={[styles.label, { color: fg(), fontSize, lineHeight, fontFamily: typography.family.semibold }]}>{label}</Text>}
+          {buttonContent}
         </View>
       )}
     </Pressable>
