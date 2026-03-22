@@ -212,12 +212,12 @@ describe('tasks', () => {
 
     await expect(listFamilyChildren()).resolves.toEqual({
       data: [],
-      error: 'children failed',
+      error: 'Algo deu errado. Tente novamente.',
     });
 
     await expect(listAdminTasks()).resolves.toEqual({
       data: [],
-      error: 'tasks failed',
+      error: 'Algo deu errado. Tente novamente.',
     });
   });
 
@@ -237,7 +237,7 @@ describe('tasks', () => {
     })).resolves.toEqual({ error: null });
 
     await expect(approveAssignment('assignment-1')).resolves.toEqual({
-      error: 'approve failed',
+      error: 'Algo deu errado. Tente novamente.',
     });
 
     await expect(renewDailyTasks()).resolves.toBeUndefined();
@@ -261,7 +261,7 @@ describe('tasks', () => {
       descricao: 'Detalhes',
       pontos: 20,
       exige_evidencia: false,
-    })).resolves.toEqual({ error: 'edit failed' });
+    })).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
 
     expect(getTaskEditState({
       frequencia: 'diaria',
@@ -383,7 +383,7 @@ describe('tasks', () => {
 
     await expect(getTaskWithAssignments('missing')).resolves.toEqual({
       data: null,
-      error: 'task not found',
+      error: 'Algo deu errado. Tente novamente.',
     });
     expect(storageBucketMock.createSignedUrl).not.toHaveBeenCalled();
   });
@@ -406,7 +406,7 @@ describe('tasks', () => {
     });
 
     await expect(rejectAssignment('assignment-1', 'Refazer')).resolves.toEqual({
-      error: 'reject failed',
+      error: 'Algo deu errado. Tente novamente.',
     });
 
     await expect(rejectAssignment('assignment-1', 'Refazer')).resolves.toEqual({
@@ -447,12 +447,12 @@ describe('tasks', () => {
 
     await expect(listChildAssignments()).resolves.toEqual({
       data: [],
-      error: 'list failed',
+      error: 'Algo deu errado. Tente novamente.',
     });
 
     await expect(getChildAssignment('assignment-1')).resolves.toEqual({
       data: null,
-      error: 'detail failed',
+      error: 'Algo deu errado. Tente novamente.',
     });
   });
 
@@ -557,7 +557,7 @@ describe('tasks', () => {
     });
 
     await expect(completeAssignment('assignment-1', '/test/photo.jpg')).resolves.toEqual({
-      error: 'upload failed',
+      error: 'Erro ao fazer upload da imagem.',
     });
   });
 
@@ -576,7 +576,7 @@ describe('tasks', () => {
       .mockReturnValueOnce(createSingleQuery({ data: { id: 'child-1' }, error: null }));
 
     await expect(completeAssignment('assignment-1', '/test/photo.jpg')).resolves.toEqual({
-      error: 'profile failed',
+      error: 'Perfil não encontrado',
     });
 
     supabaseMock.from
@@ -584,7 +584,7 @@ describe('tasks', () => {
       .mockReturnValueOnce(createSingleQuery({ data: null, error: { message: 'child failed' } }));
 
     await expect(completeAssignment('assignment-1', '/test/photo.jpg')).resolves.toEqual({
-      error: 'child failed',
+      error: 'Filho não encontrado',
     });
   });
 
