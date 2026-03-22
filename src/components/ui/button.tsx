@@ -113,7 +113,7 @@ export function Button({
       style={({ pressed }) => {
         let opacity = 1;
         if (isDisabled) opacity = 0.45;
-        else if (pressed && !isPrimary) opacity = 0.8;
+        else if (pressed) opacity = isPrimary ? 0.82 : 0.8;
 
         return [
           styles.base,
@@ -123,7 +123,6 @@ export function Button({
             borderColor: borderColor(),
             borderWidth: variant === 'secondary' || variant === 'outline' ? 1 : 0,
             opacity,
-            transform: isPrimary && pressed ? [{ translateY: 2 }] : [],
           },
         ];
       }}

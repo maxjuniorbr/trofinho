@@ -36,6 +36,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { TransactionIcon } from '@/components/balance/transaction-icon';
 import { PointsDisplay } from '@/components/ui/points-display';
+import { InlineMessage } from '@/components/ui/inline-message';
 import { getSafeBottomPadding } from '@lib/safe-area';
 
 export default function ChildBalanceScreen() {
@@ -101,7 +102,6 @@ export default function ChildBalanceScreen() {
   const piggyBank = balance?.cofrinho ?? 0;
   const appreciationPeriod = balance ? getAppreciationPeriodLabel(balance.periodo_valorizacao) : null;
   const hasTransactions = transactions.length > 0;
-  const hasModalError = Boolean(modalError);
   const lastAppreciationText = balance?.data_ultima_valorizacao
     ? ` · última em ${new Date(balance.data_ultima_valorizacao).toLocaleDateString('pt-BR')}`
     : '';
@@ -205,7 +205,7 @@ export default function ChildBalanceScreen() {
               maxLength={6}
               autoFocus
             />
-            {hasModalError ? <Text style={styles.modalErrorText}>{modalError}</Text> : null}
+            {modalError ? <InlineMessage message={modalError} variant="error" /> : null}
             <View style={styles.modalBtns}>
               <Pressable style={styles.cancelBtn} onPress={() => setModalVisible(false)} accessibilityRole="button" accessibilityLabel="Cancelar transferência">
                 <Text style={styles.cancelBtnText}>Cancelar</Text>
@@ -299,7 +299,6 @@ function makeStyles(colors: ThemeColors) {
       color: colors.text.primary,
       textAlign: 'center',
     },
-    modalErrorText: { color: colors.semantic.error, fontSize: typography.size.xs, textAlign: 'center' },
     modalBtns: { flexDirection: 'row', gap: spacing['3'] },
     cancelBtn: {
       flex: 1,
