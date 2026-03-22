@@ -50,7 +50,7 @@ export default function AdminTasksScreen() {
       setSuccessFeedback(feedback);
     }
 
-    void loadData();
+    loadData();
   }, [loadData]));
 
   return (

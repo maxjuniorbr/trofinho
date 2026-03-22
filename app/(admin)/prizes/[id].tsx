@@ -73,7 +73,7 @@ export default function AdminPrizeDetailScreen() {
   }, [id]);
 
   useFocusEffect(useCallback(() => {
-    void loadData();
+    loadData();
   }, [loadData]));
 
   async function handlePickImage() {
