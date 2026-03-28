@@ -1,17 +1,15 @@
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
-  Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { LogOut } from 'lucide-react-native';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { LogoutButton } from '@/components/ui/logout-button';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { AvatarSection } from '@/components/profile/avatar-section';
 import { PersonalDataCard } from '@/components/profile/personal-data-card';
@@ -21,7 +19,7 @@ import {
   NotificationCard,
 } from '@/components/profile/notification-card';
 import { useTheme } from '@/context/theme-context';
-import { radii, spacing, typography } from '@/constants/theme';
+import { spacing } from '@/constants/theme';
 import { getCurrentAuthUser, getProfile, signOut, type UserProfile } from '@lib/auth';
 import { captureException } from '@lib/sentry';
 import {
@@ -81,10 +79,10 @@ export default function ProfileScreen() {
     }, [router]),
   );
 
-  async function handleSignOut() {
+  const handleSignOut = async () => {
     setLoggingOut(true);
     try { await signOut(); } catch (e) { captureException(e); setLoggingOut(false); }
-  }
+  };
 
   async function handleNotificationPreferencesChange(next: NotificationPrefs) {
     const previous = notificationPreferences;
@@ -149,22 +147,7 @@ export default function ProfileScreen() {
             onPreferencesChange={handleNotificationPreferencesChange}
           />
 
-          <Pressable
-            style={[styles.btnLogout, { borderColor: colors.semantic.error + '60', opacity: loggingOut ? 0.55 : 1 }]}
-            onPress={handleSignOut}
-            disabled={loggingOut}
-            accessibilityRole="button"
-            accessibilityLabel="Sair da conta"
-          >
-            {loggingOut
-              ? <ActivityIndicator color={colors.semantic.error} />
-              : (
-                <View style={styles.btnLogoutInner}>
-                  <LogOut size={16} color={colors.semantic.error} strokeWidth={2} />
-                  <Text style={[styles.btnLogoutText, { color: colors.semantic.error }]}>Sair</Text>
-                </View>
-              )}
-          </Pressable>
+          <LogoutButton onPress={handleSignOut} loading={loggingOut} />
         </ScrollView>
       </SafeScreenFrame>
     </KeyboardAvoidingView>
@@ -174,11 +157,4 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scrollContent: { padding: spacing['5'], paddingBottom: spacing['12'], gap: spacing['4'] },
-  btnLogout: {
-    borderRadius: radii.md, borderWidth: 1,
-    paddingVertical: spacing['3'], alignItems: 'center',
-    minHeight: 48, justifyContent: 'center',
-  },
-  btnLogoutInner: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
-  btnLogoutText: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
 });
