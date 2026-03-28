@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  Alert,
   StyleSheet,
   Switch,
   Text,
@@ -242,7 +243,20 @@ export default function AdminPrizeDetailScreen() {
         </View>
         <Switch
           value={isActive}
-          onValueChange={setIsActive}
+          onValueChange={(newValue) => {
+            if (newValue) {
+              setIsActive(true);
+              return;
+            }
+            Alert.alert(
+              'Desativar prêmio?',
+              'O prêmio não aparecerá para os filhos enquanto estiver inativo.',
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                { text: 'Desativar', style: 'destructive', onPress: () => setIsActive(false) },
+              ],
+            );
+          }}
           trackColor={{ false: colors.border.default, true: colors.accent.admin }}
           thumbColor={colors.text.inverse}
           accessibilityLabel="Alternar disponibilidade do prêmio"
