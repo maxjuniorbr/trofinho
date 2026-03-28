@@ -18,7 +18,7 @@ import {
   requestRedemption,
   type Prize,
 } from '@lib/prizes';
-import { getBalance } from '@lib/balances';
+import { getBalance, syncAutomaticAppreciation } from '@lib/balances';
 import { captureException } from '@lib/sentry';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
@@ -50,6 +50,7 @@ export default function ChildPrizesScreen() {
     setRedemptionError(null);
     setSuccess(null);
     try {
+      await syncAutomaticAppreciation();
       const [{ data: prizeList, error: prizesError }, { data: balanceData, error: balanceError }] =
         await Promise.all([listActivePrizes(), getBalance()]);
       if (prizesError) { setError(prizesError); } else { setPrizes(prizeList); }

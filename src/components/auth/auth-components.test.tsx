@@ -3,12 +3,12 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import {
   ActivityIndicator,
   Animated,
-  Image,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { lightColors } from '@/constants/theme';
 

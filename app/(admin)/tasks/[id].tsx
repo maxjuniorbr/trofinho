@@ -6,8 +6,8 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
@@ -120,11 +120,12 @@ function AssignmentCard({
         ) : (
           <View style={styles.evidenciaImgWrapper}>
             <Image
-              source={{ uri: evidenceUrl }}
+              source={evidenceUrl}
               style={styles.evidenciaImg}
-              resizeMode="cover"
+              contentFit="cover"
+              transition={200}
               onLoadStart={() => onImageStateChange('loading')}
-              onLoadEnd={() => onImageStateChange('loaded')}
+              onLoad={() => onImageStateChange('loaded')}
               onError={() => onImageStateChange('error')}
             />
             {imageState !== 'loaded' && (

@@ -93,6 +93,17 @@ vi.mock('expo-linear-gradient', () => ({
     React.createElement('LinearGradient', props, children),
 }));
 
+vi.mock('expo-image', () => ({
+  Image: createHostComponent('Image'),
+}));
+
+vi.mock('@tanstack/react-query', () => ({
+  QueryClient: vi.fn(),
+  QueryClientProvider: ({ children }: Props) => children,
+  useQuery: vi.fn(() => ({ data: undefined, isLoading: false, error: null })),
+  useMutation: vi.fn(() => ({ mutate: vi.fn(), isLoading: false })),
+}));
+
 class AnimatedValue {
   constructor(private readonly initialValue: number) {}
 

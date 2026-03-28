@@ -1,5 +1,6 @@
 import React from 'react';
-import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { AlertTriangle } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
@@ -62,7 +63,7 @@ export function EmptyState({
         <Image
           source={emptyImage}
           style={styles.mascotImage}
-          resizeMode="contain"
+          contentFit="contain"
           accessibilityLabel="Trofinho triste — nenhum item"
         />
         {hasEmptyTitle ? (
