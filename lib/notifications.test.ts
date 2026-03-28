@@ -153,8 +153,8 @@ describe('notifications', () => {
         expect(scheduleNotificationAsyncMock).toHaveBeenCalledWith(
           expect.objectContaining({
             content: expect.objectContaining({
-              title: 'Tarefa enviada',
-              data: { route: '/(child)/tasks' },
+              title: 'Tarefa concluída',
+              data: { route: '/(admin)/tasks' },
             }),
           }),
         );
@@ -172,6 +172,15 @@ describe('notifications', () => {
         deviceStorageGetMock.mockResolvedValue(storedPrefs({ tarefasPendentes: true }));
         await notifyTaskCreated('Lavar a louça');
         expect(scheduleNotificationAsyncMock).toHaveBeenCalledTimes(1);
+        expect(scheduleNotificationAsyncMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            content: expect.objectContaining({
+              title: 'Nova tarefa',
+              body: expect.stringContaining('Uma nova tarefa foi atribuída a você'),
+              data: { route: '/(child)/tasks' },
+            }),
+          }),
+        );
       });
 
       it('does not send notification when tarefasPendentes is disabled', async () => {
@@ -186,6 +195,15 @@ describe('notifications', () => {
         deviceStorageGetMock.mockResolvedValue(storedPrefs({ resgatesSolicitado: true }));
         await notifyRedemptionRequested();
         expect(scheduleNotificationAsyncMock).toHaveBeenCalledTimes(1);
+        expect(scheduleNotificationAsyncMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            content: expect.objectContaining({
+              title: 'Resgate solicitado',
+              body: 'Um resgate foi solicitado.',
+              data: { route: '/(admin)/tasks' },
+            }),
+          }),
+        );
       });
 
       it('does not send notification when resgatesSolicitado is disabled', async () => {
