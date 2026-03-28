@@ -139,10 +139,10 @@ export async function updatePrize(
   const { data, error } = await supabase.rpc('editar_premio', {
     p_premio_id: id,
     p_nome: input.nome,
-    p_descricao: input.descricao,
+    p_descricao: input.descricao ?? '',
     p_custo_pontos: input.custo_pontos,
-    p_imagem_url: nextImageUrl,
-    p_ativo: input.ativo ?? null,
+    p_imagem_url: nextImageUrl ?? undefined,
+    p_ativo: input.ativo ?? undefined,
   });
 
   if (error) {

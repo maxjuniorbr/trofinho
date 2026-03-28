@@ -38,6 +38,7 @@ const rpcErrorMatchers = [
   ['resgates em aberto', 'Não é possível alterar os pontos pois há resgates em aberto.'],
   ['resgates pendentes', 'Não é possível alterar o custo com resgates pendentes.'],
   ['Prêmio não encontrado ou não disponível', 'Prêmio não disponível.'],
+  ['já pertence a uma família', 'Você já tem uma família cadastrada.'],
   ['Sem índice de valorização', 'Valorização não configurada.'],
 ] as const;
 

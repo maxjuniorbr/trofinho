@@ -7,7 +7,8 @@ import { FormFooter } from '@/components/ui/form-footer';
 import { TaskFormFields } from '@/components/tasks/task-form-fields';
 import { StickyFooterScreen } from '@/components/ui/sticky-footer-screen';
 import { setNavigationFeedback } from '@lib/navigation-feedback';
-import { createTask, listFamilyChildren, type Child, type TaskFrequencia } from '@lib/tasks';
+import { createTask, type Child, type TaskFrequencia } from '@lib/tasks';
+import { listChildren } from '@lib/children';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 
@@ -29,7 +30,7 @@ export default function NewTaskScreen() {
   const shouldShowError = Boolean(error);
 
   useEffect(() => {
-    listFamilyChildren().then(({ data }) => { setChildren(data); setLoadingChildren(false); });
+    listChildren().then(({ data }) => { setChildren(data); setLoadingChildren(false); });
   }, []);
 
   const toggleChild = (id: string) => {
