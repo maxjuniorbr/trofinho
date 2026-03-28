@@ -19,8 +19,19 @@ export async function resizeImage(
     maxDimension = DEFAULT_MAX_IMAGE_DIMENSION,
     compress = DEFAULT_IMAGE_COMPRESS_QUALITY,
   } = options;
+
+  // Render first to get original dimensions
+  const probe = ImageManipulator.manipulate(uri);
+  const probeRef = await probe.renderAsync();
+  const { width, height } = probeRef;
+
   const context = ImageManipulator.manipulate(uri);
-  context.resize({ width: maxDimension });
+
+  // Only resize if at least one dimension exceeds maxDimension
+  if (width > maxDimension || height > maxDimension) {
+    context.resize({ width: maxDimension });
+  }
+
   const imageRef = await context.renderAsync();
   const result = await imageRef.saveAsync({
     format: SaveFormat.JPEG,
