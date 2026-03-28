@@ -1,5 +1,6 @@
 import {
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,8 +20,8 @@ import {
   ChevronRight,
 } from 'lucide-react-native';
 import { getProfile, type UserProfile } from '@lib/auth';
-import { listAdminTasks } from '@lib/tasks';
-import { listAdminBalances, type BalanceWithChild } from '@lib/balances';
+import { countPendingValidations } from '@lib/tasks';
+import { listAdminBalances, syncAutomaticAppreciation, type BalanceWithChild } from '@lib/balances';
 import { getGreeting } from '@lib/utils';
 import { listChildren } from '@lib/children';
 import type { Child } from '@lib/tasks';
@@ -63,18 +64,14 @@ type AdminDashboardData = {
 };
 
 async function loadAdminDashboard(): Promise<AdminDashboardData> {
-  const [p, { data: tarefas }, { data: childrenData }, { data: balancesData }, { data: redemptionCount }] = await Promise.all([
+  await syncAutomaticAppreciation();
+  const [p, { data: childrenData }, { data: balancesData }, { data: redemptionCount }, { data: validationCount }] = await Promise.all([
     getProfile(),
-    listAdminTasks(),
     listChildren(),
     listAdminBalances(),
     countPendingRedemptions(),
+    countPendingValidations(),
   ]);
-
-  const pendingValidationCount = tarefas.reduce(
-    (acc, t) => acc + t.atribuicoes.filter((a) => a.status === 'aguardando_validacao').length,
-    0,
-  );
 
   const balancesMap = new Map(balancesData.map((s) => [s.filho_id, s]));
 
@@ -88,7 +85,7 @@ async function loadAdminDashboard(): Promise<AdminDashboardData> {
     family,
     children: childrenData,
     balancesMap,
-    pendingValidationCount,
+    pendingValidationCount: validationCount,
     pendingRedemptionCount: redemptionCount,
   };
 }
@@ -143,6 +140,7 @@ export default function AdminHomeScreen() {
   const [pendingValidationCount, setPendingValidationCount] = useState(0);
   const [pendingRedemptionCount, setPendingRedemptionCount] = useState(0);
   const [showNotificationBanner, setShowNotificationBanner] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -172,6 +170,29 @@ export default function AdminHomeScreen() {
       setLoading(false);
     }
   }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const [data, notificationPermissionDenied] = await Promise.all([
+        loadAdminDashboard(),
+        isNotificationPermissionDenied(),
+      ]);
+
+      setProfile(data.profile);
+      setAvatarUri(data.profile?.avatarUrl ?? null);
+      setFamily(data.family);
+      setChildren(data.children);
+      setBalancesMap(data.balancesMap);
+      setPendingValidationCount(data.pendingValidationCount);
+      setPendingRedemptionCount(data.pendingRedemptionCount);
+      setShowNotificationBanner(notificationPermissionDenied);
+    } catch (e) {
+      captureException(e);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
@@ -219,6 +240,7 @@ export default function AdminHomeScreen() {
           },
         ]}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
 
       <View style={styles.hero}>
