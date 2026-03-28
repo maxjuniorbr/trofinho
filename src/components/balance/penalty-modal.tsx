@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Modal,
   Pressable,
@@ -36,18 +37,31 @@ export function PenaltyModal({ visible, childName, onClose, onApply }: PenaltyMo
     onClose();
   };
 
-  const handleApply = async () => {
+  const handleApply = () => {
     setError(null);
     const v = Number.parseInt(amount, 10);
     if (!amount || Number.isNaN(v) || v <= 0) { setError('Informe um valor válido.'); return; }
     if (!description.trim()) { setError('Informe a descrição.'); return; }
 
-    setSaving(true);
-    const result = await onApply(v, description.trim());
-    setSaving(false);
+    Alert.alert(
+      'Aplicar penalidade?',
+      `Descontar ${v} ponto${v === 1 ? '' : 's'} de ${childName}?`,
+      [
+        { text: 'Voltar', style: 'cancel' },
+        {
+          text: 'Aplicar',
+          style: 'destructive',
+          onPress: async () => {
+            setSaving(true);
+            const result = await onApply(v, description.trim());
+            setSaving(false);
 
-    if (result.error) { setError(result.error); return; }
-    handleClose();
+            if (result.error) { setError(result.error); return; }
+            handleClose();
+          },
+        },
+      ],
+    );
   }
 
   return (

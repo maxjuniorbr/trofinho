@@ -8,6 +8,7 @@ import { InlineMessage } from '@/components/ui/inline-message';
 
 export function PasswordCard() {
   const { colors } = useTheme();
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
@@ -15,24 +16,38 @@ export function PasswordCard() {
   const [error, setError] = useState<string | null>(null);
   const visibleSuccessMessage = useTransientMessage(success);
 
-  async function handleSave() {
+  const handleSave = async () => {
     setError(null);
     setSuccess(null);
     if (newPassword.length < 6) return setError('A nova senha deve ter ao menos 6 caracteres.');
     if (newPassword !== confirmPassword) return setError('As senhas não coincidem.');
     setSaving(true);
-    const { error: saveError } = await updateUserPassword(newPassword);
+    const { error: saveError } = await updateUserPassword(currentPassword, newPassword);
     setSaving(false);
     if (saveError) { setError(saveError.message); return; }
     setSuccess('Senha alterada com sucesso.');
+    setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
-  }
+  };
 
   return (
     <View style={[styles.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
       <Text style={[styles.title, { color: colors.text.primary }]}>Segurança</Text>
       <Text style={[styles.subtitle, { color: colors.text.secondary }]}>Alterar senha</Text>
+
+      <Text style={[styles.label, { color: colors.text.secondary }]}>Senha atual</Text>
+      <TextInput
+        style={[styles.input, { backgroundColor: colors.bg.elevated, borderColor: colors.border.default, color: colors.text.primary }]}
+        value={currentPassword}
+        onChangeText={(v) => { setCurrentPassword(v); setSuccess(null); setError(null); }}
+        placeholder="Digite sua senha atual"
+        placeholderTextColor={colors.text.muted}
+        secureTextEntry
+        autoCapitalize="none"
+        autoCorrect={false}
+        maxLength={72}
+      />
 
       <Text style={[styles.label, { color: colors.text.secondary }]}>Nova senha</Text>
       <TextInput

@@ -471,6 +471,10 @@ export type Database = {
         Returns: undefined
       }
       confirmar_resgate: { Args: { p_resgate_id: string }; Returns: undefined }
+      desativar_premio: {
+        Args: { p_premio_id: string }
+        Returns: number
+      }
       criar_familia: {
         Args: { nome_familia: string; nome_usuario: string }
         Returns: string
@@ -544,6 +548,10 @@ export type Database = {
         }[]
       }
       obter_meu_perfil: { Args: never; Returns: Json }
+      reativar_premio: {
+        Args: { p_premio_id: string }
+        Returns: undefined
+      }
       rejeitar_atribuicao: {
         Args: { p_atribuicao_id: string; p_nota_rejeicao: string }
         Returns: undefined

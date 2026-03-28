@@ -163,21 +163,30 @@ export async function updatePrize(
   };
 }
 
-export async function deactivatePrize(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase
-    .from('premios')
-    .update({ ativo: false })
-    .eq('id', id);
+export async function deactivatePrize(id: string): Promise<{
+  data: { pendingCount: number } | null;
+  error: string | null;
+  warning: string | null;
+}> {
+  const { data, error } = await supabase.rpc('desativar_premio', {
+    p_premio_id: id,
+  });
 
-  if (error) return { error: localizeRpcError(error.message) };
-  return { error: null };
+  if (error) return { data: null, error: localizeRpcError(error.message), warning: null };
+
+  const pendingCount = data ?? 0;
+  const warning =
+    pendingCount > 0
+      ? `Existem ${pendingCount} resgates pendentes para este prêmio.`
+      : null;
+
+  return { data: { pendingCount }, error: null, warning };
 }
 
 export async function reactivatePrize(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase
-    .from('premios')
-    .update({ ativo: true })
-    .eq('id', id);
+  const { error } = await supabase.rpc('reativar_premio', {
+    p_premio_id: id,
+  });
 
   if (error) return { error: localizeRpcError(error.message) };
   return { error: null };

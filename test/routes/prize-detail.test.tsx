@@ -38,6 +38,16 @@ const updatePrizeMock = vi.hoisted(() => ({
   isPending: false,
 }));
 
+const deactivatePrizeMock = vi.hoisted(() => ({
+  mutate: vi.fn(),
+  isPending: false,
+}));
+
+const reactivatePrizeMock = vi.hoisted(() => ({
+  mutate: vi.fn(),
+  isPending: false,
+}));
+
 const createHostComponent = vi.hoisted(() => {
   return (name: string) =>
     React.forwardRef(function HostComponent(
@@ -121,6 +131,8 @@ vi.mock('@lib/sentry', () => ({
 vi.mock('@/hooks/queries', () => ({
   usePrizeDetail: () => prizeDetailMock,
   useUpdatePrize: () => updatePrizeMock,
+  useDeactivatePrize: () => deactivatePrizeMock,
+  useReactivatePrize: () => reactivatePrizeMock,
 }));
 
 // Mock child components to avoid deep dependency chains
@@ -204,6 +216,10 @@ describe('Prize detail — deactivation confirmation (Q28)', () => {
     prizeDetailMock.refetch.mockReset();
     updatePrizeMock.mutate.mockReset();
     updatePrizeMock.isPending = false;
+    deactivatePrizeMock.mutate.mockReset();
+    deactivatePrizeMock.isPending = false;
+    reactivatePrizeMock.mutate.mockReset();
+    reactivatePrizeMock.isPending = false;
   });
 
   // **Validates: Requirements 1.1, 1.5**
@@ -232,6 +248,10 @@ describe('Prize detail — deactivation confirmation (Q28)', () => {
 
   // **Validates: Requirements 1.2**
   it('sets isActive to false when confirming deactivation', () => {
+    deactivatePrizeMock.mutate.mockImplementation((_id: string, opts: { onSuccess?: (result: { warning: string | null }) => void }) => {
+      opts.onSuccess?.({ warning: null });
+    });
+
     const renderer = render(<AdminPrizeDetailScreen />);
     const switchEl = findSwitch(renderer);
 
@@ -270,6 +290,10 @@ describe('Prize detail — deactivation confirmation (Q28)', () => {
   // **Validates: Requirements 1.4**
   it('sets isActive to true without showing alert when toggling ON', () => {
     prizeDetailMock.data = { ...activePrize, ativo: false };
+
+    reactivatePrizeMock.mutate.mockImplementation((_id: string, opts: { onSuccess?: () => void }) => {
+      opts.onSuccess?.();
+    });
 
     const renderer = render(<AdminPrizeDetailScreen />);
     const switchEl = findSwitch(renderer);

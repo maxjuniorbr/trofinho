@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import fc from 'fast-check';
 
 const resizeImageMock = vi.hoisted(() => vi.fn((uri: string) => Promise.resolve(uri)));
 
@@ -325,15 +326,20 @@ describe('auth', () => {
   });
 
   it('updates the password and localizes the provider error', async () => {
+    supabaseMock.auth.getUser.mockResolvedValue({
+      data: { user: { id: 'u1', email: 'admin@test.com' } },
+      error: null,
+    });
+    supabaseMock.auth.signInWithPassword.mockResolvedValue({ error: null });
     supabaseMock.auth.updateUser
       .mockResolvedValueOnce({ error: { message: 'Password should be at least 6 characters' } })
       .mockResolvedValueOnce({ error: null });
 
-    await expect(updateUserPassword('123')).resolves.toEqual({
+    await expect(updateUserPassword('currentPass', '123')).resolves.toEqual({
       error: { message: 'A senha deve ter ao menos 6 caracteres.' },
     });
 
-    await expect(updateUserPassword('123456')).resolves.toEqual({ error: null });
+    await expect(updateUserPassword('currentPass', '123456')).resolves.toEqual({ error: null });
   });
 
   it('uploads an avatar from the local file system and updates the user metadata', async () => {
@@ -426,6 +432,91 @@ describe('auth', () => {
     await expect(updateUserAvatar('/test/avatar.unknown')).resolves.toEqual({
       url: null,
       error: { message: 'Não foi possível ler a imagem selecionada' },
+    });
+  });
+
+  describe('Feature: ux-polish-fase4b, Property 1: Re-authentication gate', () => {
+    /**
+     * **Validates: Requirements 1.2, 1.3, 1.4**
+     *
+     * For any (currentPassword, newPassword), if signInWithPassword fails
+     * then updateUser is never called and error contains "Senha atual incorreta."
+     */
+    it('never calls updateUser and returns "Senha atual incorreta." when signInWithPassword fails', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.string(), fc.string(), async (currentPassword, newPassword) => {
+          supabaseMock.auth.getUser.mockReset();
+          supabaseMock.auth.signInWithPassword.mockReset();
+          supabaseMock.auth.updateUser.mockReset();
+
+          supabaseMock.auth.getUser.mockResolvedValue({
+            data: { user: { id: 'u1', email: 'admin@test.com' } },
+            error: null,
+          });
+
+          supabaseMock.auth.signInWithPassword.mockResolvedValue({
+            error: { message: 'Invalid login credentials' },
+          });
+
+          const result = await updateUserPassword(currentPassword, newPassword);
+
+          expect(supabaseMock.auth.signInWithPassword).toHaveBeenCalledWith({
+            email: 'admin@test.com',
+            password: currentPassword,
+          });
+          expect(supabaseMock.auth.updateUser).not.toHaveBeenCalled();
+          expect(result.error).not.toBeNull();
+          expect(result.error!.message).toBe('Senha atual incorreta.');
+        }),
+        { numRuns: 100 }
+      );
+    });
+  });
+
+  describe('Feature: ux-polish-fase4b, Property 2: Password fields cleared on success', () => {
+    /**
+     * **Validates: Requirements 1.5**
+     *
+     * For any successful password change, the function returns { error: null },
+     * confirming the operation succeeded and the UI layer can safely clear all fields.
+     */
+    it('returns { error: null } for any valid password pair when all auth steps succeed', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.string({ minLength: 1 }),
+          fc.string({ minLength: 6 }),
+          async (currentPassword, newPassword) => {
+            supabaseMock.auth.getUser.mockReset();
+            supabaseMock.auth.signInWithPassword.mockReset();
+            supabaseMock.auth.updateUser.mockReset();
+
+            supabaseMock.auth.getUser.mockResolvedValue({
+              data: { user: { id: 'u1', email: 'admin@test.com' } },
+              error: null,
+            });
+
+            supabaseMock.auth.signInWithPassword.mockResolvedValue({
+              error: null,
+            });
+
+            supabaseMock.auth.updateUser.mockResolvedValue({
+              error: null,
+            });
+
+            const result = await updateUserPassword(currentPassword, newPassword);
+
+            expect(supabaseMock.auth.signInWithPassword).toHaveBeenCalledWith({
+              email: 'admin@test.com',
+              password: currentPassword,
+            });
+            expect(supabaseMock.auth.updateUser).toHaveBeenCalledWith({
+              password: newPassword,
+            });
+            expect(result).toEqual({ error: null });
+          }
+        ),
+        { numRuns: 100 }
+      );
     });
   });
 });

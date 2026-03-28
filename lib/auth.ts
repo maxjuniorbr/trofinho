@@ -128,8 +128,24 @@ export async function updateUserName(
 }
 
 export async function updateUserPassword(
+  currentPassword: string,
   newPassword: string
 ): Promise<{ error: AuthError | null }> {
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !authData.user?.email) {
+    return { error: { message: 'Sessão expirada. Faça login novamente.' } };
+  }
+
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: authData.user.email,
+    password: currentPassword,
+  });
+
+  if (signInError) {
+    return { error: { message: 'Senha atual incorreta.' } };
+  }
+
   const { error } = await supabase.auth.updateUser({ password: newPassword });
 
   if (error) {

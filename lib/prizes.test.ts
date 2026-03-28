@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import fc from 'fast-check';
 
 const notifyRedemptionRequestedMock = vi.hoisted(() => vi.fn());
 const uploadImageToPublicBucketMock = vi.hoisted(() => vi.fn());
@@ -151,15 +152,11 @@ describe('prizes', () => {
   });
 
   it('updates, deactivates and reactivates prizes', async () => {
-    const deactivateQuery = createEqQuery({ error: { message: 'cannot deactivate' } });
-    const reactivateQuery = createEqQuery({ error: null });
-
     supabaseMock.rpc
       .mockResolvedValueOnce({ data: null, error: null })
-      .mockResolvedValueOnce({ error: { message: 'cannot update' } });
-    supabaseMock.from
-      .mockReturnValueOnce(deactivateQuery)
-      .mockReturnValueOnce(reactivateQuery);
+      .mockResolvedValueOnce({ error: { message: 'cannot update' } })
+      .mockResolvedValueOnce({ data: null, error: { message: 'cannot deactivate' } })
+      .mockResolvedValueOnce({ data: null, error: null });
 
     await expect(updatePrize('prize-1', {
       nome: 'Novo',
@@ -171,7 +168,9 @@ describe('prizes', () => {
       descricao: 'D',
       custo_pontos: 10,
     })).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.', imageUrl: null, pointsMessage: null });
-    await expect(deactivatePrize('prize-1')).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
+    await expect(deactivatePrize('prize-1')).resolves.toEqual({
+      data: null, error: 'Algo deu errado. Tente novamente.', warning: null,
+    });
     await expect(reactivatePrize('prize-1')).resolves.toEqual({ error: null });
   });
 
@@ -267,11 +266,9 @@ describe('prizes', () => {
 
   it('returns empty lists and success defaults for remaining prize branches', async () => {
     const listQuery = createOrderQuery({ data: null, error: null });
-    const reactivateQuery = createEqQuery({ error: null });
 
-    supabaseMock.from
-      .mockReturnValueOnce(listQuery)
-      .mockReturnValueOnce(reactivateQuery);
+    supabaseMock.from.mockReturnValueOnce(listQuery);
+    supabaseMock.rpc.mockResolvedValueOnce({ data: null, error: null });
 
     await expect(listRedemptions()).resolves.toEqual({ data: [], error: null });
     await expect(reactivatePrize('prize-2')).resolves.toEqual({ error: null });
@@ -301,18 +298,17 @@ describe('prizes', () => {
   it('returns errors from write operations and handles edge cases', async () => {
     const countErrorQuery = createEqQuery({ count: null, error: { message: 'count error' } });
     const countNullQuery = createEqQuery({ count: null, error: null });
-    const deactivateSuccessQuery = createEqQuery({ error: null });
     const profileQuery = createSingleQuery({ data: { familia_id: 'fam-1' }, error: null });
     const insertErrorQuery = createSingleQuery({ data: null, error: { message: 'constraint violation' } });
 
     supabaseMock.from
       .mockReturnValueOnce(countErrorQuery)
       .mockReturnValueOnce(countNullQuery)
-      .mockReturnValueOnce(deactivateSuccessQuery)
       .mockReturnValueOnce(profileQuery)
       .mockReturnValueOnce(insertErrorQuery);
 
     supabaseMock.rpc
+      .mockResolvedValueOnce({ data: 0, error: null })
       .mockResolvedValueOnce({ data: null, error: { message: 'request failed' } })
       .mockResolvedValueOnce({ error: null });
 
@@ -320,7 +316,9 @@ describe('prizes', () => {
 
     await expect(countPendingRedemptions()).resolves.toEqual({ data: 0, error: 'Algo deu errado. Tente novamente.' });
     await expect(countPendingRedemptions()).resolves.toEqual({ data: 0, error: null });
-    await expect(deactivatePrize('prize-1')).resolves.toEqual({ error: null });
+    await expect(deactivatePrize('prize-1')).resolves.toEqual({
+      data: { pendingCount: 0 }, error: null, warning: null,
+    });
     await expect(requestRedemption('prize-1')).resolves.toEqual({ data: null, error: 'Algo deu errado. Tente novamente.' });
     await expect(cancelRedemption('red-2')).resolves.toEqual({ error: null });
     await expect(createPrize({ nome: 'A', descricao: null, custo_pontos: 1 })).resolves.toEqual({
@@ -330,13 +328,13 @@ describe('prizes', () => {
   });
 
   it('returns error from reactivating and handles null data from list queries', async () => {
-    const reactivateErrorQuery = createEqQuery({ error: { message: 'reactivate failed' } });
     const listNullQuery = createOrderQuery({ data: null, error: null }, 1);
     const activeNullQuery = createOrderQuery({ data: null, error: null });
     const childNullQuery = createOrderQuery({ data: null, error: null });
 
+    supabaseMock.rpc.mockResolvedValueOnce({ data: null, error: { message: 'reactivate failed' } });
+
     supabaseMock.from
-      .mockReturnValueOnce(reactivateErrorQuery)
       .mockReturnValueOnce(listNullQuery)
       .mockReturnValueOnce(activeNullQuery)
       .mockReturnValueOnce(childNullQuery);
@@ -363,6 +361,84 @@ describe('prizes', () => {
       error: 'Não foi possível fazer upload da imagem do prêmio.',
       imageUrl: null,
       pointsMessage: null,
+    });
+  });
+
+  describe('Feature: ux-polish-fase4b, Property 3: Deactivation via RPC with pending count', () => {
+    /**
+     * **Validates: Requirements 2.1, 2.3, 2.4, 2.5**
+     *
+     * For any prize ID and non-negative integer N, deactivatePrize invokes
+     * supabase.rpc('desativar_premio', ...) and returns the pending count N.
+     */
+    it('calls desativar_premio RPC and returns the pending count', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.uuid(), fc.nat(), async (prizeId, pendingCount) => {
+          supabaseMock.rpc.mockReset();
+          supabaseMock.rpc.mockResolvedValue({ data: pendingCount, error: null });
+
+          const result = await deactivatePrize(prizeId);
+
+          expect(supabaseMock.rpc).toHaveBeenCalledWith('desativar_premio', {
+            p_premio_id: prizeId,
+          });
+          expect(result.data).toEqual({ pendingCount });
+          expect(result.error).toBeNull();
+        }),
+        { numRuns: 100 },
+      );
+    });
+  });
+
+  describe('Feature: ux-polish-fase4b, Property 4: Reactivation via RPC', () => {
+    /**
+     * **Validates: Requirements 2.2, 2.5**
+     *
+     * For any prize ID, reactivatePrize invokes
+     * supabase.rpc('reativar_premio', ...) and returns success.
+     */
+    it('calls reativar_premio RPC and returns success', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.uuid(), async (prizeId) => {
+          supabaseMock.rpc.mockReset();
+          supabaseMock.rpc.mockResolvedValue({ data: null, error: null });
+
+          const result = await reactivatePrize(prizeId);
+
+          expect(supabaseMock.rpc).toHaveBeenCalledWith('reativar_premio', {
+            p_premio_id: prizeId,
+          });
+          expect(result.error).toBeNull();
+        }),
+        { numRuns: 100 },
+      );
+    });
+  });
+
+  describe('Feature: ux-polish-fase4b, Property 5: Warning message for pending redemptions', () => {
+    /**
+     * **Validates: Requirements 2.6**
+     *
+     * For any positive integer N returned as pending count,
+     * deactivatePrize includes a non-null warning containing N.
+     */
+    it('includes a warning containing the pending count when count > 0', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.uuid(),
+          fc.integer({ min: 1, max: 10000 }),
+          async (prizeId, pendingCount) => {
+            supabaseMock.rpc.mockReset();
+            supabaseMock.rpc.mockResolvedValue({ data: pendingCount, error: null });
+
+            const result = await deactivatePrize(prizeId);
+
+            expect(result.warning).not.toBeNull();
+            expect(result.warning).toContain(String(pendingCount));
+          },
+        ),
+        { numRuns: 100 },
+      );
     });
   });
 });

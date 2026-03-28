@@ -365,15 +365,8 @@ async function uploadEvidence(
   }
 }
 
-let evidenceSuffixCounter = 0;
-
 function createEvidenceSuffix(): string {
-  evidenceSuffixCounter = (evidenceSuffixCounter + 1) % 1_000_000;
-
-  const timePart = Date.now().toString(36);
-  const counterPart = evidenceSuffixCounter.toString(36).padStart(4, '0');
-
-  return `${timePart}_${counterPart}`;
+  return crypto.randomUUID();
 }
 
 const EVIDENCE_URL_TTL_SECONDS = 60 * 60;
