@@ -151,16 +151,10 @@ describe('auth', () => {
 
   it('signs in and returns the profile with avatar metadata', async () => {
     supabaseMock.auth.signInWithPassword.mockResolvedValue({ error: null });
-    supabaseMock.auth.getUser.mockResolvedValue({
-      data: { user: { id: 'user-1', user_metadata: { avatar_url: 'https://avatar' } } },
+    supabaseMock.rpc.mockResolvedValue({
+      data: { id: 'user-1', familia_id: 'family-1', papel: 'admin', nome: 'Max', avatarUrl: 'https://avatar' },
       error: null,
     });
-    supabaseMock.from.mockReturnValue(
-      createMaybeSingleQuery({
-        data: { id: 'user-1', familia_id: 'family-1', papel: 'admin', nome: 'Max' },
-        error: null,
-      })
-    );
 
     const result = await signIn('max@example.com', mockPassword);
 
@@ -208,44 +202,53 @@ describe('auth', () => {
     expect(supabaseMock.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
   });
 
-  it('returns null profile when the session is invalid or the row is missing', async () => {
-    supabaseMock.auth.getUser.mockResolvedValueOnce({
-      data: { user: null },
-      error: null,
+  it('deletes push tokens before signing out', async () => {
+    supabaseMock.auth.getUser.mockResolvedValue({
+      data: { user: { id: 'user-1' } },
     });
-    supabaseMock.auth.getUser.mockResolvedValueOnce({
-      data: { user: { id: 'user-1', user_metadata: {} } },
-      error: null,
-    });
-    supabaseMock.from.mockReturnValueOnce(
-      createMaybeSingleQuery({
-        data: null,
-        error: { message: 'missing' },
-      })
-    );
+    const deleteQuery = {
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    };
+    supabaseMock.from.mockReturnValue(deleteQuery);
+    supabaseMock.auth.signOut.mockResolvedValue({});
+
+    await signOut();
+
+    expect(supabaseMock.from).toHaveBeenCalledWith('push_tokens');
+    expect(deleteQuery.eq).toHaveBeenCalledWith('user_id', 'user-1');
+    expect(supabaseMock.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
+  });
+
+  it('signs out even when push token cleanup fails', async () => {
+    supabaseMock.auth.getUser.mockRejectedValue(new Error('auth error'));
+    supabaseMock.auth.signOut.mockResolvedValue({});
+
+    await signOut();
+
+    expect(supabaseMock.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
+  });
+
+  it('returns null profile when the rpc fails or returns no data', async () => {
+    supabaseMock.rpc
+      .mockResolvedValueOnce({ data: null, error: { message: 'rpc error' } })
+      .mockResolvedValueOnce({ data: null, error: null });
 
     await expect(getProfile()).resolves.toBeNull();
     await expect(getProfile()).resolves.toBeNull();
   });
 
-  it('falls back to the child avatar stored in the family profile', async () => {
-    supabaseMock.auth.getUser.mockResolvedValue({
-      data: { user: { id: 'child-1', user_metadata: {} } },
+  it('returns the child avatar from the rpc result', async () => {
+    supabaseMock.rpc.mockResolvedValue({
+      data: {
+        id: 'child-1',
+        familia_id: 'family-1',
+        papel: 'filho',
+        nome: 'Lia',
+        avatarUrl: 'https://cdn.example.com/child-avatar.jpg',
+      },
       error: null,
     });
-    supabaseMock.from
-      .mockReturnValueOnce(
-        createMaybeSingleQuery({
-          data: { id: 'child-1', familia_id: 'family-1', papel: 'filho', nome: 'Lia' },
-          error: null,
-        }),
-      )
-      .mockReturnValueOnce(
-        createMaybeSingleQuery({
-          data: { avatar_url: 'https://cdn.example.com/child-avatar.jpg' },
-          error: null,
-        }),
-      );
 
     await expect(getProfile()).resolves.toEqual({
       id: 'child-1',

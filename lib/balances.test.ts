@@ -1,4 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as fc from 'fast-check';
+
+const captureExceptionMock = vi.hoisted(() => vi.fn());
+
+vi.mock('@lib/sentry', () => ({
+  captureException: captureExceptionMock,
+}));
 
 const supabaseMock = vi.hoisted(() => ({
   from: vi.fn(),
@@ -18,8 +25,10 @@ import {
   isCredit,
   listAdminBalances,
   listTransactions,
+  syncAutomaticAppreciation,
   transferToPiggyBank,
 } from './balances';
+import type { TransactionType } from './balances';
 
 function createQuery(result: { data?: unknown; error?: { code?: string; message: string } | null }) {
   return {
@@ -33,6 +42,7 @@ function createQuery(result: { data?: unknown; error?: { code?: string; message:
 
 describe('balances', () => {
   beforeEach(() => {
+    captureExceptionMock.mockReset();
     supabaseMock.from.mockReset();
     supabaseMock.rpc.mockReset();
     supabaseMock.rpc.mockResolvedValue({ error: null });
@@ -50,15 +60,12 @@ describe('balances', () => {
     expect(getAppreciationPeriodLabel('mensal')).toBe('mês');
   });
 
-  it('loads a balance with sync and child filter', async () => {
+  it('loads a balance with child filter', async () => {
     const query = createQuery({ data: { saldo_livre: 10 }, error: null });
     supabaseMock.from.mockReturnValue(query);
 
     const result = await getBalance('child-1');
 
-    expect(supabaseMock.rpc).toHaveBeenCalledWith('sincronizar_valorizacoes_automaticas', {
-      p_filho_id: 'child-1',
-    });
     expect(query.eq).toHaveBeenCalledWith('filho_id', 'child-1');
     expect(result).toEqual({ data: { saldo_livre: 10 }, error: null });
   });
@@ -69,13 +76,11 @@ describe('balances', () => {
 
     const result = await getBalance();
 
-    expect(supabaseMock.rpc).toHaveBeenCalledWith('sincronizar_valorizacoes_automaticas');
     expect(result).toEqual({ data: null, error: null });
   });
 
   it('proceeds to query data even when sync fails', async () => {
     const balanceQuery = createQuery({ data: { saldo_livre: 5 }, error: null });
-    supabaseMock.rpc.mockResolvedValueOnce({ error: { message: 'sync failed' } });
     supabaseMock.from.mockReturnValue(balanceQuery);
 
     const result = await getBalance();
@@ -98,7 +103,7 @@ describe('balances', () => {
     await expect(listAdminBalances()).resolves.toEqual({ data: [], error: 'Algo deu errado. Tente novamente.' });
   });
 
-  it('lists transactions with limit, ordering and sync', async () => {
+  it('lists transactions with limit and ordering', async () => {
     const query = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -109,9 +114,6 @@ describe('balances', () => {
 
     const result = await listTransactions('child-1', 5);
 
-    expect(supabaseMock.rpc).toHaveBeenCalledWith('sincronizar_valorizacoes_automaticas', {
-      p_filho_id: 'child-1',
-    });
     expect(query.eq).toHaveBeenCalledWith('filho_id', 'child-1');
     expect(query.limit).toHaveBeenCalledWith(5);
     expect(result).toEqual({ data: [{ id: 'tx-1' }], error: null });
@@ -157,12 +159,63 @@ describe('balances', () => {
       .mockReturnValueOnce(emptyBalancesQuery)
       .mockReturnValueOnce(listErrorQuery);
     supabaseMock.rpc
-      .mockResolvedValueOnce({ error: null })
-      .mockResolvedValueOnce({ error: null })
       .mockResolvedValueOnce({ error: null });
 
     await expect(listAdminBalances()).resolves.toEqual({ data: [], error: null });
     await expect(listTransactions('child-1')).resolves.toEqual({ data: [], error: 'Algo deu errado. Tente novamente.' });
     await expect(applyPenalty('child-1', 2, 'Atraso')).resolves.toEqual({ error: null });
+  });
+
+  it('syncs automatic appreciation with and without child id', async () => {
+    supabaseMock.rpc.mockResolvedValue({ error: null });
+
+    await syncAutomaticAppreciation('child-1');
+    expect(supabaseMock.rpc).toHaveBeenCalledWith('sincronizar_valorizacoes_automaticas', {
+      p_filho_id: 'child-1',
+    });
+
+    supabaseMock.rpc.mockClear();
+    await syncAutomaticAppreciation();
+    expect(supabaseMock.rpc).toHaveBeenCalledWith('sincronizar_valorizacoes_automaticas');
+  });
+
+  it('swallows sync errors silently', async () => {
+    supabaseMock.rpc.mockRejectedValue(new Error('network error'));
+    await expect(syncAutomaticAppreciation()).resolves.toBeUndefined();
+  });
+
+  it('reports sync errors to Sentry without throwing', async () => {
+    const error = new Error('sync failed');
+    supabaseMock.rpc.mockRejectedValue(error);
+    await expect(syncAutomaticAppreciation()).resolves.toBeUndefined();
+    expect(captureExceptionMock).toHaveBeenCalledWith(error);
+  });
+
+  describe('property tests', () => {
+    const allTransactionTypes: TransactionType[] = [
+      'credito', 'debito', 'transferencia_cofrinho', 'valorizacao', 'penalizacao', 'resgate', 'estorno_resgate',
+    ];
+
+    // Feature: review-phases-1-2-implementation, Property 1: Transaction type labels are exhaustive
+    it('P1: for any valid TransactionType, getTransactionTypeLabel returns a non-empty pt-BR string ≠ the raw key', () => {
+      fc.assert(
+        fc.property(fc.constantFrom(...allTransactionTypes), (type) => {
+          const label = getTransactionTypeLabel(type);
+          return label.length > 0 && label !== type;
+        }),
+        { numRuns: 100 },
+      );
+    });
+
+    // Feature: review-phases-1-2-implementation, Property 6: isCredit correctly classifies all transaction types
+    it('P6: isCredit returns true only for credito, valorizacao, estorno_resgate', () => {
+      const creditTypes = new Set(['credito', 'valorizacao', 'estorno_resgate']);
+      fc.assert(
+        fc.property(fc.constantFrom(...allTransactionTypes), (type) => {
+          return isCredit(type) === creditTypes.has(type);
+        }),
+        { numRuns: 100 },
+      );
+    });
   });
 });
