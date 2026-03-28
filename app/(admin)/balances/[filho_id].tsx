@@ -4,32 +4,30 @@ import {
   View,
   Pressable,
   FlatList,
-  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
-import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   Wallet,
   TrendingUp,
 } from 'lucide-react-native';
 import {
-  getBalance,
-  listTransactions,
   syncAutomaticAppreciation,
-  applyPenalty,
-  configureAppreciation,
   getTransactionTypeLabel,
   getAppreciationPeriodLabel,
   isCredit,
-  type Balance,
-  type Transaction,
+  type AppreciationPeriod,
 } from '@lib/balances';
+import { captureException } from '@lib/sentry';
+import { useBalance, useTransactions, useApplyPenalty, useConfigureAppreciation, combineQueryStates } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
+import { EmptyState } from '@/components/ui/empty-state';
 import { PenaltyModal, PenaltyButton } from '@/components/balance/penalty-modal';
 import { AppreciationModal } from '@/components/balance/appreciation-modal';
 import { TransactionIcon } from '@/components/balance/transaction-icon';
@@ -42,48 +40,54 @@ export default function ChildBalanceAdminScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [balance, setBalance] = useState<Balance | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  const balanceQuery = useBalance(filho_id);
+  const transactionsQuery = useTransactions(filho_id!);
+  const { isLoading, isFetching, refetchAll } = combineQueryStates(balanceQuery, transactionsQuery);
+
+  const balance = balanceQuery.data ?? null;
+  const transactions = transactionsQuery.data ?? [];
+
   const [modalType, setModalType] = useState<ModalType>(null);
 
-  const loadData = useCallback(async () => {
-    if (!filho_id) return;
-    setLoading(true);
+  const penaltyMutation = useApplyPenalty();
+  const configureMutation = useConfigureAppreciation();
+
+  const handleRefresh = useCallback(async () => {
     try {
       await syncAutomaticAppreciation(filho_id);
-      const [{ data: s }, { data: m }] = await Promise.all([
-        getBalance(filho_id),
-        listTransactions(filho_id),
-      ]);
-      setBalance(s);
-      setTransactions(m);
-    } finally {
-      setLoading(false);
+    } catch (e) {
+      captureException(e);
     }
-  }, [filho_id]);
+    await refetchAll();
+  }, [filho_id, refetchAll]);
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
-
-  async function handlePenalty(amount: number, description: string) {
+  const handlePenalty = useCallback(async (amount: number, description: string) => {
     if (!filho_id) return { error: 'ID do filho não encontrado' };
-    const { error } = await applyPenalty(filho_id, amount, description);
-    if (!error) await loadData();
-    return { error };
-  }
+    try {
+      await penaltyMutation.mutateAsync({ childId: filho_id, amount, description });
+      setModalType(null);
+      return { error: null };
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : 'Erro ao aplicar penalidade.' };
+    }
+  }, [filho_id, penaltyMutation]);
 
-  async function handleConfigure(rate: number, period: Parameters<typeof configureAppreciation>[2]) {
+  const handleConfigure = useCallback(async (rate: number, period: AppreciationPeriod) => {
     if (!filho_id) return { error: 'ID do filho não encontrado' };
-    const { error } = await configureAppreciation(filho_id, rate, period);
-    if (!error) await loadData();
-    return { error };
-  }
+    try {
+      await configureMutation.mutateAsync({ childId: filho_id, rate, period });
+      setModalType(null);
+      return { error: null };
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : 'Erro ao configurar valorização.' };
+    }
+  }, [filho_id, configureMutation]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />
-        <ActivityIndicator size="large" color={colors.accent.admin} />
+        <EmptyState loading />
       </View>
     );
   }
@@ -111,6 +115,7 @@ export default function ChildBalanceAdminScreen() {
         data={transactions}
         keyExtractor={(m) => m.id}
         contentContainerStyle={styles.lista}
+        refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
         ListHeaderComponent={
           <>
             <View style={styles.cardsRow}>

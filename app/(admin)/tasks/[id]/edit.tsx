@@ -1,13 +1,8 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import {
-  getTaskEditState,
-  getTaskWithAssignments,
-  updateTask,
-  type TaskDetail,
-} from '@lib/tasks';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { getTaskEditState } from '@lib/tasks';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FormFooter } from '@/components/ui/form-footer';
@@ -15,8 +10,8 @@ import { InlineMessage } from '@/components/ui/inline-message';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { StickyFooterScreen } from '@/components/ui/sticky-footer-screen';
 import { TaskFormFields } from '@/components/tasks/task-form-fields';
+import { useTaskDetail, useUpdateTask } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
-import { captureException } from '@lib/sentry';
 import { radii, spacing, typography } from '@/constants/theme';
 
 export default function EditTaskScreen() {
@@ -25,54 +20,33 @@ export default function EditTaskScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(), []);
 
-  const [task, setTask] = useState<TaskDetail | null>(null);
+  const { data: task, isLoading, error, refetch } = useTaskDetail(id);
+  const updateTaskMutation = useUpdateTask();
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [points, setPoints] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
 
   const editState = useMemo(
     () => (task ? getTaskEditState(task) : null),
     [task],
   );
 
-  const loadData = useCallback(async () => {
-    if (!id) return;
-
-    setLoading(true);
-    setError(null);
-    setFormError(null);
-
-    try {
-      const { data, error: taskError } = await getTaskWithAssignments(id);
-
-      if (taskError || !data) {
-        setError(taskError ?? 'Não foi possível carregar a tarefa.');
-        setTask(null);
-        return;
-      }
-
-      setTask(data);
-      setTitle(data.titulo);
-      setDescription(data.descricao ?? '');
-      setPoints(String(data.pontos));
-    } catch (e) {
-      captureException(e);
-      setError('Não foi possível carregar a tarefa agora.');
-      setTask(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useFocusEffect(useCallback(() => {
-    loadData();
-  }, [loadData]));
+  // Populate form fields when task data first loads
   useEffect(() => {
-    if (loading || !task || !editState || editState.canEdit) {
+    if (task && !initialized) {
+      setTitle(task.titulo);
+      setDescription(task.descricao ?? '');
+      setPoints(String(task.pontos));
+      setInitialized(true);
+    }
+  }, [task, initialized]);
+
+  // Redirect if task is not editable
+  useEffect(() => {
+    if (isLoading || !task || !editState || editState.canEdit) {
       return;
     }
 
@@ -80,9 +54,9 @@ export default function EditTaskScreen() {
       pathname: '/(admin)/tasks/[id]',
       params: { id: task.id },
     });
-  }, [editState, loading, router, task]);
+  }, [editState, isLoading, router, task]);
 
-  async function handleSave() {
+  const handleSave = () => {
     if (!task || !editState) return;
 
     setFormError(null);
@@ -104,29 +78,28 @@ export default function EditTaskScreen() {
       return;
     }
 
-    setSaving(true);
-
-    const { error: updateError } = await updateTask(task.id, {
-      titulo: title.trim(),
-      descricao: description.trim() || null,
-      pontos: editState.canEditPoints ? parsedPoints : task.pontos,
-      exige_evidencia: task.exige_evidencia,
+    updateTaskMutation.mutate({
+      taskId: task.id,
+      input: {
+        titulo: title.trim(),
+        descricao: description.trim() || null,
+        pontos: editState.canEditPoints ? parsedPoints : task.pontos,
+        exige_evidencia: task.exige_evidencia,
+      },
+    }, {
+      onSuccess: () => {
+        router.dismissTo({
+          pathname: '/(admin)/tasks/[id]',
+          params: { id: task.id, updated: '1' },
+        });
+      },
+      onError: (err) => {
+        setFormError(err.message);
+      },
     });
+  };
 
-    setSaving(false);
-
-    if (updateError) {
-      setFormError(updateError);
-      return;
-    }
-
-    router.dismissTo({
-      pathname: '/(admin)/tasks/[id]',
-      params: { id: task.id, updated: '1' },
-    });
-  }
-
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />
@@ -141,7 +114,7 @@ export default function EditTaskScreen() {
         <StatusBar style={colors.statusBar} />
         <ScreenHeader title="Editar Tarefa" onBack={() => router.back()} backLabel="Detalhes" />
         <View style={styles.center}>
-          <EmptyState error={error ?? 'Tarefa não encontrada.'} onRetry={loadData} />
+          <EmptyState error={error?.message ?? 'Tarefa não encontrada.'} onRetry={() => refetch()} />
         </View>
       </View>
     );
@@ -169,7 +142,7 @@ export default function EditTaskScreen() {
           <Button
             label="Salvar alterações"
             onPress={handleSave}
-            loading={saving}
+            loading={updateTaskMutation.isPending}
             accessibilityLabel="Salvar alterações da tarefa"
           />
         </FormFooter>
@@ -196,8 +169,8 @@ export default function EditTaskScreen() {
         onTitleChange={setTitle}
         onDescriptionChange={setDescription}
         onPointsChange={setPoints}
-        onFrequencyChange={(value) => setTask((previous) => previous ? { ...previous, frequencia: value } : previous)}
-        onRequiresEvidenceChange={(value) => setTask((previous) => previous ? { ...previous, exige_evidencia: value } : previous)}
+        onFrequencyChange={() => {}}
+        onRequiresEvidenceChange={() => {}}
         autoFocusTitle
         frequencyEditable={false}
         pointsEditable={editState.canEditPoints}

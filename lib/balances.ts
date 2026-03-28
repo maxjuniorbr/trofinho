@@ -73,14 +73,14 @@ export async function getBalance(childId?: string): Promise<{ data: Balance | nu
     query = query.eq('filho_id', childId);
   }
 
-  const { data, error } = await query.single();
+  const { data, error } = await query.returns<Balance>().single();
 
   if (error) {
     if (error.code === 'PGRST116') return { data: null, error: null };
     return { data: null, error: localizeRpcError(error.message) };
   }
 
-  return { data: data as Balance, error: null };
+  return { data, error: null };
 }
 
 export async function listAdminBalances(): Promise<{ data: BalanceWithChild[]; error: string | null }> {
@@ -103,10 +103,11 @@ export async function listTransactions(
     .select('*')
     .eq('filho_id', childId)
     .order('created_at', { ascending: false })
-    .limit(limit);
+    .limit(limit)
+    .returns<Transaction[]>();
 
   if (error) return { data: [], error: localizeRpcError(error.message) };
-  return { data: (data ?? []) as Transaction[], error: null };
+  return { data: data ?? [], error: null };
 }
 
 export async function transferToPiggyBank(

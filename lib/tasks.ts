@@ -176,7 +176,7 @@ export async function getTaskWithAssignments(
     .single();
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
-  const task = await signTaskEvidence(data as TaskDetail);
+  const task = await signTaskEvidence(data);
   return { data: task, error: null };
 }
 
@@ -239,7 +239,7 @@ export async function getChildAssignment(
     .single();
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
-  const assignment = await signEvidence(data as ChildAssignment);
+  const assignment = await signEvidence(data);
   return { data: assignment, error: null };
 }
 

@@ -9,17 +9,19 @@ import {
   RefreshControl,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Trophy, CheckCircle2 } from 'lucide-react-native';
-import {
-  listActivePrizes,
-  requestRedemption,
-  type Prize,
-} from '@lib/prizes';
-import { getBalance, syncAutomaticAppreciation } from '@lib/balances';
+import type { Prize } from '@lib/prizes';
+import { syncAutomaticAppreciation } from '@lib/balances';
 import { captureException } from '@lib/sentry';
+import {
+  useActivePrizes,
+  useBalance,
+  useRequestRedemption,
+  combineQueryStates,
+} from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { gradients, radii, shadows, spacing, typography } from '@/constants/theme';
@@ -33,53 +35,50 @@ export default function ChildPrizesScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [prizes, setPrizes] = useState<Prize[]>([]);
-  const [freeBalance, setFreeBalance] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const prizesQuery = useActivePrizes();
+  const prizes = prizesQuery.data ?? [];
+
+  const balanceQuery = useBalance();
+  const freeBalance = balanceQuery.data?.saldo_livre ?? 0;
+
+  const { isLoading, error, refetchAll } = combineQueryStates(prizesQuery, balanceQuery);
+
+  const redeemMutation = useRequestRedemption();
+
   const [redeeming, setRedeeming] = useState<string | null>(null);
   const [redemptionError, setRedemptionError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
   const hasError = Boolean(error);
-  const shouldShowEmptyState = loading || hasError || prizes.length === 0;
+  const shouldShowEmptyState = isLoading || hasError || prizes.length === 0;
   const emptyStateMessage = 'Nenhum prêmio disponível no momento.\nPergunte ao responsável!';
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    setRedemptionError(null);
-    setSuccess(null);
+  const handleRefresh = async () => {
+    setRefreshing(true);
     try {
       await syncAutomaticAppreciation();
-      const [{ data: prizeList, error: prizesError }, { data: balanceData, error: balanceError }] =
-        await Promise.all([listActivePrizes(), getBalance()]);
-      if (prizesError) { setError(prizesError); } else { setPrizes(prizeList); }
-      setFreeBalance(balanceData?.saldo_livre ?? 0);
-      if (balanceError && !prizesError) setError(balanceError);
+      await refetchAll();
     } catch (e) {
       captureException(e);
-      setError('Não foi possível carregar os prêmios agora.');
-      setPrizes([]);
     } finally {
-      setLoading(false);
+      setRefreshing(false);
     }
-  }, []);
+  };
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
-
-  async function handleRedeem(prize: Prize) {
+  const handleRedeem = async (prize: Prize) => {
     setRedemptionError(null);
     setSuccess(null);
     setRedeeming(prize.id);
-    const { error } = await requestRedemption(prize.id);
-    setRedeeming(null);
-    if (error) {
-      setRedemptionError(error);
-    } else {
+    try {
+      await redeemMutation.mutateAsync(prize.id);
       setSuccess(`Resgate de "${prize.nome}" solicitado! Aguarde a confirmação.`);
-      setFreeBalance((prev) => prev - prize.custo_pontos);
+    } catch (e) {
+      setRedemptionError(e instanceof Error ? e.message : 'Não foi possível solicitar o resgate.');
+    } finally {
+      setRedeeming(null);
     }
-  }
+  };
 
   return (
     <SafeScreenFrame bottomInset>
@@ -88,18 +87,18 @@ export default function ChildPrizesScreen() {
 
       {shouldShowEmptyState ? (
         <EmptyState
-          loading={loading}
-          error={error}
-          empty={!loading && !error}
+          loading={isLoading}
+          error={error?.message ?? null}
+          empty={!isLoading && !error}
           emptyMessage={emptyStateMessage}
-          onRetry={loadData}
+          onRetry={handleRefresh}
         />
       ) : (
         <FlatList
           data={prizes}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
           numColumns={2}
           columnWrapperStyle={{ gap: spacing['3'] }}
           ListHeaderComponent={

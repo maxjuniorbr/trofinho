@@ -7,12 +7,11 @@ import {
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback, useMemo } from 'react';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useState, useMemo } from 'react';
+import { useRouter } from 'expo-router';
 import { RefreshCw } from 'lucide-react-native';
 import {
   getAssignmentPoints,
-  listChildAssignments,
   renewDailyTasks,
   type ChildAssignment,
   type AssignmentStatus,
@@ -20,6 +19,7 @@ import {
 import { formatDate } from '@lib/utils';
 import { captureException } from '@lib/sentry';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
+import { useChildAssignments } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -82,31 +82,21 @@ export default function ChildTasksScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [assignments, setAssignments] = useState<ChildAssignment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: assignments = [], isLoading, error, refetch } = useChildAssignments();
   const [filter, setFilter] = useState<Filter>('pendente');
+  const [refreshing, setRefreshing] = useState(false);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const handleRefresh = async () => {
+    setRefreshing(true);
     try {
-      const [, { data, error: loadError }] = await Promise.all([
-        renewDailyTasks(),
-        listChildAssignments(),
-      ]);
-      if (loadError) setError(loadError);
-      else setAssignments(data);
+      await renewDailyTasks();
+      await refetch();
     } catch (e) {
       captureException(e);
-      setError('Não foi possível carregar suas tarefas agora.');
-      setAssignments([]);
     } finally {
-      setLoading(false);
+      setRefreshing(false);
     }
-  }, []);
-
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  };
 
   const filtered = useMemo(
     () => sortChildAssignments(assignments.filter((a) => belongsToFilter(a.status, filter)), filter),
@@ -117,7 +107,9 @@ export default function ChildTasksScreen() {
   if (filter === 'pendente') emptyMessage = 'Nenhuma tarefa pendente.';
   else if (filter === 'aguardando_validacao') emptyMessage = 'Nada aguardando validação.';
 
-  const shouldShowEmptyState = loading || Boolean(error) || filtered.length === 0;
+  const loading = isLoading;
+  const errorMessage = error?.message ?? null;
+  const shouldShowEmptyState = loading || Boolean(errorMessage) || filtered.length === 0;
 
   return (
     <SafeScreenFrame bottomInset>
@@ -134,17 +126,17 @@ export default function ChildTasksScreen() {
       {shouldShowEmptyState ? (
         <EmptyState
           loading={loading}
-          error={error}
-          empty={!loading && !error}
+          error={errorMessage}
+          empty={!loading && !errorMessage}
           emptyMessage={emptyMessage}
-          onRetry={loadData}
+          onRetry={handleRefresh}
         />
       ) : (
         <FlashList
           data={filtered}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
           renderItem={({ item }) => {
             const dateLine = getAssignmentDateLine(item, filter);
             return (

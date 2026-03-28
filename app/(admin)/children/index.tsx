@@ -1,16 +1,16 @@
 import { StyleSheet, Text, View, Pressable, FlatList, RefreshControl } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback, useMemo } from 'react';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useCallback, useMemo } from 'react';
+import { useRouter } from 'expo-router';
 import { Eye, Plus } from 'lucide-react-native';
 import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { Avatar } from '@/components/ui/avatar';
-import { listChildren } from '@lib/children';
-import { listAdminBalances, syncAutomaticAppreciation, type BalanceWithChild } from '@lib/balances';
+import { useChildrenList, useAdminBalances, combineQueryStates } from '@/hooks/queries';
+import { syncAutomaticAppreciation } from '@lib/balances';
+import type { BalanceWithChild } from '@lib/balances';
 import { captureException } from '@lib/sentry';
-import type { Child } from '@lib/tasks';
 import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 
@@ -19,30 +19,24 @@ export default function AdminChildrenScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(), []);
 
-  const [children, setChildren] = useState<Child[]>([]);
-  const [balancesMap, setBalancesMap] = useState<Map<string, BalanceWithChild>>(new Map());
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const childrenQuery = useChildrenList();
+  const balancesQuery = useAdminBalances();
+  const { isLoading, isFetching, error, refetchAll } = combineQueryStates(childrenQuery, balancesQuery);
 
-  const loadData = useCallback(async () => {
-    setLoading(true); setError(null);
+  const children = childrenQuery.data ?? [];
+  const balancesMap = useMemo(() => {
+    const balances = balancesQuery.data ?? [];
+    return new Map<string, BalanceWithChild>(balances.map((s) => [s.filho_id, s]));
+  }, [balancesQuery.data]);
+
+  const handleRefresh = useCallback(async () => {
     try {
       await syncAutomaticAppreciation();
-      const [{ data: childrenData, error: childrenError }, { data: balancesData, error: balancesError }] =
-        await Promise.all([listChildren(), listAdminBalances()]);
-      if (childrenError) {
-        setError(childrenError);
-      } else {
-        setChildren(childrenData);
-        if (!balancesError) {
-          setBalancesMap(new Map(balancesData.map((s) => [s.filho_id, s])));
-        }
-      }
-    } catch (e) { captureException(e); setError('Não foi possível carregar os filhos agora.'); setChildren([]); }
-    finally { setLoading(false); }
-  }, []);
-
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+    } catch (e) {
+      captureException(e);
+    }
+    await refetchAll();
+  }, [refetchAll]);
 
   return (
     <SafeScreenFrame bottomInset>
@@ -60,14 +54,14 @@ export default function AdminChildrenScreen() {
         }
       />
 
-      {(loading || error || children.length === 0) ? (
-        <EmptyState loading={loading} error={error} empty={children.length === 0} emptyMessage={'Nenhum filho cadastrado.\nToque em "+" para cadastrar o primeiro filho.'} onRetry={loadData} />
+      {(isLoading || error || children.length === 0) ? (
+        <EmptyState loading={isLoading} error={error?.message} empty={children.length === 0} emptyMessage={'Nenhum filho cadastrado.\nToque em "+" para cadastrar o primeiro filho.'} onRetry={handleRefresh} />
       ) : (
         <FlatList
           data={children}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
+          refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
           renderItem={({ item }) => {
             const balance = balancesMap.get(item.id);
             return (
