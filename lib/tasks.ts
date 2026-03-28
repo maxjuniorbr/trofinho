@@ -37,7 +37,7 @@ export type Assignment = {
   tarefa_id: string;
   filho_id: string;
   status: AssignmentStatus;
-  pontos_snapshot?: number | null;
+  pontos_snapshot: number;
   evidencia_url: string | null;
   nota_rejeicao: string | null;
   concluida_em: string | null;
@@ -104,25 +104,12 @@ export type TaskEditState = Readonly<{
   infoMessage: string | null;
 }>;
 
-export async function listFamilyChildren(): Promise<{
-  data: Child[];
-  error: string | null;
-}> {
-  const { data, error } = await supabase
-    .from('filhos')
-    .select('id, nome, usuario_id')
-    .order('nome');
-
-  if (error) return { data: [], error: localizeRpcError(error.message) };
-  return { data: (data ?? []) as Child[], error: null };
-}
-
 export async function createTask(
   input: NewTaskInput
 ): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('criar_tarefa_com_atribuicoes', {
     p_titulo: input.titulo,
-    p_descricao: input.descricao,
+    p_descricao: input.descricao ?? '',
     p_pontos: input.pontos,
     p_frequencia: input.frequencia,
     p_exige_evidencia: input.exige_evidencia,
@@ -141,13 +128,26 @@ export async function updateTask(
   const { error } = await supabase.rpc('editar_tarefa', {
     p_tarefa_id: taskId,
     p_titulo: input.titulo,
-    p_descricao: input.descricao,
+    p_descricao: input.descricao ?? '',
     p_pontos: input.pontos,
     p_requer_evidencia: input.exige_evidencia,
   });
 
   if (error) return { error: localizeRpcError(error.message) };
   return { error: null };
+}
+
+export async function countPendingValidations(): Promise<{
+  data: number;
+  error: string | null;
+}> {
+  const { count, error } = await supabase
+    .from('atribuicoes')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'aguardando_validacao');
+
+  if (error) return { data: 0, error: localizeRpcError(error.message) };
+  return { data: count ?? 0, error: null };
 }
 
 export async function listAdminTasks(limit = 50): Promise<{
@@ -195,21 +195,10 @@ export async function rejectAssignment(
   assignmentId: string,
   note: string
 ): Promise<{ error: string | null }> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: 'Usuário não autenticado' };
-
-  const { error } = await supabase
-    .from('atribuicoes')
-    .update({
-      status: 'rejeitada',
-      nota_rejeicao: note,
-      validada_em: new Date().toISOString(),
-      validada_por: user.id,
-    })
-    .eq('id', assignmentId)
-    .eq('status', 'aguardando_validacao');
+  const { error } = await supabase.rpc('rejeitar_atribuicao', {
+    p_atribuicao_id: assignmentId,
+    p_nota_rejeicao: note,
+  });
 
   if (error) return { error: localizeRpcError(error.message) };
   return { error: null };
@@ -271,7 +260,6 @@ export async function completeAssignment(
     .update({
       status: 'aguardando_validacao',
       evidencia_url: evidenceUrl,
-      concluida_em: new Date().toISOString(),
     })
     .eq('id', assignmentId)
     .eq('status', 'pendente');
@@ -317,11 +305,9 @@ export function getTaskEditState(
 }
 
 export function getAssignmentPoints(
-  assignment: Pick<Assignment, 'pontos_snapshot'> & {
-    tarefas: Pick<Task, 'pontos'>;
-  },
+  assignment: Pick<Assignment, 'pontos_snapshot'>,
 ): number {
-  return assignment.pontos_snapshot ?? assignment.tarefas.pontos;
+  return assignment.pontos_snapshot;
 }
 
 async function uploadEvidence(

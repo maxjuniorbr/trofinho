@@ -6,6 +6,8 @@ import {
   CheckCircle2,
   ArrowDownCircle,
   AlertTriangle,
+  Gift,
+  RotateCcw,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { isCredit, type TransactionType } from '@lib/balances';
@@ -17,6 +19,8 @@ const TRANSACTION_ICONS: Record<TransactionType, LucideIcon> = {
   transferencia_cofrinho: Wallet,
   valorizacao: TrendingUp,
   penalizacao: AlertTriangle,
+  resgate: Gift,
+  estorno_resgate: RotateCcw,
 };
 
 type TransactionIconProps = Readonly<{

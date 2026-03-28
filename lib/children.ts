@@ -3,10 +3,6 @@ import { localizeRpcError } from './api-error';
 import { supabase } from './supabase';
 import type { Child } from './tasks';
 
-export type ChildWithBalance = Child & {
-  usuarios: { nome: string } | null;
-};
-
 export type AdminChildProfile = Child & {
   avatar_url: string | null;
   email: string | null;
