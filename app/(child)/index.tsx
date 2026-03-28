@@ -1,12 +1,13 @@
 import {
-  Image,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   View,
   ActivityIndicator,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -15,18 +16,18 @@ import {
   Gift,
   ShoppingBag,
   Wallet,
-  LogOut,
 } from 'lucide-react-native';
 import { signOut, getProfile, type UserProfile } from '@lib/auth';
 import { getFamily, type Family } from '@lib/family';
 import { listChildAssignments } from '@lib/tasks';
-import { getBalance } from '@lib/balances';
+import { getBalance, syncAutomaticAppreciation } from '@lib/balances';
 import { getGreeting } from '@lib/utils';
 import { isNotificationPermissionDenied } from '@lib/notifications';
 import { captureException } from '@lib/sentry';
 import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { PointsDisplay } from '@/components/ui/points-display';
+import { LogoutButton } from '@/components/ui/logout-button';
 import { NotificationPermissionBanner } from '@/components/ui/notification-permission-banner';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { mascotImage, celebratingImage } from '@/constants/assets';
@@ -53,6 +54,7 @@ export default function FilhoHomeScreen() {
   const [freeBalance,  setFreeBalance]  = useState(0);
   const [piggyBank,    setPiggyBank]    = useState(0);
   const [showNotificationBanner, setShowNotificationBanner] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const hasPending = pendingCount > 0;
   const pendingTaskLabel = pendingCount === 1 ? 'tarefa pendente' : 'tarefas pendentes';
@@ -60,6 +62,7 @@ export default function FilhoHomeScreen() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
+      await syncAutomaticAppreciation();
       const [p, { data: atribuicoes }, { data: s }, notificationPermissionDenied] = await Promise.all([
         getProfile(),
         listChildAssignments(),
@@ -91,9 +94,39 @@ export default function FilhoHomeScreen() {
     }
   }, []);
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await syncAutomaticAppreciation();
+      const [p, { data: atribuicoes }, { data: s }, notificationPermissionDenied] = await Promise.all([
+        getProfile(),
+        listChildAssignments(),
+        getBalance(),
+        isNotificationPermissionDenied(),
+      ]);
+
+      setProfile(p);
+      setPendingCount(atribuicoes.filter((a) => a.status === 'pendente').length);
+      setFreeBalance(s?.saldo_livre ?? 0);
+      setPiggyBank(s?.cofrinho ?? 0);
+      setShowNotificationBanner(notificationPermissionDenied);
+
+      if (p?.familia_id) {
+        const fam = await getFamily(p.familia_id);
+        setFamily(fam);
+      } else {
+        setFamily(null);
+      }
+    } catch (e) {
+      captureException(e);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
-  async function handleSignOut() { setLoggingOut(true); await signOut(); }
+  const handleSignOut = async () => { setLoggingOut(true); await signOut(); };
 
   if (loading) {
     return (
@@ -118,6 +151,7 @@ export default function FilhoHomeScreen() {
           },
         ]}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
 
       <View style={styles.hero}>
@@ -136,7 +170,7 @@ export default function FilhoHomeScreen() {
         <Image
           source={hasPending ? mascotImage : celebratingImage}
           style={styles.mascotImage}
-          resizeMode="contain"
+          contentFit="contain"
           accessibilityLabel={hasPending ? 'Trofinho animado' : 'Trofinho celebrando'}
         />
         <Text style={[styles.mascotCaption, { color: colors.text.secondary }]}>
@@ -225,23 +259,7 @@ export default function FilhoHomeScreen() {
         ))}
       </View>
 
-      <Pressable
-        style={[styles.btnLogout, { borderColor: colors.semantic.error + '60', opacity: loggingOut ? 0.55 : 1 }]}
-        onPress={handleSignOut}
-        disabled={loggingOut}
-        accessibilityRole="button"
-        accessibilityLabel="Sair da conta"
-      >
-        {loggingOut
-          ? <ActivityIndicator color={colors.semantic.error} />
-          : (
-            <View style={styles.btnLogoutInner}>
-              <LogOut size={16} color={colors.semantic.error} strokeWidth={2} />
-              <Text style={[styles.btnLogoutText, { color: colors.semantic.error }]}>Sair</Text>
-            </View>
-          )
-        }
-      </Pressable>
+      <LogoutButton onPress={handleSignOut} loading={loggingOut} />
 
       </ScrollView>
     </SafeScreenFrame>
@@ -289,13 +307,5 @@ function makeStyles() {
     },
     quickIconBox:    { width: 44, height: 44, borderRadius: radii.md, alignItems: 'center' as const, justifyContent: 'center' as const },
     quickLabel:      { fontFamily: typography.family.bold, fontSize: typography.size.xs, textAlign: 'center' },
-
-    btnLogout: {
-      borderRadius: radii.md, borderWidth: 1,
-      paddingVertical: spacing['3'], alignItems: 'center',
-      minHeight: 48, justifyContent: 'center', width: '100%',
-    },
-    btnLogoutInner: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: spacing['2'] },
-    btnLogoutText: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
   });
 }

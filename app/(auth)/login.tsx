@@ -6,7 +6,6 @@ import {
 import { useRouter } from 'expo-router';
 import { useState, useMemo } from 'react';
 import { signIn } from '@lib/auth';
-import { localizeSupabaseError } from '@lib/api-error';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
 import { useTheme } from '@/context/theme-context';
 import { spacing, typography } from '@/constants/theme';
@@ -47,7 +46,7 @@ export default function LoginScreen() {
     const { profile, error: signInError } = await signIn(email.trim(), password);
     setLoading(false);
 
-    if (signInError) { setError(localizeSupabaseError(signInError.message)); return; }
+    if (signInError) { setError(signInError.message); return; }
     if (!profile) { router.replace('/(auth)/onboarding'); return; }
 
     const destination = profile.papel === 'admin' ? '/(admin)/' : '/(child)/';

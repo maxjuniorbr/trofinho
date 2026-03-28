@@ -38,6 +38,7 @@ export function PrizeFormFields({
           placeholderTextColor={colors.text.muted}
           autoFocus={autoFocusName}
           returnKeyType="next"
+          maxLength={100}
           accessibilityLabel="Nome do prêmio"
         />
       </View>
@@ -53,6 +54,7 @@ export function PrizeFormFields({
           multiline
           numberOfLines={3}
           textAlignVertical="top"
+          maxLength={500}
           accessibilityLabel="Descrição do prêmio"
         />
       </View>
@@ -67,6 +69,7 @@ export function PrizeFormFields({
           placeholderTextColor={colors.text.muted}
           keyboardType="numeric"
           returnKeyType="done"
+          maxLength={7}
           accessibilityLabel="Custo em pontos do prêmio"
         />
       </View>
