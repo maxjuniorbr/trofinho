@@ -1,4 +1,5 @@
 import {
+  Alert,
   StyleSheet,
   Text,
   View,
@@ -164,7 +165,16 @@ function AssignmentCard({
                 </Pressable>
                 <Pressable
                   style={[styles.botaoAcao, styles.botaoRejeitar, processing && styles.botaoDesabilitado]}
-                  onPress={onReject}
+                  onPress={() => {
+                    Alert.alert(
+                      'Rejeitar tarefa?',
+                      'A tarefa será rejeitada e o filho será notificado.',
+                      [
+                        { text: 'Cancelar', style: 'cancel' },
+                        { text: 'Rejeitar', style: 'destructive', onPress: onReject },
+                      ],
+                    );
+                  }}
                   disabled={processing}
                 >
                   {processing

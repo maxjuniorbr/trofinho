@@ -80,12 +80,10 @@ export const useUpdatePrize = () => {
 export const useDeactivatePrize = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => {
-      const fn = async () => {
-        const result = await deactivatePrize(id);
-        if (result.error) throw new Error(result.error);
-      };
-      return fn();
+    mutationFn: async (id: string) => {
+      const result = await deactivatePrize(id);
+      if (result.error) throw new Error(result.error);
+      return { data: result.data, warning: result.warning };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.prizes.all });
@@ -96,12 +94,9 @@ export const useDeactivatePrize = () => {
 export const useReactivatePrize = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => {
-      const fn = async () => {
-        const result = await reactivatePrize(id);
-        if (result.error) throw new Error(result.error);
-      };
-      return fn();
+    mutationFn: async (id: string) => {
+      const result = await reactivatePrize(id);
+      if (result.error) throw new Error(result.error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.prizes.all });
