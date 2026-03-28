@@ -2,13 +2,13 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Haptics from 'expo-haptics';
 import { Plus } from 'lucide-react-native';

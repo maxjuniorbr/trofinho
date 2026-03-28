@@ -4,8 +4,8 @@ import {
   View,
   Pressable,
   ActivityIndicator,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
@@ -63,11 +63,12 @@ function EvidenceSection({ evidenceUrl, imgLoading, imgError, onImgLoadStart, on
       <Text style={styles.evidenceLabel}>Foto enviada:</Text>
       <View style={styles.evidenceImgWrapper}>
         <Image
-          source={{ uri: evidenceUrl }}
+          source={evidenceUrl}
           style={styles.evidenceImg}
-          resizeMode="cover"
+          contentFit="cover"
+          transition={200}
           onLoadStart={onImgLoadStart}
-          onLoadEnd={onImgLoadEnd}
+          onLoad={onImgLoadEnd}
           onError={onImgError}
         />
         {imgLoading ? (

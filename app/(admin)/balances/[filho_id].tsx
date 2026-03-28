@@ -16,6 +16,7 @@ import {
 import {
   getBalance,
   listTransactions,
+  syncAutomaticAppreciation,
   applyPenalty,
   configureAppreciation,
   getTransactionTypeLabel,
@@ -50,6 +51,7 @@ export default function ChildBalanceAdminScreen() {
     if (!filho_id) return;
     setLoading(true);
     try {
+      await syncAutomaticAppreciation(filho_id);
       const [{ data: s }, { data: m }] = await Promise.all([
         getBalance(filho_id),
         listTransactions(filho_id),
