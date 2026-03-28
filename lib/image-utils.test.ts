@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import * as fc from 'fast-check';
 
 vi.mock('expo-file-system', () => ({
   File: vi.fn(),
@@ -13,38 +14,90 @@ import { inferImageExtension, inferImageContentType, extractErrorMessage, resize
 import { ImageManipulator } from 'expo-image-manipulator';
 
 describe('resizeImage', () => {
-  it('resizes with default options', async () => {
+  it('resizes when at least one dimension exceeds maxDimension', async () => {
     const saveAsync = vi.fn().mockResolvedValue({ uri: 'file:///resized.jpg' });
-    const renderAsync = vi.fn().mockResolvedValue({ saveAsync });
+    const mainRenderAsync = vi.fn().mockResolvedValue({ saveAsync });
     const resize = vi.fn().mockReturnValue(undefined);
 
-    vi.mocked(ImageManipulator.manipulate).mockReturnValue({
-      resize,
-      renderAsync,
-    } as any);
+    const probeRenderAsync = vi.fn().mockResolvedValue({ width: 2000, height: 1500 });
+
+    vi.mocked(ImageManipulator.manipulate)
+      .mockReturnValueOnce({ renderAsync: probeRenderAsync } as any)
+      .mockReturnValueOnce({ resize, renderAsync: mainRenderAsync } as any);
 
     const result = await resizeImage('file:///photo.jpg');
 
-    expect(ImageManipulator.manipulate).toHaveBeenCalledWith('file:///photo.jpg');
+    expect(ImageManipulator.manipulate).toHaveBeenCalledTimes(2);
     expect(resize).toHaveBeenCalledWith({ width: 1024 });
     expect(saveAsync).toHaveBeenCalledWith({ format: 'jpeg', compress: 0.7 });
     expect(result).toBe('file:///resized.jpg');
   });
 
-  it('uses custom options when provided', async () => {
-    const saveAsync = vi.fn().mockResolvedValue({ uri: 'file:///resized.jpg' });
-    const renderAsync = vi.fn().mockResolvedValue({ saveAsync });
+  it('skips resize when both dimensions are within maxDimension', async () => {
+    const saveAsync = vi.fn().mockResolvedValue({ uri: 'file:///compressed.jpg' });
+    const mainRenderAsync = vi.fn().mockResolvedValue({ saveAsync });
     const resize = vi.fn().mockReturnValue(undefined);
 
-    vi.mocked(ImageManipulator.manipulate).mockReturnValue({
-      resize,
-      renderAsync,
-    } as any);
+    const probeRenderAsync = vi.fn().mockResolvedValue({ width: 800, height: 600 });
+
+    vi.mocked(ImageManipulator.manipulate)
+      .mockReturnValueOnce({ renderAsync: probeRenderAsync } as any)
+      .mockReturnValueOnce({ resize, renderAsync: mainRenderAsync } as any);
+
+    const result = await resizeImage('file:///photo.jpg');
+
+    expect(resize).not.toHaveBeenCalled();
+    expect(saveAsync).toHaveBeenCalledWith({ format: 'jpeg', compress: 0.7 });
+    expect(result).toBe('file:///compressed.jpg');
+  });
+
+  it('uses custom options when provided', async () => {
+    const saveAsync = vi.fn().mockResolvedValue({ uri: 'file:///resized.jpg' });
+    const mainRenderAsync = vi.fn().mockResolvedValue({ saveAsync });
+    const resize = vi.fn().mockReturnValue(undefined);
+
+    const probeRenderAsync = vi.fn().mockResolvedValue({ width: 2000, height: 1500 });
+
+    vi.mocked(ImageManipulator.manipulate)
+      .mockReturnValueOnce({ renderAsync: probeRenderAsync } as any)
+      .mockReturnValueOnce({ resize, renderAsync: mainRenderAsync } as any);
 
     await resizeImage('file:///photo.jpg', { maxDimension: 512, compress: 0.5 });
 
     expect(resize).toHaveBeenCalledWith({ width: 512 });
     expect(saveAsync).toHaveBeenCalledWith({ format: 'jpeg', compress: 0.5 });
+  });
+
+  it('resizes when only height exceeds maxDimension', async () => {
+    const saveAsync = vi.fn().mockResolvedValue({ uri: 'file:///resized.jpg' });
+    const mainRenderAsync = vi.fn().mockResolvedValue({ saveAsync });
+    const resize = vi.fn().mockReturnValue(undefined);
+
+    const probeRenderAsync = vi.fn().mockResolvedValue({ width: 500, height: 2000 });
+
+    vi.mocked(ImageManipulator.manipulate)
+      .mockReturnValueOnce({ renderAsync: probeRenderAsync } as any)
+      .mockReturnValueOnce({ resize, renderAsync: mainRenderAsync } as any);
+
+    await resizeImage('file:///photo.jpg');
+
+    expect(resize).toHaveBeenCalledWith({ width: 1024 });
+  });
+
+  it('skips resize when dimensions exactly equal maxDimension', async () => {
+    const saveAsync = vi.fn().mockResolvedValue({ uri: 'file:///compressed.jpg' });
+    const mainRenderAsync = vi.fn().mockResolvedValue({ saveAsync });
+    const resize = vi.fn().mockReturnValue(undefined);
+
+    const probeRenderAsync = vi.fn().mockResolvedValue({ width: 1024, height: 1024 });
+
+    vi.mocked(ImageManipulator.manipulate)
+      .mockReturnValueOnce({ renderAsync: probeRenderAsync } as any)
+      .mockReturnValueOnce({ resize, renderAsync: mainRenderAsync } as any);
+
+    await resizeImage('file:///photo.jpg');
+
+    expect(resize).not.toHaveBeenCalled();
   });
 });
 
@@ -124,5 +177,42 @@ describe('extractErrorMessage', () => {
 
   it('retorna fallback para objeto com message não-string', () => {
     expect(extractErrorMessage({ message: 123 }, 'fallback')).toBe('fallback');
+  });
+});
+
+describe('property tests', () => {
+  // Feature: review-phases-1-2-implementation, Property 5: Image resize decision based on dimensions
+  // **Validates: Requirements 18.1, 18.2**
+  it('P5: resize() is called iff at least one dimension exceeds maxDimension', async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        fc.integer({ min: 1, max: 5000 }),
+        fc.integer({ min: 1, max: 5000 }),
+        fc.integer({ min: 100, max: 2000 }),
+        async (width, height, maxDimension) => {
+          vi.mocked(ImageManipulator.manipulate).mockReset();
+
+          const saveAsync = vi.fn().mockResolvedValue({ uri: 'file:///result.jpg' });
+          const mainRenderAsync = vi.fn().mockResolvedValue({ saveAsync });
+          const resize = vi.fn();
+          const probeRenderAsync = vi.fn().mockResolvedValue({ width, height });
+
+          const mainContext = { resize, renderAsync: mainRenderAsync };
+          vi.mocked(ImageManipulator.manipulate)
+            .mockReturnValueOnce({ renderAsync: probeRenderAsync } as any)
+            .mockReturnValueOnce(mainContext as any);
+
+          await resizeImage('file:///test.jpg', { maxDimension });
+
+          const shouldResize = width > maxDimension || height > maxDimension;
+          if (shouldResize) {
+            expect(resize).toHaveBeenCalledWith({ width: maxDimension });
+          } else {
+            expect(resize).not.toHaveBeenCalled();
+          }
+        },
+      ),
+      { numRuns: 100 },
+    );
   });
 });

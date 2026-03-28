@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import * as fc from 'fast-check';
 import { localizeRpcError, localizeSupabaseError } from './api-error';
 
 describe('localizeSupabaseError', () => {
@@ -30,5 +31,48 @@ describe('localizeRpcError', () => {
 
   it('uses a custom fallback when provided', () => {
     expect(localizeRpcError('unknown error', 'Erro personalizado.')).toBe('Erro personalizado.');
+  });
+});
+
+describe('property tests', () => {
+  const knownMatchers: [string, string][] = [
+    ['Apenas admins', 'Acesso negado.'],
+    ['Apenas filhos', 'Acesso negado.'],
+    ['Acesso negado', 'Acesso negado.'],
+    ['não autenticado', 'Sessão expirada. Faça login novamente.'],
+    ['Saldo livre insuficiente', 'Saldo livre insuficiente.'],
+    ['Saldo insuficiente', 'Saldo insuficiente.'],
+    ['Saldo não encontrado', 'Saldo não encontrado.'],
+    ['Título obrigatório', 'Título obrigatório.'],
+    ['Nome obrigatório', 'Nome obrigatório.'],
+    ['Pontos devem ser maiores', 'Pontos devem ser maiores que zero.'],
+    ['Valor deve ser maior que zero', 'Valor deve ser maior que zero.'],
+    ['Descrição obrigatória', 'Descrição obrigatória.'],
+    ['Frequência obrigatória', 'Frequência obrigatória.'],
+    ['Índice deve estar entre', 'Índice deve estar entre 0 e 100.'],
+    ['não encontrad', 'Registro não encontrado.'],
+    ['não está aguardando', 'Esta ação não pode ser realizada no momento.'],
+    ['não está pendente', 'Esta ação não pode ser realizada no momento.'],
+    ['já foi concluída', 'Esta tarefa já foi concluída e não pode ser editada.'],
+    ['outra família', 'Acesso negado.'],
+    ['filhos inválidos', 'Há filhos inválidos na atribuição.'],
+    ['resgates em aberto', 'Não é possível alterar os pontos pois há resgates em aberto.'],
+    ['resgates pendentes', 'Não é possível alterar o custo com resgates pendentes.'],
+    ['Prêmio não encontrado ou não disponível', 'Prêmio não disponível.'],
+    ['já pertence a uma família', 'Você já tem uma família cadastrada.'],
+    ['Sem índice de valorização', 'Valorização não configurada.'],
+  ];
+
+  // Feature: review-phases-1-2-implementation, Property 3: RPC error localization covers all known matchers
+  it('P3: for any string containing a known matcher substring, localizeRpcError does not return the generic fallback', () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...knownMatchers),
+        ([substring]) => {
+          return localizeRpcError(substring) !== 'Algo deu errado. Tente novamente.';
+        },
+      ),
+      { numRuns: 100 },
+    );
   });
 });

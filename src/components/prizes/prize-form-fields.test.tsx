@@ -54,4 +54,23 @@ describe('prize form fields', () => {
     expect(onDescriptionChange).toHaveBeenCalledWith('No cinema');
     expect(onCostChange).toHaveBeenCalledWith('80');
   });
+
+  it('enforces maxLength on name, description, and cost inputs', () => {
+    const renderer = render(
+      <PrizeFormFields
+        name=""
+        description=""
+        cost=""
+        onNameChange={vi.fn()}
+        onDescriptionChange={vi.fn()}
+        onCostChange={vi.fn()}
+      />
+    );
+
+    const inputs = renderer.root.findAllByType(TextInput);
+
+    expect(inputs[0].props.maxLength).toBe(100);   // name
+    expect(inputs[1].props.maxLength).toBe(500);   // description
+    expect(inputs[2].props.maxLength).toBe(7);     // cost
+  });
 });

@@ -123,7 +123,7 @@ describe('auth screens', () => {
       .mockResolvedValueOnce({ profile: null, error: null })
       .mockResolvedValueOnce({ profile: { papel: 'admin' }, error: null })
       .mockResolvedValueOnce({ profile: { papel: 'filho' }, error: null })
-      .mockResolvedValueOnce({ profile: null, error: { message: 'Invalid login credentials' } });
+      .mockResolvedValueOnce({ profile: null, error: { message: 'E-mail ou senha incorretos.' } });
 
     const renderer = render(<LoginScreen />);
     changeInput(renderer, 0, 'max@example.com');
