@@ -6,15 +6,12 @@ import {
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback, useMemo } from 'react';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useMemo } from 'react';
+import { useRouter } from 'expo-router';
 import { Trophy } from 'lucide-react-native';
-import {
-  listChildRedemptions,
-  type RedemptionWithPrize,
-} from '@lib/prizes';
 import { captureException } from '@lib/sentry';
 import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@/constants/status';
+import { useChildRedemptions } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -28,30 +25,20 @@ export default function ChildRedemptionsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [redemptions, setRedemptions] = useState<RedemptionWithPrize[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const hasError = Boolean(error);
-  const shouldShowEmptyState = loading || hasError || redemptions.length === 0;
+  const { data: redemptions = [], isLoading, error, refetch, isFetching } = useChildRedemptions();
+
+  const errorMessage = error?.message ?? null;
+  const hasError = Boolean(errorMessage);
+  const shouldShowEmptyState = isLoading || hasError || redemptions.length === 0;
   const emptyStateMessage = 'Nenhum resgate realizado ainda.\nVá ao catálogo e troque seus pontos!';
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const handleRefresh = async () => {
     try {
-      const { data, error } = await listChildRedemptions();
-      if (error) setError(error);
-      else setRedemptions(data);
+      await refetch();
     } catch (e) {
       captureException(e);
-      setError('Não foi possível carregar o histórico agora.');
-      setRedemptions([]);
-    } finally {
-      setLoading(false);
     }
-  }, []);
-
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  };
 
   return (
     <SafeScreenFrame bottomInset>
@@ -60,18 +47,18 @@ export default function ChildRedemptionsScreen() {
 
       {shouldShowEmptyState ? (
         <EmptyState
-          loading={loading}
-          error={error}
-          empty={!loading && !error}
+          loading={isLoading}
+          error={errorMessage}
+          empty={!isLoading && !errorMessage}
           emptyMessage={emptyStateMessage}
-          onRetry={loadData}
+          onRetry={handleRefresh}
         />
       ) : (
         <FlashList
           data={redemptions}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
+          refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
           renderItem={({ item }) => (
             <View style={styles.card}>
               <View style={styles.cardTop}>
@@ -96,7 +83,6 @@ export default function ChildRedemptionsScreen() {
     </SafeScreenFrame>
   );
 }
-
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({

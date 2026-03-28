@@ -3,7 +3,7 @@ import { SegmentedBar, type SegmentOption } from '@/components/ui/segmented-bar'
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Plus, RefreshCw } from 'lucide-react-native';
 import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -15,14 +15,14 @@ import {
   consumeNavigationFeedback,
   type NavigationFeedback,
 } from '@lib/navigation-feedback';
+import { useAdminTasks } from '@/hooks/queries';
 import {
-  listAdminTasks,
   sortAdminTasks,
   type AdminTaskSort,
   type TaskListItem,
 } from '@lib/tasks';
 import { formatDate } from '@lib/utils';
-import { captureException } from '@lib/sentry';
+import { useFocusEffect } from 'expo-router';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -88,9 +88,7 @@ export default function AdminTasksScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [tasks, setTasks] = useState<TaskListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: tasks = [], isLoading, error, refetch } = useAdminTasks();
   const [sort, setSort] = useState<AdminTaskSort>('action_first');
   const [successFeedback, setSuccessFeedback] = useState<NavigationFeedback | null>(null);
 
@@ -100,22 +98,12 @@ export default function AdminTasksScreen() {
   );
 
   const sortedTasks = useMemo(() => sortAdminTasks(tasks, sort), [tasks, sort]);
-  const shouldShowEmptyState = loading || Boolean(error) || tasks.length === 0;
-
-  const loadData = useCallback(async () => {
-    setLoading(true); setError(null);
-    try {
-      const { data, error: loadError } = await listAdminTasks();
-      if (loadError) setError(loadError); else setTasks(data);
-    } catch (e) { captureException(e); setError('Não foi possível carregar as tarefas agora.'); setTasks([]); }
-    finally { setLoading(false); }
-  }, []);
+  const shouldShowEmptyState = isLoading || Boolean(error) || tasks.length === 0;
 
   useFocusEffect(useCallback(() => {
     const feedback = consumeNavigationFeedback('admin-task-list');
     if (feedback) setSuccessFeedback(feedback);
-    loadData();
-  }, [loadData]));
+  }, []));
 
   return (
     <SafeScreenFrame bottomInset>
@@ -148,18 +136,18 @@ export default function AdminTasksScreen() {
 
       {shouldShowEmptyState ? (
         <EmptyState
-          loading={loading}
-          error={error}
+          loading={isLoading}
+          error={error?.message ?? null}
           empty={tasks.length === 0}
           emptyMessage={'Nenhuma tarefa criada ainda.\nToque em "+" para criar a primeira tarefa.'}
-          onRetry={loadData}
+          onRetry={() => refetch()}
         />
       ) : (
         <FlashList
           data={sortedTasks}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
+          refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} tintColor={colors.brand.vivid} />}
           renderItem={({ item }) => (
             <AdminTaskCard
               item={item}

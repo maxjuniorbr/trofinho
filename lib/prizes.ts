@@ -61,10 +61,11 @@ export async function listPrizes(limit = 50): Promise<{
     .select('*')
     .order('ativo', { ascending: false })
     .order('nome')
-    .limit(limit);
+    .limit(limit)
+    .returns<Prize[]>();
 
   if (error) return { data: [], error: localizeRpcError(error.message) };
-  return { data: (data ?? []) as Prize[], error: null };
+  return { data: data ?? [], error: null };
 }
 
 export async function getPrize(id: string): Promise<{
@@ -75,10 +76,11 @@ export async function getPrize(id: string): Promise<{
     .from('premios')
     .select('*')
     .eq('id', id)
+    .returns<Prize>()
     .single();
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
-  return { data: data as Prize, error: null };
+  return { data, error: null };
 }
 
 export async function createPrize(input: PrizeInput): Promise<{
@@ -108,7 +110,7 @@ export async function createPrize(input: PrizeInput): Promise<{
     .single();
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
-  return { data: data as Prize, error: null };
+  return { data, error: null };
 }
 
 export async function updatePrize(
@@ -156,6 +158,7 @@ export async function updatePrize(
   return {
     error: null,
     imageUrl: nextImageUrl,
+    // RPC editar_premio returns a message string when points changed
     pointsMessage: (data as string | null) ?? null,
   };
 }
@@ -184,14 +187,16 @@ export async function listRedemptions(): Promise<{
   data: RedemptionWithChildAndPrize[];
   error: string | null;
 }> {
+  // .returns needed: joined shape (filhos + premios) differs from generated row type
   const { data, error } = await supabase
     .from('resgates')
     .select('*, filhos(nome), premios(nome)')
     .order('created_at', { ascending: false })
-    .limit(100);
+    .limit(100)
+    .returns<RedemptionWithChildAndPrize[]>();
 
   if (error) return { data: [], error: localizeRpcError(error.message) };
-  return { data: (data ?? []) as RedemptionWithChildAndPrize[], error: null };
+  return { data: data ?? [], error: null };
 }
 
 export async function confirmRedemption(redemptionId: string): Promise<{ error: string | null }> {
@@ -221,24 +226,27 @@ export async function listActivePrizes(): Promise<{
     .select('*')
     .eq('ativo', true)
     .order('custo_pontos')
-    .limit(50);
+    .limit(50)
+    .returns<Prize[]>();
 
   if (error) return { data: [], error: localizeRpcError(error.message) };
-  return { data: (data ?? []) as Prize[], error: null };
+  return { data: data ?? [], error: null };
 }
 
 export async function listChildRedemptions(): Promise<{
   data: RedemptionWithPrize[];
   error: string | null;
 }> {
+  // .returns needed: joined shape (premios) differs from generated row type
   const { data, error } = await supabase
     .from('resgates')
     .select('*, premios(nome, custo_pontos)')
     .order('created_at', { ascending: false })
-    .limit(100);
+    .limit(100)
+    .returns<RedemptionWithPrize[]>();
 
   if (error) return { data: [], error: localizeRpcError(error.message) };
-  return { data: (data ?? []) as RedemptionWithPrize[], error: null };
+  return { data: data ?? [], error: null };
 }
 
 export async function requestRedemption(prizeId: string): Promise<{
@@ -251,6 +259,7 @@ export async function requestRedemption(prizeId: string): Promise<{
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
   await notifyRedemptionRequested();
+  // RPC solicitar_resgate returns the redemption ID as text
   return { data: data as string, error: null };
 }
 

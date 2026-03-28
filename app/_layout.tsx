@@ -12,6 +12,7 @@ import { useFonts,
 import * as Sentry from '@sentry/react-native';
 import { supabase } from '@lib/supabase';
 import { getProfile, type UserProfile } from '@lib/auth';
+import { syncAutomaticAppreciation } from '@lib/balances';
 import { createAuthStateHandler } from '@lib/auth-state';
 import {
   registerForPushNotifications,
@@ -25,6 +26,7 @@ import {
   registerNavigationRef,
   setUserContext,
   clearUserContext,
+  captureException,
 } from '@lib/sentry';
 
 // Initialize Sentry before the React tree. Reads DSN from EXPO_PUBLIC_SENTRY_DSN;
@@ -110,6 +112,12 @@ function RootNavigator({
       clearUserContext();
     }
   }, [profile]);
+
+  // Fire-and-forget sync of automatic appreciation on startup
+  useEffect(() => {
+    if (!profile?.familia_id) return;
+    syncAutomaticAppreciation().catch(captureException);
+  }, [profile?.familia_id]);
 
   useEffect(() => {
     let mounted = true;

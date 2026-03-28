@@ -8,8 +8,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback, useMemo } from 'react';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'expo-router';
 import {
   ClipboardList,
   Users,
@@ -19,16 +19,19 @@ import {
   Pencil,
   ChevronRight,
 } from 'lucide-react-native';
-import { getProfile, type UserProfile } from '@lib/auth';
-import { countPendingValidations } from '@lib/tasks';
-import { listAdminBalances, syncAutomaticAppreciation, type BalanceWithChild } from '@lib/balances';
+import { syncAutomaticAppreciation } from '@lib/balances';
 import { getGreeting } from '@lib/utils';
-import { listChildren } from '@lib/children';
-import type { Child } from '@lib/tasks';
-import { countPendingRedemptions } from '@lib/prizes';
-import { getFamily, type Family } from '@lib/family';
 import { isNotificationPermissionDenied } from '@lib/notifications';
 import { captureException } from '@lib/sentry';
+import {
+  useProfile,
+  useFamily,
+  useChildrenList,
+  useAdminBalances,
+  usePendingValidationCount,
+  usePendingRedemptionCount,
+  combineQueryStates,
+} from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing, typography, type ThemeColors } from '@/constants/theme';
 import { Avatar } from '@/components/ui/avatar';
@@ -53,42 +56,6 @@ const QUICK_ACTIONS: ReadonlyArray<{
   { icon: Gift,          label: 'Prêmios',  rota: '/(admin)/prizes',      badgeKey: 'none',        accent: 'neutral' },
   { icon: ShoppingBag,   label: 'Resgates', rota: '/(admin)/redemptions', badgeKey: 'redemptions', accent: 'neutral' },
 ];
-
-type AdminDashboardData = {
-  profile: UserProfile | null;
-  family: Family | null;
-  children: Child[];
-  balancesMap: Map<string, BalanceWithChild>;
-  pendingValidationCount: number;
-  pendingRedemptionCount: number;
-};
-
-async function loadAdminDashboard(): Promise<AdminDashboardData> {
-  await syncAutomaticAppreciation();
-  const [p, { data: childrenData }, { data: balancesData }, { data: redemptionCount }, { data: validationCount }] = await Promise.all([
-    getProfile(),
-    listChildren(),
-    listAdminBalances(),
-    countPendingRedemptions(),
-    countPendingValidations(),
-  ]);
-
-  const balancesMap = new Map(balancesData.map((s) => [s.filho_id, s]));
-
-  let family: Family | null = null;
-  if (p?.familia_id) {
-    family = await getFamily(p.familia_id);
-  }
-
-  return {
-    profile: p,
-    family,
-    children: childrenData,
-    balancesMap,
-    pendingValidationCount: validationCount,
-    pendingRedemptionCount: redemptionCount,
-  };
-}
 
 type MetricTone = 'neutral' | 'gold' | 'danger';
 
@@ -131,62 +98,54 @@ export default function AdminHomeScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(), []);
 
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [avatarUri, setAvatarUri] = useState<string | null>(null);
-  const [family, setFamily] = useState<Family | null>(null);
-  const [children, setChildren] = useState<Child[]>([]);
-  const [balancesMap, setBalancesMap] = useState<Map<string, BalanceWithChild>>(new Map());
-  const [loading, setLoading] = useState(true);
-  const [pendingValidationCount, setPendingValidationCount] = useState(0);
-  const [pendingRedemptionCount, setPendingRedemptionCount] = useState(0);
+  const profileQuery = useProfile();
+  const profile = profileQuery.data ?? null;
+  const avatarUri = profile?.avatarUrl ?? null;
+
+  const familyQuery = useFamily(profile?.familia_id);
+  const family = familyQuery.data ?? null;
+
+  const childrenQuery = useChildrenList();
+  const children = childrenQuery.data ?? [];
+
+  const balancesQuery = useAdminBalances();
+  const balancesData = balancesQuery.data ?? [];
+  const balancesMap = useMemo(
+    () => new Map(balancesData.map((s) => [s.filho_id, s])),
+    [balancesData],
+  );
+
+  const pendingValidationQuery = usePendingValidationCount();
+  const pendingValidationCount = pendingValidationQuery.data ?? 0;
+
+  const pendingRedemptionQuery = usePendingRedemptionCount();
+  const pendingRedemptionCount = pendingRedemptionQuery.data ?? 0;
+
+  const { isLoading, error, refetchAll } = combineQueryStates(
+    profileQuery,
+    familyQuery,
+    childrenQuery,
+    balancesQuery,
+    pendingValidationQuery,
+    pendingRedemptionQuery,
+  );
+
   const [showNotificationBanner, setShowNotificationBanner] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [data, notificationPermissionDenied] = await Promise.all([
-        loadAdminDashboard(),
-        isNotificationPermissionDenied(),
-      ]);
-
-      setProfile(data.profile);
-      setAvatarUri(data.profile?.avatarUrl ?? null);
-      setFamily(data.family);
-      setChildren(data.children);
-      setBalancesMap(data.balancesMap);
-      setPendingValidationCount(data.pendingValidationCount);
-      setPendingRedemptionCount(data.pendingRedemptionCount);
-      setShowNotificationBanner(notificationPermissionDenied);
-    } catch (e) {
-      captureException(e);
-      setFamily(null);
-      setChildren([]);
-      setBalancesMap(new Map());
-      setPendingValidationCount(0);
-      setPendingRedemptionCount(0);
-      setShowNotificationBanner(false);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    isNotificationPermissionDenied()
+      .then(setShowNotificationBanner)
+      .catch(() => setShowNotificationBanner(false));
   }, []);
 
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      const [data, notificationPermissionDenied] = await Promise.all([
-        loadAdminDashboard(),
-        isNotificationPermissionDenied(),
-      ]);
-
-      setProfile(data.profile);
-      setAvatarUri(data.profile?.avatarUrl ?? null);
-      setFamily(data.family);
-      setChildren(data.children);
-      setBalancesMap(data.balancesMap);
-      setPendingValidationCount(data.pendingValidationCount);
-      setPendingRedemptionCount(data.pendingRedemptionCount);
-      setShowNotificationBanner(notificationPermissionDenied);
+      await syncAutomaticAppreciation();
+      await refetchAll();
+      const denied = await isNotificationPermissionDenied();
+      setShowNotificationBanner(denied);
     } catch (e) {
       captureException(e);
     } finally {
@@ -194,14 +153,16 @@ export default function AdminHomeScreen() {
     }
   };
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
-
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={[styles.loading, { backgroundColor: colors.bg.canvas }]}>
         <ActivityIndicator size="large" color={colors.brand.vivid} />
       </View>
     );
+  }
+
+  if (error) {
+    captureException(error);
   }
 
   const totalPoints = Array.from(balancesMap.values()).reduce((acc, s) => acc + s.saldo_livre + s.cofrinho, 0);

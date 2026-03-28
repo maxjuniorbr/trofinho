@@ -8,8 +8,8 @@ import {
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback, useMemo } from 'react';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useState, useMemo } from 'react';
+import { useRouter } from 'expo-router';
 import {
   Clock,
   Trophy,
@@ -17,12 +17,7 @@ import {
   CheckCircle2,
   XCircle,
 } from 'lucide-react-native';
-import {
-  listRedemptions,
-  confirmRedemption,
-  cancelRedemption,
-  type RedemptionWithChildAndPrize,
-} from '@lib/prizes';
+import type { RedemptionWithChildAndPrize } from '@lib/prizes';
 import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@/constants/status';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
@@ -32,7 +27,7 @@ import { InlineMessage } from '@/components/ui/inline-message';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { formatDate } from '@lib/utils';
-import { captureException } from '@lib/sentry';
+import { useAdminRedemptions, useConfirmRedemption, useCancelRedemption } from '@/hooks/queries';
 
 type ConfirmModalState = {
   visible: boolean;
@@ -57,33 +52,15 @@ export default function AdminRedemptionsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [redemptions, setRedemptions] = useState<RedemptionWithChildAndPrize[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [processing, setProcessing] = useState<string | null>(null);
+  const { data: redemptions = [], isLoading, error, refetch } = useAdminRedemptions();
+  const confirmMutation = useConfirmRedemption();
+  const cancelMutation = useCancelRedemption();
+
   const [actionError, setActionError] = useState<string | null>(null);
   const [modal, setModal] = useState<ConfirmModalState>(MODAL_INITIAL);
+  const [processingId, setProcessingId] = useState<string | null>(null);
   const hasError = Boolean(error);
-  const shouldShowEmptyState = loading || hasError || redemptions.length === 0;
-
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    setActionError(null);
-    try {
-      const { data, error } = await listRedemptions();
-      if (error) setError(error);
-      else setRedemptions(data);
-    } catch (e) {
-      captureException(e);
-      setError('Não foi possível carregar os resgates agora.');
-      setRedemptions([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  const shouldShowEmptyState = isLoading || hasError || redemptions.length === 0;
 
   const handleConfirm = (redemptionId: string, childName: string, prizeName: string) => {
     setActionError(null);
@@ -95,21 +72,22 @@ export default function AdminRedemptionsScreen() {
     setModal({ visible: true, type: 'cancel', redemptionId, childName, prizeName, points });
   };
 
-  const handleModalConfirm = async () => {
-    setProcessing(modal.redemptionId);
+  const handleModalConfirm = () => {
+    const { redemptionId, type } = modal;
+    setProcessingId(redemptionId);
     setModal(MODAL_INITIAL);
-    if (modal.type === 'confirm') {
-      const { error } = await confirmRedemption(modal.redemptionId);
-      setProcessing(null);
-      if (error) setActionError(error);
-      else loadData();
-    } else {
-      const { error } = await cancelRedemption(modal.redemptionId);
-      setProcessing(null);
-      if (error) setActionError(error);
-      else loadData();
-    }
-  }
+
+    const mutation = type === 'confirm' ? confirmMutation : cancelMutation;
+    mutation.mutate(redemptionId, {
+      onSuccess: () => {
+        setProcessingId(null);
+      },
+      onError: (err) => {
+        setProcessingId(null);
+        setActionError(err.message);
+      },
+    });
+  };
 
   const pending = redemptions.filter((r) => r.status === 'pendente');
 
@@ -120,18 +98,18 @@ export default function AdminRedemptionsScreen() {
 
       {shouldShowEmptyState ? (
         <EmptyState
-          loading={loading}
-          error={error}
-          empty={!loading && !error}
+          loading={isLoading}
+          error={error?.message ?? null}
+          empty={!isLoading && !error}
           emptyMessage="Nenhum resgate registrado ainda."
-          onRetry={loadData}
+          onRetry={() => refetch()}
         />
       ) : (
         <FlashList
           data={redemptions}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
+          refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} tintColor={colors.brand.vivid} />}
           ListHeaderComponent={
             <>
               {actionError ? <InlineMessage message={actionError} variant="error" /> : null}
@@ -145,9 +123,9 @@ export default function AdminRedemptionsScreen() {
               )}
             </>
           }
-          renderItem={({ item, index }) => {
+          renderItem={({ item, index }: { item: RedemptionWithChildAndPrize; index: number }) => {
             const isPending = item.status === 'pendente';
-            const isProcessing = processing === item.id;
+            const isProcessing = processingId === item.id;
             const previousPending = index > 0 && redemptions[index - 1]?.status === 'pendente';
             const showHistorySeparator = !isPending && (index === 0 || previousPending);
 

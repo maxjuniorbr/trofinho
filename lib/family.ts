@@ -12,5 +12,5 @@ export async function getFamily(familyId: string): Promise<Family | null> {
     .single();
 
   if (error || !data) return null;
-  return data as Family;
+  return data;
 }

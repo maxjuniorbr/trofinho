@@ -11,25 +11,27 @@ import {
   RefreshControl,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback, useMemo } from 'react';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Wallet,
   TrendingUp,
 } from 'lucide-react-native';
 import {
-  getBalance,
-  listTransactions,
-  syncAutomaticAppreciation,
-  transferToPiggyBank,
   getAppreciationPeriodLabel,
   getTransactionTypeLabel,
   isCredit,
-  type Balance,
-  type Transaction,
+  syncAutomaticAppreciation,
 } from '@lib/balances';
 import { getMyChildId } from '@lib/children';
+import { captureException } from '@lib/sentry';
+import {
+  useBalance,
+  useTransactions,
+  useTransferToPiggyBank,
+  combineQueryStates,
+} from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -47,57 +49,66 @@ export default function ChildBalanceScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [childId, setChildId] = useState<string | null>(null);
-  const [balance, setBalance] = useState<Balance | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getMyChildId()
+      .then(setChildId)
+      .catch(() => setChildId(null));
+  }, []);
+
+  const balanceQuery = useBalance(childId ?? undefined);
+  const balance = balanceQuery.data ?? null;
+
+  const transactionsQuery = useTransactions(childId ?? '');
+  const transactions = transactionsQuery.data ?? [];
+
+  const { isLoading, error, refetchAll } = combineQueryStates(balanceQuery, transactionsQuery);
+
+  const transferMutation = useTransferToPiggyBank();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [amountStr, setAmountStr] = useState('');
   const [modalError, setModalError] = useState<string | null>(null);
-  const [transferring, setTransferring] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const handleRefresh = async () => {
+    setRefreshing(true);
     try {
-      const id = await getMyChildId();
-      setChildId(id);
-      if (!id) { setBalance(null); setTransactions([]); return; }
-      await syncAutomaticAppreciation(id);
-      const [{ data: s }, { data: m }] = await Promise.all([
-        getBalance(id),
-        listTransactions(id),
-      ]);
-      setBalance(s);
-      setTransactions(m);
+      await syncAutomaticAppreciation();
+      await refetchAll();
+    } catch (e) {
+      captureException(e);
     } finally {
-      setLoading(false);
+      setRefreshing(false);
     }
-  }, []);
+  };
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
-
-  async function handleTransfer() {
+  const handleTransfer = async () => {
     setModalError(null);
     const v = Number.parseInt(amountStr, 10);
-    if (!amountStr || Number.isNaN(v) || v <= 0) return setModalError('Informe um valor válido.');
-    if (!balance || v > balance.saldo_livre) return setModalError('Saldo livre insuficiente.');
+    if (!amountStr || Number.isNaN(v) || v <= 0) { setModalError('Informe um valor válido.'); return; }
+    if (!balance || v > balance.saldo_livre) { setModalError('Saldo livre insuficiente.'); return; }
     if (!childId) return;
-    setTransferring(true);
-    const { error } = await transferToPiggyBank(childId, v);
-    setTransferring(false);
-    if (error) { setModalError(error); return; }
-    setModalVisible(false);
-    setAmountStr('');
-    await loadData();
-  }
+    try {
+      await transferMutation.mutateAsync({ childId, amount: v });
+      setModalVisible(false);
+      setAmountStr('');
+    } catch (e) {
+      setModalError(e instanceof Error ? e.message : 'Não foi possível transferir.');
+    }
+  };
 
-  if (loading) {
+  if (isLoading || childId === null) {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />
         <ActivityIndicator size="large" color={colors.accent.filho} />
       </View>
     );
+  }
+
+  if (error) {
+    captureException(error);
   }
 
   const freeBalance = balance?.saldo_livre ?? 0;
@@ -120,7 +131,7 @@ export default function ChildBalanceScreen() {
         data={transactions}
         keyExtractor={(m) => m.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
         ListHeaderComponent={
           <>
             <View style={styles.cardsRow}>
@@ -213,13 +224,13 @@ export default function ChildBalanceScreen() {
                 <Text style={styles.cancelBtnText}>Cancelar</Text>
               </Pressable>
               <Pressable
-                style={[styles.confirmBtn, transferring && { opacity: 0.6 }]}
+                style={[styles.confirmBtn, transferMutation.isPending && { opacity: 0.6 }]}
                 onPress={handleTransfer}
-                disabled={transferring}
+                disabled={transferMutation.isPending}
                 accessibilityRole="button"
                 accessibilityLabel="Confirmar transferência para cofrinho"
               >
-                {transferring
+                {transferMutation.isPending
                   ? <ActivityIndicator color={colors.text.inverse} />
                   : <Text style={styles.confirmBtnText}>Guardar</Text>}
               </Pressable>

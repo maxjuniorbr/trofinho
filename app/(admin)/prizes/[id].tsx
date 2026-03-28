@@ -7,12 +7,12 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useMemo, useState } from 'react';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { ImagePlus } from 'lucide-react-native';
 import { setNavigationFeedback } from '@lib/navigation-feedback';
-import { getPrize, updatePrize, type Prize } from '@lib/prizes';
+import type { Prize } from '@lib/prizes';
 import { captureException } from '@lib/sentry';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -24,6 +24,7 @@ import { PrizeFormFields } from '@/components/prizes/prize-form-fields';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, spacing, typography } from '@/constants/theme';
+import { usePrizeDetail, useUpdatePrize } from '@/hooks/queries';
 
 export default function AdminPrizeDetailScreen() {
   const router = useRouter();
@@ -31,9 +32,9 @@ export default function AdminPrizeDetailScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [prize, setPrize] = useState<Prize | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: prize, isLoading, error, refetch } = usePrizeDetail(id);
+  const updatePrizeMutation = useUpdatePrize();
+
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [costStr, setCostStr] = useState('');
@@ -41,43 +42,24 @@ export default function AdminPrizeDetailScreen() {
   const [imageState, setImageState] = useState<'loading' | 'loaded' | 'error'>('loaded');
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [isActive, setIsActive] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [pickingImage, setPickingImage] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [formInitialized, setFormInitialized] = useState(false);
 
-  const loadData = useCallback(async () => {
-    if (!id) return;
-
-    setLoading(true);
-    setError(null);
-
-    const { data, error: prizeError } = await getPrize(id);
-
-    if (prizeError) {
-      setError(prizeError);
-      setLoading(false);
-      return;
-    }
-
-    if (data) {
-      setPrize(data);
-      setName(data.nome);
-      setDescription(data.descricao ?? '');
-      setCostStr(String(data.custo_pontos));
-      setImagePreview(data.imagem_url ?? null);
-      setImageState(data.imagem_url ? 'loading' : 'loaded');
+  useEffect(() => {
+    if (prize && !formInitialized) {
+      setName(prize.nome);
+      setDescription(prize.descricao ?? '');
+      setCostStr(String(prize.custo_pontos));
+      setImagePreview(prize.imagem_url ?? null);
+      setImageState(prize.imagem_url ? 'loading' : 'loaded');
       setSelectedImageUri(null);
-      setIsActive(data.ativo);
+      setIsActive(prize.ativo);
+      setFormInitialized(true);
     }
+  }, [prize, formInitialized]);
 
-    setLoading(false);
-  }, [id]);
-
-  useFocusEffect(useCallback(() => {
-    loadData();
-  }, [loadData]));
-
-  async function handlePickImage() {
+  const handlePickImage = async () => {
     setPickingImage(true);
     setFormError(null);
 
@@ -102,9 +84,9 @@ export default function AdminPrizeDetailScreen() {
     } finally {
       setPickingImage(false);
     }
-  }
+  };
 
-  async function handleSave() {
+  const handleSave = () => {
     if (!id || !prize) return;
 
     setFormError(null);
@@ -121,39 +103,41 @@ export default function AdminPrizeDetailScreen() {
       return;
     }
 
-    setSaving(true);
+    updatePrizeMutation.mutate(
+      {
+        id,
+        input: {
+          nome: name.trim(),
+          descricao: description.trim() || null,
+          custo_pontos: cost,
+          ativo: isActive,
+          imagem_url: prize.imagem_url ?? null,
+          imageUri: selectedImageUri,
+        },
+      },
+      {
+        onSuccess: (result) => {
+          setSelectedImageUri(null);
+          setImagePreview(result.imageUrl ?? prize.imagem_url ?? null);
+          setImageState((result.imageUrl ?? prize.imagem_url) ? 'loading' : 'loaded');
+          setFormError(result.pointsMessage);
 
-    const { error: updateError, imageUrl, pointsMessage } = await updatePrize(id, {
-      nome: name.trim(),
-      descricao: description.trim() || null,
-      custo_pontos: cost,
-      ativo: isActive,
-      imagem_url: prize.imagem_url ?? null,
-      imageUri: selectedImageUri,
-    });
+          if (result.pointsMessage) {
+            refetch();
+            return;
+          }
 
-    setSaving(false);
+          setNavigationFeedback('admin-prize-list', 'Prêmio atualizado com sucesso.');
+          router.dismissTo('/(admin)/prizes');
+        },
+        onError: (err) => {
+          setFormError(err.message);
+        },
+      },
+    );
+  };
 
-    if (updateError) {
-      setFormError(updateError);
-      return;
-    }
-
-    setSelectedImageUri(null);
-    setImagePreview(imageUrl ?? prize.imagem_url ?? null);
-    setImageState((imageUrl ?? prize.imagem_url) ? 'loading' : 'loaded');
-    setFormError(pointsMessage);
-
-    if (pointsMessage) {
-      await loadData();
-      return;
-    }
-
-    setNavigationFeedback('admin-prize-list', 'Prêmio atualizado com sucesso.');
-    router.dismissTo('/(admin)/prizes');
-  }
-
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />
@@ -167,7 +151,7 @@ export default function AdminPrizeDetailScreen() {
       <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />
         <ScreenHeader title="Prêmio" onBack={() => router.back()} />
-        <EmptyState error={error ?? 'Prêmio não encontrado.'} onRetry={loadData} />
+        <EmptyState error={error?.message ?? 'Prêmio não encontrado.'} onRetry={() => refetch()} />
       </View>
     );
   }
@@ -223,7 +207,7 @@ export default function AdminPrizeDetailScreen() {
           <Button
             label="Salvar alterações"
             onPress={handleSave}
-            loading={saving}
+            loading={updatePrizeMutation.isPending}
             accessibilityLabel="Salvar alterações do prêmio"
           />
         </FormFooter>

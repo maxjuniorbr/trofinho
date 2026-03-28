@@ -48,10 +48,6 @@ supabase/.branches/
 supabase/.temp/
 *.pem
 
-# Local review / decision docs (not needed in repo)
-REVIEW_OLD.md
-REVIEW_DECISIONS.md
-
 # Supabase remote schema dump (local only)
 supabase/remote_schema_dump.sql
 

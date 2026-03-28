@@ -1,13 +1,15 @@
 import { StyleSheet, Text, View, Pressable, FlatList, RefreshControl } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback, useMemo } from 'react';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useCallback, useMemo } from 'react';
+import { useRouter } from 'expo-router';
 import { ChevronRight } from 'lucide-react-native';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { Avatar } from '@/components/ui/avatar';
-import { listAdminBalances, syncAutomaticAppreciation, type BalanceWithChild } from '@lib/balances';
+import { useAdminBalances } from '@/hooks/queries';
+import { syncAutomaticAppreciation } from '@lib/balances';
+import { captureException } from '@lib/sentry';
 import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 
@@ -16,30 +18,30 @@ export default function BalancesAdminScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(), []);
 
-  const [balances, setBalances] = useState<BalanceWithChild[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: balances = [], isLoading, isFetching, error, refetch } = useAdminBalances();
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try { await syncAutomaticAppreciation(); const { data } = await listAdminBalances(); setBalances(data); }
-    finally { setLoading(false); }
-  }, []);
-
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  const handleRefresh = useCallback(async () => {
+    try {
+      await syncAutomaticAppreciation();
+    } catch (e) {
+      captureException(e);
+    }
+    await refetch();
+  }, [refetch]);
 
   return (
     <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
       <ScreenHeader title="Saldos dos Filhos" onBack={() => router.back()} backLabel="Início" />
 
-      {loading ? (
+      {isLoading ? (
         <EmptyState loading />
       ) : (
         <FlatList
           data={balances}
           keyExtractor={(s) => s.filho_id}
           contentContainerStyle={styles.lista}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
+          refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
           ListEmptyComponent={<EmptyState empty emptyMessage={'Nenhum saldo ainda.\nAprove tarefas para creditar pontos.'} />}
           renderItem={({ item }) => (
             <Pressable

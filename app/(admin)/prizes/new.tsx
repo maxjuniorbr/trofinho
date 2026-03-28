@@ -2,36 +2,44 @@ import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { setNavigationFeedback } from '@lib/navigation-feedback';
-import { createPrize } from '@lib/prizes';
 import { useTheme } from '@/context/theme-context';
 import { spacing } from '@/constants/theme';
 import { Button } from '@/components/ui/button';
 import { FormFooter } from '@/components/ui/form-footer';
 import { PrizeFormFields } from '@/components/prizes/prize-form-fields';
 import { StickyFooterScreen } from '@/components/ui/sticky-footer-screen';
+import { useCreatePrize } from '@/hooks/queries';
 
 export default function NewPrizeScreen() {
   const router = useRouter();
   const { colors } = useTheme();
 
+  const createPrizeMutation = useCreatePrize();
+
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [costStr, setCostStr] = useState('');
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleCreate() {
+  const handleCreate = () => {
     setError(null);
     if (!name.trim()) return setError('Informe o nome do prêmio.');
     const cost = Number.parseInt(costStr, 10);
     if (Number.isNaN(cost) || cost <= 0) return setError('Custo em pontos deve ser um número maior que zero.');
-    setSaving(true);
-    const { error } = await createPrize({ nome: name.trim(), descricao: description.trim() || null, custo_pontos: cost });
-    setSaving(false);
-    if (error) return setError(error);
-    setNavigationFeedback('admin-prize-list', 'Prêmio criado com sucesso.');
-    router.dismissTo('/(admin)/prizes');
-  }
+
+    createPrizeMutation.mutate(
+      { nome: name.trim(), descricao: description.trim() || null, custo_pontos: cost },
+      {
+        onSuccess: () => {
+          setNavigationFeedback('admin-prize-list', 'Prêmio criado com sucesso.');
+          router.dismissTo('/(admin)/prizes');
+        },
+        onError: (err) => {
+          setError(err.message);
+        },
+      },
+    );
+  };
 
   return (
     <StickyFooterScreen
@@ -45,7 +53,7 @@ export default function NewPrizeScreen() {
           <Button
             label="Criar prêmio"
             onPress={handleCreate}
-            loading={saving}
+            loading={createPrizeMutation.isPending}
             accessibilityLabel="Criar prêmio"
           />
         </FormFooter>
