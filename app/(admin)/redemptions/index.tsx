@@ -1,4 +1,5 @@
 import {
+  Alert,
   StyleSheet,
   Text,
   View,
@@ -72,10 +73,8 @@ export default function AdminRedemptionsScreen() {
     setModal({ visible: true, type: 'cancel', redemptionId, childName, prizeName, points });
   };
 
-  const handleModalConfirm = () => {
-    const { redemptionId, type } = modal;
+  const executeModalAction = (redemptionId: string, type: 'confirm' | 'cancel') => {
     setProcessingId(redemptionId);
-    setModal(MODAL_INITIAL);
 
     const mutation = type === 'confirm' ? confirmMutation : cancelMutation;
     mutation.mutate(redemptionId, {
@@ -87,6 +86,29 @@ export default function AdminRedemptionsScreen() {
         setActionError(err.message);
       },
     });
+  };
+
+  const handleModalConfirm = () => {
+    const { redemptionId, type, points } = modal;
+    setModal(MODAL_INITIAL);
+
+    if (type === 'cancel') {
+      Alert.alert(
+        'Cancelar resgate?',
+        `Os ${points} pts debitados serão estornados.`,
+        [
+          { text: 'Voltar', style: 'cancel' },
+          {
+            text: 'Cancelar resgate',
+            style: 'destructive',
+            onPress: () => executeModalAction(redemptionId, type),
+          },
+        ],
+      );
+      return;
+    }
+
+    executeModalAction(redemptionId, type);
   };
 
   const pending = redemptions.filter((r) => r.status === 'pendente');

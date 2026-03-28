@@ -25,7 +25,7 @@ import { PrizeFormFields } from '@/components/prizes/prize-form-fields';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, spacing, typography } from '@/constants/theme';
-import { usePrizeDetail, useUpdatePrize } from '@/hooks/queries';
+import { usePrizeDetail, useUpdatePrize, useDeactivatePrize, useReactivatePrize } from '@/hooks/queries';
 
 export default function AdminPrizeDetailScreen() {
   const router = useRouter();
@@ -35,6 +35,8 @@ export default function AdminPrizeDetailScreen() {
 
   const { data: prize, isLoading, error, refetch } = usePrizeDetail(id);
   const updatePrizeMutation = useUpdatePrize();
+  const deactivateMutation = useDeactivatePrize();
+  const reactivateMutation = useReactivatePrize();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -46,6 +48,7 @@ export default function AdminPrizeDetailScreen() {
   const [pickingImage, setPickingImage] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formInitialized, setFormInitialized] = useState(false);
+  const [pendingWarning, setPendingWarning] = useState<string | null>(null);
 
   useEffect(() => {
     if (prize && !formInitialized) {
@@ -222,6 +225,13 @@ export default function AdminPrizeDetailScreen() {
         />
       )}
 
+      {pendingWarning ? (
+        <InlineMessage
+          message={pendingWarning}
+          variant="warning"
+        />
+      ) : null}
+
       <View style={styles.mediaCard}>
         {mediaPreviewContent}
 
@@ -245,7 +255,15 @@ export default function AdminPrizeDetailScreen() {
           value={isActive}
           onValueChange={(newValue) => {
             if (newValue) {
-              setIsActive(true);
+              reactivateMutation.mutate(id!, {
+                onSuccess: () => {
+                  setIsActive(true);
+                  setPendingWarning(null);
+                },
+                onError: (err) => {
+                  setFormError(err.message);
+                },
+              });
               return;
             }
             Alert.alert(
@@ -253,10 +271,25 @@ export default function AdminPrizeDetailScreen() {
               'O prêmio não aparecerá para os filhos enquanto estiver inativo.',
               [
                 { text: 'Cancelar', style: 'cancel' },
-                { text: 'Desativar', style: 'destructive', onPress: () => setIsActive(false) },
+                {
+                  text: 'Desativar',
+                  style: 'destructive',
+                  onPress: () => {
+                    deactivateMutation.mutate(id!, {
+                      onSuccess: (result) => {
+                        setIsActive(false);
+                        setPendingWarning(result.warning ?? null);
+                      },
+                      onError: (err) => {
+                        setFormError(err.message);
+                      },
+                    });
+                  },
+                },
               ],
             );
           }}
+          disabled={deactivateMutation.isPending || reactivateMutation.isPending}
           trackColor={{ false: colors.border.default, true: colors.accent.admin }}
           thumbColor={colors.text.inverse}
           accessibilityLabel="Alternar disponibilidade do prêmio"

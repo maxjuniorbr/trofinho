@@ -749,5 +749,50 @@ describe('tasks', () => {
         { numRuns: 100 },
       );
     });
+
+    // Feature: ux-polish-fase4b, Property 9: Evidence file path format with UUID
+    // **Validates: Requirements 4.1, 4.2, 4.3**
+    const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const extensionArb = fc.constantFrom('jpg', 'jpeg', 'png', 'webp', 'heic', 'heif');
+    const idArb = fc.stringMatching(/^[a-z0-9-]{1,36}$/);
+
+    it('P9: evidence path matches {familia_id}/{filho_id}/evidencia_{uuid}.{ext} with valid UUID', async () => {
+      await fc.assert(
+        fc.asyncProperty(idArb, idArb, extensionArb, async (familiaId, filhoId, ext) => {
+          // Reset mocks for each iteration
+          storageBucketMock.upload.mockReset();
+          supabaseMock.auth.getUser.mockReset();
+          supabaseMock.from.mockReset();
+          supabaseMock.storage.from.mockReturnValue(storageBucketMock);
+          fileArrayBufferMock.mockResolvedValue(new ArrayBuffer(8));
+          resizeImageMock.mockImplementation((uri: string) => Promise.resolve(uri));
+
+          supabaseMock.auth.getUser.mockResolvedValue({
+            data: { user: { id: 'user-1' } },
+          });
+          supabaseMock.from
+            .mockReturnValueOnce(createSingleQuery({ data: { familia_id: familiaId }, error: null }))
+            .mockReturnValueOnce(createSingleQuery({ data: { id: filhoId }, error: null }))
+            .mockReturnValueOnce(createUpdateQuery({ error: null }, 2));
+          storageBucketMock.upload.mockResolvedValue({
+            data: { path: `${familiaId}/${filhoId}/evidencia_test.${ext}` },
+            error: null,
+          });
+
+          await completeAssignment('assignment-1', `/test/photo.${ext}`);
+
+          const uploadPath: string = storageBucketMock.upload.mock.calls[0][0];
+          const expectedPrefix = `${familiaId}/${filhoId}/evidencia_`;
+          const expectedSuffix = `.${ext}`;
+
+          expect(uploadPath.startsWith(expectedPrefix)).toBe(true);
+          expect(uploadPath.endsWith(expectedSuffix)).toBe(true);
+
+          const uuidPart = uploadPath.slice(expectedPrefix.length, -expectedSuffix.length);
+          expect(uuidPart).toMatch(UUID_V4_RE);
+        }),
+        { numRuns: 100 },
+      );
+    });
   });
 });
