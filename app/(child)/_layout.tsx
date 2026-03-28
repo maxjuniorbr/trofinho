@@ -1,6 +1,8 @@
 import { Stack } from 'expo-router';
 import { useTheme } from '@/context/theme-context';
 
+export { ErrorBoundary } from '@/components/ui/route-error-fallback';
+
 export default function ChildLayout() {
   const { colors } = useTheme();
   return (

@@ -52,6 +52,7 @@ export default function NewPrizeScreen() {
         <FormFooter message={error} compact includeSafeBottom={false}>
           <Button
             label="Criar prêmio"
+            loadingLabel="Criando…"
             onPress={handleCreate}
             loading={createPrizeMutation.isPending}
             accessibilityLabel="Criar prêmio"

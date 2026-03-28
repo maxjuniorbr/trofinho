@@ -141,6 +141,7 @@ export default function EditTaskScreen() {
         <FormFooter message={formError} compact includeSafeBottom={false}>
           <Button
             label="Salvar alterações"
+            loadingLabel="Salvando…"
             onPress={handleSave}
             loading={updateTaskMutation.isPending}
             accessibilityLabel="Salvar alterações da tarefa"
