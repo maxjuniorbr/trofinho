@@ -5,7 +5,7 @@
     "allowJs": true,
     "esModuleInterop": true,
     "jsx": "react-native",
-    "lib": ["DOM", "ESNext"],
+    "lib": ["ESNext"],
     "module": "preserve",
     "moduleDetection": "force",
     "moduleResolution": "bundler",
