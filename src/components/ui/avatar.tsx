@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Image, StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { gradients, typography } from '@/constants/theme';
 import { useTheme } from '@/context/theme-context';
@@ -21,8 +22,10 @@ export function Avatar({ name, size = 44, solidColor, imageUri }: ReadonlyAvatar
   if (imageUri && !imgError) {
     return (
       <Image
-        source={{ uri: imageUri }}
+        source={imageUri}
         style={[styles.base, styles.image, { width: size, height: size, borderRadius }]}
+        contentFit="cover"
+        transition={200}
         accessibilityLabel={name}
         onError={() => setImgError(true)}
       />
@@ -67,9 +70,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  image: {
-    resizeMode: 'cover',
-  },
+  image: {},
   initial: {
     fontFamily: typography.family.black,
     fontWeight: typography.weight.black,

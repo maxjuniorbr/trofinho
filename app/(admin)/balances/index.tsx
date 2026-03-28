@@ -7,7 +7,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { Avatar } from '@/components/ui/avatar';
-import { listAdminBalances, type BalanceWithChild } from '@lib/balances';
+import { listAdminBalances, syncAutomaticAppreciation, type BalanceWithChild } from '@lib/balances';
 import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 
@@ -21,7 +21,7 @@ export default function BalancesAdminScreen() {
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    try { const { data } = await listAdminBalances(); setBalances(data); }
+    try { await syncAutomaticAppreciation(); const { data } = await listAdminBalances(); setBalances(data); }
     finally { setLoading(false); }
   }, []);
 

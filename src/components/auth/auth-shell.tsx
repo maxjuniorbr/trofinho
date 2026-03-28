@@ -2,12 +2,12 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import {
   Animated,
-  Image,
   KeyboardAvoidingView,
   ScrollView,
   StyleSheet,
   Text,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
@@ -93,8 +93,8 @@ export function AuthShell({
           <Image
             source={mascotImage}
             style={styles.mascot}
+            contentFit="contain"
             accessibilityLabel="Mascote do Trofinho"
-            accessibilityRole="image"
           />
         </Animated.View>
 
@@ -161,7 +161,6 @@ function makeStyles(variant: AuthShellVariant) {
     mascot: {
       width: isHero ? 140 : 100,
       height: isHero ? 140 : 100,
-      resizeMode: 'contain',
     },
     headline: {
       alignItems: 'center',

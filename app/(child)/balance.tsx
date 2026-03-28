@@ -21,6 +21,7 @@ import {
 import {
   getBalance,
   listTransactions,
+  syncAutomaticAppreciation,
   transferToPiggyBank,
   getAppreciationPeriodLabel,
   getTransactionTypeLabel,
@@ -61,6 +62,7 @@ export default function ChildBalanceScreen() {
       const id = await getMyChildId();
       setChildId(id);
       if (!id) { setBalance(null); setTransactions([]); return; }
+      await syncAutomaticAppreciation(id);
       const [{ data: s }, { data: m }] = await Promise.all([
         getBalance(id),
         listTransactions(id),

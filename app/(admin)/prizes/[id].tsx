@@ -1,11 +1,11 @@
 import {
   ActivityIndicator,
-  Image,
   StyleSheet,
   Switch,
   Text,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
@@ -192,12 +192,13 @@ export default function AdminPrizeDetailScreen() {
       mediaPreviewContent = (
         <View style={styles.mediaWrapper}>
           <Image
-            source={{ uri: imagePreview }}
+            source={imagePreview}
             style={styles.mediaPreview}
-            resizeMode="cover"
+            contentFit="cover"
+            transition={200}
             accessibilityLabel={`Imagem do prêmio ${name || prize.nome}`}
             onLoadStart={() => setImageState('loading')}
-            onLoadEnd={() => setImageState('loaded')}
+            onLoad={() => setImageState('loaded')}
             onError={() => setImageState('error')}
           />
           {imageState === 'loaded' ? null : (
