@@ -1,7 +1,8 @@
 import { StyleSheet, Text, View, Pressable, TextInput } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { useRouter } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 import { Button } from '@/components/ui/button';
 import { FormFooter } from '@/components/ui/form-footer';
 import { registerChild } from '@lib/children';
@@ -22,7 +23,20 @@ export default function NewChildScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shouldShowError = Boolean(error);
+
+  const handleCopyPassword = useCallback(async () => {
+    try {
+      await Clipboard.setStringAsync(tempPassword);
+      setCopied(true);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard not available — keep button in default state
+    }
+  }, [tempPassword]);
 
   async function handleRegister() {
     setError(null);
@@ -50,6 +64,16 @@ export default function NewChildScreen() {
           {'\n'}
           <Text style={{ color: colors.accent.admin, fontFamily: typography.family.bold }}>Senha: {'•'.repeat(tempPassword.length)}</Text>
         </Text>
+        <Pressable
+          style={[styles.botaoCopiar, { borderColor: colors.accent.admin }]}
+          onPress={handleCopyPassword}
+          accessibilityRole="button"
+          accessibilityLabel="Copiar senha para área de transferência"
+        >
+          <Text style={[styles.botaoCopiarTexto, { color: colors.accent.admin }]}>
+            {copied ? 'Copiada!' : 'Copiar senha'}
+          </Text>
+        </Pressable>
         <Pressable style={[styles.botaoConcluir, { backgroundColor: colors.accent.adminDim }]} onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Concluir cadastro">
           <Text style={[styles.botaoConcluirTexto, { color: colors.text.inverse }]}>Concluir</Text>
         </Pressable>
@@ -66,6 +90,7 @@ export default function NewChildScreen() {
         <FormFooter message={shouldShowError ? error : null} compact includeSafeBottom={false}>
           <Button
             label="Cadastrar filho"
+            loadingLabel="Cadastrando…"
             onPress={handleRegister}
             loading={submitting}
             accessibilityLabel="Cadastrar filho"
@@ -118,5 +143,7 @@ function makeStyles() {
     sucessoTexto: { fontSize: typography.size.md, textAlign: 'center', lineHeight: typography.lineHeight.md, marginBottom: spacing['8'] },
     botaoConcluir: { borderRadius: radii.md, paddingVertical: spacing['3'], paddingHorizontal: spacing['8'], minHeight: 48, justifyContent: 'center' },
     botaoConcluirTexto: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
+    botaoCopiar: { borderRadius: radii.md, borderWidth: 1, paddingVertical: spacing['2'], paddingHorizontal: spacing['6'], minHeight: 44, justifyContent: 'center', alignItems: 'center', marginBottom: spacing['3'] },
+    botaoCopiarTexto: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
   });
 }
