@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as fc from 'fast-check';
 
 const resizeImageMock = vi.hoisted(() => vi.fn((uri: string) => Promise.resolve(uri)));
 
@@ -58,6 +59,7 @@ vi.mock('./supabase', () => ({
 import {
   approveAssignment,
   completeAssignment,
+  countPendingValidations,
   createTask,
   getAssignmentPoints,
   getTaskEditState,
@@ -65,7 +67,6 @@ import {
   getTaskWithAssignments,
   listAdminTasks,
   listChildAssignments,
-  listFamilyChildren,
   rejectAssignment,
   renewDailyTasks,
   sortAdminTasks,
@@ -143,7 +144,7 @@ function createAssignmentWithChild(
     tarefa_id: 'task-1',
     filho_id: 'child-1',
     status: 'pendente',
-    pontos_snapshot: null,
+    pontos_snapshot: 10,
     evidencia_url: null,
     nota_rejeicao: null,
     concluida_em: null,
@@ -263,15 +264,9 @@ describe('tasks', () => {
     expect(getAssignmentStatusColor('rejeitada', mockColors)).toBe('#DC2828');
   });
 
-  it('lists family children and admin tasks', async () => {
+  it('lists admin tasks', async () => {
     supabaseMock.from
-      .mockReturnValueOnce(createSimpleOrderQuery({ data: [{ id: 'child-1' }], error: null }))
       .mockReturnValueOnce(createOrderQuery({ data: [{ id: 'task-1' }], error: null }));
-
-    await expect(listFamilyChildren()).resolves.toEqual({
-      data: [{ id: 'child-1' }],
-      error: null,
-    });
 
     await expect(listAdminTasks()).resolves.toEqual({
       data: [{ id: 'task-1' }],
@@ -279,20 +274,32 @@ describe('tasks', () => {
     });
   });
 
-  it('surfaces list errors for family children and admin tasks', async () => {
+  it('surfaces list errors for admin tasks', async () => {
     supabaseMock.from
-      .mockReturnValueOnce(createSimpleOrderQuery({ data: null, error: { message: 'children failed' } }))
       .mockReturnValueOnce(createOrderQuery({ data: null, error: { message: 'tasks failed' } }));
-
-    await expect(listFamilyChildren()).resolves.toEqual({
-      data: [],
-      error: 'Algo deu errado. Tente novamente.',
-    });
 
     await expect(listAdminTasks()).resolves.toEqual({
       data: [],
       error: 'Algo deu errado. Tente novamente.',
     });
+  });
+
+  it('counts pending validations using a head query', async () => {
+    supabaseMock.from.mockReturnValueOnce({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ count: 3, error: null }),
+    });
+
+    await expect(countPendingValidations()).resolves.toEqual({ data: 3, error: null });
+  });
+
+  it('returns zero when counting pending validations fails', async () => {
+    supabaseMock.from.mockReturnValueOnce({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ count: null, error: { message: 'count failed' } }),
+    });
+
+    await expect(countPendingValidations()).resolves.toEqual({ data: 0, error: 'Algo deu errado. Tente novamente.' });
   });
 
   it('creates tasks, approves assignments, and renews daily tasks', async () => {
@@ -378,7 +385,6 @@ describe('tasks', () => {
 
     expect(getAssignmentPoints({
       pontos_snapshot: 15,
-      tarefas: { pontos: 30 },
     })).toBe(15);
   });
 
@@ -462,36 +468,19 @@ describe('tasks', () => {
     expect(storageBucketMock.createSignedUrl).not.toHaveBeenCalled();
   });
 
-  it('rejects assignments only for authenticated users', async () => {
-    supabaseMock.auth.getUser
-      .mockResolvedValueOnce({ data: { user: null } })
-      .mockResolvedValueOnce({ data: { user: { id: 'admin-1' } } })
-      .mockResolvedValueOnce({ data: { user: { id: 'admin-1' } } });
+  it('rejects assignments via RPC', async () => {
+    supabaseMock.rpc
+      .mockResolvedValueOnce({ error: null })
+      .mockResolvedValueOnce({ error: { message: 'Atribuição não encontrada ou não está aguardando validação' } });
 
-    const updateErrorQuery = createUpdateQuery({ error: { message: 'reject failed' } }, 2);
-    const updateSuccessQuery = createUpdateQuery({ error: null }, 2);
-
-    supabaseMock.from
-      .mockReturnValueOnce(updateErrorQuery)
-      .mockReturnValueOnce(updateSuccessQuery);
-
-    await expect(rejectAssignment('assignment-1', 'Refazer')).resolves.toEqual({
-      error: 'Usuário não autenticado',
+    await expect(rejectAssignment('assignment-1', 'Refazer')).resolves.toEqual({ error: null });
+    expect(supabaseMock.rpc).toHaveBeenCalledWith('rejeitar_atribuicao', {
+      p_atribuicao_id: 'assignment-1',
+      p_nota_rejeicao: 'Refazer',
     });
 
-    await expect(rejectAssignment('assignment-1', 'Refazer')).resolves.toEqual({
-      error: 'Algo deu errado. Tente novamente.',
-    });
-
-    await expect(rejectAssignment('assignment-1', 'Refazer')).resolves.toEqual({
-      error: null,
-    });
-
-    expect(updateSuccessQuery.update).toHaveBeenCalledWith({
-      status: 'rejeitada',
-      nota_rejeicao: 'Refazer',
-      validada_em: expect.any(String),
-      validada_por: 'admin-1',
+    await expect(rejectAssignment('assignment-2', 'Errado')).resolves.toEqual({
+      error: 'Registro não encontrado.',
     });
   });
 
@@ -579,7 +568,6 @@ describe('tasks', () => {
     expect(updateQuery.update).toHaveBeenCalledWith({
       status: 'aguardando_validacao',
       evidencia_url: null,
-      concluida_em: expect.any(String),
     });
     expect(notifyTaskCompletedMock).toHaveBeenCalledTimes(1);
   });
@@ -749,5 +737,17 @@ describe('tasks', () => {
       error: null,
     });
     expect(storageBucketMock.createSignedUrl).not.toHaveBeenCalled();
+  });
+
+  describe('property tests', () => {
+    // Feature: review-phases-1-2-implementation, Property 2: getAssignmentPoints returns pontos_snapshot directly
+    it('P2: for any assignment with numeric pontos_snapshot, returns exactly pontos_snapshot', () => {
+      fc.assert(
+        fc.property(fc.integer({ min: 0, max: 100000 }), (pontos) => {
+          return getAssignmentPoints({ pontos_snapshot: pontos }) === pontos;
+        }),
+        { numRuns: 100 },
+      );
+    });
   });
 });
