@@ -10,8 +10,6 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Pencil, Plus, Trophy } from 'lucide-react-native';
-import { listPrizes, type Prize } from '@lib/prizes';
-import { captureException } from '@lib/sentry';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -24,51 +22,29 @@ import {
   consumeNavigationFeedback,
   type NavigationFeedback,
 } from '@lib/navigation-feedback';
+import { usePrizes } from '@/hooks/queries';
 
 export default function AdminPrizesScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [prizes, setPrizes] = useState<Prize[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: prizes = [], isLoading, error, refetch } = usePrizes();
   const [successFeedback, setSuccessFeedback] = useState<NavigationFeedback | null>(null);
   const visibleSuccessMessage = useTransientMessage(
     successFeedback?.message ?? null,
     { resetKey: successFeedback?.id },
   );
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data, error } = await listPrizes();
-      if (error) setError(error);
-      else setPrizes(data);
-    } catch (e) {
-      captureException(e);
-      setError('Não foi possível carregar os prêmios agora.');
-      setPrizes([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useFocusEffect(useCallback(() => {
     const feedback = consumeNavigationFeedback('admin-prize-list');
-
-    if (feedback) {
-      setSuccessFeedback(feedback);
-    }
-
-    loadData();
-  }, [loadData]));
+    if (feedback) setSuccessFeedback(feedback);
+  }, []));
 
   const active = prizes.filter((p) => p.ativo);
   const inactive = prizes.filter((p) => !p.ativo);
   const hasError = Boolean(error);
-  const shouldShowEmptyState = loading || hasError || prizes.length === 0;
+  const shouldShowEmptyState = isLoading || hasError || prizes.length === 0;
   const emptyStateMessage = 'Nenhum prêmio cadastrado.\nToque em "+" para criar o primeiro prêmio.';
   const inactivePlural = inactive.length === 1 ? '' : 's';
   const inactiveSummary = inactive.length > 0
@@ -99,18 +75,18 @@ export default function AdminPrizesScreen() {
 
       {shouldShowEmptyState ? (
         <EmptyState
-          loading={loading}
-          error={error}
-          empty={!loading && !error}
+          loading={isLoading}
+          error={error?.message ?? null}
+          empty={!isLoading && !error}
           emptyMessage={emptyStateMessage}
-          onRetry={loadData}
+          onRetry={() => refetch()}
         />
       ) : (
         <FlatList
           data={prizes}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.brand.vivid} />}
+          refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} tintColor={colors.brand.vivid} />}
           ListHeaderComponent={
             <Text style={styles.resumo}>
               {active.length} ativo{active.length === 1 ? '' : 's'}

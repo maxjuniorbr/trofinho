@@ -6,8 +6,8 @@ import {
   View,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback } from 'react';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useState } from 'react';
+import { useRouter } from 'expo-router';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { LogoutButton } from '@/components/ui/logout-button';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
@@ -20,72 +20,48 @@ import {
 } from '@/components/profile/notification-card';
 import { useTheme } from '@/context/theme-context';
 import { spacing } from '@/constants/theme';
-import { getCurrentAuthUser, getProfile, signOut, type UserProfile } from '@lib/auth';
+import { signOut } from '@lib/auth';
 import { captureException } from '@lib/sentry';
 import {
-  DEFAULT_NOTIFICATION_PREFS,
-  getNotificationPrefs,
   setNotificationPrefs,
   type NotificationPrefs,
 } from '@lib/notifications';
+import { useProfile, useCurrentAuthUser, useNotificationPrefs } from '@/hooks/queries';
+import { combineQueryStates } from '@/hooks/queries';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { colors } = useTheme();
 
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [email, setEmail] = useState('');
-  const [avatarUri, setAvatarUri] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notificationPreferences, setNotificationPreferencesState] = useState<NotificationPrefs>(
-    DEFAULT_NOTIFICATION_PREFS,
-  );
+  const profileQuery = useProfile();
+  const authUserQuery = useCurrentAuthUser();
+  const notificationPrefsQuery = useNotificationPrefs();
+  const { isLoading } = combineQueryStates(profileQuery, authUserQuery, notificationPrefsQuery);
+
+  const profile = profileQuery.data ?? null;
+  const authUser = authUserQuery.data ?? null;
+  const email = authUser?.email ?? '';
+  const avatarUri = authUser?.avatarUrl ?? null;
+
+  const [localAvatarUri, setLocalAvatarUri] = useState<string | null>(null);
+  const [localName, setLocalName] = useState<string | null>(null);
+  const [notificationPreferences, setNotificationPreferencesState] = useState<NotificationPrefs | null>(null);
   const [notificationPreferencesError, setNotificationPreferencesError] = useState<string | null>(null);
   const [savingNotificationPreferences, setSavingNotificationPreferences] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
-
-      async function load() {
-        setLoading(true);
-        try {
-          const [p, authUser, notificationPrefs] = await Promise.all([
-            getProfile(),
-            getCurrentAuthUser(),
-            getNotificationPrefs(),
-          ]);
-
-          if (!active) return;
-
-          if (!authUser) {
-            router.replace('/(auth)/login');
-            return;
-          }
-
-          setProfile(p);
-          setEmail(authUser.email);
-          setAvatarUri(authUser.avatarUrl);
-          setNotificationPreferencesState(notificationPrefs);
-          setNotificationPreferencesError(null);
-        } finally {
-          if (active) setLoading(false);
-        }
-      }
-
-      load();
-      return () => { active = false; };
-    }, [router]),
-  );
+  // Use query data as base, local overrides for optimistic updates
+  const effectivePrefs = notificationPreferences ?? notificationPrefsQuery.data ?? null;
+  const effectiveAvatarUri = localAvatarUri ?? avatarUri;
+  const effectiveName = localName ?? profile?.nome ?? 'A';
 
   const handleSignOut = async () => {
     setLoggingOut(true);
     try { await signOut(); } catch (e) { captureException(e); setLoggingOut(false); }
   };
 
-  async function handleNotificationPreferencesChange(next: NotificationPrefs) {
-    const previous = notificationPreferences;
+  const handleNotificationPreferencesChange = async (next: NotificationPrefs) => {
+    const previous = effectivePrefs;
 
     setNotificationPreferencesState(next);
     setNotificationPreferencesError(null);
@@ -100,15 +76,20 @@ export default function ProfileScreen() {
     } finally {
       setSavingNotificationPreferences(false);
     }
-  }
+  };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={[styles.loading, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />
         <ActivityIndicator size="large" color={colors.brand.vivid} />
       </View>
     );
+  }
+
+  if (!authUser) {
+    router.replace('/(auth)/login');
+    return null;
   }
 
   return (
@@ -125,27 +106,29 @@ export default function ProfileScreen() {
           showsVerticalScrollIndicator={false}
         >
           <AvatarSection
-            name={profile?.nome ?? 'A'}
-            avatarUri={avatarUri}
-            onAvatarChange={setAvatarUri}
+            name={effectiveName}
+            avatarUri={effectiveAvatarUri}
+            onAvatarChange={setLocalAvatarUri}
           />
 
           <PersonalDataCard
             profile={profile}
             email={email}
-            onNameUpdated={(name) => setProfile((prev) => prev ? { ...prev, nome: name } : null)}
+            onNameUpdated={(name) => setLocalName(name)}
           />
 
           <PasswordCard />
 
           <ThemeCard />
 
-          <NotificationCard
-            preferences={notificationPreferences}
-            saving={savingNotificationPreferences}
-            error={notificationPreferencesError}
-            onPreferencesChange={handleNotificationPreferencesChange}
-          />
+          {effectivePrefs ? (
+            <NotificationCard
+              preferences={effectivePrefs}
+              saving={savingNotificationPreferences}
+              error={notificationPreferencesError}
+              onPreferencesChange={handleNotificationPreferencesChange}
+            />
+          ) : null}
 
           <LogoutButton onPress={handleSignOut} loading={loggingOut} />
         </ScrollView>

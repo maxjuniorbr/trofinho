@@ -50,6 +50,7 @@ function createSingleQuery(result: QueryResult) {
   return {
     eq: vi.fn().mockReturnThis(),
     insert: vi.fn().mockReturnThis(),
+    returns: vi.fn().mockReturnThis(),
     select: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue(result),
   };
@@ -58,8 +59,9 @@ function createSingleQuery(result: QueryResult) {
 function createOrderQuery(result: QueryResult, callsBeforeResolve = 0) {
   const query = {
     eq: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockResolvedValue(result),
+    limit: vi.fn().mockReturnThis(),
     order: vi.fn(),
+    returns: vi.fn().mockResolvedValue(result),
     select: vi.fn().mockReturnThis(),
   };
 
