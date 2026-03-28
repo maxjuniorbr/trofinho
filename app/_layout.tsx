@@ -19,6 +19,7 @@ import {
   subscribeToNotificationNavigation,
 } from '@lib/notifications';
 import { ThemeProvider, useTheme } from '@/context/theme-context';
+import { QueryProvider } from '@/context/query-client';
 import {
   initSentry,
   registerNavigationRef,
@@ -67,9 +68,11 @@ function RootLayout() {
   }, [ready, fontsLoaded]);
 
   return (
-    <ThemeProvider>
-      <RootNavigator ready={ready} fontsLoaded={fontsLoaded} profile={profile} />
-    </ThemeProvider>
+    <QueryProvider>
+      <ThemeProvider>
+        <RootNavigator ready={ready} fontsLoaded={fontsLoaded} profile={profile} />
+      </ThemeProvider>
+    </QueryProvider>
   );
 }
 

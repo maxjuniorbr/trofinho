@@ -8,7 +8,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { Avatar } from '@/components/ui/avatar';
 import { listChildren } from '@lib/children';
-import { listAdminBalances, type BalanceWithChild } from '@lib/balances';
+import { listAdminBalances, syncAutomaticAppreciation, type BalanceWithChild } from '@lib/balances';
 import { captureException } from '@lib/sentry';
 import type { Child } from '@lib/tasks';
 import { useTheme } from '@/context/theme-context';
@@ -27,6 +27,7 @@ export default function AdminChildrenScreen() {
   const loadData = useCallback(async () => {
     setLoading(true); setError(null);
     try {
+      await syncAutomaticAppreciation();
       const [{ data: childrenData, error: childrenError }, { data: balancesData, error: balancesError }] =
         await Promise.all([listChildren(), listAdminBalances()]);
       if (childrenError) {
