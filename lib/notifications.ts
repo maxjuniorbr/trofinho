@@ -395,18 +395,18 @@ export async function subscribeToNotificationNavigation(
 export async function notifyTaskCompleted(): Promise<void> {
   await notifyIfEnabled(
     'tarefaConcluida',
-    'Tarefa enviada',
-    'Sua tarefa foi enviada para validação do responsável.',
-    '/(child)/tasks',
+    'Tarefa concluída',
+    'Uma tarefa foi enviada para validação.',
+    '/(admin)/tasks',
   );
 }
 
 export async function notifyTaskCreated(taskTitle: string): Promise<void> {
   await notifyIfEnabled(
     'tarefasPendentes',
-    'Tarefa criada',
-    `A tarefa "${taskTitle}" foi criada e atribuída com sucesso.`,
-    '/(admin)/tasks',
+    'Nova tarefa',
+    `Uma nova tarefa foi atribuída a você: "${taskTitle}".`,
+    '/(child)/tasks',
   );
 }
 
@@ -414,7 +414,7 @@ export async function notifyRedemptionRequested(): Promise<void> {
   await notifyIfEnabled(
     'resgatesSolicitado',
     'Resgate solicitado',
-    'Seu pedido de resgate foi enviado para aprovação.',
-    '/(child)/redemptions',
+    'Um resgate foi solicitado.',
+    '/(admin)/tasks',
   );
 }
