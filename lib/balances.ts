@@ -1,4 +1,5 @@
 import { localizeRpcError } from './api-error';
+import { captureException } from '@lib/sentry';
 import { supabase } from './supabase';
 
 export type TransactionType =
@@ -6,7 +7,9 @@ export type TransactionType =
   | 'debito'
   | 'transferencia_cofrinho'
   | 'valorizacao'
-  | 'penalizacao';
+  | 'penalizacao'
+  | 'resgate'
+  | 'estorno_resgate';
 
 export type AppreciationPeriod = 'diario' | 'semanal' | 'mensal';
 
@@ -42,12 +45,14 @@ export function getTransactionTypeLabel(type: TransactionType): string {
     transferencia_cofrinho: 'Para cofrinho',
     valorizacao:            'Valorização',
     penalizacao:            'Penalização',
+    resgate:                'Resgate de prêmio',
+    estorno_resgate:        'Estorno de resgate',
   };
   return map[type] ?? type;
 }
 
 export function isCredit(type: TransactionType): boolean {
-  return type === 'credito' || type === 'valorizacao';
+  return type === 'credito' || type === 'valorizacao' || type === 'estorno_resgate';
 }
 
 export function getAppreciationPeriodLabel(period: AppreciationPeriod): string {
@@ -60,8 +65,6 @@ export function getAppreciationPeriodLabel(period: AppreciationPeriod): string {
 }
 
 export async function getBalance(childId?: string): Promise<{ data: Balance | null; error: string | null }> {
-  await syncAutomaticAppreciation(childId);
-
   let query = supabase
     .from('saldos')
     .select('*');
@@ -81,8 +84,6 @@ export async function getBalance(childId?: string): Promise<{ data: Balance | nu
 }
 
 export async function listAdminBalances(): Promise<{ data: BalanceWithChild[]; error: string | null }> {
-  await syncAutomaticAppreciation();
-
   const { data, error } = await supabase
     .from('saldos')
     .select('*, filhos(nome)')
@@ -97,8 +98,6 @@ export async function listTransactions(
   childId: string,
   limit = 30
 ): Promise<{ data: Transaction[]; error: string | null }> {
-  await syncAutomaticAppreciation(childId);
-
   const { data, error } = await supabase
     .from('movimentacoes')
     .select('*')
@@ -150,13 +149,14 @@ export async function configureAppreciation(
   return { error: null };
 }
 
-async function syncAutomaticAppreciation(childId?: string): Promise<void> {
+export async function syncAutomaticAppreciation(childId?: string): Promise<void> {
   try {
     const args = childId ? { p_filho_id: childId } : undefined;
     args
       ? await supabase.rpc('sincronizar_valorizacoes_automaticas', args)
       : await supabase.rpc('sincronizar_valorizacoes_automaticas');
-  } catch {
+  } catch (error) {
+    captureException(error);
     // Best-effort: sync failure must not block balance reads
   }
 }

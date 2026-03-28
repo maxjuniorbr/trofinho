@@ -1,4 +1,4 @@
-import { localizeSupabaseError } from './api-error';
+import { localizeRpcError, localizeSupabaseError } from './api-error';
 import { uploadImageToPublicBucket } from './storage';
 import { supabase } from './supabase';
 
@@ -56,39 +56,36 @@ export async function getCurrentAuthUser(): Promise<{
 }
 
 export async function signOut(): Promise<void> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from('push_tokens').delete().eq('user_id', user.id);
+    }
+  } catch {
+    // Best-effort cleanup — do not block sign-out
+  }
   await supabase.auth.signOut({ scope: 'local' });
 }
 
 export async function getProfile(): Promise<UserProfile | null> {
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-
-  if (authError || !authData.user) return null;
-
-  const user = authData.user;
-
-  const { data, error } = await supabase
-    .from('usuarios')
-    .select('id, familia_id, papel, nome')
-    .eq('id', user.id)
-    .maybeSingle();
+  const { data, error } = await supabase.rpc('obter_meu_perfil');
 
   if (error || !data) return null;
 
-  let avatarUrl = (user.user_metadata?.avatar_url as string | undefined) ?? null;
-
-  if (data.papel === 'filho' && !avatarUrl) {
-    const { data: childData } = await supabase
-      .from('filhos')
-      .select('avatar_url')
-      .eq('usuario_id', user.id)
-      .maybeSingle();
-
-    avatarUrl = (childData as { avatar_url: string | null } | null)?.avatar_url ?? null;
-  }
+  const profile = data as unknown as {
+    id: string;
+    familia_id: string;
+    papel: 'admin' | 'filho';
+    nome: string;
+    avatarUrl: string | null;
+  };
 
   return {
-    ...(data as UserProfile),
-    avatarUrl,
+    id: profile.id,
+    familia_id: profile.familia_id,
+    papel: profile.papel,
+    nome: profile.nome,
+    avatarUrl: profile.avatarUrl ?? null,
   };
 }
 
@@ -102,7 +99,7 @@ export async function createFamily(
   });
 
   if (error) {
-    return { familiaId: null, error: { message: translateRpcError(error.message) } };
+    return { familiaId: null, error: { message: localizeRpcError(error.message) } };
   }
 
   return { familiaId: data as string, error: null };
@@ -170,10 +167,4 @@ export async function updateUserAvatar(
   }
 
   return { url: uploadResult.publicUrl, error: null };
-}
-
-function translateRpcError(msg: string): string {
-  if (msg.includes('já pertence a uma família')) return 'Você já tem uma família cadastrada.';
-  if (msg.includes('não autenticado')) return 'Sessão expirada. Faça login novamente.';
-  return 'Algo deu errado. Tente novamente.';
 }
