@@ -9,21 +9,26 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback, useMemo } from 'react';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'expo-router';
 import {
   ClipboardList,
   Gift,
   ShoppingBag,
   Wallet,
 } from 'lucide-react-native';
-import { signOut, getProfile, type UserProfile } from '@lib/auth';
-import { getFamily, type Family } from '@lib/family';
-import { listChildAssignments } from '@lib/tasks';
-import { getBalance, syncAutomaticAppreciation } from '@lib/balances';
+import { signOut } from '@lib/auth';
+import { syncAutomaticAppreciation } from '@lib/balances';
 import { getGreeting } from '@lib/utils';
 import { isNotificationPermissionDenied } from '@lib/notifications';
 import { captureException } from '@lib/sentry';
+import {
+  useProfile,
+  useFamily,
+  useChildAssignments,
+  useBalance,
+  combineQueryStates,
+} from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { PointsDisplay } from '@/components/ui/points-display';
@@ -46,77 +51,53 @@ export default function FilhoHomeScreen() {
   const { colors } = useTheme();
   const styles  = useMemo(() => makeStyles(), []);
 
-  const [profile,      setProfile]      = useState<UserProfile | null>(null);
-  const [family,       setFamily]       = useState<Family | null>(null);
-  const [loading,      setLoading]      = useState(true);
-  const [loggingOut,   setLoggingOut]   = useState(false);
-  const [pendingCount, setPendingCount] = useState(0);
-  const [freeBalance,  setFreeBalance]  = useState(0);
-  const [piggyBank,    setPiggyBank]    = useState(0);
+  const profileQuery = useProfile();
+  const profile = profileQuery.data ?? null;
+
+  const familyQuery = useFamily(profile?.familia_id);
+  const family = familyQuery.data ?? null;
+
+  const assignmentsQuery = useChildAssignments();
+  const assignments = assignmentsQuery.data ?? [];
+
+  const balanceQuery = useBalance();
+  const balanceData = balanceQuery.data ?? null;
+
+  const { isLoading, error, refetchAll } = combineQueryStates(
+    profileQuery,
+    familyQuery,
+    assignmentsQuery,
+    balanceQuery,
+  );
+
+  const pendingCount = useMemo(
+    () => assignments.filter((a) => a.status === 'pendente').length,
+    [assignments],
+  );
+
+  const freeBalance = balanceData?.saldo_livre ?? 0;
+  const piggyBank = balanceData?.cofrinho ?? 0;
+
+  const [loggingOut, setLoggingOut] = useState(false);
   const [showNotificationBanner, setShowNotificationBanner] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const hasPending = pendingCount > 0;
   const pendingTaskLabel = pendingCount === 1 ? 'tarefa pendente' : 'tarefas pendentes';
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      await syncAutomaticAppreciation();
-      const [p, { data: atribuicoes }, { data: s }, notificationPermissionDenied] = await Promise.all([
-        getProfile(),
-        listChildAssignments(),
-        getBalance(),
-        isNotificationPermissionDenied(),
-      ]);
-
-      setProfile(p);
-      setPendingCount(atribuicoes.filter((a) => a.status === 'pendente').length);
-      setFreeBalance(s?.saldo_livre ?? 0);
-      setPiggyBank(s?.cofrinho ?? 0);
-      setShowNotificationBanner(notificationPermissionDenied);
-
-      if (p?.familia_id) {
-        const fam = await getFamily(p.familia_id);
-        setFamily(fam);
-      } else {
-        setFamily(null);
-      }
-    } catch (e) {
-      captureException(e);
-      setFamily(null);
-      setPendingCount(0);
-      setFreeBalance(0);
-      setPiggyBank(0);
-      setShowNotificationBanner(false);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    isNotificationPermissionDenied()
+      .then(setShowNotificationBanner)
+      .catch(() => setShowNotificationBanner(false));
   }, []);
 
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
       await syncAutomaticAppreciation();
-      const [p, { data: atribuicoes }, { data: s }, notificationPermissionDenied] = await Promise.all([
-        getProfile(),
-        listChildAssignments(),
-        getBalance(),
-        isNotificationPermissionDenied(),
-      ]);
-
-      setProfile(p);
-      setPendingCount(atribuicoes.filter((a) => a.status === 'pendente').length);
-      setFreeBalance(s?.saldo_livre ?? 0);
-      setPiggyBank(s?.cofrinho ?? 0);
-      setShowNotificationBanner(notificationPermissionDenied);
-
-      if (p?.familia_id) {
-        const fam = await getFamily(p.familia_id);
-        setFamily(fam);
-      } else {
-        setFamily(null);
-      }
+      await refetchAll();
+      const denied = await isNotificationPermissionDenied();
+      setShowNotificationBanner(denied);
     } catch (e) {
       captureException(e);
     } finally {
@@ -124,17 +105,19 @@ export default function FilhoHomeScreen() {
     }
   };
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
-
   const handleSignOut = async () => { setLoggingOut(true); await signOut(); };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={[styles.loading, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />
         <ActivityIndicator size="large" color={colors.accent.filho} />
       </View>
     );
+  }
+
+  if (error) {
+    captureException(error);
   }
 
   return (

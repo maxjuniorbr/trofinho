@@ -71,10 +71,11 @@ export async function listChildren(): Promise<{
   const { data, error } = await supabase
     .from('filhos')
     .select('id, nome, usuario_id, avatar_url')
-    .order('nome');
+    .order('nome')
+    .returns<Child[]>();
 
   if (error) return { data: [], error: localizeRpcError(error.message) };
-  return { data: (data ?? []) as Child[], error: null };
+  return { data: data ?? [], error: null };
 }
 
 export async function getChild(
@@ -85,8 +86,8 @@ export async function getChild(
   });
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
-  const child = Array.isArray(data) ? data[0] : null;
-  return { data: (child ?? null) as AdminChildProfile | null, error: null };
+  const child: AdminChildProfile | null = Array.isArray(data) ? data[0] ?? null : null;
+  return { data: child, error: null };
 }
 
 export async function getMyChildId(): Promise<string | null> {

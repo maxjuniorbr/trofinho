@@ -20,20 +20,32 @@ const storageBucketMock = vi.hoisted(() => ({
   upload: vi.fn(),
 }));
 
-const supabaseMock = vi.hoisted(() => ({
-  auth: {
-    getUser: vi.fn(),
-    signInWithPassword: vi.fn(),
-    signOut: vi.fn(),
-    signUp: vi.fn(),
-    updateUser: vi.fn(),
-  },
-  from: vi.fn(),
-  rpc: vi.fn(),
-  storage: {
+const supabaseMock = vi.hoisted(() => {
+  const createRpcResult = (result: unknown) => {
+    const promise = Promise.resolve(result);
+    return Object.assign(promise, {
+      returns: vi.fn().mockReturnValue(promise),
+    });
+  };
+
+  const rpcFn = vi.fn() as ReturnType<typeof vi.fn> & { _createResult: typeof createRpcResult };
+  rpcFn._createResult = createRpcResult;
+
+  return {
+    auth: {
+      getUser: vi.fn(),
+      signInWithPassword: vi.fn(),
+      signOut: vi.fn(),
+      signUp: vi.fn(),
+      updateUser: vi.fn(),
+    },
     from: vi.fn(),
-  },
-}));
+    rpc: rpcFn,
+    storage: {
+      from: vi.fn(),
+    },
+  };
+});
 
 vi.mock('expo-file-system', () => ({
   File: class MockFile {
@@ -151,10 +163,10 @@ describe('auth', () => {
 
   it('signs in and returns the profile with avatar metadata', async () => {
     supabaseMock.auth.signInWithPassword.mockResolvedValue({ error: null });
-    supabaseMock.rpc.mockResolvedValue({
+    supabaseMock.rpc.mockReturnValue(supabaseMock.rpc._createResult({
       data: { id: 'user-1', familia_id: 'family-1', papel: 'admin', nome: 'Max', avatarUrl: 'https://avatar' },
       error: null,
-    });
+    }));
 
     const result = await signIn('max@example.com', mockPassword);
 
@@ -231,15 +243,15 @@ describe('auth', () => {
 
   it('returns null profile when the rpc fails or returns no data', async () => {
     supabaseMock.rpc
-      .mockResolvedValueOnce({ data: null, error: { message: 'rpc error' } })
-      .mockResolvedValueOnce({ data: null, error: null });
+      .mockReturnValueOnce(supabaseMock.rpc._createResult({ data: null, error: { message: 'rpc error' } }))
+      .mockReturnValueOnce(supabaseMock.rpc._createResult({ data: null, error: null }));
 
     await expect(getProfile()).resolves.toBeNull();
     await expect(getProfile()).resolves.toBeNull();
   });
 
   it('returns the child avatar from the rpc result', async () => {
-    supabaseMock.rpc.mockResolvedValue({
+    supabaseMock.rpc.mockReturnValue(supabaseMock.rpc._createResult({
       data: {
         id: 'child-1',
         familia_id: 'family-1',
@@ -248,7 +260,7 @@ describe('auth', () => {
         avatarUrl: 'https://cdn.example.com/child-avatar.jpg',
       },
       error: null,
-    });
+    }));
 
     await expect(getProfile()).resolves.toEqual({
       id: 'child-1',
@@ -261,10 +273,10 @@ describe('auth', () => {
 
   it('creates a family and translates rpc failures', async () => {
     supabaseMock.rpc
-      .mockResolvedValueOnce({ data: 'family-1', error: null })
-      .mockResolvedValueOnce({ data: null, error: { message: 'usuário já pertence a uma família' } })
-      .mockResolvedValueOnce({ data: null, error: { message: 'usuário não autenticado' } })
-      .mockResolvedValueOnce({ data: null, error: { message: 'unexpected db error' } });
+      .mockReturnValueOnce(supabaseMock.rpc._createResult({ data: 'family-1', error: null }))
+      .mockReturnValueOnce(supabaseMock.rpc._createResult({ data: null, error: { message: 'usuário já pertence a uma família' } }))
+      .mockReturnValueOnce(supabaseMock.rpc._createResult({ data: null, error: { message: 'usuário não autenticado' } }))
+      .mockReturnValueOnce(supabaseMock.rpc._createResult({ data: null, error: { message: 'unexpected db error' } }));
 
     await expect(createFamily('Silva', 'Max')).resolves.toEqual({
       familiaId: 'family-1',

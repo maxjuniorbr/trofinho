@@ -1,14 +1,14 @@
 import { StyleSheet, Text, View, Pressable, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { Button } from '@/components/ui/button';
 import { FormFooter } from '@/components/ui/form-footer';
 import { TaskFormFields } from '@/components/tasks/task-form-fields';
 import { StickyFooterScreen } from '@/components/ui/sticky-footer-screen';
 import { setNavigationFeedback } from '@lib/navigation-feedback';
-import { createTask, type Child, type TaskFrequencia } from '@lib/tasks';
-import { listChildren } from '@lib/children';
+import { useChildrenList, useCreateTask } from '@/hooks/queries';
+import type { TaskFrequencia } from '@lib/tasks';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 
@@ -17,21 +17,17 @@ export default function NewTaskScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(), []);
 
+  const { data: children = [], isLoading: loadingChildren } = useChildrenList();
+  const createTaskMutation = useCreateTask();
+
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
   const [pontos, setPontos] = useState('');
   const [frequencia, setFrequencia] = useState<TaskFrequencia>('unica');
   const [exigeEvidencia, setExigeEvidencia] = useState(false);
-  const [children, setChildren] = useState<Child[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [loadingChildren, setLoadingChildren] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const shouldShowError = Boolean(error);
-
-  useEffect(() => {
-    listChildren().then(({ data }) => { setChildren(data); setLoadingChildren(false); });
-  }, []);
 
   const toggleChild = (id: string) => {
     setSelected((prev) => {
@@ -45,22 +41,26 @@ export default function NewTaskScreen() {
     });
   };
 
-  const handleCreate = async () => {
+  const handleCreate = () => {
     setError(null);
     if (!titulo.trim()) return setError('Informe o título da tarefa.');
     const pontosNum = Number.parseInt(pontos, 10);
     if (Number.isNaN(pontosNum) || pontosNum <= 0) return setError('Pontos deve ser um número maior que zero.');
     if (selected.size === 0) return setError('Selecione ao menos um filho para atribuir a tarefa.');
-    setSubmitting(true);
-    const { error } = await createTask({
+
+    createTaskMutation.mutate({
       titulo: titulo.trim(), descricao: descricao.trim() || null, pontos: pontosNum,
       frequencia, exige_evidencia: exigeEvidencia, filhoIds: Array.from(selected),
+    }, {
+      onSuccess: () => {
+        setNavigationFeedback('admin-task-list', 'Tarefa criada com sucesso.');
+        router.dismissTo('/(admin)/tasks');
+      },
+      onError: (err) => {
+        setError(err.message);
+      },
     });
-    setSubmitting(false);
-    if (error) return setError(error);
-    setNavigationFeedback('admin-task-list', 'Tarefa criada com sucesso.');
-    router.dismissTo('/(admin)/tasks');
-  }
+  };
 
   const renderChildrenList = () => {
     if (loadingChildren) return <ActivityIndicator color={colors.accent.admin} style={{ marginVertical: spacing['3'] }} />;
@@ -81,7 +81,7 @@ export default function NewTaskScreen() {
         </Pressable>
       );
     });
-  }
+  };
 
   return (
     <StickyFooterScreen
@@ -95,7 +95,7 @@ export default function NewTaskScreen() {
           <Button
             label="Criar tarefa"
             onPress={handleCreate}
-            loading={submitting}
+            loading={createTaskMutation.isPending}
             accessibilityLabel="Criar tarefa"
           />
         </FormFooter>

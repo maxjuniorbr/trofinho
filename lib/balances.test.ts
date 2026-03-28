@@ -36,6 +36,7 @@ function createQuery(result: { data?: unknown; error?: { code?: string; message:
     eq: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
+    returns: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue(result),
   };
 }
@@ -108,7 +109,8 @@ describe('balances', () => {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockResolvedValue({ data: [{ id: 'tx-1' }], error: null }),
+      limit: vi.fn().mockReturnThis(),
+      returns: vi.fn().mockResolvedValue({ data: [{ id: 'tx-1' }], error: null }),
     };
     supabaseMock.from.mockReturnValue(query);
 
@@ -150,8 +152,9 @@ describe('balances', () => {
     };
     const listErrorQuery = {
       eq: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockResolvedValue({ data: null, error: { message: 'list failed' } }),
+      limit: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
+      returns: vi.fn().mockResolvedValue({ data: null, error: { message: 'list failed' } }),
       select: vi.fn().mockReturnThis(),
     };
 

@@ -22,7 +22,8 @@ import { getChild, getMyChildId, listChildren, registerChild } from './children'
 
 function createOrderQuery(result: { data?: unknown; error?: { message: string } | null }) {
   return {
-    order: vi.fn().mockResolvedValue(result),
+    order: vi.fn().mockReturnThis(),
+    returns: vi.fn().mockResolvedValue(result),
     select: vi.fn().mockReturnThis(),
   };
 }

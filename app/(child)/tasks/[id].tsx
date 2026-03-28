@@ -7,8 +7,8 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback, useMemo } from 'react';
-import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useState, useMemo } from 'react';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import {
   RefreshCw,
@@ -17,14 +17,10 @@ import {
   Trophy,
   CheckCircle2,
 } from 'lucide-react-native';
-import {
-  getChildAssignment,
-  completeAssignment,
-  getAssignmentPoints,
-  type ChildAssignment,
-} from '@lib/tasks';
+import { getAssignmentPoints, type ChildAssignment } from '@lib/tasks';
 import { captureException } from '@lib/sentry';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
+import { useChildAssignment, useCompleteAssignment } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -180,34 +176,14 @@ export default function ChildTaskDetailScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [assignment, setAssignment] = useState<ChildAssignment | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [completing, setCompleting] = useState(false);
+  const { data: assignment, isLoading, error, refetch } = useChildAssignment(id);
+  const completeMutation = useCompleteAssignment();
+
   const [completionError, setCompletionError] = useState<string | null>(null);
   const [imgLoading, setImgLoading] = useState(true);
   const [imgError, setImgError] = useState(false);
 
-  const loadData = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const { data, error: loadError } = await getChildAssignment(id);
-      if (loadError) setError(loadError);
-      else setAssignment(data);
-    } catch (e) {
-      captureException(e);
-      setError('Não foi possível carregar a tarefa agora.');
-      setAssignment(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
-
-  async function handleComplete() {
+  const handleComplete = async () => {
     if (!assignment) return;
     setCompletionError(null);
 
@@ -220,22 +196,17 @@ export default function ChildTaskDetailScreen() {
         return;
       }
 
-      setCompleting(true);
-      const { error: completeError } = await completeAssignment(assignment.id, imageUri);
-      if (completeError) setCompletionError(completeError);
-      else await loadData();
+      await completeMutation.mutateAsync({ assignmentId: assignment.id, imageUri });
     } catch (error_) {
       setCompletionError(
         error_ instanceof Error
           ? error_.message
           : 'Não foi possível concluir a tarefa agora.',
       );
-    } finally {
-      setCompleting(false);
     }
-  }
+  };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />
@@ -250,7 +221,7 @@ export default function ChildTaskDetailScreen() {
         <StatusBar style={colors.statusBar} />
         <ScreenHeader title="Detalhe" onBack={() => router.back()} backLabel="Tarefas" role="filho" />
         <View style={styles.center}>
-          <EmptyState error={error ?? 'Tarefa não encontrada.'} onRetry={loadData} />
+          <EmptyState error={error?.message ?? 'Tarefa não encontrada.'} onRetry={() => refetch()} />
         </View>
       </View>
     );
@@ -262,7 +233,7 @@ export default function ChildTaskDetailScreen() {
     : (
       <StatusFooter
         assignment={assignment}
-        completing={completing}
+        completing={completeMutation.isPending}
         completionError={completionError}
         onComplete={handleComplete}
         colors={colors}

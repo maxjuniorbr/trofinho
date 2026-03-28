@@ -1,9 +1,9 @@
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useMemo, useState } from 'react';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useMemo } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getChild, type AdminChildProfile } from '@lib/children';
+import { useChildDetail } from '@/hooks/queries';
 import { Avatar } from '@/components/ui/avatar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,6 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing } from '@/constants/theme';
 import { getSafeBottomPadding } from '@lib/safe-area';
-import { captureException } from '@lib/sentry';
 
 export default function AdminChildDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -20,44 +19,13 @@ export default function AdminChildDetailScreen() {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => makeStyles(), []);
 
-  const [child, setChild] = useState<AdminChildProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: child, isLoading, error, refetch } = useChildDetail(id);
 
-  const loadData = useCallback(async () => {
-    if (!id) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data, error: childError } = await getChild(id);
-
-      if (childError || !data) {
-        setError(childError ?? 'Não foi possível carregar o filho.');
-        setChild(null);
-        return;
-      }
-
-      setChild(data);
-    } catch (e) {
-      captureException(e);
-      setError('Não foi possível carregar o filho agora.');
-      setChild(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useFocusEffect(useCallback(() => {
-    loadData();
-  }, [loadData]));
-
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />
-        <ActivityIndicator size="large" color={colors.accent.admin} />
+        <EmptyState loading />
       </View>
     );
   }
@@ -68,7 +36,7 @@ export default function AdminChildDetailScreen() {
         <StatusBar style={colors.statusBar} />
         <ScreenHeader title="Dados do Filho" onBack={() => router.back()} backLabel="Filhos" />
         <View style={styles.center}>
-          <EmptyState error={error ?? 'Filho não encontrado.'} onRetry={loadData} />
+          <EmptyState error={error?.message ?? 'Filho não encontrado.'} onRetry={refetch} />
         </View>
       </View>
     );

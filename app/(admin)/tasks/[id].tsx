@@ -10,18 +10,17 @@ import {
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RefreshCw, Camera, Pencil } from 'lucide-react-native';
 import {
   getTaskEditState,
-  getTaskWithAssignments,
   type TaskDetail,
   type AssignmentWithChild,
 } from '@lib/tasks';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
 import { formatDate, toDateString } from '@lib/utils';
-import { useAssignmentActions } from '@/hooks/use-assignment-actions';
+import { useTaskDetail, useApproveAssignment, useRejectAssignment } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -29,7 +28,6 @@ import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { getSafeBottomPadding } from '@lib/safe-area';
-import { captureException } from '@lib/sentry';
 
 type DateLine = { label: string; date: string };
 
@@ -213,38 +211,66 @@ export default function TaskDetailAdminScreen() {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [task, setTask] = useState<TaskDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: task, isLoading, error, refetch } = useTaskDetail(id);
+  const approveMutation = useApproveAssignment();
+  const rejectMutation = useRejectAssignment();
+
   const [showUpdatedMessage, setShowUpdatedMessage] = useState(updated === '1');
+  const [actions, setActions] = useState<Record<string, 'rejecting' | 'processing' | null>>({});
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [imgStates, setImgStates] = useState<Record<string, 'loading' | 'loaded' | 'error'>>({});
 
-  const loadData = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const { data, error } = await getTaskWithAssignments(id);
-      if (error) setError(error);
-      else setTask(data);
-    } catch (e) {
-      captureException(e);
-      setError('Não foi possível carregar a tarefa agora.');
-      setTask(null);
-    } finally {
-      setLoading(false);
+  const getAction = useCallback((assignmentId: string) => actions[assignmentId] ?? null, [actions]);
+  const getNote = useCallback((assignmentId: string) => notes[assignmentId] ?? '', [notes]);
+  const getError = useCallback((assignmentId: string) => errors[assignmentId] ?? '', [errors]);
+  const getImgState = useCallback((assignmentId: string) => imgStates[assignmentId], [imgStates]);
+
+  const handleApprove = useCallback((assignment: AssignmentWithChild) => {
+    setActions((prev) => ({ ...prev, [assignment.id]: 'processing' }));
+    setErrors((prev) => ({ ...prev, [assignment.id]: '' }));
+
+    approveMutation.mutate(assignment.id, {
+      onSuccess: () => {
+        setActions((prev) => ({ ...prev, [assignment.id]: null }));
+      },
+      onError: (err) => {
+        setErrors((prev) => ({ ...prev, [assignment.id]: err.message }));
+        setActions((prev) => ({ ...prev, [assignment.id]: null }));
+      },
+    });
+  }, [approveMutation]);
+
+  const handleReject = useCallback((assignment: AssignmentWithChild) => {
+    const note = notes[assignment.id] ?? '';
+    if (!note.trim()) {
+      setErrors((prev) => ({ ...prev, [assignment.id]: 'Informe o motivo da rejeição.' }));
+      return;
     }
-  }, [id]);
 
-  const assignmentActions = useAssignmentActions(loadData);
+    setActions((prev) => ({ ...prev, [assignment.id]: 'processing' }));
+    setErrors((prev) => ({ ...prev, [assignment.id]: '' }));
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+    rejectMutation.mutate({ assignmentId: assignment.id, note: note.trim() }, {
+      onSuccess: () => {
+        setActions((prev) => ({ ...prev, [assignment.id]: null }));
+        setNotes((prev) => ({ ...prev, [assignment.id]: '' }));
+      },
+      onError: (err) => {
+        setErrors((prev) => ({ ...prev, [assignment.id]: err.message }));
+        setActions((prev) => ({ ...prev, [assignment.id]: null }));
+      },
+    });
+  }, [notes, rejectMutation]);
+
   useEffect(() => {
     if (updated === '1') {
       setShowUpdatedMessage(true);
     }
   }, [updated]);
+
   useEffect(() => {
-    if (loading || updated !== '1' || !showUpdatedMessage) {
+    if (isLoading || updated !== '1' || !showUpdatedMessage) {
       return;
     }
 
@@ -256,9 +282,9 @@ export default function TaskDetailAdminScreen() {
     return () => {
       globalThis.clearTimeout(timeoutId);
     };
-  }, [loading, router, showUpdatedMessage, updated]);
+  }, [isLoading, router, showUpdatedMessage, updated]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />
@@ -273,7 +299,7 @@ export default function TaskDetailAdminScreen() {
         <StatusBar style={colors.statusBar} />
         <ScreenHeader title="Detalhes" onBack={() => router.back()} />
         <View style={styles.center}>
-          <EmptyState error={error ?? 'Tarefa não encontrada.'} onRetry={loadData} />
+          <EmptyState error={error?.message ?? 'Tarefa não encontrada.'} onRetry={() => refetch()} />
         </View>
       </View>
     );
@@ -347,18 +373,18 @@ export default function TaskDetailAdminScreen() {
             <AssignmentCard
               key={assignment.id}
               assignment={assignment}
-              action={assignmentActions.getAction(assignment.id)}
-              note={assignmentActions.getNote(assignment.id)}
-              assignmentError={assignmentActions.getError(assignment.id)}
-              imageState={assignmentActions.getImgState(assignment.id)}
+              action={getAction(assignment.id)}
+              note={getNote(assignment.id)}
+              assignmentError={getError(assignment.id)}
+              imageState={getImgState(assignment.id)}
               colors={colors}
               styles={styles}
-              onApprove={() => assignmentActions.approve(assignment)}
-              onReject={() => assignmentActions.reject(assignment)}
-              onStartReject={() => assignmentActions.startReject(assignment.id)}
-              onCancelReject={() => assignmentActions.cancelReject(assignment.id)}
-              onNoteChange={(value) => assignmentActions.changeNote(assignment.id, value)}
-              onImageStateChange={(state) => assignmentActions.changeImgState(assignment.id, state)}
+              onApprove={() => handleApprove(assignment)}
+              onReject={() => handleReject(assignment)}
+              onStartReject={() => setActions((prev) => ({ ...prev, [assignment.id]: 'rejecting' }))}
+              onCancelReject={() => setActions((prev) => ({ ...prev, [assignment.id]: null }))}
+              onNoteChange={(value) => setNotes((prev) => ({ ...prev, [assignment.id]: value }))}
+              onImageStateChange={(state) => setImgStates((prev) => ({ ...prev, [assignment.id]: state }))}
             />
           ))
         )}

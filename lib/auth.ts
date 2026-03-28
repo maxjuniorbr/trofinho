@@ -68,6 +68,8 @@ export async function signOut(): Promise<void> {
 }
 
 export async function getProfile(): Promise<UserProfile | null> {
+  // RPC obter_meu_perfil returns a single flat object with camelCase avatarUrl,
+  // which differs from the usuarios table row shape — cast bridges the gap
   const { data, error } = await supabase.rpc('obter_meu_perfil');
 
   if (error || !data) return null;
@@ -102,6 +104,7 @@ export async function createFamily(
     return { familiaId: null, error: { message: localizeRpcError(error.message) } };
   }
 
+  // RPC criar_familia returns the new family UUID as text
   return { familiaId: data as string, error: null };
 }
 
