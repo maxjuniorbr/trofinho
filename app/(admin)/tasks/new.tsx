@@ -94,6 +94,7 @@ export default function NewTaskScreen() {
         <FormFooter message={shouldShowError ? error : null} compact includeSafeBottom={false}>
           <Button
             label="Criar tarefa"
+            loadingLabel="Criando…"
             onPress={handleCreate}
             loading={createTaskMutation.isPending}
             accessibilityLabel="Criar tarefa"
