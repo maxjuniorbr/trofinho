@@ -12,6 +12,7 @@ import {
   completeAssignment,
   deactivateTask,
   reactivateTask,
+  renewDailyTasks,
   type NewTaskInput,
   type UpdateTaskInput,
 } from '../../../lib/tasks';
@@ -36,7 +37,10 @@ export const useTaskDetail = (taskId: string | undefined) =>
 export const useChildAssignments = () =>
   useQuery({
     queryKey: queryKeys.tasks.childAssignments(),
-    queryFn: queryFnAdapter(() => listChildAssignments()),
+    queryFn: queryFnAdapter(async () => {
+      await renewDailyTasks();
+      return listChildAssignments();
+    }),
     staleTime: STALE_TIMES.tasks,
   });
 

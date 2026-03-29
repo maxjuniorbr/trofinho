@@ -12,7 +12,6 @@ import { useRouter } from 'expo-router';
 import { RefreshCw } from 'lucide-react-native';
 import {
   getAssignmentPoints,
-  renewDailyTasks,
   type ChildAssignment,
   type AssignmentStatus,
 } from '@lib/tasks';
@@ -89,7 +88,6 @@ export default function ChildTasksScreen() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await renewDailyTasks();
       await refetch();
     } catch (e) {
       captureException(e);

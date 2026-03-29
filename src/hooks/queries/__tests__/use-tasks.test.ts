@@ -36,6 +36,7 @@ vi.mock('../../../../lib/tasks', () => ({
   approveAssignment: vi.fn().mockResolvedValue({ error: null }),
   rejectAssignment: vi.fn().mockResolvedValue({ error: null }),
   completeAssignment: vi.fn().mockResolvedValue({ error: null }),
+  renewDailyTasks: vi.fn().mockResolvedValue(undefined),
 }));
 
 import * as tasksLib from '../../../../lib/tasks';
@@ -101,11 +102,12 @@ describe('use-tasks query hooks', () => {
       expect(tasksLib.listAdminTasks).toHaveBeenCalled();
     });
 
-    it('useChildAssignments queryFn calls listChildAssignments', async () => {
+    it('useChildAssignments queryFn calls renewDailyTasks then listChildAssignments', async () => {
       const { useChildAssignments } = await loadHooks();
       useChildAssignments();
       const qf = lastQueryOpts().queryFn as () => Promise<unknown>;
       await qf();
+      expect(tasksLib.renewDailyTasks).toHaveBeenCalled();
       expect(tasksLib.listChildAssignments).toHaveBeenCalled();
     });
 
