@@ -223,7 +223,7 @@ describe('notifications', () => {
             content: expect.objectContaining({
               title: 'Resgate solicitado',
               body: 'Um resgate foi solicitado.',
-              data: { route: '/(admin)/tasks' },
+              data: { route: '/(admin)/redemptions' },
             }),
           }),
         );

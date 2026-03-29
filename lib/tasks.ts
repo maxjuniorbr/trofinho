@@ -1,7 +1,7 @@
 import { localizeRpcError } from './api-error';
 import { toDateString } from './utils';
 import { extractErrorMessage } from './image-utils';
-import { notifyTaskCompleted, notifyTaskCreated } from './notifications';
+import { notifyTaskCompleted } from './notifications';
 import { dispatchPushNotification } from './push';
 import { prepareImageUpload } from './storage';
 import { supabase } from './supabase';
@@ -71,7 +71,7 @@ export function sortAdminTasks(tasks: TaskListItem[], sort: AdminTaskSort): Task
 }
 
 export type AssignmentWithChild = Assignment & {
-  filhos: { nome: string };
+  filhos: { nome: string; usuario_id: string | null };
 };
 
 export type TaskDetail = Task & {
@@ -118,7 +118,8 @@ export async function createTask(
   });
 
   if (error) return { error: localizeRpcError(error.message) };
-  await notifyTaskCreated(input.titulo);
+  // Local notification removed: notifyTaskCreated fired on the admin's device,
+  // not the child's. Push notifications handle cross-device delivery.
   return { error: null };
 }
 
@@ -171,7 +172,7 @@ export async function getTaskWithAssignments(
 ): Promise<{ data: TaskDetail | null; error: string | null }> {
   const { data, error } = await supabase
     .from('tarefas')
-    .select('*, atribuicoes(*, filhos(nome))')
+    .select('*, atribuicoes(*, filhos(nome, usuario_id))')
     .eq('id', taskId)
     .returns<TaskDetail>()
     .single();

@@ -87,6 +87,7 @@ vi.mock('@/hooks/queries', () => ({
   useAdminRedemptions: () => redemptionsMock,
   useConfirmRedemption: () => confirmMutationMock,
   useCancelRedemption: () => cancelMutationMock,
+  useProfile: () => ({ data: { id: 'admin-1', familia_id: 'fam-1', nome: 'Admin', papel: 'admin' } }),
 }));
 
 vi.mock('@/components/ui/empty-state', () => ({

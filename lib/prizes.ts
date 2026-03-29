@@ -32,7 +32,7 @@ export type RedemptionWithPrize = Redemption & {
 };
 
 export type RedemptionWithChildAndPrize = Redemption & {
-  filhos: { nome: string };
+  filhos: { nome: string; usuario_id: string | null };
   premios: { nome: string };
 };
 
@@ -200,7 +200,7 @@ export async function listRedemptions(): Promise<{
   // .returns needed: joined shape (filhos + premios) differs from generated row type
   const { data, error } = await supabase
     .from('resgates')
-    .select('*, filhos(nome), premios(nome)')
+    .select('*, filhos(nome, usuario_id), premios(nome)')
     .order('created_at', { ascending: false })
     .limit(100)
     .returns<RedemptionWithChildAndPrize[]>();

@@ -240,7 +240,14 @@ export default function TaskDetailAdminScreen() {
     setActions((prev) => ({ ...prev, [assignment.id]: 'processing' }));
     setErrors((prev) => ({ ...prev, [assignment.id]: '' }));
 
-    approveMutation.mutate(assignment.id, {
+    approveMutation.mutate({
+      assignmentId: assignment.id,
+      opts: assignment.filhos.usuario_id && task ? {
+        familiaId: task.familia_id,
+        userId: assignment.filhos.usuario_id,
+        taskTitle: task.titulo,
+      } : undefined,
+    }, {
       onSuccess: () => {
         setActions((prev) => ({ ...prev, [assignment.id]: null }));
       },
@@ -249,7 +256,7 @@ export default function TaskDetailAdminScreen() {
         setActions((prev) => ({ ...prev, [assignment.id]: null }));
       },
     });
-  }, [approveMutation]);
+  }, [approveMutation, task]);
 
   const handleReject = useCallback((assignment: AssignmentWithChild) => {
     const note = notes[assignment.id] ?? '';
@@ -261,7 +268,15 @@ export default function TaskDetailAdminScreen() {
     setActions((prev) => ({ ...prev, [assignment.id]: 'processing' }));
     setErrors((prev) => ({ ...prev, [assignment.id]: '' }));
 
-    rejectMutation.mutate({ assignmentId: assignment.id, note: note.trim() }, {
+    rejectMutation.mutate({
+      assignmentId: assignment.id,
+      note: note.trim(),
+      opts: assignment.filhos.usuario_id && task ? {
+        familiaId: task.familia_id,
+        userId: assignment.filhos.usuario_id,
+        taskTitle: task.titulo,
+      } : undefined,
+    }, {
       onSuccess: () => {
         setActions((prev) => ({ ...prev, [assignment.id]: null }));
         setNotes((prev) => ({ ...prev, [assignment.id]: '' }));
@@ -271,7 +286,7 @@ export default function TaskDetailAdminScreen() {
         setActions((prev) => ({ ...prev, [assignment.id]: null }));
       },
     });
-  }, [notes, rejectMutation]);
+  }, [notes, rejectMutation, task]);
 
   useEffect(() => {
     if (updated === '1') {

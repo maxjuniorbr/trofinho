@@ -78,8 +78,11 @@ export const useUpdateTask = () => {
 export const useApproveAssignment = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (assignmentId: string) =>
-      mutationFnAdapter(() => approveAssignment(assignmentId))(),
+    mutationFn: ({ assignmentId, opts }: {
+      assignmentId: string;
+      opts?: { familiaId: string; userId: string; taskTitle: string };
+    }) =>
+      mutationFnAdapter(() => approveAssignment(assignmentId, opts))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });
@@ -90,8 +93,12 @@ export const useApproveAssignment = () => {
 export const useRejectAssignment = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ assignmentId, note }: { assignmentId: string; note: string }) =>
-      mutationFnAdapter(() => rejectAssignment(assignmentId, note))(),
+    mutationFn: ({ assignmentId, note, opts }: {
+      assignmentId: string;
+      note: string;
+      opts?: { familiaId: string; userId: string; taskTitle: string };
+    }) =>
+      mutationFnAdapter(() => rejectAssignment(assignmentId, note, opts))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
     },
@@ -101,8 +108,12 @@ export const useRejectAssignment = () => {
 export const useCompleteAssignment = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ assignmentId, imageUri }: { assignmentId: string; imageUri: string | null }) =>
-      mutationFnAdapter(() => completeAssignment(assignmentId, imageUri))(),
+    mutationFn: ({ assignmentId, imageUri, opts }: {
+      assignmentId: string;
+      imageUri: string | null;
+      opts?: { familiaId: string; childName: string; taskTitle: string };
+    }) =>
+      mutationFnAdapter(() => completeAssignment(assignmentId, imageUri, opts))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
     },
