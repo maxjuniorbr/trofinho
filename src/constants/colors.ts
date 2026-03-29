@@ -185,3 +185,12 @@ export const darkColors = createThemeColors({
 });
 
 export type ThemeColors = typeof lightColors;
+
+/**
+ * Appends a hex alpha suffix to a 6-digit hex color.
+ * Example: withAlpha('#DC2828', 0.25) → '#DC282840'
+ */
+export function withAlpha(hex: string, opacity: number): string {
+  const alpha = Math.round(opacity * 255).toString(16).padStart(2, '0');
+  return `${hex}${alpha}`;
+}

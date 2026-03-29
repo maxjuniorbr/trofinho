@@ -64,8 +64,11 @@ export default function ChildBalanceAdminScreen() {
   const handlePenalty = useCallback(async (amount: number, description: string) => {
     if (!filho_id) return { error: 'ID do filho não encontrado' };
     try {
-      await penaltyMutation.mutateAsync({ childId: filho_id, amount, description });
+      const result = await penaltyMutation.mutateAsync({ childId: filho_id, amount, description });
       setModalType(null);
+      if (result && result.deducted < amount) {
+        return { error: null, warning: `Saldo insuficiente. Apenas ${result.deducted} pts foram debitados.` };
+      }
       return { error: null };
     } catch (e) {
       return { error: e instanceof Error ? e.message : 'Erro ao aplicar penalidade.' };

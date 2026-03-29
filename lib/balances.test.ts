@@ -129,7 +129,7 @@ describe('balances', () => {
       .mockResolvedValueOnce({ error: { message: 'transfer failed' } });
 
     await expect(transferToPiggyBank('child-1', 10)).resolves.toEqual({ error: null });
-    await expect(applyPenalty('child-1', 3, 'Late')).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
+    await expect(applyPenalty('child-1', 3, 'Late')).resolves.toEqual({ data: null, error: 'Algo deu errado. Tente novamente.' });
     await expect(configureAppreciation('child-1', 12, 'mensal')).resolves.toEqual({ error: null });
     await expect(transferToPiggyBank('child-1', 4)).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
 
@@ -166,7 +166,7 @@ describe('balances', () => {
 
     await expect(listAdminBalances()).resolves.toEqual({ data: [], error: null });
     await expect(listTransactions('child-1')).resolves.toEqual({ data: [], error: 'Algo deu errado. Tente novamente.' });
-    await expect(applyPenalty('child-1', 2, 'Atraso')).resolves.toEqual({ error: null });
+    await expect(applyPenalty('child-1', 2, 'Atraso')).resolves.toEqual({ data: { deducted: 2 }, error: null });
   });
 
   it('syncs automatic appreciation with and without child id', async () => {

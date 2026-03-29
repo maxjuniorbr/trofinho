@@ -19,7 +19,7 @@ type PenaltyModalProps = Readonly<{
   visible: boolean;
   childName: string;
   onClose: () => void;
-  onApply: (amount: number, description: string) => Promise<{ error: string | null }>;
+  onApply: (amount: number, description: string) => Promise<{ error: string | null; warning?: string | null }>;
 }>;
 
 export function PenaltyModal({ visible, childName, onClose, onApply }: PenaltyModalProps) {
@@ -29,16 +29,19 @@ export function PenaltyModal({ visible, childName, onClose, onApply }: PenaltyMo
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
 
   const handleClose = () => {
     setAmount('');
     setDescription('');
     setError(null);
+    setWarning(null);
     onClose();
   };
 
   const handleApply = () => {
     setError(null);
+    setWarning(null);
     const v = Number.parseInt(amount, 10);
     if (!amount || Number.isNaN(v) || v <= 0) { setError('Informe um valor válido.'); return; }
     if (!description.trim()) { setError('Informe a descrição.'); return; }
@@ -57,6 +60,7 @@ export function PenaltyModal({ visible, childName, onClose, onApply }: PenaltyMo
             setSaving(false);
 
             if (result.error) { setError(result.error); return; }
+            if (result.warning) { setWarning(result.warning); return; }
             handleClose();
           },
         },
@@ -91,7 +95,7 @@ export function PenaltyModal({ visible, childName, onClose, onApply }: PenaltyMo
             multiline
             maxLength={200}
           />
-          <FormFooter message={error} compact>
+          <FormFooter message={error ?? warning} variant={warning ? 'warning' : 'error'} compact>
             <View style={styles.buttons}>
               <Pressable style={[styles.btn, styles.btnCancel, { borderColor: colors.border.default }]} onPress={handleClose}>
                 <Text style={[styles.btnCancelText, { color: colors.text.secondary }]}>Cancelar</Text>

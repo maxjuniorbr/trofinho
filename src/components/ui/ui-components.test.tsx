@@ -124,7 +124,7 @@ describe('ui components', () => {
     const outlinePressable = outlineRenderer.root.findByType(Pressable);
     const outlineStyle = flattenStyle(outlinePressable.props.style({ pressed: true }));
 
-    expect(outlineStyle.borderColor).toBe(lightColors.brand.vivid + '4D');
+    expect(outlineStyle.borderColor).toBe(lightColors.brand.vivid + '4d');
     expect(outlineStyle.opacity).toBe(0.8);
 
     const dangerRenderer = render(<Button label="Excluir" variant="danger" />);
