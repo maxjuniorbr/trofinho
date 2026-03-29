@@ -28,7 +28,6 @@
       },
       "predictiveBackGestureEnabled": false
     },
-    "newArchEnabled": true,
     "experiments": {
       "reactCompiler": true
     },
@@ -42,6 +41,8 @@
         }
       ],
       "expo-secure-store",
+      "expo-font",
+      "expo-image",
       "@react-native-community/datetimepicker",
       [
         "@sentry/react-native/expo",
