@@ -351,8 +351,11 @@ import { isPreferenceEnabled, getPreferenceKey, resolveRecipientUserIds, type No
 describe('Property 1: Preference defaults resolve to all-enabled', () => {
   const PREF_KEYS: (keyof NotificationPrefs)[] = [
     'tarefasPendentes',
+    'tarefaAprovada',
+    'tarefaRejeitada',
     'tarefaConcluida',
     'resgatesSolicitado',
+    'resgateConfirmado',
   ];
 
   const prefKeyArb = fc.constantFrom<keyof NotificationPrefs>(...PREF_KEYS);
@@ -378,8 +381,11 @@ describe('Property 1: Preference defaults resolve to all-enabled', () => {
   it('returns true for the default prefs object and any preference key', () => {
     const defaultPrefs: NotificationPrefs = {
       tarefasPendentes: true,
+      tarefaAprovada: true,
+      tarefaRejeitada: true,
       tarefaConcluida: true,
       resgatesSolicitado: true,
+      resgateConfirmado: true,
     };
 
     fc.assert(
@@ -391,12 +397,14 @@ describe('Property 1: Preference defaults resolve to all-enabled', () => {
   });
 
   it('returns true for prefs with undefined values for specific keys', () => {
-    // Generate partial prefs objects where some keys are explicitly undefined
     const partialPrefsArb = fc.record(
       {
         tarefasPendentes: fc.constant(undefined),
+        tarefaAprovada: fc.constant(undefined),
+        tarefaRejeitada: fc.constant(undefined),
         tarefaConcluida: fc.constant(undefined),
         resgatesSolicitado: fc.constant(undefined),
+        resgateConfirmado: fc.constant(undefined),
       },
       { requiredKeys: [] },
     ) as fc.Arbitrary<NotificationPrefs>;
@@ -422,8 +430,11 @@ describe('Property 1: Preference defaults resolve to all-enabled', () => {
 describe('Property 2: Disabled preference prevents ticket generation', () => {
   const PREF_KEYS: (keyof NotificationPrefs)[] = [
     'tarefasPendentes',
+    'tarefaAprovada',
+    'tarefaRejeitada',
     'tarefaConcluida',
     'resgatesSolicitado',
+    'resgateConfirmado',
   ];
 
   const prefKeyArb = fc.constantFrom<keyof NotificationPrefs>(...PREF_KEYS);
@@ -433,8 +444,11 @@ describe('Property 2: Disabled preference prevents ticket generation', () => {
       fc.property(prefKeyArb, (key) => {
         const prefs: NotificationPrefs = {
           tarefasPendentes: true,
+          tarefaAprovada: true,
+          tarefaRejeitada: true,
           tarefaConcluida: true,
           resgatesSolicitado: true,
+          resgateConfirmado: true,
           [key]: false,
         };
         expect(isPreferenceEnabled(prefs, key)).toBe(false);
@@ -448,8 +462,11 @@ describe('Property 2: Disabled preference prevents ticket generation', () => {
       fc.property(prefKeyArb, (key) => {
         const prefs: NotificationPrefs = {
           tarefasPendentes: false,
+          tarefaAprovada: false,
+          tarefaRejeitada: false,
           tarefaConcluida: false,
           resgatesSolicitado: false,
+          resgateConfirmado: false,
           [key]: true,
         };
         expect(isPreferenceEnabled(prefs, key)).toBe(true);
@@ -460,11 +477,11 @@ describe('Property 2: Disabled preference prevents ticket generation', () => {
 
   it('getPreferenceKey maps each event to the correct preference key', () => {
     const EVENT_TO_PREF: Record<PushEvent, keyof NotificationPrefs> = {
-      tarefa_aprovada: 'tarefaConcluida',
-      tarefa_rejeitada: 'tarefaConcluida',
+      tarefa_aprovada: 'tarefaAprovada',
+      tarefa_rejeitada: 'tarefaRejeitada',
       tarefa_concluida: 'tarefaConcluida',
       resgate_solicitado: 'resgatesSolicitado',
-      resgate_confirmado: 'resgatesSolicitado',
+      resgate_confirmado: 'resgateConfirmado',
     };
 
     const eventArb = fc.constantFrom<PushEvent>(
@@ -497,8 +514,11 @@ describe('Property 2: Disabled preference prevents ticket generation', () => {
         const prefKey = getPreferenceKey(event);
         const prefs: NotificationPrefs = {
           tarefasPendentes: true,
+          tarefaAprovada: true,
+          tarefaRejeitada: true,
           tarefaConcluida: true,
           resgatesSolicitado: true,
+          resgateConfirmado: true,
           [prefKey]: false,
         };
         expect(isPreferenceEnabled(prefs, prefKey)).toBe(false);
@@ -521,8 +541,11 @@ describe('Property 2: Disabled preference prevents ticket generation', () => {
         const prefKey = getPreferenceKey(event);
         const prefs: NotificationPrefs = {
           tarefasPendentes: false,
+          tarefaAprovada: false,
+          tarefaRejeitada: false,
           tarefaConcluida: false,
           resgatesSolicitado: false,
+          resgateConfirmado: false,
           [prefKey]: true,
         };
         expect(isPreferenceEnabled(prefs, prefKey)).toBe(true);

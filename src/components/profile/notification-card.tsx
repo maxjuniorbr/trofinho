@@ -9,8 +9,11 @@ const OPTIONS: ReadonlyArray<{
   label: string;
 }> = [
   { key: 'tarefasPendentes', label: 'Tarefas pendentes' },
+  { key: 'tarefaAprovada', label: 'Tarefa aprovada' },
+  { key: 'tarefaRejeitada', label: 'Tarefa rejeitada' },
   { key: 'tarefaConcluida', label: 'Tarefa concluída pelo filho' },
   { key: 'resgatesSolicitado', label: 'Resgate solicitado' },
+  { key: 'resgateConfirmado', label: 'Resgate confirmado' },
 ];
 
 type NotificationCardProps = Readonly<{
