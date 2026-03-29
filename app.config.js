@@ -1,12 +1,6 @@
 module.exports = function appConfig({ config }) {
   return {
     ...config,
-    plugins: Array.from(
-      new Set([
-        ...(config.plugins ?? []),
-        '@react-native-community/datetimepicker',
-      ])
-    ),
     extra: {
       ...config.extra,
       supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
