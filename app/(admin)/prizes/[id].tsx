@@ -13,7 +13,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { ImagePlus } from 'lucide-react-native';
 import { setNavigationFeedback } from '@lib/navigation-feedback';
-import type { Prize } from '@lib/prizes';
 import { captureException } from '@lib/sentry';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -255,7 +254,7 @@ export default function AdminPrizeDetailScreen() {
           value={isActive}
           onValueChange={(newValue) => {
             if (newValue) {
-              reactivateMutation.mutate(id!, {
+              reactivateMutation.mutate(id, {
                 onSuccess: () => {
                   setIsActive(true);
                   setPendingWarning(null);
@@ -275,7 +274,7 @@ export default function AdminPrizeDetailScreen() {
                   text: 'Desativar',
                   style: 'destructive',
                   onPress: () => {
-                    deactivateMutation.mutate(id!, {
+                    deactivateMutation.mutate(id, {
                       onSuccess: (result) => {
                         setIsActive(false);
                         setPendingWarning(result.warning ?? null);

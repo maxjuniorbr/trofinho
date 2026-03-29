@@ -156,7 +156,7 @@ export default function AdminRedemptionsScreen() {
               )}
             </>
           }
-          renderItem={({ item, index }: { item: RedemptionWithChildAndPrize; index: number }) => {
+          renderItem={({ item, index }) => {
             const isPending = item.status === 'pendente';
             const isProcessing = processingId === item.id;
             const previousPending = index > 0 && redemptions[index - 1]?.status === 'pendente';

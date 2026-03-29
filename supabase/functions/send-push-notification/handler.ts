@@ -151,7 +151,7 @@ const MESSAGE_TEMPLATES: Record<PushEvent, MessageTemplate> = {
 export function buildMessage(event: PushEvent, payload: EventPayload): MessageContent {
   const template = MESSAGE_TEMPLATES[event];
 
-  const body = template.bodyTemplate.replace(
+  const body = template.bodyTemplate.replaceAll(
     /\{(\w+)\}/g,
     (_, key: string) => (payload as Record<string, string>)[key] ?? '',
   );
@@ -363,7 +363,7 @@ export function extractUserIdFromJwt(token: string): string | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    const payload = JSON.parse(atob(parts[1].replaceAll(/-/g, '+').replaceAll(/_/g, '/')));
     return typeof payload.sub === 'string' ? payload.sub : null;
   } catch {
     return null;
@@ -381,7 +381,7 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
   // Auth check: accept any Bearer token (user JWT from supabase.functions.invoke).
   // The service role key is used internally for DB queries that bypass RLS.
   const authHeader = req.headers.get('Authorization');
-  if (!authHeader || !authHeader.replace(/^Bearer\s+/i, '').trim()) {
+  if (!authHeader?.replace(/^Bearer\s+/i, '').trim()) {
     return new Response(
       JSON.stringify({ error: 'Unauthorized' }),
       { status: 401, headers: { 'Content-Type': 'application/json' } },

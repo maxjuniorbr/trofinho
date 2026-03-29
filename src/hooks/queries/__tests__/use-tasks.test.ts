@@ -47,12 +47,12 @@ const getCapturedMutation = () => (rq as unknown as { _capturedMutation: Capture
 
 const lastQueryOpts = () => {
   const opts = getCapturedQuery().options;
-  return opts[opts.length - 1];
+  return opts.at(-1)!;
 };
 
 const lastMutationOpts = () => {
   const opts = getCapturedMutation().options;
-  return opts[opts.length - 1];
+  return opts.at(-1)!;
 };
 
 beforeEach(() => {
