@@ -235,7 +235,7 @@ describe('handleRequest — Expo Push API integration', () => {
     createSupabaseClient: () => supabase,
   });
 
-  const makeReq = (body: Record<string, unknown>) =>
+  const makeReq = (body: Record<string, unknown>): Request =>
     new Request('https://localhost/send-push-notification', {
       method: 'POST',
       headers: {
@@ -243,7 +243,7 @@ describe('handleRequest — Expo Push API integration', () => {
         Authorization: `Bearer ${FAKE_JWT}`,
       },
       body: JSON.stringify(body),
-    });
+    }) as unknown as Request;
 
   beforeEach(() => {
     vi.restoreAllMocks();
