@@ -124,21 +124,6 @@ O projeto usa Sentry para monitoramento em produção. A integração captura er
 
 Sem `EXPO_PUBLIC_SENTRY_DSN`, o app continua funcionando normalmente e as chamadas ao Sentry viram no-op.
 
-### Tokens e acessos externos
-
-O projeto depende de tokens configurados em dois lugares:
-
-| Token | `.env.local` (dev) | EAS (builds) | Onde gerar |
-| --- | --- | --- | --- |
-| `EXPO_PUBLIC_SUPABASE_URL` | ✅ | ✅ (sensitive) | Supabase Dashboard → Settings → API |
-| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | ✅ | ✅ (sensitive) | Supabase Dashboard → Settings → API |
-| `EXPO_PUBLIC_SENTRY_DSN` | ✅ | ✅ (sensitive) | Sentry → Settings → Projects → Client Keys |
-| `SENTRY_AUTH_TOKEN` | ✅ | ✅ (sensitive) | Sentry → Settings → Auth Tokens (Organization Token) |
-| `EXPO_AUTH_TOKEN` | ✅ | — | expo.dev → Account Settings → Access Tokens |
-| `SONAR_TOKEN` | ✅ | — | SonarCloud → My Account → Security |
-
-Variáveis marcadas como `sensitive` no EAS ficam disponíveis como env var durante o build, mas não são exibidas em logs. Consulte `.env.example` para a lista completa com links.
-
 ### Setup do Backend (Supabase)
 
 O Trofinho depende ativamente de tabelas e funções (RPCs) no Postgres (`supabase/migrations/`). Você pode rodar local com Docker ou na nuvem.
