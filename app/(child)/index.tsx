@@ -1,5 +1,6 @@
 import {
   Alert,
+  AppState,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -87,9 +88,19 @@ export default function FilhoHomeScreen() {
   const pendingTaskLabel = pendingCount === 1 ? 'tarefa pendente' : 'tarefas pendentes';
 
   useEffect(() => {
-    isNotificationPermissionDenied()
-      .then(setShowNotificationBanner)
-      .catch(() => setShowNotificationBanner(false));
+    const check = () => {
+      isNotificationPermissionDenied()
+        .then(setShowNotificationBanner)
+        .catch(() => setShowNotificationBanner(false));
+    };
+
+    check();
+
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') check();
+    });
+
+    return () => sub.remove();
   }, []);
 
   const handleRefresh = async () => {
