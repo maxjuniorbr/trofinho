@@ -59,8 +59,11 @@ export type NotificationRoute =
 
 export type NotificationPrefs = {
   tarefasPendentes: boolean;
+  tarefaAprovada: boolean;
+  tarefaRejeitada: boolean;
   tarefaConcluida: boolean;
   resgatesSolicitado: boolean;
+  resgateConfirmado: boolean;
 };
 
 type NotificationData = Readonly<{
@@ -74,12 +77,19 @@ type LegacyNotificationPrefs = Partial<{
   tarefas_pendentes: boolean;
   tarefa_concluida: boolean;
   resgate_solicitado: boolean;
+  // New granular keys (may or may not exist in stored JSON)
+  tarefaAprovada: boolean;
+  tarefaRejeitada: boolean;
+  resgateConfirmado: boolean;
 }>;
 
 export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   tarefasPendentes: true,
+  tarefaAprovada: true,
+  tarefaRejeitada: true,
   tarefaConcluida: true,
   resgatesSolicitado: true,
+  resgateConfirmado: true,
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -106,6 +116,20 @@ function normalizeNotificationPrefs(rawPreferences: string | null): Notification
           legacyPreferences.pendingTasks,
           legacyPreferences.tarefas_pendentes,
         ) ?? DEFAULT_NOTIFICATION_PREFS.tarefasPendentes,
+      tarefaAprovada:
+        getBooleanValue(
+          legacyPreferences.tarefaAprovada,
+          legacyPreferences.tarefaConcluida,
+          legacyPreferences.completedTask,
+          legacyPreferences.tarefa_concluida,
+        ) ?? DEFAULT_NOTIFICATION_PREFS.tarefaAprovada,
+      tarefaRejeitada:
+        getBooleanValue(
+          legacyPreferences.tarefaRejeitada,
+          legacyPreferences.tarefaConcluida,
+          legacyPreferences.completedTask,
+          legacyPreferences.tarefa_concluida,
+        ) ?? DEFAULT_NOTIFICATION_PREFS.tarefaRejeitada,
       tarefaConcluida:
         getBooleanValue(
           legacyPreferences.tarefaConcluida,
@@ -118,6 +142,13 @@ function normalizeNotificationPrefs(rawPreferences: string | null): Notification
           legacyPreferences.requestedRedemption,
           legacyPreferences.resgate_solicitado,
         ) ?? DEFAULT_NOTIFICATION_PREFS.resgatesSolicitado,
+      resgateConfirmado:
+        getBooleanValue(
+          legacyPreferences.resgateConfirmado,
+          legacyPreferences.resgatesSolicitado,
+          legacyPreferences.requestedRedemption,
+          legacyPreferences.resgate_solicitado,
+        ) ?? DEFAULT_NOTIFICATION_PREFS.resgateConfirmado,
     };
   } catch {
     return DEFAULT_NOTIFICATION_PREFS;

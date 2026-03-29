@@ -18,8 +18,11 @@ export type EventPayload =
 
 export type NotificationPrefs = {
   tarefasPendentes?: boolean;
+  tarefaAprovada?: boolean;
+  tarefaRejeitada?: boolean;
   tarefaConcluida?: boolean;
   resgatesSolicitado?: boolean;
+  resgateConfirmado?: boolean;
 };
 
 export type PushNotificationRequest = {
@@ -175,11 +178,11 @@ const ADMIN_TARGETED_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>([
 ]);
 
 const PREFERENCE_KEY_MAP: Record<PushEvent, keyof NotificationPrefs> = {
-  tarefa_aprovada: 'tarefaConcluida',
-  tarefa_rejeitada: 'tarefaConcluida',
+  tarefa_aprovada: 'tarefaAprovada',
+  tarefa_rejeitada: 'tarefaRejeitada',
   tarefa_concluida: 'tarefaConcluida',
   resgate_solicitado: 'resgatesSolicitado',
-  resgate_confirmado: 'resgatesSolicitado',
+  resgate_confirmado: 'resgateConfirmado',
 };
 
 export function getPreferenceKey(event: PushEvent): keyof NotificationPrefs {
