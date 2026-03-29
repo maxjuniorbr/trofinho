@@ -61,21 +61,24 @@ vi.mock('./push', () => ({
 
 import {
   approveAssignment,
+  buildTaskDeactivateMessage,
   completeAssignment,
   countPendingValidations,
   createTask,
+  deactivateTask,
   getAssignmentPoints,
   getTaskEditState,
   getChildAssignment,
   getTaskWithAssignments,
   listAdminTasks,
   listChildAssignments,
+  reactivateTask,
   rejectAssignment,
   renewDailyTasks,
   sortAdminTasks,
   updateTask,
 } from './tasks';
-import type { AssignmentWithChild, TaskListItem } from './tasks';
+import type { AssignmentWithChild, TaskDetail, TaskListItem } from './tasks';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
 
 type QueryResult = {
@@ -187,6 +190,7 @@ describe('tasks', () => {
       titulo: `Tarefa ${id}`,
       pontos: 10,
       frequencia: 'unica',
+      ativo: true,
       created_at: `2026-03-${id.padStart(2, '0')}T00:00:00Z`,
       atribuicoes: statuses.map((status) => ({ status }) as TaskListItem['atribuicoes'][number]),
     });
@@ -348,6 +352,7 @@ describe('tasks', () => {
 
     expect(getTaskEditState({
       frequencia: 'diaria',
+      ativo: true,
       atribuicoes: [createAssignmentWithChild({
         status: 'aprovada',
         concluida_em: '2026-03-21T12:00:00Z',
@@ -361,6 +366,7 @@ describe('tasks', () => {
 
     expect(getTaskEditState({
       frequencia: 'unica',
+      ativo: true,
       atribuicoes: [createAssignmentWithChild({
         status: 'pendente',
         concluida_em: null,
@@ -374,6 +380,7 @@ describe('tasks', () => {
 
     expect(getTaskEditState({
       frequencia: 'unica',
+      ativo: true,
       atribuicoes: [createAssignmentWithChild({
         status: 'aprovada',
         concluida_em: '2026-03-21T12:00:00Z',
@@ -868,6 +875,163 @@ describe('tasks', () => {
           const uuidPart = uploadPath.slice(expectedPrefix.length, -expectedSuffix.length);
           expect(uuidPart).toMatch(UUID_V4_RE);
         }),
+        { numRuns: 100 },
+      );
+    });
+  });
+
+  describe('deactivateTask', () => {
+    it('returns pendingValidationCount on success', async () => {
+      supabaseMock.rpc.mockResolvedValueOnce({ data: 3, error: null });
+
+      await expect(deactivateTask('task-1')).resolves.toEqual({
+        data: { pendingValidationCount: 3 },
+        error: null,
+      });
+      expect(supabaseMock.rpc).toHaveBeenCalledWith('desativar_tarefa', {
+        p_tarefa_id: 'task-1',
+      });
+    });
+
+    it('returns localized error on failure', async () => {
+      supabaseMock.rpc.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Tarefa não encontrada' },
+      });
+
+      await expect(deactivateTask('task-1')).resolves.toEqual({
+        data: null,
+        error: 'Registro não encontrado.',
+      });
+    });
+  });
+
+  describe('reactivateTask', () => {
+    it('returns no error on success', async () => {
+      supabaseMock.rpc.mockResolvedValueOnce({ error: null });
+
+      await expect(reactivateTask('task-1')).resolves.toEqual({
+        error: null,
+      });
+      expect(supabaseMock.rpc).toHaveBeenCalledWith('reativar_tarefa', {
+        p_tarefa_id: 'task-1',
+      });
+    });
+
+    it('returns localized error on failure', async () => {
+      supabaseMock.rpc.mockResolvedValueOnce({
+        error: { message: 'some error' },
+      });
+
+      await expect(reactivateTask('task-1')).resolves.toEqual({
+        error: 'Algo deu errado. Tente novamente.',
+      });
+    });
+  });
+
+  describe('getTaskEditState — ativo check', () => {
+    it('returns canEdit: false when ativo = false', () => {
+      expect(getTaskEditState({
+        frequencia: 'diaria',
+        ativo: false,
+        atribuicoes: [createAssignmentWithChild({ status: 'pendente' })],
+      })).toEqual({
+        canEdit: false,
+        canEditPoints: false,
+        errorMessage: 'Esta tarefa está desativada e não pode ser editada.',
+        infoMessage: null,
+      });
+    });
+  });
+
+  describe('Property tests — soft delete', () => {
+    // Feature: soft-delete, Property 6: Idempotência das RPCs de soft delete
+    // **Validates: Requirements 0.3**
+    it('deactivateTask returns same shape on repeated calls (no error)', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.uuid(), async (taskId) => {
+          supabaseMock.rpc.mockResolvedValue({ data: 0, error: null });
+          const first = await deactivateTask(taskId);
+          const second = await deactivateTask(taskId);
+          expect(first.error).toBeNull();
+          expect(second.error).toBeNull();
+          expect(first.data).toEqual(second.data);
+        }),
+        { numRuns: 100 },
+      );
+    });
+
+    // Feature: soft-delete, Property 15: Confirmation dialog message includes correct counts
+    // **Validates: Requirements 12.2, 12.4**
+    it('buildTaskDeactivateMessage includes correct counts for arbitrary assignments', () => {
+      fc.assert(
+        fc.property(
+          fc.record({
+            frequencia: fc.constantFrom('diaria' as const, 'unica' as const),
+          }),
+          fc.array(
+            fc.record({
+              status: fc.constantFrom(
+                'pendente' as const,
+                'aguardando_validacao' as const,
+                'aprovada' as const,
+                'rejeitada' as const,
+              ),
+            }),
+          ),
+          (task, assignments) => {
+            const message = buildTaskDeactivateMessage(task, assignments);
+
+            const pendingCount = assignments.filter(a => a.status === 'pendente').length;
+            const awaitingCount = assignments.filter(a => a.status === 'aguardando_validacao').length;
+
+            if (pendingCount > 0) {
+              expect(message).toContain(String(pendingCount));
+              expect(message).toContain('cancelada');
+            }
+
+            if (awaitingCount > 0) {
+              expect(message).toContain(String(awaitingCount));
+              expect(message).toContain('mantida');
+            }
+
+            if (task.frequencia === 'diaria') {
+              expect(message).toContain('diárias');
+            }
+
+            // Message is never empty
+            expect(message.length).toBeGreaterThan(0);
+          },
+        ),
+        { numRuns: 100 },
+      );
+    });
+
+    // Feature: soft-delete, Property 7: getTaskEditState returns canEdit=false for any task with ativo=false
+    // **Validates: Requirements 0.2**
+    it('getTaskEditState returns canEdit=false for any task with ativo=false', () => {
+      fc.assert(
+        fc.property(
+          fc.record({
+            frequencia: fc.constantFrom('diaria' as const, 'unica' as const),
+            atribuicoes: fc.array(
+              fc.record({
+                status: fc.constantFrom(
+                  'pendente' as const,
+                  'aguardando_validacao' as const,
+                  'aprovada' as const,
+                  'rejeitada' as const,
+                ),
+                concluida_em: fc.option(fc.date().map(d => d.toISOString()), { nil: null }),
+              }),
+            ),
+            ativo: fc.constant(false as const),
+          }),
+          (task) => {
+            const result = getTaskEditState(task as Pick<TaskDetail, 'atribuicoes' | 'frequencia' | 'ativo'>);
+            expect(result.canEdit).toBe(false);
+          },
+        ),
         { numRuns: 100 },
       );
     });

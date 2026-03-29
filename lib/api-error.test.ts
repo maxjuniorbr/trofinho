@@ -32,6 +32,43 @@ describe('localizeRpcError', () => {
   it('uses a custom fallback when provided', () => {
     expect(localizeRpcError('unknown error', 'Erro personalizado.')).toBe('Erro personalizado.');
   });
+
+  it('maps deactivated task edit error to localized message', () => {
+    expect(localizeRpcError('Não é possível editar uma tarefa desativada.')).toBe(
+      'Esta tarefa está desativada e não pode ser editada.',
+    );
+  });
+
+  it('maps deactivated child edit error to localized message', () => {
+    expect(localizeRpcError('Não é possível editar um filho desativado.')).toBe(
+      'Este filho está desativado e não pode ser editado.',
+    );
+  });
+
+  it('maps deactivated account error to localized message', () => {
+    expect(localizeRpcError('Sua conta foi desativada. Entre em contato com o responsável.')).toBe(
+      'Sua conta foi desativada. Entre em contato com o responsável.',
+    );
+  });
+
+  it('maps deactivation pending redemptions error to localized message', () => {
+    expect(
+      localizeRpcError(
+        'Não é possível desativar um filho com resgates pendentes. Confirme ou cancele os resgates antes de desativar.',
+      ),
+    ).toBe('Não é possível desativar com resgates pendentes. Confirme ou cancele os resgates primeiro.');
+  });
+
+  it('matches "resgates pendentes. Confirme" before generic "resgates pendentes"', () => {
+    const deactivationMsg =
+      'Não é possível desativar um filho com resgates pendentes. Confirme ou cancele os resgates antes de desativar.';
+    expect(localizeRpcError(deactivationMsg)).toBe(
+      'Não é possível desativar com resgates pendentes. Confirme ou cancele os resgates primeiro.',
+    );
+    expect(localizeRpcError(deactivationMsg)).not.toBe(
+      'Não é possível alterar o custo com resgates pendentes.',
+    );
+  });
 });
 
 describe('property tests', () => {
@@ -53,10 +90,14 @@ describe('property tests', () => {
     ['não encontrad', 'Registro não encontrado.'],
     ['não está aguardando', 'Esta ação não pode ser realizada no momento.'],
     ['não está pendente', 'Esta ação não pode ser realizada no momento.'],
+    ['Não é possível editar uma tarefa desativada', 'Esta tarefa está desativada e não pode ser editada.'],
+    ['Não é possível editar um filho desativado', 'Este filho está desativado e não pode ser editado.'],
+    ['Sua conta foi desativada', 'Sua conta foi desativada. Entre em contato com o responsável.'],
     ['já foi concluída', 'Esta tarefa já foi concluída e não pode ser editada.'],
     ['outra família', 'Acesso negado.'],
     ['filhos inválidos', 'Há filhos inválidos na atribuição.'],
     ['resgates em aberto', 'Não é possível alterar os pontos pois há resgates em aberto.'],
+    ['resgates pendentes. Confirme', 'Não é possível desativar com resgates pendentes. Confirme ou cancele os resgates primeiro.'],
     ['resgates pendentes', 'Não é possível alterar o custo com resgates pendentes.'],
     ['Prêmio não encontrado ou não disponível', 'Prêmio não disponível.'],
     ['já pertence a uma família', 'Você já tem uma família cadastrada.'],

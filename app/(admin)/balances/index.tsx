@@ -45,12 +45,15 @@ export default function BalancesAdminScreen() {
           ListEmptyComponent={<EmptyState empty emptyMessage={'Nenhum saldo ainda.\nAprove tarefas para creditar pontos.'} />}
           renderItem={({ item }) => (
             <Pressable
-              style={({ pressed }) => [styles.card, shadows.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle, opacity: pressed ? 0.9 : 1 }]}
+              style={({ pressed }) => [styles.card, shadows.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle, opacity: item.filhos.ativo === false ? 0.5 : pressed ? 0.9 : 1 }]}
               onPress={() => router.push({ pathname: '/(admin)/balances/[filho_id]', params: { filho_id: item.filho_id, nome: item.filhos.nome } })}
             >
               <Avatar name={item.filhos.nome} size={44} />
               <View style={styles.info}>
                 <Text style={[styles.nome, { color: colors.text.primary }]}>{item.filhos.nome}</Text>
+                {item.filhos.ativo === false && (
+                  <Text style={[styles.inactiveBadge, { color: colors.semantic.warningText }]}>Desativado</Text>
+                )}
                 <Text style={[styles.detalhe, { color: colors.text.secondary }]}>
                   {item.saldo_livre} livre · {item.cofrinho} cofrinho
                 </Text>
@@ -74,6 +77,7 @@ function makeStyles() {
     card: { flexDirection: 'row', alignItems: 'center', borderRadius: radii.xl, borderWidth: 1, padding: spacing['4'], marginBottom: spacing['3'] },
     info: { flex: 1, marginLeft: spacing['3'] },
     nome: { fontSize: typography.size.md, fontFamily: typography.family.bold },
+    inactiveBadge: { fontSize: typography.size.xs, fontFamily: typography.family.semibold, marginTop: spacing['0.5'] },
     detalhe: { fontSize: typography.size.sm, marginTop: spacing['1'] },
   });
 }

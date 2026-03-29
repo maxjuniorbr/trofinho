@@ -478,8 +478,16 @@ export type Database = {
         Args: { p_atribuicao_id: string; p_evidencia_url?: string | null }
         Returns: undefined
       }
+      desativar_filho: {
+        Args: { p_filho_id: string }
+        Returns: Json
+      }
       desativar_premio: {
         Args: { p_premio_id: string }
+        Returns: number
+      }
+      desativar_tarefa: {
+        Args: { p_tarefa_id: string }
         Returns: number
       }
       criar_familia: {
@@ -552,11 +560,20 @@ export type Database = {
           id: string
           nome: string
           usuario_id: string
+          ativo: boolean
         }[]
       }
       obter_meu_perfil: { Args: never; Returns: Json }
+      reativar_filho: {
+        Args: { p_filho_id: string }
+        Returns: undefined
+      }
       reativar_premio: {
         Args: { p_premio_id: string }
+        Returns: undefined
+      }
+      reativar_tarefa: {
+        Args: { p_tarefa_id: string }
         Returns: undefined
       }
       rejeitar_atribuicao: {
