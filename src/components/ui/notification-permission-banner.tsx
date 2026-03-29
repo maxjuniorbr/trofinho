@@ -2,7 +2,7 @@ import { Linking, StyleSheet, Text, View } from 'react-native';
 import { BellOff } from 'lucide-react-native';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/context/theme-context';
-import { radii, spacing, typography } from '@/constants/theme';
+import { radii, spacing, typography, withAlpha } from '@/constants/theme';
 
 async function openNotificationSettings() {
   await Linking.openSettings();
@@ -17,7 +17,7 @@ export function NotificationPermissionBanner() {
         styles.container,
         {
           backgroundColor: colors.semantic.warningBg,
-          borderColor: colors.semantic.warning + '40',
+          borderColor: withAlpha(colors.semantic.warning, 0.25),
         },
       ]}
     >

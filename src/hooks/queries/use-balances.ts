@@ -36,8 +36,11 @@ export const useTransactions = (childId: string) =>
 export const useApplyPenalty = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (args: { childId: string; amount: number; description: string }) =>
-      mutationFnAdapter(() => applyPenalty(args.childId, args.amount, args.description))(),
+    mutationFn: async (args: { childId: string; amount: number; description: string }) => {
+      const result = await applyPenalty(args.childId, args.amount, args.description);
+      if (result.error) throw new Error(result.error);
+      return result.data;
+    },
     onSuccess: async () => {
       await syncAutomaticAppreciation();
       queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });

@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, type ViewStyle, type ViewProps } from 'react-native';
 import { useTheme } from '@/context/theme-context';
-import { radii, shadows, spacing } from '@/constants/theme';
+import { radii, shadows, spacing, withAlpha } from '@/constants/theme';
 
 interface CardProps extends ViewProps {
   elevated?: boolean;
@@ -17,7 +17,7 @@ export function Card({ elevated = false, noPadding = false, glow = false, style,
   if (glow) shadowStyle = isDark ? styles.glowShadowDark : styles.glowShadow;
   else if (elevated) shadowStyle = styles.elevatedShadow;
 
-  const glowBorderOpacity = isDark ? '4D' : '33';
+  const glowBorderOpacity = isDark ? 0.30 : 0.20;
 
   return (
     <View
@@ -27,7 +27,7 @@ export function Card({ elevated = false, noPadding = false, glow = false, style,
         shadowStyle,
         {
           backgroundColor: colors.bg.surface,
-          borderColor: glow ? colors.brand.vivid + glowBorderOpacity : colors.border.subtle,
+          borderColor: glow ? withAlpha(colors.brand.vivid, glowBorderOpacity) : colors.border.subtle,
           padding: noPadding ? 0 : spacing.card,
         },
         style,

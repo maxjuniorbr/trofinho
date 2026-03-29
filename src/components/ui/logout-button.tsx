@@ -1,7 +1,7 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LogOut } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
-import { radii, spacing, typography } from '@/constants/theme';
+import { radii, spacing, typography, withAlpha } from '@/constants/theme';
 
 type LogoutButtonProps = Readonly<{
   onPress: () => void;
@@ -13,7 +13,7 @@ export function LogoutButton({ onPress, loading }: LogoutButtonProps) {
 
   return (
     <Pressable
-      style={[styles.container, { borderColor: colors.semantic.error + '60', opacity: loading ? 0.55 : 1 }]}
+      style={[styles.container, { borderColor: withAlpha(colors.semantic.error, 0.375), opacity: loading ? 0.55 : 1 }]}
       onPress={onPress}
       disabled={loading}
       accessibilityRole="button"
