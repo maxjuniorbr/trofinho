@@ -64,12 +64,5 @@
     "typescript": "~5.9.2",
     "vitest": "^4.1.0"
   },
-  "private": true,
-  "expo": {
-    "install": {
-      "exclude": [
-        "react"
-      ]
-    }
-  }
+  "private": true
 }
