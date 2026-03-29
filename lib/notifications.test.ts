@@ -115,7 +115,7 @@ describe('notifications', () => {
     });
 
     it('returns stored preferences', async () => {
-      const stored = { tarefasPendentes: false, tarefaConcluida: true, resgatesSolicitado: false };
+      const stored = { tarefasPendentes: false, tarefaAprovada: true, tarefaRejeitada: false, tarefaConcluida: true, resgatesSolicitado: false, resgateConfirmado: true };
       deviceStorageGetMock.mockResolvedValue(JSON.stringify(stored));
       await expect(getNotificationPrefs()).resolves.toEqual(stored);
     });
@@ -125,8 +125,11 @@ describe('notifications', () => {
       deviceStorageGetMock.mockResolvedValue(JSON.stringify(legacy));
       const prefs = await getNotificationPrefs();
       expect(prefs.tarefasPendentes).toBe(false);
+      expect(prefs.tarefaAprovada).toBe(true);
+      expect(prefs.tarefaRejeitada).toBe(true);
       expect(prefs.tarefaConcluida).toBe(true);
       expect(prefs.resgatesSolicitado).toBe(false);
+      expect(prefs.resgateConfirmado).toBe(false);
     });
 
     it('normalizes legacy snake_case keys', async () => {
@@ -134,8 +137,11 @@ describe('notifications', () => {
       deviceStorageGetMock.mockResolvedValue(JSON.stringify(legacy));
       const prefs = await getNotificationPrefs();
       expect(prefs.tarefasPendentes).toBe(true);
+      expect(prefs.tarefaAprovada).toBe(false);
+      expect(prefs.tarefaRejeitada).toBe(false);
       expect(prefs.tarefaConcluida).toBe(false);
       expect(prefs.resgatesSolicitado).toBe(true);
+      expect(prefs.resgateConfirmado).toBe(true);
     });
 
     it('prefers current keys over legacy keys when both are present', async () => {
@@ -158,7 +164,7 @@ describe('notifications', () => {
 
   describe('setNotificationPrefs', () => {
     it('stores preferences in device storage', async () => {
-      const prefs = { tarefasPendentes: false, tarefaConcluida: true, resgatesSolicitado: false };
+      const prefs = { tarefasPendentes: false, tarefaAprovada: true, tarefaRejeitada: false, tarefaConcluida: true, resgatesSolicitado: false, resgateConfirmado: true };
       await setNotificationPrefs(prefs);
       expect(deviceStorageSetMock).toHaveBeenCalledWith('notification_prefs', JSON.stringify(prefs));
     });
