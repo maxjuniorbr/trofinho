@@ -70,6 +70,25 @@ export function sortAdminTasks(tasks: TaskListItem[], sort: AdminTaskSort): Task
   return tasks.slice().sort((a, b) => assignmentPriority(a.atribuicoes) - assignmentPriority(b.atribuicoes));
 }
 
+const ASSIGNMENT_STATUS_PRIORITY: Record<AssignmentStatus, number> = {
+  aguardando_validacao: 0,
+  pendente: 1,
+  rejeitada: 2,
+  aprovada: 3,
+};
+
+function sortAssignments(assignments: AssignmentWithChild[]): AssignmentWithChild[] {
+  return assignments.slice().sort((a, b) => {
+    const priorityDiff = ASSIGNMENT_STATUS_PRIORITY[a.status] - ASSIGNMENT_STATUS_PRIORITY[b.status];
+    if (priorityDiff !== 0) return priorityDiff;
+
+    // Within the same status group, most recent first.
+    const dateA = a.concluida_em ?? a.created_at;
+    const dateB = b.concluida_em ?? b.created_at;
+    return dateB.localeCompare(dateA);
+  });
+}
+
 export type AssignmentWithChild = Assignment & {
   filhos: { nome: string; usuario_id: string | null };
 };
@@ -178,7 +197,9 @@ export async function getTaskWithAssignments(
     .single();
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
-  const task = await signTaskEvidence(data);
+  const detail = data as TaskDetail;
+  detail.atribuicoes = sortAssignments(detail.atribuicoes);
+  const task = await signTaskEvidence(detail);
   return { data: task, error: null };
 }
 
