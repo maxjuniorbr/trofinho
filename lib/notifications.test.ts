@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import fc from 'fast-check';
 import {
   DEFAULT_NOTIFICATION_PREFS,
   getNotificationPrefs,
@@ -7,11 +8,18 @@ import {
   notifyTaskCompleted,
   notifyTaskCreated,
   setNotificationPrefs,
+  syncPrefsFromServer,
+  syncPrefsToServer,
 } from './notifications';
+import type { NotificationPrefs } from './notifications';
 
 const scheduleNotificationAsyncMock = vi.hoisted(() => vi.fn());
 const deviceStorageGetMock = vi.hoisted(() => vi.fn());
 const deviceStorageSetMock = vi.hoisted(() => vi.fn());
+const getUserMock = vi.hoisted(() => vi.fn());
+const updateMock = vi.hoisted(() => vi.fn());
+const selectMock = vi.hoisted(() => vi.fn());
+const captureExceptionMock = vi.hoisted(() => vi.fn());
 
 vi.mock('react-native', () => ({
   Platform: { OS: 'ios' },
@@ -49,7 +57,18 @@ vi.mock('./device-storage', () => ({
 }));
 
 vi.mock('./supabase', () => ({
-  supabase: { rpc: vi.fn() },
+  supabase: {
+    rpc: vi.fn(),
+    auth: { getUser: getUserMock },
+    from: vi.fn(() => ({
+      update: vi.fn(() => ({ eq: updateMock })),
+      select: vi.fn(() => ({ eq: vi.fn(() => ({ single: selectMock })) })),
+    })),
+  },
+}));
+
+vi.mock('./sentry', () => ({
+  captureException: captureExceptionMock,
 }));
 
 describe('notifications', () => {
@@ -58,6 +77,10 @@ describe('notifications', () => {
     deviceStorageSetMock.mockReset();
     scheduleNotificationAsyncMock.mockReset();
     scheduleNotificationAsyncMock.mockResolvedValue(undefined);
+    getUserMock.mockReset();
+    updateMock.mockReset();
+    selectMock.mockReset();
+    captureExceptionMock.mockReset();
   });
 
   describe('getNotificationRoute', () => {
@@ -218,5 +241,160 @@ describe('notifications', () => {
       scheduleNotificationAsyncMock.mockRejectedValue(new Error('device error'));
       await expect(notifyTaskCompleted()).resolves.toBeUndefined();
     });
+  });
+});
+
+/**
+ * Property 3: Preference sync round trip
+ * Validates: Requirements 1.5, 1.6
+ *
+ * For any valid NotificationPrefs object, writing it to the server via
+ * syncPrefsToServer and then reading it back via syncPrefsFromServer
+ * SHALL produce an equivalent NotificationPrefs object.
+ */
+describe('Property 3: Preference sync round trip', () => {
+  const prefsArb = fc.record({
+    tarefasPendentes: fc.boolean(),
+    tarefaConcluida: fc.boolean(),
+    resgatesSolicitado: fc.boolean(),
+  });
+
+  const fakeUserId = 'user-abc-123';
+
+  it('round-trips any NotificationPrefs through server sync', async () => {
+    await fc.assert(
+      fc.asyncProperty(prefsArb, async (prefs: NotificationPrefs) => {
+        getUserMock.mockReset();
+        updateMock.mockReset();
+        selectMock.mockReset();
+        deviceStorageSetMock.mockReset();
+
+        // Mock authenticated user
+        getUserMock.mockResolvedValue({ data: { user: { id: fakeUserId } } });
+
+        // Capture prefs written by syncPrefsToServer
+        let capturedPrefs: NotificationPrefs | undefined;
+        updateMock.mockImplementation(() => {
+          capturedPrefs = prefs;
+          return { data: null, error: null };
+        });
+
+        await syncPrefsToServer(prefs);
+
+        // Mock syncPrefsFromServer to return the same prefs that were written
+        selectMock.mockResolvedValue({
+          data: { notif_prefs: capturedPrefs },
+          error: null,
+        });
+
+        await syncPrefsFromServer();
+
+        // Verify deviceStorage.setItem was called with the round-tripped prefs
+        expect(deviceStorageSetMock).toHaveBeenCalledWith(
+          'notification_prefs',
+          JSON.stringify(prefs),
+        );
+      }),
+      { numRuns: 100 },
+    );
+  });
+});
+
+describe('syncPrefsToServer', () => {
+  const fakeUser = { id: 'user-sync-123' };
+  const prefs: NotificationPrefs = {
+    tarefasPendentes: false,
+    tarefaConcluida: true,
+    resgatesSolicitado: false,
+  };
+
+  beforeEach(() => {
+    getUserMock.mockReset();
+    updateMock.mockReset();
+    selectMock.mockReset();
+    deviceStorageSetMock.mockReset();
+    captureExceptionMock.mockReset();
+  });
+
+  it('calls supabase update when user is authenticated', async () => {
+    getUserMock.mockResolvedValue({ data: { user: fakeUser } });
+    updateMock.mockResolvedValue({ data: null, error: null });
+
+    await syncPrefsToServer(prefs);
+
+    expect(getUserMock).toHaveBeenCalled();
+    expect(updateMock).toHaveBeenCalledWith('id', fakeUser.id);
+  });
+
+  it('does nothing when user is not authenticated', async () => {
+    getUserMock.mockResolvedValue({ data: { user: null } });
+
+    await syncPrefsToServer(prefs);
+
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it('catches errors and calls captureException', async () => {
+    const error = new Error('network failure');
+    getUserMock.mockRejectedValue(error);
+
+    await expect(syncPrefsToServer(prefs)).resolves.toBeUndefined();
+    expect(captureExceptionMock).toHaveBeenCalledWith(error);
+  });
+});
+
+describe('syncPrefsFromServer', () => {
+  const fakeUser = { id: 'user-sync-456' };
+
+  beforeEach(() => {
+    getUserMock.mockReset();
+    updateMock.mockReset();
+    selectMock.mockReset();
+    deviceStorageSetMock.mockReset();
+    captureExceptionMock.mockReset();
+  });
+
+  it('overwrites local storage with server prefs', async () => {
+    const serverPrefs: NotificationPrefs = {
+      tarefasPendentes: true,
+      tarefaConcluida: false,
+      resgatesSolicitado: true,
+    };
+
+    getUserMock.mockResolvedValue({ data: { user: fakeUser } });
+    selectMock.mockResolvedValue({ data: { notif_prefs: serverPrefs }, error: null });
+
+    await syncPrefsFromServer();
+
+    expect(deviceStorageSetMock).toHaveBeenCalledWith(
+      'notification_prefs',
+      JSON.stringify(serverPrefs),
+    );
+  });
+
+  it('does nothing when user is not authenticated', async () => {
+    getUserMock.mockResolvedValue({ data: { user: null } });
+
+    await syncPrefsFromServer();
+
+    expect(selectMock).not.toHaveBeenCalled();
+    expect(deviceStorageSetMock).not.toHaveBeenCalled();
+  });
+
+  it('catches errors and calls captureException', async () => {
+    const error = new Error('network failure');
+    getUserMock.mockRejectedValue(error);
+
+    await expect(syncPrefsFromServer()).resolves.toBeUndefined();
+    expect(captureExceptionMock).toHaveBeenCalledWith(error);
+  });
+
+  it('does nothing when server returns error', async () => {
+    getUserMock.mockResolvedValue({ data: { user: fakeUser } });
+    selectMock.mockResolvedValue({ data: null, error: { message: 'not found' } });
+
+    await syncPrefsFromServer();
+
+    expect(deviceStorageSetMock).not.toHaveBeenCalled();
   });
 });

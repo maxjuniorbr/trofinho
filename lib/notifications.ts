@@ -6,6 +6,7 @@ import type {
   NotificationTriggerInput,
 } from 'expo-notifications';
 import { deviceStorage } from './device-storage';
+import { captureException } from './sentry';
 import { supabase } from './supabase';
 
 const NOTIFICATION_PREFERENCES_KEY = 'notification_prefs';
@@ -305,6 +306,43 @@ export async function getNotificationPrefs(): Promise<NotificationPrefs> {
   return normalizeNotificationPrefs(rawPreferences);
 }
 
+export async function syncPrefsToServer(prefs: NotificationPrefs): Promise<void> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    await supabase
+      .from('usuarios')
+      .update({ notif_prefs: prefs })
+      .eq('id', user.id);
+  } catch (error) {
+    captureException(error);
+  }
+}
+
+export async function syncPrefsFromServer(): Promise<void> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('notif_prefs')
+      .eq('id', user.id)
+      .single();
+
+    if (error || !data?.notif_prefs) return;
+
+    const serverPrefs = data.notif_prefs as NotificationPrefs;
+    await deviceStorage.setItem(
+      NOTIFICATION_PREFERENCES_KEY,
+      JSON.stringify(serverPrefs),
+    );
+  } catch (error) {
+    captureException(error);
+  }
+}
+
 export async function setNotificationPrefs(
   preferences: NotificationPrefs,
 ): Promise<void> {
@@ -312,6 +350,8 @@ export async function setNotificationPrefs(
     NOTIFICATION_PREFERENCES_KEY,
     JSON.stringify(preferences),
   );
+  // Fire-and-forget: sync to server, errors logged to Sentry
+  syncPrefsToServer(preferences);
 }
 
 export async function isNotificationPermissionDenied(): Promise<boolean> {
