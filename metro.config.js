@@ -1,5 +1,5 @@
 const { getDefaultConfig } = require("expo/metro-config");
-const { withSentryConfig } = require("@sentry/react-native/metro");
+const { createSentryMetroSerializer } = require("@sentry/react-native/metro");
 
 const config = getDefaultConfig(__dirname);
 
@@ -8,4 +8,10 @@ const config = getDefaultConfig(__dirname);
 // resolved by Metro and can cause runtime errors in Expo builds.
 config.resolver.blockList = [/\.test\.[jt]sx?$/];
 
-module.exports = withSentryConfig(config);
+// Use Sentry's custom serializer for debug ID injection (source maps).
+// We avoid withSentryConfig() because it wraps the entire config and causes
+// a crash in the eager bundling phase on EAS Build (determineDebugIdFromBundleSource
+// receives undefined when the serializer output format changed in SDK 55).
+config.serializer.customSerializer = createSentryMetroSerializer();
+
+module.exports = config;
