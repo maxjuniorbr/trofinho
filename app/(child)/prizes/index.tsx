@@ -20,6 +20,7 @@ import {
   useActivePrizes,
   useBalance,
   useRequestRedemption,
+  useProfile,
   combineQueryStates,
 } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
@@ -43,6 +44,7 @@ export default function ChildPrizesScreen() {
 
   const { isLoading, error, refetchAll } = combineQueryStates(prizesQuery, balanceQuery);
 
+  const { data: profile } = useProfile();
   const redeemMutation = useRequestRedemption();
 
   const [redeeming, setRedeeming] = useState<string | null>(null);
@@ -71,7 +73,14 @@ export default function ChildPrizesScreen() {
     setSuccess(null);
     setRedeeming(prize.id);
     try {
-      await redeemMutation.mutateAsync(prize.id);
+      await redeemMutation.mutateAsync({
+        prizeId: prize.id,
+        opts: profile ? {
+          familiaId: profile.familia_id,
+          childName: profile.nome,
+          prizeName: prize.nome,
+        } : undefined,
+      });
       setSuccess(`Resgate de "${prize.nome}" solicitado! Aguarde a confirmação.`);
     } catch (e) {
       setRedemptionError(e instanceof Error ? e.message : 'Não foi possível solicitar o resgate.');

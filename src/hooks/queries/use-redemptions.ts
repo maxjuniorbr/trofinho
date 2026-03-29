@@ -26,8 +26,11 @@ export const useChildRedemptions = () =>
 export const useConfirmRedemption = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (redemptionId: string) =>
-      mutationFnAdapter(() => confirmRedemption(redemptionId))(),
+    mutationFn: ({ redemptionId, opts }: {
+      redemptionId: string;
+      opts?: { familiaId: string; userId: string; prizeName: string };
+    }) =>
+      mutationFnAdapter(() => confirmRedemption(redemptionId, opts))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.redemptions.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });
@@ -50,8 +53,11 @@ export const useCancelRedemption = () => {
 export const useRequestRedemption = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (prizeId: string) =>
-      queryFnAdapter(() => requestRedemption(prizeId))(),
+    mutationFn: ({ prizeId, opts }: {
+      prizeId: string;
+      opts?: { familiaId: string; childName: string; prizeName: string };
+    }) =>
+      queryFnAdapter(() => requestRedemption(prizeId, opts))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.redemptions.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });

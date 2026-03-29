@@ -136,7 +136,7 @@ const MESSAGE_TEMPLATES: Record<PushEvent, MessageTemplate> = {
   resgate_solicitado: {
     title: 'Resgate solicitado',
     bodyTemplate: '{childName} solicitou o resgate de "{prizeName}".',
-    route: '/(admin)/tasks',
+    route: '/(admin)/redemptions',
   },
   tarefa_concluida: {
     title: 'Tarefa concluída',
@@ -360,28 +360,21 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
     );
   }
 
-  // Auth check
+  // Auth check: accept any Bearer token (user JWT from supabase.functions.invoke).
+  // The service role key is used internally for DB queries that bypass RLS.
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader || !authHeader.replace(/^Bearer\s+/i, '').trim()) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+
   const serviceRoleKey = deps.getServiceRoleKey();
   if (!serviceRoleKey) {
     return new Response(
-      JSON.stringify({ error: 'Unauthorized' }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } },
-    );
-  }
-
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader) {
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized' }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } },
-    );
-  }
-
-  const token = authHeader.replace(/^Bearer\s+/i, '');
-  if (token !== serviceRoleKey) {
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized' }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } },
+      JSON.stringify({ error: 'Internal error' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } },
     );
   }
 

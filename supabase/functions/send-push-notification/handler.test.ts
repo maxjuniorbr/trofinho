@@ -724,7 +724,7 @@ describe('Property 6: Message template correctness', () => {
     tarefa_aprovada: { title: 'Tarefa aprovada ✅', route: '/(child)/tasks' },
     tarefa_rejeitada: { title: 'Tarefa rejeitada', route: '/(child)/tasks' },
     resgate_confirmado: { title: 'Resgate confirmado 🎉', route: '/(child)/redemptions' },
-    resgate_solicitado: { title: 'Resgate solicitado', route: '/(admin)/tasks' },
+    resgate_solicitado: { title: 'Resgate solicitado', route: '/(admin)/redemptions' },
     tarefa_concluida: { title: 'Tarefa concluída', route: '/(admin)/tasks' },
   };
 
