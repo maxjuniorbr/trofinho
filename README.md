@@ -6,9 +6,9 @@ Aplicativo mobile de educação financeira familiar. Um adulto administra a fam�
 
 | Camada | Tecnologia |
 | --- | --- |
-| App mobile | React Native 0.81 |
-| Runtime | Expo SDK 54 |
-| Navegação | Expo Router v4 |
+| App mobile | React Native 0.83 |
+| Runtime | Expo SDK 55 |
+| Navegação | Expo Router v6 |
 | Linguagem | TypeScript em `strict` |
 | Backend | Supabase (`Auth`, Postgres, Storage, RLS) |
 | Testes | Vitest |
@@ -22,7 +22,7 @@ Aplicativo mobile de educação financeira familiar. Um adulto administra a fam�
 | SonarCloud | Análise contínua de qualidade de código: cobertura, dívida técnica e inspeção estática |
 | Sentry | Monitoramento de erros, logs operacionais e navegação em produção, com suporte a source maps nos builds |
 | EAS Build | Geração de builds Android e iOS via Expo Application Services |
-| Expo Go | Testes locais rápidos em dispositivos físicos durante o desenvolvimento |
+| Development Build | Testes locais em dispositivos físicos com hot reload e suporte completo a plugins nativos |
 | Jules | Revisão automatizada de código com IA para monitoramento de qualidade e consistência |
 
 ## Estado atual do produto
@@ -101,9 +101,9 @@ Regra obrigatória: não criar cor, fonte, espaçamento, radius ou sombra direta
 
 ### Pré-requisitos
 
-- Node.js 18+
+- Node.js 20+ (recomendado: 22 LTS)
 - npm
-- Expo Go, simulador/emulador, ou development build quando precisar validar notificações push no Android
+- Development build para testes em dispositivo físico (gerado via EAS ou `npx expo run:android`)
 - Docker, se for usar o Supabase local
 
 ### Setup do repositório
@@ -177,20 +177,20 @@ npm run web
 npm run tunnel
 ```
 
-Observação: no Android, o Expo Go continua útil para navegação e validação visual. Para testar registro de token e push remoto com `expo-notifications`, use um development build.
+Observação: o projeto usa development build (`expo-dev-client`) para testes em dispositivo. Gere o APK com o perfil `development` do `eas.json` e instale no celular. Depois, `npm run tunnel` conecta o dev server ao app.
 
 ## Build
 
-**Desenvolvimento** — use o Expo Go para iteração rápida no dia a dia quando o foco não for push remoto no Android:
-
-```bash
-npm start
-```
-
-Para validar push remoto no Android, gere um development build com o perfil `development` do `eas.json`:
+**Desenvolvimento** — gere um development build para iteração no dispositivo:
 
 ```bash
 npx eas-cli@latest build --profile development --platform android
+```
+
+Depois de instalar o APK, inicie o dev server:
+
+```bash
+npm run tunnel
 ```
 
 **Distribuição interna (Android)** — gera um APK via EAS e disponibiliza um link/QR code para instalação direta, sem passar pela Play Store:
