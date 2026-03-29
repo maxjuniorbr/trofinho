@@ -26,8 +26,7 @@ import {
   setNotificationPrefs,
   type NotificationPrefs,
 } from '@lib/notifications';
-import { useProfile, useCurrentAuthUser, useNotificationPrefs } from '@/hooks/queries';
-import { combineQueryStates } from '@/hooks/queries';
+import { useProfile, useCurrentAuthUser, useNotificationPrefs, combineQueryStates } from '@/hooks/queries';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -45,7 +44,7 @@ export default function ProfileScreen() {
 
   const [localAvatarUri, setLocalAvatarUri] = useState<string | null>(null);
   const [localName, setLocalName] = useState<string | null>(null);
-  const [notificationPreferences, setNotificationPreferencesState] = useState<NotificationPrefs | null>(null);
+  const [notificationPreferences, setNotificationPreferences] = useState<NotificationPrefs | null>(null);
   const [notificationPreferencesError, setNotificationPreferencesError] = useState<string | null>(null);
   const [savingNotificationPreferences, setSavingNotificationPreferences] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -63,7 +62,7 @@ export default function ProfileScreen() {
   const handleNotificationPreferencesChange = async (next: NotificationPrefs) => {
     const previous = effectivePrefs;
 
-    setNotificationPreferencesState(next);
+    setNotificationPreferences(next);
     setNotificationPreferencesError(null);
     setSavingNotificationPreferences(true);
 
@@ -71,7 +70,7 @@ export default function ProfileScreen() {
       await setNotificationPrefs(next);
     } catch (e) {
       captureException(e);
-      setNotificationPreferencesState(previous);
+      setNotificationPreferences(previous);
       setNotificationPreferencesError('Não foi possível salvar as preferências agora.');
     } finally {
       setSavingNotificationPreferences(false);

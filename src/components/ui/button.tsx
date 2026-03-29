@@ -95,7 +95,7 @@ export function Button({
   const borderColor = () => {
     switch (variant) {
       case 'secondary': return colors.border.default;
-      case 'outline':   return withAlpha(colors.brand.vivid, 0.30);
+      case 'outline':   return withAlpha(colors.brand.vivid, 0.3);
       default:          return 'transparent';
     }
   };

@@ -18,7 +18,6 @@ import {
   CheckCircle2,
 } from 'lucide-react-native';
 import { getAssignmentPoints, type ChildAssignment } from '@lib/tasks';
-import { captureException } from '@lib/sentry';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
 import { useChildAssignment, useCompleteAssignment, useProfile } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';

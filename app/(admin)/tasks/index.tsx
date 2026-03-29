@@ -3,7 +3,7 @@ import { SegmentedBar, type SegmentOption } from '@/components/ui/segmented-bar'
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Plus, RefreshCw } from 'lucide-react-native';
 import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -22,7 +22,6 @@ import {
   type TaskListItem,
 } from '@lib/tasks';
 import { formatDate } from '@lib/utils';
-import { useFocusEffect } from 'expo-router';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';

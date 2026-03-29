@@ -45,7 +45,7 @@ export default function LoginScreen() {
     setLoading(true);
     const { error: signInError } = await signIn(email.trim(), password);
 
-    if (signInError) { setLoading(false); setError(signInError.message); return; }
+    if (signInError) { setLoading(false); setError(signInError.message); }
 
     // Navigation is handled by the root layout auth state handler.
     // Keep the button in loading state until the redirect happens.

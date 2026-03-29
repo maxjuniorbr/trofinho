@@ -34,7 +34,7 @@ import * as rq from '@tanstack/react-query';
 
 type CapturedStore = { options: Record<string, unknown>[] };
 const getCapturedQuery = () => (rq as unknown as { _capturedQuery: CapturedStore })._capturedQuery;
-const lastQueryOpts = () => { const o = getCapturedQuery().options; return o[o.length - 1]; };
+const lastQueryOpts = () => { const o = getCapturedQuery().options; return o.at(-1)!; };
 
 beforeEach(() => {
   getCapturedQuery().options = [];

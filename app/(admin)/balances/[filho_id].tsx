@@ -41,7 +41,7 @@ export default function ChildBalanceAdminScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const balanceQuery = useBalance(filho_id);
-  const transactionsQuery = useTransactions(filho_id!);
+  const transactionsQuery = useTransactions(filho_id);
   const { isLoading, isFetching, refetchAll } = combineQueryStates(balanceQuery, transactionsQuery);
 
   const balance = balanceQuery.data ?? null;
