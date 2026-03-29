@@ -34,10 +34,13 @@ function createMockSupabase(overrides?: {
   deleteResult?: { error: unknown };
   selectUsuariosResult?: { data: Record<string, unknown>[] | null; error: unknown };
   selectTokensResult?: { data: Record<string, unknown>[] | null; error: unknown };
+  callerFamiliaId?: string;
 }) {
   const deleteMock = vi.fn().mockReturnValue({
     in: vi.fn().mockResolvedValue({ error: overrides?.deleteResult?.error ?? null }),
   });
+
+  const callerFamiliaId = overrides?.callerFamiliaId ?? 'fam-1';
 
   const fromMock = vi.fn().mockImplementation((table: string) => {
     if (table === 'push_tokens') {
@@ -51,13 +54,17 @@ function createMockSupabase(overrides?: {
         delete: deleteMock,
       };
     }
-    // usuarios table
+    // usuarios table — first .eq() is both thenable (for family validation)
+    // and chainable (for resolveRecipientUserIds double .eq())
     return {
       select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue(
-            overrides?.selectUsuariosResult ?? { data: [{ id: 'user-1' }], error: null },
-          ),
+        eq: vi.fn().mockImplementation(() => {
+          const secondEqResult = overrides?.selectUsuariosResult ?? { data: [{ id: 'user-1' }], error: null };
+          const firstEqResult = { data: [{ familia_id: callerFamiliaId }], error: null };
+          return {
+            eq: vi.fn().mockResolvedValue(secondEqResult),
+            then: (resolve: (v: unknown) => void) => Promise.resolve(firstEqResult).then(resolve),
+          };
         }),
         in: vi.fn().mockResolvedValue(
           overrides?.selectUsuariosResult ?? {
@@ -219,6 +226,8 @@ describe('processTicketResults', () => {
 
 describe('handleRequest — Expo Push API integration', () => {
   const SERVICE_KEY = 'test-service-role-key';
+  // Fake JWT with sub: 'user-1' for family validation
+  const FAKE_JWT = `eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.${btoa(JSON.stringify({ sub: 'user-1' }))}.fake-signature`;
 
   const makeDeps = (supabase: SupabaseClientLike): HandlerDeps => ({
     getServiceRoleKey: () => SERVICE_KEY,
@@ -231,7 +240,7 @@ describe('handleRequest — Expo Push API integration', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${SERVICE_KEY}`,
+        Authorization: `Bearer ${FAKE_JWT}`,
       },
       body: JSON.stringify(body),
     });
@@ -334,12 +343,28 @@ describe('handleRequest — Expo Push API integration', () => {
     expect(res.status).toBe(500);
     expect(json.error).toBe('Internal error');
   });
+
+  it('returns HTTP 403 when caller familiaId does not match request familiaId', async () => {
+    const supabase = createMockSupabase({ callerFamiliaId: 'fam-other' });
+
+    const req = makeReq({
+      event: 'tarefa_aprovada',
+      familiaId: 'fam-1',
+      payload: { userId: 'user-1', taskTitle: 'Test' },
+    });
+
+    const res = await handleRequest(req, makeDeps(supabase));
+    const json = await res.json() as { error: string };
+
+    expect(res.status).toBe(403);
+    expect(json.error).toBe('Forbidden');
+  });
 });
 
 // ─── Property Tests ──────────────────────────────────────────────────────────
 
 import fc from 'fast-check';
-import { isPreferenceEnabled, getPreferenceKey, resolveRecipientUserIds, type NotificationPrefs, type PushEvent } from './handler';
+import { isPreferenceEnabled, getPreferenceKey, resolveRecipientUserIds, extractUserIdFromJwt, type NotificationPrefs, type PushEvent } from './handler';
 
 /**
  * Feature: push-notifications, Property 1: Preference defaults resolve to all-enabled

@@ -355,6 +355,21 @@ export interface HandlerDeps {
   createSupabaseClient: (url: string, key: string) => SupabaseClientLike;
 }
 
+/**
+ * Extracts the user ID from a Supabase JWT (base64url-encoded payload).
+ * Returns null if the token is malformed or missing the `sub` claim.
+ */
+export function extractUserIdFromJwt(token: string): string | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return typeof payload.sub === 'string' ? payload.sub : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Response> {
   if (req.method !== 'POST') {
     return new Response(
@@ -404,6 +419,37 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
   const { event, familiaId, payload } = validation.data;
 
   const supabase = deps.createSupabaseClient(deps.getSupabaseUrl(), serviceRoleKey);
+
+  // Verify the caller belongs to the requested family.
+  // Prevents authenticated users from sending push to other families.
+  const userToken = authHeader.replace(/^Bearer\s+/i, '');
+  const callerId = extractUserIdFromJwt(userToken);
+  if (!callerId) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const { data: callerRows, error: callerError } = await supabase
+    .from('usuarios')
+    .select('familia_id')
+    .eq('id', callerId);
+
+  if (callerError || !callerRows || callerRows.length === 0) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const callerFamiliaId = callerRows[0].familia_id as string;
+  if (callerFamiliaId !== familiaId) {
+    return new Response(
+      JSON.stringify({ error: 'Forbidden' }),
+      { status: 403, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
 
   try {
     const tokens = await resolveTokens(supabase, event, familiaId, payload);
