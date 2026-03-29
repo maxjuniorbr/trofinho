@@ -201,6 +201,12 @@ function RootNavigator({
     if (inAuth) {
       router.replace(profile.papel === 'admin' ? '/(admin)/' : '/(child)/');
     }
+
+    // Also redirect when still on the blank index route (initial load).
+    const inApp = segments[0] === '(admin)' || segments[0] === '(child)';
+    if (!inAuth && !inApp) {
+      router.replace(profile.papel === 'admin' ? '/(admin)/' : '/(child)/');
+    }
   }, [ready, profile, router, segments]);
 
   useEffect(() => {
@@ -236,7 +242,7 @@ function RootNavigator({
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg.canvas } }}>
+    <Stack screenOptions={{ headerShown: false, animation: 'none', contentStyle: { backgroundColor: colors.bg.canvas } }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(admin)" />
