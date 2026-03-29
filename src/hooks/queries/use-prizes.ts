@@ -11,7 +11,7 @@ import {
   type PrizeInput,
   type UpdatePrizeInput,
 } from '../../../lib/prizes';
-import { queryFnAdapter } from './query-fn-adapter';
+import { queryFnAdapter, mutationFnAdapter } from './query-fn-adapter';
 import { queryKeys, STALE_TIMES } from './query-keys';
 
 export const usePrizes = () =>
@@ -46,14 +46,8 @@ export const usePendingRedemptionCount = () =>
 export const useCreatePrize = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: PrizeInput) => {
-      const fn = async () => {
-        const result = await createPrize(input);
-        if (result.error) return { error: result.error };
-        return { error: null };
-      };
-      return fn().then((r) => { if (r.error) throw new Error(r.error); });
-    },
+    mutationFn: (input: PrizeInput) =>
+      mutationFnAdapter(() => createPrize(input))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.prizes.all });
     },
@@ -94,10 +88,8 @@ export const useDeactivatePrize = () => {
 export const useReactivatePrize = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const result = await reactivatePrize(id);
-      if (result.error) throw new Error(result.error);
-    },
+    mutationFn: (id: string) =>
+      mutationFnAdapter(() => reactivatePrize(id))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.prizes.all });
     },
