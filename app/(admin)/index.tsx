@@ -22,7 +22,6 @@ import {
 import { syncAutomaticAppreciation } from '@lib/balances';
 import { getGreeting } from '@lib/utils';
 import { isNotificationPermissionDenied } from '@lib/notifications';
-import { captureException } from '@lib/sentry';
 import {
   useProfile,
   useFamily,
@@ -148,7 +147,7 @@ export default function AdminHomeScreen() {
       const denied = await isNotificationPermissionDenied();
       setShowNotificationBanner(denied);
     } catch (e) {
-      captureException(e);
+      console.error(e);
     } finally {
       setRefreshing(false);
     }
@@ -163,7 +162,7 @@ export default function AdminHomeScreen() {
   }
 
   if (error) {
-    captureException(error);
+    console.error(error);
   }
 
   const totalPoints = Array.from(balancesMap.values()).reduce((acc, s) => acc + s.saldo_livre + s.cofrinho, 0);

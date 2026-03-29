@@ -19,7 +19,6 @@ const deviceStorageSetMock = vi.hoisted(() => vi.fn());
 const getUserMock = vi.hoisted(() => vi.fn());
 const updateMock = vi.hoisted(() => vi.fn());
 const selectMock = vi.hoisted(() => vi.fn());
-const captureExceptionMock = vi.hoisted(() => vi.fn());
 
 vi.mock('react-native', () => ({
   Platform: { OS: 'ios' },
@@ -67,10 +66,6 @@ vi.mock('./supabase', () => ({
   },
 }));
 
-vi.mock('./sentry', () => ({
-  captureException: captureExceptionMock,
-}));
-
 describe('notifications', () => {
   beforeEach(() => {
     deviceStorageGetMock.mockReset();
@@ -80,7 +75,6 @@ describe('notifications', () => {
     getUserMock.mockReset();
     updateMock.mockReset();
     selectMock.mockReset();
-    captureExceptionMock.mockReset();
   });
 
   describe('getNotificationRoute', () => {
@@ -325,7 +319,7 @@ describe('syncPrefsToServer', () => {
     updateMock.mockReset();
     selectMock.mockReset();
     deviceStorageSetMock.mockReset();
-    captureExceptionMock.mockReset();
+    vi.restoreAllMocks();
   });
 
   it('calls supabase update when user is authenticated', async () => {
@@ -346,12 +340,14 @@ describe('syncPrefsToServer', () => {
     expect(updateMock).not.toHaveBeenCalled();
   });
 
-  it('catches errors and calls captureException', async () => {
+  it('catches errors and logs via console.error', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const error = new Error('network failure');
     getUserMock.mockRejectedValue(error);
 
     await expect(syncPrefsToServer(prefs)).resolves.toBeUndefined();
-    expect(captureExceptionMock).toHaveBeenCalledWith(error);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+    consoleErrorSpy.mockRestore();
   });
 });
 
@@ -363,7 +359,7 @@ describe('syncPrefsFromServer', () => {
     updateMock.mockReset();
     selectMock.mockReset();
     deviceStorageSetMock.mockReset();
-    captureExceptionMock.mockReset();
+    vi.restoreAllMocks();
   });
 
   it('overwrites local storage with server prefs', async () => {
@@ -396,12 +392,14 @@ describe('syncPrefsFromServer', () => {
     expect(deviceStorageSetMock).not.toHaveBeenCalled();
   });
 
-  it('catches errors and calls captureException', async () => {
+  it('catches errors and logs via console.error', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const error = new Error('network failure');
     getUserMock.mockRejectedValue(error);
 
     await expect(syncPrefsFromServer()).resolves.toBeUndefined();
-    expect(captureExceptionMock).toHaveBeenCalledWith(error);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+    consoleErrorSpy.mockRestore();
   });
 
   it('does nothing when server returns error', async () => {

@@ -1,28 +1,23 @@
-// Feature: ux-polish-fase4a, Property 3: RouteErrorFallback reporta qualquer erro ao Sentry
+// Feature: ux-polish-fase4a, Property 3: RouteErrorFallback logs errors via console.error
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { Pressable, Text } from 'react-native';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as fc from 'fast-check';
 
-const captureExceptionMock = vi.hoisted(() => vi.fn());
-
-vi.mock('@sentry/react-native', () => ({
-  captureException: captureExceptionMock,
-}));
-
 import { ErrorBoundary } from './route-error-fallback';
 
 describe('RouteErrorFallback', () => {
   beforeEach(() => {
-    captureExceptionMock.mockReset();
+    vi.restoreAllMocks();
   });
 
   // **Validates: Requirements 3.6**
-  it('P3: for any Error, captureException is called exactly once with that error on mount', () => {
+  it('P3: for any Error, console.error is called with that error on mount', () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     fc.assert(
       fc.property(fc.string({ minLength: 1 }), (message) => {
-        captureExceptionMock.mockReset();
+        consoleErrorSpy.mockClear();
         const error = new Error(message);
         const retry = vi.fn();
 
@@ -30,15 +25,16 @@ describe('RouteErrorFallback', () => {
           create(<ErrorBoundary error={error} retry={retry} />);
         });
 
-        expect(captureExceptionMock).toHaveBeenCalledTimes(1);
-        expect(captureExceptionMock).toHaveBeenCalledWith(error);
+        expect(consoleErrorSpy).toHaveBeenCalledWith(error);
       }),
       { numRuns: 100 },
     );
+    consoleErrorSpy.mockRestore();
   });
 
   // **Validates: Requirements 3.3, 3.4**
   it('renders error message "Algo deu errado." and "Voltar ao início" button', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const error = new Error('test error');
     const retry = vi.fn();
     let renderer!: ReactTestRenderer;
@@ -54,6 +50,7 @@ describe('RouteErrorFallback', () => {
 
   // **Validates: Requirements 3.5**
   it('calls retry() when "Voltar ao início" button is pressed', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const error = new Error('test error');
     const retry = vi.fn();
     let renderer!: ReactTestRenderer;
@@ -73,6 +70,7 @@ describe('RouteErrorFallback', () => {
 
   // **Validates: Requirements 3.7**
   it('has accessibilityLabel="Voltar ao início" on the button', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const error = new Error('test error');
     const retry = vi.fn();
     let renderer!: ReactTestRenderer;

@@ -1,5 +1,4 @@
 import { localizeRpcError } from './api-error';
-import { captureException } from '@lib/sentry';
 import { supabase } from './supabase';
 
 export type TransactionType =
@@ -157,7 +156,7 @@ export async function syncAutomaticAppreciation(childId?: string): Promise<void>
       ? await supabase.rpc('sincronizar_valorizacoes_automaticas', args)
       : await supabase.rpc('sincronizar_valorizacoes_automaticas');
   } catch (error) {
-    captureException(error);
+    console.error(error);
     // Best-effort: sync failure must not block balance reads
   }
 }

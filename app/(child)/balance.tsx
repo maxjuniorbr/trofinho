@@ -25,7 +25,6 @@ import {
   syncAutomaticAppreciation,
 } from '@lib/balances';
 import { getMyChildId } from '@lib/children';
-import { captureException } from '@lib/sentry';
 import {
   useBalance,
   useTransactions,
@@ -80,7 +79,7 @@ export default function ChildBalanceScreen() {
       await syncAutomaticAppreciation();
       await refetchAll();
     } catch (e) {
-      captureException(e);
+      console.error(e);
     } finally {
       setRefreshing(false);
     }
@@ -112,7 +111,7 @@ export default function ChildBalanceScreen() {
   }
 
   if (error) {
-    captureException(error);
+    console.error(error);
   }
 
   const freeBalance = balance?.saldo_livre ?? 0;

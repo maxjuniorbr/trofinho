@@ -43,15 +43,7 @@
       "expo-secure-store",
       "expo-font",
       "expo-image",
-      "@react-native-community/datetimepicker",
-      [
-        "@sentry/react-native/expo",
-        {
-          "url": "https://sentry.io/",
-          "project": "trofinho",
-          "organization": "maxjuniorbrs-organization"
-        }
-      ]
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "router": {},

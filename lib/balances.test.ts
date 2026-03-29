@@ -1,12 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as fc from 'fast-check';
 
-const captureExceptionMock = vi.hoisted(() => vi.fn());
-
-vi.mock('@lib/sentry', () => ({
-  captureException: captureExceptionMock,
-}));
-
 const supabaseMock = vi.hoisted(() => ({
   from: vi.fn(),
   rpc: vi.fn(),
@@ -43,7 +37,7 @@ function createQuery(result: { data?: unknown; error?: { code?: string; message:
 
 describe('balances', () => {
   beforeEach(() => {
-    captureExceptionMock.mockReset();
+    vi.restoreAllMocks();
     supabaseMock.from.mockReset();
     supabaseMock.rpc.mockReset();
     supabaseMock.rpc.mockResolvedValue({ error: null });
@@ -187,11 +181,13 @@ describe('balances', () => {
     await expect(syncAutomaticAppreciation()).resolves.toBeUndefined();
   });
 
-  it('reports sync errors to Sentry without throwing', async () => {
+  it('reports sync errors via console.error without throwing', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const error = new Error('sync failed');
     supabaseMock.rpc.mockRejectedValue(error);
     await expect(syncAutomaticAppreciation()).resolves.toBeUndefined();
-    expect(captureExceptionMock).toHaveBeenCalledWith(error);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+    consoleErrorSpy.mockRestore();
   });
 
   describe('property tests', () => {

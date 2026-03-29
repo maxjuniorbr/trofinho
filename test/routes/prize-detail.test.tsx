@@ -124,10 +124,6 @@ vi.mock('@lib/navigation-feedback', () => ({
   setNavigationFeedback: vi.fn(),
 }));
 
-vi.mock('@lib/sentry', () => ({
-  captureException: vi.fn(),
-}));
-
 vi.mock('@/hooks/queries', () => ({
   usePrizeDetail: () => prizeDetailMock,
   useUpdatePrize: () => updatePrizeMock,
