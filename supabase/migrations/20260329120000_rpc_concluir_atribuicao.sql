@@ -10,7 +10,7 @@ RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
-AS $
+AS $$
 DECLARE
   v_caller_id UUID;
   v_filho_id UUID;
@@ -49,4 +49,4 @@ BEGIN
          concluida_em = now()
    WHERE id = p_atribuicao_id;
 END;
-$;
+$$;
