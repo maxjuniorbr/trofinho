@@ -46,7 +46,7 @@ export default function OnboardingScreen() {
     setLoading(true);
     const { error: createError } = await createFamily(familyName.trim(), adminName.trim());
 
-    if (createError) { setLoading(false); setError(localizeSupabaseError(createError.message)); return; }
+    if (createError) { setLoading(false); setError(localizeSupabaseError(createError.message)); }
 
     // Navigation is handled by the root layout auth state handler.
     // Keep the button in loading state until the redirect happens.

@@ -29,8 +29,7 @@ const supabaseMock = vi.hoisted(() => {
     });
   };
 
-  const rpcFn = vi.fn() as ReturnType<typeof vi.fn> & { _createResult: typeof createRpcResult };
-  rpcFn._createResult = createRpcResult;
+  const rpcFn: ReturnType<typeof vi.fn> & { _createResult: typeof createRpcResult } = Object.assign(vi.fn(), { _createResult: createRpcResult });
 
   return {
     auth: {
@@ -103,7 +102,7 @@ describe('auth', () => {
   const fetchMock = vi.fn();
 
   beforeEach(() => {
-    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = fetchMock;
 
     fileArrayBufferMock.mockReset();
     fileConstructorMock.mockClear();

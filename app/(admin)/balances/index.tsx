@@ -18,7 +18,7 @@ export default function BalancesAdminScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(), []);
 
-  const { data: balances = [], isLoading, isFetching, error, refetch } = useAdminBalances();
+  const { data: balances = [], isLoading, isFetching, refetch } = useAdminBalances();
 
   const handleRefresh = useCallback(async () => {
     try {

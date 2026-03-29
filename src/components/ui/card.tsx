@@ -17,7 +17,7 @@ export function Card({ elevated = false, noPadding = false, glow = false, style,
   if (glow) shadowStyle = isDark ? styles.glowShadowDark : styles.glowShadow;
   else if (elevated) shadowStyle = styles.elevatedShadow;
 
-  const glowBorderOpacity = isDark ? 0.30 : 0.20;
+  const glowBorderOpacity = isDark ? 0.3 : 0.2;
 
   return (
     <View

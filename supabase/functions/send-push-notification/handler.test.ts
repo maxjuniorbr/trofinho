@@ -3,11 +3,19 @@ import {
   sendToExpoPushApi,
   processTicketResults,
   handleRequest,
+  isPreferenceEnabled,
+  getPreferenceKey,
+  resolveRecipientUserIds,
+  validateRequest,
+  buildMessage,
   type SupabaseClientLike,
   type ExpoTicketResult,
   type ExpoPushMessage,
   type HandlerDeps,
   type PushNotificationResponse,
+  type NotificationPrefs,
+  type PushEvent,
+  type EventPayload,
 } from './handler';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -61,10 +69,12 @@ function createMockSupabase(overrides?: {
         eq: vi.fn().mockImplementation(() => {
           const secondEqResult = overrides?.selectUsuariosResult ?? { data: [{ id: 'user-1' }], error: null };
           const firstEqResult = { data: [{ familia_id: callerFamiliaId }], error: null };
-          return {
+          // Wrap in a real Promise so the object is a proper thenable
+          // (avoids S7739: "Do not add then to an object").
+          const promise = Promise.resolve(firstEqResult);
+          return Object.assign(promise, {
             eq: vi.fn().mockResolvedValue(secondEqResult),
-            then: (resolve: (v: unknown) => void) => Promise.resolve(firstEqResult).then(resolve),
-          };
+          });
         }),
         in: vi.fn().mockResolvedValue(
           overrides?.selectUsuariosResult ?? {
@@ -364,7 +374,6 @@ describe('handleRequest — Expo Push API integration', () => {
 // ─── Property Tests ──────────────────────────────────────────────────────────
 
 import fc from 'fast-check';
-import { isPreferenceEnabled, getPreferenceKey, resolveRecipientUserIds, extractUserIdFromJwt, type NotificationPrefs, type PushEvent } from './handler';
 
 /**
  * Feature: push-notifications, Property 1: Preference defaults resolve to all-enabled
@@ -580,8 +589,6 @@ describe('Property 2: Disabled preference prevents ticket generation', () => {
   });
 });
 
-import { validateRequest } from './handler';
-
 /**
  * Feature: push-notifications, Property 4: Request body validation
  * Validates: Requirements 2.1
@@ -755,8 +762,6 @@ describe('Property 5: Recipient resolution by event type', () => {
     );
   });
 });
-
-import { buildMessage, type EventPayload } from './handler';
 
 /**
  * Feature: push-notifications, Property 6: Message template correctness
