@@ -1,6 +1,6 @@
-const { getDefaultConfig } = require("expo/metro-config");
+const { getSentryExpoConfig } = require("@sentry/react-native/metro");
 
-const config = getDefaultConfig(__dirname);
+const config = getSentryExpoConfig(__dirname);
 
 // Exclude test files from the Metro bundler so they are never included in
 // the app bundle. Without this, .test.ts(x) files inside lib/ and src/ are
