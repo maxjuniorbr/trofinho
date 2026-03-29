@@ -3,7 +3,7 @@ import {
   StyleSheet,
   Text,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useState, useMemo } from 'react';
 import { createFamily, signOut } from '@lib/auth';
 import { localizeSupabaseError } from '@lib/api-error';
@@ -17,7 +17,6 @@ import { FormFooter } from '@/components/ui/form-footer';
 type OnboardingField = 'familyName' | 'adminName';
 
 export default function OnboardingScreen() {
-  const router = useRouter();
   const params = useLocalSearchParams<{ name?: string }>();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(), []);
@@ -46,16 +45,17 @@ export default function OnboardingScreen() {
     setError('');
     setLoading(true);
     const { error: createError } = await createFamily(familyName.trim(), adminName.trim());
-    setLoading(false);
 
-    if (createError) { setError(localizeSupabaseError(createError.message)); return; }
-    router.replace('/(admin)/');
+    if (createError) { setLoading(false); setError(localizeSupabaseError(createError.message)); return; }
+
+    // Navigation is handled by the root layout auth state handler.
+    // Keep the button in loading state until the redirect happens.
   };
 
   const handleBack = async () => {
     setLoggingOut(true);
     await signOut();
-    router.replace('/(auth)/login');
+    // Navigation is handled by the root layout auth state handler.
   };
 
   return (
