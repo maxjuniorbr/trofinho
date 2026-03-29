@@ -44,15 +44,27 @@ function AdminTaskCard({ item, colors, styles, onPress }: AdminTaskCardProps) {
   const aguardando = item.atribuicoes.filter((a) => a.status === 'aguardando_validacao').length;
   const aprovadas = item.atribuicoes.filter((a) => a.status === 'aprovada').length;
 
+  const isInactive = item.ativo === false;
+
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, shadows.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle, opacity: pressed ? 0.9 : 1 }]}
+      style={({ pressed }) => {
+        const baseOpacity = isInactive ? 0.5 : 1;
+        return [styles.card, shadows.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle, opacity: pressed ? 0.9 : baseOpacity }];
+      }}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`Ver detalhes da tarefa ${item.titulo}`}
     >
       <View style={styles.cardTopo}>
-        <Text style={[styles.cardTitulo, { color: colors.text.primary }]} numberOfLines={2}>{item.titulo}</Text>
+        <View style={styles.cardTituloRow}>
+          <Text style={[styles.cardTitulo, { color: colors.text.primary }]} numberOfLines={2}>{item.titulo}</Text>
+          {isInactive && (
+            <View style={[styles.inactiveBadge, { backgroundColor: colors.semantic.warningBg }]}>
+              <Text style={[styles.inactiveBadgeText, { color: colors.semantic.warningText }]}>Desativada</Text>
+            </View>
+          )}
+        </View>
         <View style={[styles.pontosTag, { backgroundColor: colors.brand.subtle }]}>
           <Text style={[styles.pontosTexto, { color: colors.brand.dim }]}>{item.pontos} pts</Text>
         </View>
@@ -167,7 +179,10 @@ function makeStyles(colors: ThemeColors) {
     lista: { padding: spacing['4'], paddingBottom: spacing['12'] },
     card: { borderRadius: radii.xl, borderWidth: 1, padding: spacing['4'], marginBottom: spacing['3'] },
     cardTopo: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing['2'] },
-    cardTitulo: { flex: 1, fontSize: typography.size.md, fontFamily: typography.family.semibold, marginRight: spacing['2'] },
+    cardTituloRow: { flex: 1, marginRight: spacing['2'], gap: spacing['1'] },
+    cardTitulo: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
+    inactiveBadge: { borderRadius: radii.sm, paddingVertical: spacing['0.5'], paddingHorizontal: spacing['2'], alignSelf: 'flex-start' },
+    inactiveBadgeText: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
     pontosTag: { borderRadius: radii.full, paddingHorizontal: spacing['2'], paddingVertical: spacing['1'] },
     pontosTexto: { fontSize: typography.size.xs, fontFamily: typography.family.bold },
     freqRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'], marginBottom: spacing['2'] },

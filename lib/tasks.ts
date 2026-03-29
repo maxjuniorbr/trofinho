@@ -11,6 +11,7 @@ export type Child = {
   nome: string;
   usuario_id: string | null;
   avatar_url?: string | null;
+  ativo: boolean;
 };
 
 export type TaskFrequencia = 'diaria' | 'unica';
@@ -25,6 +26,7 @@ export type Task = {
   exige_evidencia: boolean;
   criado_por: string;
   created_at: string;
+  ativo: boolean;
 };
 
 export type AssignmentStatus =
@@ -54,6 +56,7 @@ export type TaskListItem = {
   pontos: number;
   frequencia: TaskFrequencia;
   created_at: string;
+  ativo: boolean;
   atribuicoes: { status: AssignmentStatus }[];
 };
 
@@ -310,8 +313,17 @@ export async function completeAssignment(
 }
 
 export function getTaskEditState(
-  task: Pick<TaskDetail, 'atribuicoes' | 'frequencia'>,
+  task: Pick<TaskDetail, 'atribuicoes' | 'frequencia' | 'ativo'>,
 ): TaskEditState {
+  if (task.ativo === false) {
+    return {
+      canEdit: false,
+      canEditPoints: false,
+      errorMessage: 'Esta tarefa está desativada e não pode ser editada.',
+      infoMessage: null,
+    };
+  }
+
   if (task.frequencia === 'diaria') {
     return {
       canEdit: true,
@@ -348,6 +360,53 @@ export function getAssignmentPoints(
   assignment: Pick<Assignment, 'pontos_snapshot'>,
 ): number {
   return assignment.pontos_snapshot;
+}
+
+export async function deactivateTask(taskId: string): Promise<{
+  data: { pendingValidationCount: number } | null;
+  error: string | null;
+}> {
+  const { data, error } = await supabase.rpc('desativar_tarefa', {
+    p_tarefa_id: taskId,
+  });
+  if (error) return { data: null, error: localizeRpcError(error.message) };
+  return { data: { pendingValidationCount: data as number ?? 0 }, error: null };
+}
+
+export async function reactivateTask(taskId: string): Promise<{
+  error: string | null;
+}> {
+  const { error } = await supabase.rpc('reativar_tarefa', {
+    p_tarefa_id: taskId,
+  });
+  if (error) return { error: localizeRpcError(error.message) };
+  return { error: null };
+}
+
+export function buildTaskDeactivateMessage(
+  task: Pick<Task, 'frequencia'>,
+  assignments: { status: AssignmentStatus }[],
+): string {
+  const parts: string[] = [];
+
+  const pendingCount = assignments.filter(a => a.status === 'pendente').length;
+  const awaitingCount = assignments.filter(a => a.status === 'aguardando_validacao').length;
+
+  if (pendingCount > 0) {
+    parts.push(`${pendingCount} atribuição(ões) pendente(s) será(ão) cancelada(s).`);
+  }
+
+  if (task.frequencia === 'diaria') {
+    parts.push('Novas atribuições diárias não serão mais geradas.');
+  }
+
+  if (awaitingCount > 0) {
+    parts.push(`${awaitingCount} atribuição(ões) aguardando validação será(ão) mantida(s).`);
+  }
+
+  return parts.length > 0
+    ? parts.join('\n')
+    : 'Esta tarefa será desativada.';
 }
 
 async function uploadEvidence(

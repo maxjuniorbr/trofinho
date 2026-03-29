@@ -31,6 +31,16 @@ const taskDetailMock = vi.hoisted(() => ({
   refetch: vi.fn(),
 }));
 
+const deactivateMutationMock = vi.hoisted(() => ({
+  mutate: vi.fn(),
+  isPending: false,
+}));
+
+const reactivateMutationMock = vi.hoisted(() => ({
+  mutate: vi.fn(),
+  isPending: false,
+}));
+
 const createHostComponent = vi.hoisted(() => {
   return (name: string) =>
     React.forwardRef(function HostComponent(
@@ -70,6 +80,7 @@ vi.mock('expo-router', () => ({
 
 vi.mock('@lib/tasks', () => ({
   getTaskEditState: () => ({ canEdit: false }),
+  buildTaskDeactivateMessage: () => 'Esta tarefa será desativada.',
 }));
 
 vi.mock('@/constants/status', () => ({
@@ -86,6 +97,8 @@ vi.mock('@/hooks/queries', () => ({
   useTaskDetail: () => taskDetailMock,
   useApproveAssignment: () => approveMutationMock,
   useRejectAssignment: () => rejectMutationMock,
+  useDeactivateTask: () => deactivateMutationMock,
+  useReactivateTask: () => reactivateMutationMock,
 }));
 
 vi.mock('@/components/ui/screen-header', () => ({
@@ -109,6 +122,15 @@ vi.mock('@lib/safe-area', () => ({
   getSafeBottomPadding: () => 24,
 }));
 
+vi.mock('@/hooks/use-transient-message', () => ({
+  useTransientMessage: () => null,
+}));
+
+vi.mock('@/components/ui/button', () => ({
+  Button: (props: Record<string, unknown>) =>
+    React.createElement('Button', props),
+}));
+
 import TaskDetailAdminScreen from '../../app/(admin)/tasks/[id]';
 
 function render(element: React.ReactElement) {
@@ -127,6 +149,7 @@ function makeTask(assignmentId: string) {
     pontos: 10,
     frequencia: 'unica',
     exige_evidencia: false,
+    ativo: true,
     atribuicoes: [
       {
         id: assignmentId,

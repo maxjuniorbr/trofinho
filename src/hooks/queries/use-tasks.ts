@@ -10,6 +10,8 @@ import {
   approveAssignment,
   rejectAssignment,
   completeAssignment,
+  deactivateTask,
+  reactivateTask,
   type NewTaskInput,
   type UpdateTaskInput,
 } from '../../../lib/tasks';
@@ -114,6 +116,31 @@ export const useCompleteAssignment = () => {
       opts?: { familiaId: string; childName: string; taskTitle: string };
     }) =>
       mutationFnAdapter(() => completeAssignment(assignmentId, imageUri, opts))(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+    },
+  });
+};
+
+export const useDeactivateTask = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (taskId: string) => {
+      const result = await deactivateTask(taskId);
+      if (result.error) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+    },
+  });
+};
+
+export const useReactivateTask = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (taskId: string) =>
+      mutationFnAdapter(() => reactivateTask(taskId))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
     },

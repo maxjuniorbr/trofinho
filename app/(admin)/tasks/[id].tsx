@@ -16,14 +16,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RefreshCw, Camera, Pencil } from 'lucide-react-native';
 import {
   getTaskEditState,
+  buildTaskDeactivateMessage,
   type AssignmentWithChild,
 } from '@lib/tasks';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
 import { formatDate, toDateString } from '@lib/utils';
-import { useTaskDetail, useApproveAssignment, useRejectAssignment } from '@/hooks/queries';
+import { useTaskDetail, useApproveAssignment, useRejectAssignment, useDeactivateTask, useReactivateTask } from '@/hooks/queries';
+import { useTransientMessage } from '@/hooks/use-transient-message';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
+import { Button } from '@/components/ui/button';
 import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { InlineMessage } from '@/components/ui/inline-message';
@@ -223,12 +226,18 @@ export default function TaskDetailAdminScreen() {
   const { data: task, isLoading, error, refetch } = useTaskDetail(id);
   const approveMutation = useApproveAssignment();
   const rejectMutation = useRejectAssignment();
+  const deactivateMutation = useDeactivateTask();
+  const reactivateMutation = useReactivateTask();
 
   const [showUpdatedMessage, setShowUpdatedMessage] = useState(updated === '1');
   const [actions, setActions] = useState<Record<string, 'rejecting' | 'processing' | null>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [imgStates, setImgStates] = useState<Record<string, 'loading' | 'loaded' | 'error'>>({});
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [feedbackVariant, setFeedbackVariant] = useState<'success' | 'warning'>('success');
+  const [feedbackKey, setFeedbackKey] = useState(0);
+  const visibleFeedback = useTransientMessage(feedbackMessage, { resetKey: feedbackKey });
 
   const getAction = useCallback((assignmentId: string) => actions[assignmentId] ?? null, [actions]);
   const getNote = useCallback((assignmentId: string) => notes[assignmentId] ?? '', [notes]);
@@ -286,6 +295,66 @@ export default function TaskDetailAdminScreen() {
       },
     });
   }, [notes, rejectMutation, task]);
+
+  const handleDeactivate = useCallback(() => {
+    if (!task) return;
+    const message = buildTaskDeactivateMessage(task, task.atribuicoes);
+    Alert.alert('Desativar tarefa?', message, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Desativar',
+        style: 'destructive',
+        onPress: () => {
+          deactivateMutation.mutate(task.id, {
+            onSuccess: (data) => {
+              const count = data?.pendingValidationCount ?? 0;
+              if (count > 0) {
+                setFeedbackMessage(`Tarefa desativada. ${count} atribuições ainda aguardam validação.`);
+                setFeedbackVariant('warning');
+              } else {
+                setFeedbackMessage('Tarefa desativada com sucesso.');
+                setFeedbackVariant('success');
+              }
+              setFeedbackKey((k) => k + 1);
+            },
+            onError: (err) => {
+              setFeedbackMessage(err.message);
+              setFeedbackVariant('warning');
+              setFeedbackKey((k) => k + 1);
+            },
+          });
+        },
+      },
+    ]);
+  }, [task, deactivateMutation]);
+
+  const handleReactivate = useCallback(() => {
+    if (!task) return;
+    Alert.alert(
+      'Reativar tarefa?',
+      'A tarefa voltará a aparecer para os filhos e gerar atribuições diárias (se aplicável).',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Reativar',
+          onPress: () => {
+            reactivateMutation.mutate(task.id, {
+              onSuccess: () => {
+                setFeedbackMessage('Tarefa reativada com sucesso.');
+                setFeedbackVariant('success');
+                setFeedbackKey((k) => k + 1);
+              },
+              onError: (err) => {
+                setFeedbackMessage(err.message);
+                setFeedbackVariant('warning');
+                setFeedbackKey((k) => k + 1);
+              },
+            });
+          },
+        },
+      ],
+    );
+  }, [task, reactivateMutation]);
 
   useEffect(() => {
     if (updated === '1') {
@@ -354,11 +423,31 @@ export default function TaskDetailAdminScreen() {
           { paddingBottom: getSafeBottomPadding(insets, spacing['12']) },
         ]}
       >
+        {visibleFeedback ? (
+          <View style={styles.feedbackWrapper}>
+            <InlineMessage message={visibleFeedback} variant={feedbackVariant} />
+          </View>
+        ) : null}
+
         {showUpdatedMessage ? (
           <View style={styles.feedbackWrapper}>
             <InlineMessage message="Tarefa atualizada com sucesso." variant="success" />
           </View>
         ) : null}
+
+        {!task.ativo && (
+          <View style={styles.deactivatedSection}>
+            <InlineMessage message="Esta tarefa está desativada." variant="warning" />
+            <Button
+              variant="outline"
+              label="Reativar tarefa"
+              onPress={handleReactivate}
+              loading={reactivateMutation.isPending}
+              loadingLabel="Reativando…"
+              accessibilityLabel="Reativar tarefa"
+            />
+          </View>
+        )}
 
         <View style={styles.card}>
           <View style={styles.cardTopo}>
@@ -412,6 +501,19 @@ export default function TaskDetailAdminScreen() {
             />
           ))
         )}
+
+        {task.ativo && (
+          <View style={styles.deactivateSection}>
+            <Button
+              variant="danger"
+              label="Desativar tarefa"
+              onPress={handleDeactivate}
+              loading={deactivateMutation.isPending}
+              loadingLabel="Desativando…"
+              accessibilityLabel="Desativar tarefa"
+            />
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -424,6 +526,13 @@ function makeStyles(colors: ThemeColors) {
     scrollContent: { padding: spacing['4'], paddingBottom: spacing['12'] },
     feedbackWrapper: {
       marginBottom: spacing['4'],
+    },
+    deactivatedSection: {
+      gap: spacing['3'],
+      marginBottom: spacing['4'],
+    },
+    deactivateSection: {
+      marginTop: spacing['2'],
     },
     card: {
       backgroundColor: colors.bg.surface,
