@@ -363,7 +363,7 @@ export function extractUserIdFromJwt(token: string): string | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
-    const payload = JSON.parse(atob(parts[1].replaceAll(/-/g, '+').replaceAll(/_/g, '/')));
+    const payload = JSON.parse(atob(parts[1].replaceAll('-', '+').replaceAll('_', '/')));
     return typeof payload.sub === 'string' ? payload.sub : null;
   } catch {
     return null;
