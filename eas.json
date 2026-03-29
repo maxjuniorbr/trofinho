@@ -9,10 +9,7 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal",
-      "env": {
-        "EAS_BUILD_DISABLE_EAGER_BUNDLE": "1"
-      }
+      "distribution": "internal"
     },
     "production": {
       "autoIncrement": true
