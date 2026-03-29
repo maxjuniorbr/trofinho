@@ -22,6 +22,7 @@ import {
 } from '@lib/balances';
 import { captureException } from '@lib/sentry';
 import { useBalance, useTransactions, useApplyPenalty, useConfigureAppreciation, combineQueryStates } from '@/hooks/queries';
+import { useTransientMessage } from '@/hooks/use-transient-message';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -31,6 +32,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { PenaltyModal, PenaltyButton } from '@/components/balance/penalty-modal';
 import { AppreciationModal } from '@/components/balance/appreciation-modal';
 import { TransactionIcon } from '@/components/balance/transaction-icon';
+import { InlineMessage } from '@/components/ui/inline-message';
 
 type ModalType = 'penalizar' | 'valorizacao_config' | null;
 
@@ -48,6 +50,8 @@ export default function ChildBalanceAdminScreen() {
   const transactions = transactionsQuery.data ?? [];
 
   const [modalType, setModalType] = useState<ModalType>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const visibleSuccess = useTransientMessage(successMessage);
 
   const penaltyMutation = useApplyPenalty();
   const configureMutation = useConfigureAppreciation();
@@ -69,6 +73,7 @@ export default function ChildBalanceAdminScreen() {
       if (result && result.deducted < amount) {
         return { error: null, warning: `Saldo insuficiente. Apenas ${result.deducted} pts foram debitados.` };
       }
+      setSuccessMessage('Penalidade aplicada com sucesso.');
       return { error: null };
     } catch (e) {
       return { error: e instanceof Error ? e.message : 'Erro ao aplicar penalidade.' };
@@ -80,6 +85,7 @@ export default function ChildBalanceAdminScreen() {
     try {
       await configureMutation.mutateAsync({ childId: filho_id, rate, period });
       setModalType(null);
+      setSuccessMessage('Valorização configurada com sucesso.');
       return { error: null };
     } catch (e) {
       return { error: e instanceof Error ? e.message : 'Erro ao configurar valorização.' };
@@ -121,6 +127,11 @@ export default function ChildBalanceAdminScreen() {
         refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
         ListHeaderComponent={
           <>
+            {visibleSuccess ? (
+              <View style={{ marginBottom: spacing['3'] }}>
+                <InlineMessage message={visibleSuccess} variant="success" />
+              </View>
+            ) : null}
             <View style={styles.cardsRow}>
               <View style={[styles.saldoCard, { backgroundColor: colors.accent.adminDim }]}>
                 <View style={styles.saldoLabelRow}>

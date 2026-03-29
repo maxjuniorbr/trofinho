@@ -3,6 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Camera } from 'lucide-react-native';
 import { useState } from 'react';
 import { Avatar } from '@/components/ui/avatar';
+import { InlineMessage } from '@/components/ui/inline-message';
 import { updateUserAvatar } from '@lib/auth';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
@@ -62,9 +63,7 @@ export function AvatarSection({ name, avatarUri, onAvatarChange }: AvatarSection
       </Pressable>
 
       <Text style={[styles.name, { color: colors.text.primary }]}>{name}</Text>
-      {error ? (
-        <Text style={[styles.error, { color: colors.semantic.error }]}>{error}</Text>
-      ) : null}
+      {error ? <InlineMessage message={error} variant="error" /> : null}
     </View>
   );
 }
@@ -78,5 +77,4 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   name: { fontFamily: typography.family.bold, fontSize: typography.size.xl, textAlign: 'center' },
-  error: { fontSize: typography.size.sm, marginTop: spacing['2'] },
 });
