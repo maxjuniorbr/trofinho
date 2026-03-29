@@ -49,9 +49,12 @@ export default function RegisterScreen() {
     setError('');
     setLoading(true);
     const { error: signUpError } = await signUp(email.trim(), password);
-    setLoading(false);
 
-    if (signUpError) { setError(localizeSupabaseError(signUpError.message)); return; }
+    if (signUpError) { setLoading(false); setError(localizeSupabaseError(signUpError.message)); return; }
+
+    // Pass the name to onboarding for pre-filling. The auth state handler
+    // would also redirect to onboarding, but without the name param, so we
+    // navigate explicitly here. Keep loading state until the redirect lands.
     router.replace({ pathname: '/(auth)/onboarding', params: { name: name.trim() } });
   }
 

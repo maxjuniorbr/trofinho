@@ -118,28 +118,38 @@ describe('auth screens', () => {
     expect(screenText(renderer)).toContain('Informe seu e-mail.');
   });
 
-  it('routes login users according to the returned profile', async () => {
+  it('delegates navigation to the auth state handler after successful login', async () => {
     authMocks.signIn
-      .mockResolvedValueOnce({ profile: null, error: null })
-      .mockResolvedValueOnce({ profile: { papel: 'admin' }, error: null })
-      .mockResolvedValueOnce({ profile: { papel: 'filho' }, error: null })
-      .mockResolvedValueOnce({ profile: null, error: { message: 'E-mail ou senha incorretos.' } });
+      .mockResolvedValueOnce({ error: null })
+      .mockResolvedValueOnce({ error: { message: 'E-mail ou senha incorretos.' } });
+
+    const renderer = render(<LoginScreen />);
+    changeInput(renderer, 0, 'max@example.com');
+    changeInput(renderer, 1, '123456');
+
+    // Successful login no longer calls router.replace — the root layout
+    // auth state handler takes care of navigation. The button stays in
+    // loading state until the redirect lands.
+    await pressButton(renderer, 'Entrar');
+    expect(routerMock.replace).not.toHaveBeenCalled();
+
+    // Verify the button is now in loading state (label changes to "Entrando").
+    expect(getButton(renderer, 'Entrando').props.accessibilityState).toEqual({ busy: true });
+  });
+
+  it('shows inline error when login fails', async () => {
+    authMocks.signIn
+      .mockResolvedValueOnce({ error: { message: 'E-mail ou senha incorretos.' } });
 
     const renderer = render(<LoginScreen />);
     changeInput(renderer, 0, 'max@example.com');
     changeInput(renderer, 1, '123456');
 
     await pressButton(renderer, 'Entrar');
-    expect(routerMock.replace).toHaveBeenCalledWith('/(auth)/onboarding');
-
-    await pressButton(renderer, 'Entrar');
-    expect(routerMock.replace).toHaveBeenCalledWith('/(admin)/');
-
-    await pressButton(renderer, 'Entrar');
-    expect(routerMock.replace).toHaveBeenCalledWith('/(child)/');
-
-    await pressButton(renderer, 'Entrar');
     expect(screenText(renderer)).toContain('E-mail ou senha incorretos.');
+
+    // On error, loading resets so the button is pressable again.
+    expect(getButton(renderer, 'Entrar').props.accessibilityState).toEqual({ busy: false });
   });
 
   it('navigates from login to the register screen', async () => {
@@ -274,7 +284,7 @@ describe('auth screens', () => {
     expect(backButton.props.style({ pressed: true })[1].opacity).toBe(0.65);
   });
 
-  it('creates the family, surfaces errors, and logs out back to login', async () => {
+  it('creates the family, surfaces errors, and delegates navigation to auth state handler', async () => {
     localSearchParamsState.value = { name: 'Max' };
     authMocks.createFamily
       .mockResolvedValueOnce({ error: { message: 'Usuário não autenticado' } })
@@ -287,11 +297,14 @@ describe('auth screens', () => {
     await pressButton(renderer, 'Criar família');
     expect(screenText(renderer)).toContain('Algo deu errado. Tente novamente.');
 
+    // Successful family creation no longer calls router.replace — the root
+    // layout auth state handler navigates to /(admin)/.
     await pressButton(renderer, 'Criar família');
-    expect(routerMock.replace).toHaveBeenCalledWith('/(admin)/');
+    expect(routerMock.replace).not.toHaveBeenCalled();
 
+    // Logout delegates to auth state handler too.
     await pressButton(renderer, 'Voltar ao login');
     expect(authMocks.signOut).toHaveBeenCalled();
-    expect(routerMock.replace).toHaveBeenCalledWith('/(auth)/login');
+    expect(routerMock.replace).not.toHaveBeenCalled();
   });
 });
