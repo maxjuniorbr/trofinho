@@ -2,6 +2,7 @@ import { localizeRpcError } from './api-error';
 import { toDateString } from './utils';
 import { extractErrorMessage } from './image-utils';
 import { notifyTaskCompleted, notifyTaskCreated } from './notifications';
+import { dispatchPushNotification } from './push';
 import { prepareImageUpload } from './storage';
 import { supabase } from './supabase';
 
@@ -181,19 +182,27 @@ export async function getTaskWithAssignments(
 }
 
 export async function approveAssignment(
-  assignmentId: string
+  assignmentId: string,
+  opts?: { familiaId: string; userId: string; taskTitle: string },
 ): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('aprovar_atribuicao', {
     atribuicao_id: assignmentId,
   });
 
   if (error) return { error: localizeRpcError(error.message) };
+  if (opts) {
+    dispatchPushNotification('tarefa_aprovada', opts.familiaId, {
+      userId: opts.userId,
+      taskTitle: opts.taskTitle,
+    });
+  }
   return { error: null };
 }
 
 export async function rejectAssignment(
   assignmentId: string,
-  note: string
+  note: string,
+  opts?: { familiaId: string; userId: string; taskTitle: string },
 ): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('rejeitar_atribuicao', {
     p_atribuicao_id: assignmentId,
@@ -201,6 +210,12 @@ export async function rejectAssignment(
   });
 
   if (error) return { error: localizeRpcError(error.message) };
+  if (opts) {
+    dispatchPushNotification('tarefa_rejeitada', opts.familiaId, {
+      userId: opts.userId,
+      taskTitle: opts.taskTitle,
+    });
+  }
   return { error: null };
 }
 
@@ -245,7 +260,8 @@ export async function getChildAssignment(
 
 export async function completeAssignment(
   assignmentId: string,
-  imageUri: string | null
+  imageUri: string | null,
+  opts?: { familiaId: string; childName: string; taskTitle: string },
 ): Promise<{ error: string | null }> {
   let evidenceUrl: string | null = null;
 
@@ -266,6 +282,12 @@ export async function completeAssignment(
 
   if (error) return { error: localizeRpcError(error.message) };
   await notifyTaskCompleted();
+  if (opts) {
+    dispatchPushNotification('tarefa_concluida', opts.familiaId, {
+      childName: opts.childName,
+      taskTitle: opts.taskTitle,
+    });
+  }
   return { error: null };
 }
 

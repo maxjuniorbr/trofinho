@@ -1,5 +1,6 @@
 import { localizeRpcError } from './api-error';
 import { notifyRedemptionRequested } from './notifications';
+import { dispatchPushNotification } from './push';
 import { uploadImageToPublicBucket } from './storage';
 import { supabase } from './supabase';
 
@@ -208,12 +209,21 @@ export async function listRedemptions(): Promise<{
   return { data: data ?? [], error: null };
 }
 
-export async function confirmRedemption(redemptionId: string): Promise<{ error: string | null }> {
+export async function confirmRedemption(
+  redemptionId: string,
+  opts?: { familiaId: string; userId: string; prizeName: string },
+): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('confirmar_resgate', {
     p_resgate_id: redemptionId,
   });
 
   if (error) return { error: localizeRpcError(error.message) };
+  if (opts) {
+    dispatchPushNotification('resgate_confirmado', opts.familiaId, {
+      userId: opts.userId,
+      prizeName: opts.prizeName,
+    });
+  }
   return { error: null };
 }
 
@@ -258,7 +268,10 @@ export async function listChildRedemptions(): Promise<{
   return { data: data ?? [], error: null };
 }
 
-export async function requestRedemption(prizeId: string): Promise<{
+export async function requestRedemption(
+  prizeId: string,
+  opts?: { familiaId: string; childName: string; prizeName: string },
+): Promise<{
   data: string | null;
   error: string | null;
 }> {
@@ -268,6 +281,12 @@ export async function requestRedemption(prizeId: string): Promise<{
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
   await notifyRedemptionRequested();
+  if (opts) {
+    dispatchPushNotification('resgate_solicitado', opts.familiaId, {
+      childName: opts.childName,
+      prizeName: opts.prizeName,
+    });
+  }
   // RPC solicitar_resgate returns the redemption ID as text
   return { data: data as string, error: null };
 }

@@ -7,6 +7,7 @@ const fileArrayBufferMock = vi.hoisted(() => vi.fn());
 const fileConstructorMock = vi.hoisted(() => vi.fn());
 const notifyTaskCompletedMock = vi.hoisted(() => vi.fn());
 const notifyTaskCreatedMock = vi.hoisted(() => vi.fn());
+const dispatchPushNotificationMock = vi.hoisted(() => vi.fn());
 
 vi.mock('expo-image-manipulator', () => ({
   ImageManipulator: { manipulate: vi.fn() },
@@ -54,6 +55,10 @@ vi.mock('expo-file-system', () => ({
 
 vi.mock('./supabase', () => ({
   supabase: supabaseMock,
+}));
+
+vi.mock('./push', () => ({
+  dispatchPushNotification: dispatchPushNotificationMock,
 }));
 
 import {
@@ -169,6 +174,7 @@ describe('tasks', () => {
     storageBucketMock.upload.mockReset();
     notifyTaskCompletedMock.mockReset();
     notifyTaskCreatedMock.mockReset();
+    dispatchPushNotificationMock.mockReset();
 
     supabaseMock.auth.getUser.mockReset();
     supabaseMock.from.mockReset();
@@ -737,6 +743,78 @@ describe('tasks', () => {
       error: null,
     });
     expect(storageBucketMock.createSignedUrl).not.toHaveBeenCalled();
+  });
+
+  describe('push notification dispatch', () => {
+    it('approveAssignment dispatches tarefa_aprovada with correct payload when opts provided', async () => {
+      supabaseMock.rpc.mockResolvedValueOnce({ error: null });
+
+      await approveAssignment('assignment-1', {
+        familiaId: 'family-1',
+        userId: 'child-user-1',
+        taskTitle: 'Arrumar a cama',
+      });
+
+      expect(dispatchPushNotificationMock).toHaveBeenCalledWith(
+        'tarefa_aprovada',
+        'family-1',
+        { userId: 'child-user-1', taskTitle: 'Arrumar a cama' },
+      );
+    });
+
+    it('rejectAssignment dispatches tarefa_rejeitada with correct payload when opts provided', async () => {
+      supabaseMock.rpc.mockResolvedValueOnce({ error: null });
+
+      await rejectAssignment('assignment-1', 'Refazer', {
+        familiaId: 'family-1',
+        userId: 'child-user-1',
+        taskTitle: 'Lavar louça',
+      });
+
+      expect(dispatchPushNotificationMock).toHaveBeenCalledWith(
+        'tarefa_rejeitada',
+        'family-1',
+        { userId: 'child-user-1', taskTitle: 'Lavar louça' },
+      );
+    });
+
+    it('completeAssignment dispatches tarefa_concluida with correct payload when opts provided', async () => {
+      const updateQuery = createUpdateQuery({ error: null }, 2);
+      supabaseMock.from.mockReturnValueOnce(updateQuery);
+
+      await completeAssignment('assignment-1', null, {
+        familiaId: 'family-1',
+        childName: 'Lia',
+        taskTitle: 'Estudar',
+      });
+
+      expect(dispatchPushNotificationMock).toHaveBeenCalledWith(
+        'tarefa_concluida',
+        'family-1',
+        { childName: 'Lia', taskTitle: 'Estudar' },
+      );
+    });
+
+    it('approveAssignment does not dispatch when opts not provided', async () => {
+      supabaseMock.rpc.mockResolvedValueOnce({ error: null });
+
+      await approveAssignment('assignment-1');
+
+      expect(dispatchPushNotificationMock).not.toHaveBeenCalled();
+    });
+
+    it('dispatch failure does not affect the RPC return value', async () => {
+      supabaseMock.rpc.mockResolvedValueOnce({ error: null });
+      dispatchPushNotificationMock.mockRejectedValueOnce(new Error('push failed'));
+
+      const result = await approveAssignment('assignment-1', {
+        familiaId: 'family-1',
+        userId: 'child-user-1',
+        taskTitle: 'Tarefa teste',
+      });
+
+      expect(result).toEqual({ error: null });
+    });
   });
 
   describe('property tests', () => {

@@ -413,6 +413,7 @@ export type Database = {
           familia_id: string
           id: string
           nome: string
+          notif_prefs: Json
           papel: string
         }
         Insert: {
@@ -420,6 +421,7 @@ export type Database = {
           familia_id: string
           id: string
           nome: string
+          notif_prefs?: Json
           papel: string
         }
         Update: {
@@ -427,6 +429,7 @@ export type Database = {
           familia_id?: string
           id?: string
           nome?: string
+          notif_prefs?: Json
           papel?: string
         }
         Relationships: [

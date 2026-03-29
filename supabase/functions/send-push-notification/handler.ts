@@ -1,0 +1,437 @@
+// Handler logic extracted for testability (Vitest runs in Node, not Deno).
+// index.ts re-exports everything from here and adds the Deno.serve entry point.
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+export type PushEvent =
+  | 'tarefa_aprovada'
+  | 'tarefa_rejeitada'
+  | 'resgate_confirmado'
+  | 'resgate_solicitado'
+  | 'tarefa_concluida';
+
+export type EventPayload =
+  | { userId: string; taskTitle: string }
+  | { userId: string; prizeName: string }
+  | { childName: string; prizeName: string }
+  | { childName: string; taskTitle: string };
+
+export type NotificationPrefs = {
+  tarefasPendentes?: boolean;
+  tarefaConcluida?: boolean;
+  resgatesSolicitado?: boolean;
+};
+
+export type PushNotificationRequest = {
+  event: PushEvent;
+  familiaId: string;
+  payload: EventPayload;
+};
+
+export type PushNotificationResponse = {
+  sent: number;
+  failed: number;
+  cleaned: number;
+};
+
+export type ExpoPushMessage = {
+  to: string;
+  title: string;
+  body: string;
+  sound: 'default';
+  data: { route: string };
+};
+
+export type ExpoTicketResult =
+  | { status: 'ok'; id: string }
+  | { status: 'error'; message: string; details?: { error: string } };
+
+type MessageContent = Omit<ExpoPushMessage, 'to'>;
+
+// ─── Supabase client interface (avoids importing @supabase/supabase-js) ──────
+
+/** Minimal interface for the Supabase operations used by the handler. */
+export interface SupabaseClientLike {
+  from(table: string): {
+    select(columns: string): {
+      eq(column: string, value: string): {
+        eq(column: string, value: string): PromiseLike<{ data: Record<string, unknown>[] | null; error: unknown }>;
+      } & PromiseLike<{ data: Record<string, unknown>[] | null; error: unknown }>;
+      in(column: string, values: string[]): PromiseLike<{ data: Record<string, unknown>[] | null; error: unknown }>;
+    };
+    delete(): {
+      in(column: string, values: string[]): PromiseLike<{ error: unknown }>;
+    };
+  };
+}
+
+// ─── Validation helpers ──────────────────────────────────────────────────────
+
+const VALID_EVENTS: ReadonlySet<string> = new Set<PushEvent>([
+  'tarefa_aprovada',
+  'tarefa_rejeitada',
+  'resgate_confirmado',
+  'resgate_solicitado',
+  'tarefa_concluida',
+]);
+
+export function validateRequest(body: unknown): {
+  valid: true;
+  data: PushNotificationRequest;
+} | {
+  valid: false;
+  error: string;
+} {
+  if (body === null || typeof body !== 'object') {
+    return { valid: false, error: 'Request body must be a JSON object' };
+  }
+
+  const { event, familiaId, payload } = body as Record<string, unknown>;
+
+  if (typeof event !== 'string' || !VALID_EVENTS.has(event)) {
+    return {
+      valid: false,
+      error: `Invalid event. Must be one of: ${[...VALID_EVENTS].join(', ')}`,
+    };
+  }
+
+  if (typeof familiaId !== 'string' || familiaId.trim() === '') {
+    return { valid: false, error: 'familiaId must be a non-empty string' };
+  }
+
+  if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
+    return { valid: false, error: 'payload must be an object' };
+  }
+
+  return {
+    valid: true,
+    data: { event: event as PushEvent, familiaId, payload: payload as EventPayload },
+  };
+}
+
+// ─── Message template builder ────────────────────────────────────────────────
+
+type MessageTemplate = {
+  title: string;
+  bodyTemplate: string;
+  route: string;
+};
+
+const MESSAGE_TEMPLATES: Record<PushEvent, MessageTemplate> = {
+  tarefa_aprovada: {
+    title: 'Tarefa aprovada ✅',
+    bodyTemplate: 'Sua tarefa "{taskTitle}" foi aprovada!',
+    route: '/(child)/tasks',
+  },
+  tarefa_rejeitada: {
+    title: 'Tarefa rejeitada',
+    bodyTemplate: 'Sua tarefa "{taskTitle}" foi rejeitada. Confira o motivo.',
+    route: '/(child)/tasks',
+  },
+  resgate_confirmado: {
+    title: 'Resgate confirmado 🎉',
+    bodyTemplate: 'Seu resgate de "{prizeName}" foi confirmado!',
+    route: '/(child)/redemptions',
+  },
+  resgate_solicitado: {
+    title: 'Resgate solicitado',
+    bodyTemplate: '{childName} solicitou o resgate de "{prizeName}".',
+    route: '/(admin)/tasks',
+  },
+  tarefa_concluida: {
+    title: 'Tarefa concluída',
+    bodyTemplate: '{childName} concluiu a tarefa "{taskTitle}".',
+    route: '/(admin)/tasks',
+  },
+};
+
+export function buildMessage(event: PushEvent, payload: EventPayload): MessageContent {
+  const template = MESSAGE_TEMPLATES[event];
+
+  const body = template.bodyTemplate.replace(
+    /\{(\w+)\}/g,
+    (_, key: string) => (payload as Record<string, string>)[key] ?? '',
+  );
+
+  return {
+    title: template.title,
+    body,
+    sound: 'default',
+    data: { route: template.route },
+  };
+}
+
+// ─── Recipient resolution helpers ────────────────────────────────────────────
+
+const CHILD_TARGETED_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>([
+  'tarefa_aprovada',
+  'tarefa_rejeitada',
+  'resgate_confirmado',
+]);
+
+const ADMIN_TARGETED_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>([
+  'resgate_solicitado',
+  'tarefa_concluida',
+]);
+
+const PREFERENCE_KEY_MAP: Record<PushEvent, keyof NotificationPrefs> = {
+  tarefa_aprovada: 'tarefaConcluida',
+  tarefa_rejeitada: 'tarefaConcluida',
+  tarefa_concluida: 'tarefaConcluida',
+  resgate_solicitado: 'resgatesSolicitado',
+  resgate_confirmado: 'resgatesSolicitado',
+};
+
+export function getPreferenceKey(event: PushEvent): keyof NotificationPrefs {
+  return PREFERENCE_KEY_MAP[event];
+}
+
+export async function resolveRecipientUserIds(
+  supabase: SupabaseClientLike,
+  event: PushEvent,
+  familiaId: string,
+  payload: EventPayload,
+): Promise<string[]> {
+  if (CHILD_TARGETED_EVENTS.has(event)) {
+    const userId = (payload as { userId: string }).userId;
+    if (!userId) return [];
+    return [userId];
+  }
+
+  if (ADMIN_TARGETED_EVENTS.has(event)) {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('id')
+      .eq('familia_id', familiaId)
+      .eq('papel', 'admin');
+
+    if (error) {
+      console.error('[send-push-notification] Error querying admin users:', error);
+      return [];
+    }
+
+    return (data ?? []).map((u: Record<string, unknown>) => u.id as string);
+  }
+
+  return [];
+}
+
+export function isPreferenceEnabled(
+  notifPrefs: NotificationPrefs | null | undefined,
+  prefKey: keyof NotificationPrefs,
+): boolean {
+  if (notifPrefs == null) return true;
+  const value = notifPrefs[prefKey];
+  if (value === undefined) return true;
+  return value === true;
+}
+
+export async function resolveTokens(
+  supabase: SupabaseClientLike,
+  event: PushEvent,
+  familiaId: string,
+  payload: EventPayload,
+): Promise<string[]> {
+  const userIds = await resolveRecipientUserIds(supabase, event, familiaId, payload);
+  if (userIds.length === 0) return [];
+
+  const prefKey = getPreferenceKey(event);
+
+  const { data: users, error: usersError } = await supabase
+    .from('usuarios')
+    .select('id, notif_prefs')
+    .in('id', userIds);
+
+  if (usersError) {
+    console.error('[send-push-notification] Error querying user preferences:', usersError);
+    return [];
+  }
+
+  const eligibleUserIds = (users ?? [])
+    .filter((u: Record<string, unknown>) =>
+      isPreferenceEnabled(u.notif_prefs as NotificationPrefs | null, prefKey),
+    )
+    .map((u: Record<string, unknown>) => u.id as string);
+
+  if (eligibleUserIds.length === 0) return [];
+
+  const { data: tokens, error: tokensError } = await supabase
+    .from('push_tokens')
+    .select('token')
+    .in('user_id', eligibleUserIds);
+
+  if (tokensError) {
+    console.error('[send-push-notification] Error querying push tokens:', tokensError);
+    return [];
+  }
+
+  return (tokens ?? []).map((t: Record<string, unknown>) => t.token as string);
+}
+
+// ─── Expo Push API helpers ────────────────────────────────────────────────────
+
+const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
+
+/**
+ * Sends an array of ExpoPushMessages to the Expo Push API.
+ * Returns the ticket results from the API response.
+ */
+export async function sendToExpoPushApi(
+  messages: ExpoPushMessage[],
+): Promise<ExpoTicketResult[]> {
+  const response = await fetch(EXPO_PUSH_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(messages),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Expo Push API returned HTTP ${response.status}`);
+  }
+
+  const json = await response.json() as { data: ExpoTicketResult[] };
+  return json.data;
+}
+
+/**
+ * Processes Expo Push API ticket results:
+ * - Counts sent (status === 'ok') and failed (status === 'error')
+ * - Deletes tokens with DeviceNotRegistered errors from push_tokens
+ * - Retains tokens for other error types (InvalidCredentials, MessageTooBig, etc.)
+ * Returns { sent, failed, cleaned }.
+ */
+export async function processTicketResults(
+  supabase: SupabaseClientLike,
+  tickets: ExpoTicketResult[],
+  tokens: string[],
+): Promise<PushNotificationResponse> {
+  let sent = 0;
+  let failed = 0;
+  let cleaned = 0;
+
+  const tokensToDelete: string[] = [];
+
+  for (let i = 0; i < tickets.length; i++) {
+    const ticket = tickets[i];
+    if (ticket.status === 'ok') {
+      sent++;
+    } else {
+      failed++;
+      const errorType = ticket.details?.error;
+      if (errorType === 'DeviceNotRegistered') {
+        tokensToDelete.push(tokens[i]);
+      } else {
+        console.error(
+          `[send-push-notification] Expo error for token ${tokens[i]}: ${errorType ?? ticket.message}`,
+        );
+      }
+    }
+  }
+
+  if (tokensToDelete.length > 0) {
+    const { error } = await supabase
+      .from('push_tokens')
+      .delete()
+      .in('token', tokensToDelete);
+
+    if (error) {
+      console.error('[send-push-notification] Error deleting invalid tokens:', error);
+    } else {
+      cleaned = tokensToDelete.length;
+    }
+  }
+
+  return { sent, failed, cleaned };
+}
+
+// ─── Main handler (framework-agnostic) ───────────────────────────────────────
+
+export interface HandlerDeps {
+  getServiceRoleKey: () => string | undefined;
+  getSupabaseUrl: () => string;
+  createSupabaseClient: (url: string, key: string) => SupabaseClientLike;
+}
+
+export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Response> {
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { status: 405, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+
+  // Auth check
+  const serviceRoleKey = deps.getServiceRoleKey();
+  if (!serviceRoleKey) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const token = authHeader.replace(/^Bearer\s+/i, '');
+  if (token !== serviceRoleKey) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+
+  // Parse body
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return new Response(
+      JSON.stringify({ error: 'Invalid request body', details: 'Could not parse JSON' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+
+  // Validate body
+  const validation = validateRequest(body);
+  if (!validation.valid) {
+    return new Response(
+      JSON.stringify({ error: 'Invalid request body', details: validation.error }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const { event, familiaId, payload } = validation.data;
+
+  const supabase = deps.createSupabaseClient(deps.getSupabaseUrl(), serviceRoleKey);
+
+  try {
+    const tokens = await resolveTokens(supabase, event, familiaId, payload);
+    if (tokens.length === 0) {
+      return new Response(
+        JSON.stringify({ sent: 0, failed: 0, cleaned: 0 } satisfies PushNotificationResponse),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    }
+
+    const messageContent = buildMessage(event, payload);
+    const messages: ExpoPushMessage[] = tokens.map((t) => ({ to: t, ...messageContent }));
+    const tickets = await sendToExpoPushApi(messages);
+    const response = await processTicketResults(supabase, tickets, tokens);
+
+    return new Response(
+      JSON.stringify(response),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
+    );
+  } catch (error) {
+    console.error(`[send-push-notification] Error processing ${event} for family ${familiaId}:`, error);
+    return new Response(
+      JSON.stringify({ error: 'Internal error' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+}
