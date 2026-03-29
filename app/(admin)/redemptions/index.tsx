@@ -18,7 +18,6 @@ import {
   CheckCircle2,
   XCircle,
 } from 'lucide-react-native';
-import type { RedemptionWithChildAndPrize } from '@lib/prizes';
 import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@/constants/status';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
