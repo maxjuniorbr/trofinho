@@ -566,14 +566,13 @@ describe('tasks', () => {
     });
   });
 
-  it('completes an assignment without evidence', async () => {
-    const updateQuery = createUpdateQuery({ error: null }, 2);
-    supabaseMock.from.mockReturnValueOnce(updateQuery);
+  it('completes an assignment without evidence via RPC', async () => {
+    supabaseMock.rpc.mockResolvedValueOnce({ error: null });
 
     await expect(completeAssignment('assignment-1', null)).resolves.toEqual({ error: null });
-    expect(updateQuery.update).toHaveBeenCalledWith({
-      status: 'aguardando_validacao',
-      evidencia_url: null,
+    expect(supabaseMock.rpc).toHaveBeenCalledWith('concluir_atribuicao', {
+      p_atribuicao_id: 'assignment-1',
+      p_evidencia_url: null,
     });
     expect(notifyTaskCompletedMock).toHaveBeenCalledTimes(1);
   });
@@ -592,12 +591,12 @@ describe('tasks', () => {
     });
     supabaseMock.from
       .mockReturnValueOnce(createSingleQuery({ data: { familia_id: 'family-1' }, error: null }))
-      .mockReturnValueOnce(createSingleQuery({ data: { id: 'child-1' }, error: null }))
-      .mockReturnValueOnce(createUpdateQuery({ error: null }, 2));
+      .mockReturnValueOnce(createSingleQuery({ data: { id: 'child-1' }, error: null }));
     storageBucketMock.upload.mockResolvedValue({
       data: { path: `family-1/child-1/${fileName}` },
       error: null,
     });
+    supabaseMock.rpc.mockResolvedValueOnce({ error: null });
 
     const result = await completeAssignment('assignment-1', `/test/${fileName}`);
 
@@ -607,6 +606,10 @@ describe('tasks', () => {
       expect.any(ArrayBuffer),
       { contentType, upsert: false }
     );
+    expect(supabaseMock.rpc).toHaveBeenCalledWith('concluir_atribuicao', {
+      p_atribuicao_id: 'assignment-1',
+      p_evidencia_url: `family-1/child-1/${fileName}`,
+    });
     expect(result).toEqual({ error: null });
     expect(notifyTaskCompletedMock).toHaveBeenCalled();
   });
@@ -668,12 +671,12 @@ describe('tasks', () => {
     });
     supabaseMock.from
       .mockReturnValueOnce(createSingleQuery({ data: { familia_id: 'family-1' }, error: null }))
-      .mockReturnValueOnce(createSingleQuery({ data: { id: 'child-1' }, error: null }))
-      .mockReturnValueOnce(createUpdateQuery({ error: null }, 2));
+      .mockReturnValueOnce(createSingleQuery({ data: { id: 'child-1' }, error: null }));
     storageBucketMock.upload.mockResolvedValue({
       data: { path: 'family-1/child-1/fallback.jpg' },
       error: null,
     });
+    supabaseMock.rpc.mockResolvedValueOnce({ error: null });
 
     await expect(completeAssignment('assignment-1', '/test/photo.jpg')).resolves.toEqual({ error: null });
     expect(storageBucketMock.upload).toHaveBeenCalledWith(
@@ -779,8 +782,7 @@ describe('tasks', () => {
     });
 
     it('completeAssignment dispatches tarefa_concluida with correct payload when opts provided', async () => {
-      const updateQuery = createUpdateQuery({ error: null }, 2);
-      supabaseMock.from.mockReturnValueOnce(updateQuery);
+      supabaseMock.rpc.mockResolvedValueOnce({ error: null });
 
       await completeAssignment('assignment-1', null, {
         familiaId: 'family-1',
@@ -841,6 +843,7 @@ describe('tasks', () => {
           storageBucketMock.upload.mockReset();
           supabaseMock.auth.getUser.mockReset();
           supabaseMock.from.mockReset();
+          supabaseMock.rpc.mockReset();
           supabaseMock.storage.from.mockReturnValue(storageBucketMock);
           fileArrayBufferMock.mockResolvedValue(new ArrayBuffer(8));
           resizeImageMock.mockImplementation((uri: string) => Promise.resolve(uri));
@@ -850,12 +853,12 @@ describe('tasks', () => {
           });
           supabaseMock.from
             .mockReturnValueOnce(createSingleQuery({ data: { familia_id: familiaId }, error: null }))
-            .mockReturnValueOnce(createSingleQuery({ data: { id: filhoId }, error: null }))
-            .mockReturnValueOnce(createUpdateQuery({ error: null }, 2));
+            .mockReturnValueOnce(createSingleQuery({ data: { id: filhoId }, error: null }));
           storageBucketMock.upload.mockResolvedValue({
             data: { path: `${familiaId}/${filhoId}/evidencia_test.${ext}` },
             error: null,
           });
+          supabaseMock.rpc.mockResolvedValueOnce({ error: null });
 
           await completeAssignment('assignment-1', `/test/photo.${ext}`);
 
