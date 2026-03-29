@@ -406,7 +406,6 @@ function makeStyles() {
       width: 20, height: 20, borderRadius: radii.full,
       alignItems: 'center', justifyContent: 'center',
     },
-    editBadgeIcon: { alignItems: 'center' as const, justifyContent: 'center' as const },
     heroSub:       { fontFamily: typography.family.bold, fontSize: typography.size.sm },
     heroTitle:     { fontFamily: typography.family.black, fontSize: typography.size['2xl'], marginTop: spacing['1'], lineHeight: typography.lineHeight['3xl'] },
     familyPill:    {

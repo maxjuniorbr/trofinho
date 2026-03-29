@@ -20,7 +20,7 @@ import {
 import { getAssignmentPoints, type ChildAssignment } from '@lib/tasks';
 import { captureException } from '@lib/sentry';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
-import { useChildAssignment, useCompleteAssignment } from '@/hooks/queries';
+import { useChildAssignment, useCompleteAssignment, useProfile } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -177,6 +177,7 @@ export default function ChildTaskDetailScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const { data: assignment, isLoading, error, refetch } = useChildAssignment(id);
+  const { data: profile } = useProfile();
   const completeMutation = useCompleteAssignment();
 
   const [completionError, setCompletionError] = useState<string | null>(null);
@@ -196,7 +197,15 @@ export default function ChildTaskDetailScreen() {
         return;
       }
 
-      await completeMutation.mutateAsync({ assignmentId: assignment.id, imageUri });
+      await completeMutation.mutateAsync({
+        assignmentId: assignment.id,
+        imageUri,
+        opts: profile ? {
+          familiaId: assignment.tarefas.familia_id,
+          childName: profile.nome,
+          taskTitle: assignment.tarefas.titulo,
+        } : undefined,
+      });
     } catch (error_) {
       setCompletionError(
         error_ instanceof Error

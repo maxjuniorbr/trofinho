@@ -455,6 +455,6 @@ export async function notifyRedemptionRequested(): Promise<void> {
     'resgatesSolicitado',
     'Resgate solicitado',
     'Um resgate foi solicitado.',
-    '/(admin)/tasks',
+    '/(admin)/redemptions',
   );
 }

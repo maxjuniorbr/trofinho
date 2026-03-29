@@ -6,7 +6,6 @@ const resizeImageMock = vi.hoisted(() => vi.fn((uri: string) => Promise.resolve(
 const fileArrayBufferMock = vi.hoisted(() => vi.fn());
 const fileConstructorMock = vi.hoisted(() => vi.fn());
 const notifyTaskCompletedMock = vi.hoisted(() => vi.fn());
-const notifyTaskCreatedMock = vi.hoisted(() => vi.fn());
 const dispatchPushNotificationMock = vi.hoisted(() => vi.fn());
 
 vi.mock('expo-image-manipulator', () => ({
@@ -21,7 +20,6 @@ vi.mock('./image-utils', async (importOriginal) => {
 
 vi.mock('./notifications', () => ({
   notifyTaskCompleted: notifyTaskCompletedMock,
-  notifyTaskCreated: notifyTaskCreatedMock,
 }));
 
 const storageBucketMock = vi.hoisted(() => ({
@@ -173,7 +171,6 @@ describe('tasks', () => {
     storageBucketMock.createSignedUrl.mockReset();
     storageBucketMock.upload.mockReset();
     notifyTaskCompletedMock.mockReset();
-    notifyTaskCreatedMock.mockReset();
     dispatchPushNotificationMock.mockReset();
 
     supabaseMock.auth.getUser.mockReset();
@@ -328,7 +325,6 @@ describe('tasks', () => {
     });
 
     await expect(renewDailyTasks()).resolves.toBeUndefined();
-    expect(notifyTaskCreatedMock).toHaveBeenCalledWith('Arrumar a cama');
   });
 
   it('updates tasks through rpc and exposes the edit-state rules', async () => {

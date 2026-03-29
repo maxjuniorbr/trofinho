@@ -28,13 +28,14 @@ import { InlineMessage } from '@/components/ui/inline-message';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { formatDate } from '@lib/utils';
-import { useAdminRedemptions, useConfirmRedemption, useCancelRedemption } from '@/hooks/queries';
+import { useAdminRedemptions, useConfirmRedemption, useCancelRedemption, useProfile } from '@/hooks/queries';
 
 type ConfirmModalState = {
   visible: boolean;
   type: 'confirm' | 'cancel';
   redemptionId: string;
   childName: string;
+  childUserId: string | null;
   prizeName: string;
   points: number;
 };
@@ -44,6 +45,7 @@ const MODAL_INITIAL: ConfirmModalState = {
   type: 'confirm',
   redemptionId: '',
   childName: '',
+  childUserId: null,
   prizeName: '',
   points: 0,
 };
@@ -54,6 +56,7 @@ export default function AdminRedemptionsScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const { data: redemptions = [], isLoading, error, refetch } = useAdminRedemptions();
+  const { data: profile } = useProfile();
   const confirmMutation = useConfirmRedemption();
   const cancelMutation = useCancelRedemption();
 
@@ -63,29 +66,37 @@ export default function AdminRedemptionsScreen() {
   const hasError = Boolean(error);
   const shouldShowEmptyState = isLoading || hasError || redemptions.length === 0;
 
-  const handleConfirm = (redemptionId: string, childName: string, prizeName: string) => {
+  const handleConfirm = (redemptionId: string, childName: string, childUserId: string | null, prizeName: string) => {
     setActionError(null);
-    setModal({ visible: true, type: 'confirm', redemptionId, childName, prizeName, points: 0 });
+    setModal({ visible: true, type: 'confirm', redemptionId, childName, childUserId, prizeName, points: 0 });
   };
 
   const handleCancel = (redemptionId: string, childName: string, prizeName: string, points: number) => {
     setActionError(null);
-    setModal({ visible: true, type: 'cancel', redemptionId, childName, prizeName, points });
+    setModal({ visible: true, type: 'cancel', redemptionId, childName, childUserId: null, prizeName, points });
   };
 
   const executeModalAction = (redemptionId: string, type: 'confirm' | 'cancel') => {
     setProcessingId(redemptionId);
 
-    const mutation = type === 'confirm' ? confirmMutation : cancelMutation;
-    mutation.mutate(redemptionId, {
-      onSuccess: () => {
-        setProcessingId(null);
-      },
-      onError: (err) => {
-        setProcessingId(null);
-        setActionError(err.message);
-      },
-    });
+    if (type === 'confirm') {
+      confirmMutation.mutate({
+        redemptionId,
+        opts: modal.childUserId && profile ? {
+          familiaId: profile.familia_id,
+          userId: modal.childUserId,
+          prizeName: modal.prizeName,
+        } : undefined,
+      }, {
+        onSuccess: () => setProcessingId(null),
+        onError: (err) => { setProcessingId(null); setActionError(err.message); },
+      });
+    } else {
+      cancelMutation.mutate(redemptionId, {
+        onSuccess: () => setProcessingId(null),
+        onError: (err) => { setProcessingId(null); setActionError(err.message); },
+      });
+    }
   };
 
   const handleModalConfirm = () => {
@@ -186,7 +197,7 @@ export default function AdminRedemptionsScreen() {
                     <View style={styles.acoesRow}>
                       <Pressable
                         style={({ pressed }) => [styles.botaoConfirmar, isProcessing && styles.botaoDesabilitado, pressed && !isProcessing && { opacity: 0.85 }]}
-                        onPress={() => handleConfirm(item.id, item.filhos.nome, item.premios.nome)}
+                        onPress={() => handleConfirm(item.id, item.filhos.nome, item.filhos.usuario_id, item.premios.nome)}
                         disabled={isProcessing}
                       >
                         {isProcessing ? <Text style={styles.botaoConfirmarTexto}>…</Text> : (

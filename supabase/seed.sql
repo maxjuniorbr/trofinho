@@ -89,13 +89,13 @@ INSERT INTO resgates (id, filho_id, premio_id, status, pontos_debitados, created
 
 INSERT INTO movimentacoes (id, filho_id, tipo, valor, descricao, referencia_id, created_at) VALUES
   -- Lia: créditos de tarefas aprovadas + débito de resgate
-  ('mov-0001-0001-0001-000000000001', 'fil-silva-lia0-0001-000000000001', 'tarefa', 5, 'Arrumar a cama', 'atr-0001-0001-0001-000000000001', '2026-03-25T08:00:00Z'),
-  ('mov-0002-0001-0001-000000000002', 'fil-silva-lia0-0001-000000000001', 'resgate', -30, 'Sorvete', 'res-0001-0001-0001-000000000001', '2026-03-20T18:00:00Z'),
-  ('mov-0003-0001-0001-000000000003', 'fil-silva-lia0-0001-000000000001', 'resgate', -100, 'Cinema', 'res-0002-0001-0001-000000000002', '2026-03-27T10:00:00Z'),
+  ('mov-0001-0001-0001-000000000001', 'fil-silva-lia0-0001-000000000001', 'credito', 5, 'Tarefa aprovada: Arrumar a cama', 'atr-0001-0001-0001-000000000001', '2026-03-25T08:00:00Z'),
+  ('mov-0002-0001-0001-000000000002', 'fil-silva-lia0-0001-000000000001', 'resgate', 30, 'Sorvete', 'res-0001-0001-0001-000000000001', '2026-03-20T18:00:00Z'),
+  ('mov-0003-0001-0001-000000000003', 'fil-silva-lia0-0001-000000000001', 'resgate', 100, 'Cinema', 'res-0002-0001-0001-000000000002', '2026-03-27T10:00:00Z'),
   -- Leo: crédito de tarefa + resgate cancelado (estorno)
-  ('mov-0004-0001-0002-000000000001', 'fil-silva-leo0-0001-000000000002', 'tarefa', 10, 'Lavar a louça', 'atr-0006-0001-0002-000000000002', '2026-03-26T14:00:00Z'),
-  ('mov-0005-0001-0002-000000000002', 'fil-silva-leo0-0001-000000000002', 'resgate', -15, '30 min de videogame', 'res-0003-0001-0002-000000000001', '2026-03-22T09:00:00Z'),
-  ('mov-0006-0001-0002-000000000003', 'fil-silva-leo0-0001-000000000002', 'estorno', 15, 'Estorno: 30 min de videogame', 'res-0003-0001-0002-000000000001', '2026-03-22T12:00:00Z'),
+  ('mov-0004-0001-0002-000000000001', 'fil-silva-leo0-0001-000000000002', 'credito', 10, 'Tarefa aprovada: Lavar a louça', 'atr-0006-0001-0002-000000000002', '2026-03-26T14:00:00Z'),
+  ('mov-0005-0001-0002-000000000002', 'fil-silva-leo0-0001-000000000002', 'resgate', 15, '30 min de videogame', 'res-0003-0001-0002-000000000001', '2026-03-22T09:00:00Z'),
+  ('mov-0006-0001-0002-000000000003', 'fil-silva-leo0-0001-000000000002', 'estorno_resgate', 15, 'Estorno: 30 min de videogame', 'res-0003-0001-0002-000000000001', '2026-03-22T12:00:00Z'),
   -- Beto: crédito + resgate pendente
-  ('mov-0007-0002-0001-000000000001', 'fil-costa-beto-0002-000000000001', 'tarefa', 15, 'Estudar matemática', 'atr-0007-0002-0001-000000000001', '2026-03-25T18:00:00Z'),
-  ('mov-0008-0002-0001-000000000002', 'fil-costa-beto-0002-000000000001', 'resgate', -50, 'Livro novo', 'res-0004-0002-0001-000000000001', '2026-03-26T16:00:00Z');
+  ('mov-0007-0002-0001-000000000001', 'fil-costa-beto-0002-000000000001', 'credito', 15, 'Tarefa aprovada: Estudar matemática', 'atr-0007-0002-0001-000000000001', '2026-03-25T18:00:00Z'),
+  ('mov-0008-0002-0001-000000000002', 'fil-costa-beto-0002-000000000001', 'resgate', 50, 'Livro novo', 'res-0004-0002-0001-000000000001', '2026-03-26T16:00:00Z');
