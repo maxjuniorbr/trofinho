@@ -9,7 +9,7 @@ RETURNS INTEGER
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
-AS $
+AS $$
 DECLARE
   v_familia_id UUID;
   v_pending_count INTEGER;
@@ -46,7 +46,7 @@ BEGIN
 
   RETURN v_pending_count;
 END;
-$;
+$$;
 
 -- ─── 2. RPC: reativar_premio ─────────────────────────────────
 
@@ -55,7 +55,7 @@ RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
-AS $
+AS $$
 DECLARE
   v_familia_id UUID;
 BEGIN
@@ -82,4 +82,4 @@ BEGIN
      SET ativo = true
    WHERE id = p_premio_id;
 END;
-$;
+$$;
