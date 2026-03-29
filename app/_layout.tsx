@@ -119,7 +119,11 @@ function RootNavigator({
     syncAutomaticAppreciation().catch(captureException);
   }, [profile?.familia_id]);
 
+  // Register for push notifications only after the user is authenticated.
+  // This avoids requesting notification permission on the login screen.
   useEffect(() => {
+    if (!profile?.id) return;
+
     let mounted = true;
 
     const registerPush = async () => {
@@ -140,7 +144,7 @@ function RootNavigator({
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [profile?.id]);
 
   useEffect(() => {
     if (!profile?.id || !pushToken) return;
