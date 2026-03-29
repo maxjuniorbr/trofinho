@@ -45,7 +45,10 @@ export default function BalancesAdminScreen() {
           ListEmptyComponent={<EmptyState empty emptyMessage={'Nenhum saldo ainda.\nAprove tarefas para creditar pontos.'} />}
           renderItem={({ item }) => (
             <Pressable
-              style={({ pressed }) => [styles.card, shadows.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle, opacity: item.filhos.ativo === false ? 0.5 : pressed ? 0.9 : 1 }]}
+              style={({ pressed }) => {
+                const opacity = item.filhos.ativo === false ? 0.5 : pressed ? 0.9 : 1;
+                return [styles.card, shadows.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle, opacity }];
+              }}
               onPress={() => router.push({ pathname: '/(admin)/balances/[filho_id]', params: { filho_id: item.filho_id, nome: item.filhos.nome } })}
             >
               <Avatar name={item.filhos.nome} size={44} />
