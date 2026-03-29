@@ -16,7 +16,6 @@ import {
   type AssignmentStatus,
 } from '@lib/tasks';
 import { formatDate } from '@lib/utils';
-import { captureException } from '@lib/sentry';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
 import { useChildAssignments } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
@@ -90,7 +89,7 @@ export default function ChildTasksScreen() {
     try {
       await refetch();
     } catch (e) {
-      captureException(e);
+      console.error(e);
     } finally {
       setRefreshing(false);
     }

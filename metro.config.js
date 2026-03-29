@@ -1,5 +1,4 @@
 const { getDefaultConfig } = require("expo/metro-config");
-const { withSentryConfig } = require("@sentry/react-native/metro");
 
 const config = getDefaultConfig(__dirname);
 
@@ -8,4 +7,4 @@ const config = getDefaultConfig(__dirname);
 // resolved by Metro and can cause runtime errors in Expo builds.
 config.resolver.blockList = [/\.test\.[jt]sx?$/];
 
-module.exports = withSentryConfig(config);
+module.exports = config;

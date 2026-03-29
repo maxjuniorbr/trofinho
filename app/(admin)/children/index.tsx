@@ -10,7 +10,6 @@ import { Avatar } from '@/components/ui/avatar';
 import { useChildrenList, useAdminBalances, combineQueryStates } from '@/hooks/queries';
 import { syncAutomaticAppreciation } from '@lib/balances';
 import type { BalanceWithChild } from '@lib/balances';
-import { captureException } from '@lib/sentry';
 import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 
@@ -33,7 +32,7 @@ export default function AdminChildrenScreen() {
     try {
       await syncAutomaticAppreciation();
     } catch (e) {
-      captureException(e);
+      console.error(e);
     }
     await refetchAll();
   }, [refetchAll]);

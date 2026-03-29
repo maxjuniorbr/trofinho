@@ -20,7 +20,6 @@ import {
   isCredit,
   type AppreciationPeriod,
 } from '@lib/balances';
-import { captureException } from '@lib/sentry';
 import { useBalance, useTransactions, useApplyPenalty, useConfigureAppreciation, combineQueryStates } from '@/hooks/queries';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { useTheme } from '@/context/theme-context';
@@ -60,7 +59,7 @@ export default function ChildBalanceAdminScreen() {
     try {
       await syncAutomaticAppreciation(filho_id);
     } catch (e) {
-      captureException(e);
+      console.error(e);
     }
     await refetchAll();
   }, [filho_id, refetchAll]);

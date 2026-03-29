@@ -22,7 +22,6 @@ import { signOut } from '@lib/auth';
 import { syncAutomaticAppreciation } from '@lib/balances';
 import { getGreeting } from '@lib/utils';
 import { isNotificationPermissionDenied } from '@lib/notifications';
-import { captureException } from '@lib/sentry';
 import {
   useProfile,
   useFamily,
@@ -101,7 +100,7 @@ export default function FilhoHomeScreen() {
       const denied = await isNotificationPermissionDenied();
       setShowNotificationBanner(denied);
     } catch (e) {
-      captureException(e);
+      console.error(e);
     } finally {
       setRefreshing(false);
     }
@@ -128,7 +127,7 @@ export default function FilhoHomeScreen() {
   }
 
   if (error) {
-    captureException(error);
+    console.error(error);
   }
 
   return (

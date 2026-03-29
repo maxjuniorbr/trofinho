@@ -1,5 +1,4 @@
 import { supabase } from './supabase';
-import { captureException } from './sentry';
 
 type PushEvent =
   | 'tarefa_aprovada'
@@ -18,6 +17,6 @@ export async function dispatchPushNotification(
       body: { event, familiaId, payload },
     });
   } catch (error) {
-    captureException(error);
+    console.error(error);
   }
 }
