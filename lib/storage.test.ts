@@ -1,0 +1,239 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as fc from 'fast-check';
+
+const resizeImageMock = vi.hoisted(() => vi.fn((uri: string) => Promise.resolve(uri)));
+const readImageAsArrayBufferMock = vi.hoisted(() => vi.fn());
+const inferImageExtensionMock = vi.hoisted(() => vi.fn());
+const inferImageContentTypeMock = vi.hoisted(() => vi.fn());
+
+vi.mock('./image-utils', () => ({
+  resizeImage: resizeImageMock,
+  readImageAsArrayBuffer: readImageAsArrayBufferMock,
+  inferImageExtension: inferImageExtensionMock,
+  inferImageContentType: inferImageContentTypeMock,
+  extractErrorMessage: (error: unknown, fallback: string) => {
+    if (error instanceof Error && error.message.trim()) return error.message;
+    return fallback;
+  },
+}));
+
+const storageBucketMock = vi.hoisted(() => ({
+  upload: vi.fn(),
+  getPublicUrl: vi.fn(),
+}));
+
+const supabaseMock = vi.hoisted(() => ({
+  storage: { from: vi.fn() },
+}));
+
+vi.mock('./supabase', () => ({
+  supabase: supabaseMock,
+}));
+
+import { prepareImageUpload, uploadImageToPublicBucket } from './storage';
+
+describe('storage', () => {
+  beforeEach(() => {
+    resizeImageMock.mockReset().mockImplementation((uri: string) => Promise.resolve(uri));
+    readImageAsArrayBufferMock.mockReset();
+    inferImageExtensionMock.mockReset();
+    inferImageContentTypeMock.mockReset();
+    storageBucketMock.upload.mockReset();
+    storageBucketMock.getPublicUrl.mockReset();
+    supabaseMock.storage.from.mockReset().mockReturnValue(storageBucketMock);
+  });
+
+  describe('prepareImageUpload', () => {
+    it('resizes, reads buffer, and infers content type', async () => {
+      const buffer = new ArrayBuffer(8);
+      resizeImageMock.mockResolvedValue('file:///resized.jpg');
+      readImageAsArrayBufferMock.mockResolvedValue(buffer);
+      inferImageExtensionMock.mockReturnValue('jpg');
+      inferImageContentTypeMock.mockReturnValue('image/jpeg');
+
+      const result = await prepareImageUpload('file:///photo.jpg');
+
+      expect(resizeImageMock).toHaveBeenCalledWith('file:///photo.jpg', undefined);
+      expect(inferImageExtensionMock).toHaveBeenCalledWith('file:///resized.jpg');
+      expect(readImageAsArrayBufferMock).toHaveBeenCalledWith('file:///resized.jpg');
+      expect(inferImageContentTypeMock).toHaveBeenCalledWith('jpg');
+      expect(result).toEqual({ buffer, contentType: 'image/jpeg', extension: 'jpg' });
+    });
+
+    it('passes resize options through', async () => {
+      readImageAsArrayBufferMock.mockResolvedValue(new ArrayBuffer(4));
+      inferImageExtensionMock.mockReturnValue('png');
+      inferImageContentTypeMock.mockReturnValue('image/png');
+
+      await prepareImageUpload('file:///photo.png', { maxDimension: 512, compress: 0.5 });
+
+      expect(resizeImageMock).toHaveBeenCalledWith('file:///photo.png', { maxDimension: 512, compress: 0.5 });
+    });
+  });
+
+  describe('uploadImageToPublicBucket', () => {
+    const setupMocks = (ext = 'jpg', contentType = 'image/jpeg') => {
+      const buffer = new ArrayBuffer(8);
+      readImageAsArrayBufferMock.mockResolvedValue(buffer);
+      inferImageExtensionMock.mockReturnValue(ext);
+      inferImageContentTypeMock.mockReturnValue(contentType);
+      return buffer;
+    };
+
+    it('uploads to the correct path with upsert true by default', async () => {
+      const buffer = setupMocks();
+      storageBucketMock.upload.mockResolvedValue({ error: null });
+      storageBucketMock.getPublicUrl.mockReturnValue({
+        data: { publicUrl: 'https://cdn.example.com/bucket/img/capa.jpg' },
+      });
+
+      const result = await uploadImageToPublicBucket({
+        bucket: 'premios',
+        imageUri: 'file:///photo.jpg',
+        pathWithoutExtension: 'img/capa',
+      });
+
+      expect(supabaseMock.storage.from).toHaveBeenCalledWith('premios');
+      expect(storageBucketMock.upload).toHaveBeenCalledWith(
+        'img/capa.jpg',
+        buffer,
+        { contentType: 'image/jpeg', upsert: true },
+      );
+      expect(result.error).toBeNull();
+      expect(result.path).toBe('img/capa.jpg');
+      expect(result.publicUrl).toMatch(/^https:\/\/cdn\.example\.com\/bucket\/img\/capa\.jpg\?t=\d+$/);
+    });
+
+    it('respects upsert: false', async () => {
+      setupMocks();
+      storageBucketMock.upload.mockResolvedValue({ error: null });
+      storageBucketMock.getPublicUrl.mockReturnValue({
+        data: { publicUrl: 'https://cdn.example.com/bucket/img.jpg' },
+      });
+
+      await uploadImageToPublicBucket({
+        bucket: 'premios',
+        imageUri: 'file:///photo.jpg',
+        pathWithoutExtension: 'img',
+        upsert: false,
+      });
+
+      expect(storageBucketMock.upload).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(ArrayBuffer),
+        expect.objectContaining({ upsert: false }),
+      );
+    });
+
+    it('returns upload error without calling getPublicUrl', async () => {
+      setupMocks();
+      storageBucketMock.upload.mockResolvedValue({
+        error: { message: 'Storage quota exceeded' },
+      });
+
+      const result = await uploadImageToPublicBucket({
+        bucket: 'premios',
+        imageUri: 'file:///photo.jpg',
+        pathWithoutExtension: 'img/capa',
+      });
+
+      expect(result).toEqual({
+        error: 'Storage quota exceeded',
+        path: null,
+        publicUrl: null,
+      });
+      expect(storageBucketMock.getPublicUrl).not.toHaveBeenCalled();
+    });
+
+    it('returns fallback error when prepareImageUpload throws', async () => {
+      resizeImageMock.mockRejectedValue(new Error('resize failed'));
+
+      const result = await uploadImageToPublicBucket({
+        bucket: 'premios',
+        imageUri: 'file:///photo.jpg',
+        pathWithoutExtension: 'img/capa',
+      });
+
+      expect(result).toEqual({
+        error: 'resize failed',
+        path: null,
+        publicUrl: null,
+      });
+    });
+
+    it('returns generic fallback for non-Error throws', async () => {
+      resizeImageMock.mockRejectedValue({ code: 'UNKNOWN' });
+
+      const result = await uploadImageToPublicBucket({
+        bucket: 'premios',
+        imageUri: 'file:///photo.jpg',
+        pathWithoutExtension: 'img/capa',
+      });
+
+      expect(result).toEqual({
+        error: 'Erro ao fazer upload da imagem',
+        path: null,
+        publicUrl: null,
+      });
+    });
+
+    it('appends cache-busting timestamp to publicUrl', async () => {
+      setupMocks();
+      storageBucketMock.upload.mockResolvedValue({ error: null });
+      storageBucketMock.getPublicUrl.mockReturnValue({
+        data: { publicUrl: 'https://cdn.example.com/img.jpg' },
+      });
+
+      vi.spyOn(Date, 'now').mockReturnValue(1700000000000);
+
+      const result = await uploadImageToPublicBucket({
+        bucket: 'premios',
+        imageUri: 'file:///photo.jpg',
+        pathWithoutExtension: 'img',
+      });
+
+      expect(result.publicUrl).toBe('https://cdn.example.com/img.jpg?t=1700000000000');
+    });
+  });
+
+  describe('property tests', () => {
+    it('upload path is always {pathWithoutExtension}.{extension}', async () => {
+      const extArb = fc.constantFrom('jpg', 'png', 'webp', 'heic');
+      const pathArb = fc.stringMatching(/^[a-z0-9/._-]{1,50}$/);
+
+      await fc.assert(
+        fc.asyncProperty(pathArb, extArb, async (basePath, ext) => {
+          readImageAsArrayBufferMock.mockReset();
+          inferImageExtensionMock.mockReset();
+          inferImageContentTypeMock.mockReset();
+          storageBucketMock.upload.mockReset();
+          storageBucketMock.getPublicUrl.mockReset();
+          supabaseMock.storage.from.mockReset().mockReturnValue(storageBucketMock);
+          resizeImageMock.mockReset().mockImplementation((uri: string) => Promise.resolve(uri));
+
+          readImageAsArrayBufferMock.mockResolvedValue(new ArrayBuffer(4));
+          inferImageExtensionMock.mockReturnValue(ext);
+          inferImageContentTypeMock.mockReturnValue('image/jpeg');
+          storageBucketMock.upload.mockResolvedValue({ error: null });
+          storageBucketMock.getPublicUrl.mockReturnValue({
+            data: { publicUrl: `https://cdn.example.com/${basePath}.${ext}` },
+          });
+
+          const result = await uploadImageToPublicBucket({
+            bucket: 'test',
+            imageUri: `file:///photo.${ext}`,
+            pathWithoutExtension: basePath,
+          });
+
+          expect(result.path).toBe(`${basePath}.${ext}`);
+          expect(storageBucketMock.upload).toHaveBeenCalledWith(
+            `${basePath}.${ext}`,
+            expect.any(ArrayBuffer),
+            expect.any(Object),
+          );
+        }),
+        { numRuns: 100 },
+      );
+    });
+  });
+});
