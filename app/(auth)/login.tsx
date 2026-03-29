@@ -43,14 +43,12 @@ export default function LoginScreen() {
 
     setError('');
     setLoading(true);
-    const { profile, error: signInError } = await signIn(email.trim(), password);
-    setLoading(false);
+    const { error: signInError } = await signIn(email.trim(), password);
 
-    if (signInError) { setError(signInError.message); return; }
-    if (!profile) { router.replace('/(auth)/onboarding'); return; }
+    if (signInError) { setLoading(false); setError(signInError.message); return; }
 
-    const destination = profile.papel === 'admin' ? '/(admin)/' : '/(child)/';
-    router.replace(destination);
+    // Navigation is handled by the root layout auth state handler.
+    // Keep the button in loading state until the redirect happens.
   }
 
   return (
