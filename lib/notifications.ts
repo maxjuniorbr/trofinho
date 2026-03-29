@@ -54,6 +54,7 @@ async function ensureNotificationHandler(): Promise<void> {
 
 export type NotificationRoute =
   | '/(admin)/tasks'
+  | '/(admin)/redemptions'
   | '/(child)/redemptions'
   | '/(child)/tasks';
 

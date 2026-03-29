@@ -261,8 +261,11 @@ describe('notifications', () => {
 describe('Property 3: Preference sync round trip', () => {
   const prefsArb = fc.record({
     tarefasPendentes: fc.boolean(),
+    tarefaAprovada: fc.boolean(),
+    tarefaRejeitada: fc.boolean(),
     tarefaConcluida: fc.boolean(),
     resgatesSolicitado: fc.boolean(),
+    resgateConfirmado: fc.boolean(),
   });
 
   const fakeUserId = 'user-abc-123';
@@ -310,8 +313,11 @@ describe('syncPrefsToServer', () => {
   const fakeUser = { id: 'user-sync-123' };
   const prefs: NotificationPrefs = {
     tarefasPendentes: false,
+    tarefaAprovada: true,
+    tarefaRejeitada: false,
     tarefaConcluida: true,
     resgatesSolicitado: false,
+    resgateConfirmado: true,
   };
 
   beforeEach(() => {
@@ -363,8 +369,11 @@ describe('syncPrefsFromServer', () => {
   it('overwrites local storage with server prefs', async () => {
     const serverPrefs: NotificationPrefs = {
       tarefasPendentes: true,
+      tarefaAprovada: false,
+      tarefaRejeitada: false,
       tarefaConcluida: false,
       resgatesSolicitado: true,
+      resgateConfirmado: true,
     };
 
     getUserMock.mockResolvedValue({ data: { user: fakeUser } });
