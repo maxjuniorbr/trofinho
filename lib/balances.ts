@@ -35,7 +35,7 @@ export interface Transaction {
 }
 
 export interface BalanceWithChild extends Balance {
-  filhos: { nome: string };
+  filhos: { nome: string; ativo: boolean };
 }
 
 export function getTransactionTypeLabel(type: TransactionType): string {
@@ -86,7 +86,7 @@ export async function getBalance(childId?: string): Promise<{ data: Balance | nu
 export async function listAdminBalances(): Promise<{ data: BalanceWithChild[]; error: string | null }> {
   const { data, error } = await supabase
     .from('saldos')
-    .select('*, filhos(nome)')
+    .select('*, filhos(nome, ativo)')
     .order('filhos(nome)')
     .returns<BalanceWithChild[]>();
 

@@ -70,7 +70,7 @@ export async function listChildren(): Promise<{
 }> {
   const { data, error } = await supabase
     .from('filhos')
-    .select('id, nome, usuario_id, avatar_url')
+    .select('id, nome, usuario_id, avatar_url, ativo')
     .order('nome')
     .returns<Child[]>();
 
@@ -109,6 +109,55 @@ function translateSignUpError(msg: string): string {
   if (msg.includes('Unable to validate email')) return 'E-mail inválido.';
   if (msg.includes('email rate limit')) return 'Limite de e-mails atingido. Aguarde alguns minutos.';
   return 'Não foi possível cadastrar o filho. Tente novamente.';
+}
+
+export async function deactivateChild(childId: string): Promise<{
+  data: { pendingValidationCount: number; totalBalance: number } | null;
+  error: string | null;
+}> {
+  const { data, error } = await supabase.rpc('desativar_filho', {
+    p_filho_id: childId,
+  });
+  if (error) return { data: null, error: localizeRpcError(error.message) };
+  const result = data as unknown as { pendingValidationCount: number; totalBalance: number };
+  return { data: result, error: null };
+}
+
+export async function reactivateChild(childId: string): Promise<{
+  error: string | null;
+}> {
+  const { error } = await supabase.rpc('reativar_filho', {
+    p_filho_id: childId,
+  });
+  if (error) return { error: localizeRpcError(error.message) };
+  return { error: null };
+}
+
+export function buildChildDeactivateMessage(
+  childName: string,
+  data: {
+    pendingCount: number;
+    awaitingCount: number;
+    totalBalance: number;
+  },
+): string {
+  const parts: string[] = [];
+
+  parts.push(`${childName} não poderá mais fazer login no app.`);
+
+  if (data.pendingCount > 0) {
+    parts.push(`${data.pendingCount} atribuição(ões) pendente(s) será(ão) cancelada(s).`);
+  }
+
+  if (data.awaitingCount > 0) {
+    parts.push(`${data.awaitingCount} atribuição(ões) aguardando validação será(ão) mantida(s).`);
+  }
+
+  if (data.totalBalance > 0) {
+    parts.push(`O saldo de ${data.totalBalance} pts será mantido.`);
+  }
+
+  return parts.join('\n');
 }
 
 function translateChildRegistrationError(msg: string): string {

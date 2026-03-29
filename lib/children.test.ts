@@ -18,7 +18,8 @@ vi.mock('./supabase', () => ({
   supabase: supabaseMock,
 }));
 
-import { getChild, getMyChildId, listChildren, registerChild } from './children';
+import * as fc from 'fast-check';
+import { buildChildDeactivateMessage, deactivateChild, getChild, getMyChildId, listChildren, reactivateChild, registerChild } from './children';
 
 function createOrderQuery(result: { data?: unknown; error?: { message: string } | null }) {
   return {
@@ -203,5 +204,138 @@ describe('children', () => {
 
     await expect(getMyChildId()).resolves.toBeNull();
     await expect(getMyChildId()).resolves.toBeNull();
+  });
+
+  describe('deactivateChild', () => {
+    it('returns data on success', async () => {
+      supabaseMock.rpc.mockResolvedValue({
+        data: { pendingValidationCount: 2, totalBalance: 150 },
+        error: null,
+      });
+
+      const result = await deactivateChild('child-1');
+
+      expect(supabaseMock.rpc).toHaveBeenCalledWith('desativar_filho', {
+        p_filho_id: 'child-1',
+      });
+      expect(result).toEqual({
+        data: { pendingValidationCount: 2, totalBalance: 150 },
+        error: null,
+      });
+    });
+
+    it('returns localized error when child not found', async () => {
+      supabaseMock.rpc.mockResolvedValue({
+        data: null,
+        error: { message: 'Filho não encontrado' },
+      });
+
+      const result = await deactivateChild('child-missing');
+
+      expect(result).toEqual({
+        data: null,
+        error: 'Registro não encontrado.',
+      });
+    });
+
+    it('returns localized error when pending redemptions block deactivation', async () => {
+      supabaseMock.rpc.mockResolvedValue({
+        data: null,
+        error: { message: 'Não é possível desativar um filho com resgates pendentes. Confirme ou cancele os resgates antes de desativar.' },
+      });
+
+      const result = await deactivateChild('child-with-redemptions');
+
+      expect(result).toEqual({
+        data: null,
+        error: 'Não é possível desativar com resgates pendentes. Confirme ou cancele os resgates primeiro.',
+      });
+    });
+  });
+
+  describe('reactivateChild', () => {
+    it('returns no error on success', async () => {
+      supabaseMock.rpc.mockResolvedValue({ error: null });
+
+      const result = await reactivateChild('child-1');
+
+      expect(supabaseMock.rpc).toHaveBeenCalledWith('reativar_filho', {
+        p_filho_id: 'child-1',
+      });
+      expect(result).toEqual({ error: null });
+    });
+
+    it('returns localized error on failure', async () => {
+      supabaseMock.rpc.mockResolvedValue({
+        error: { message: 'some error' },
+      });
+
+      const result = await reactivateChild('child-1');
+
+      expect(result).toEqual({
+        error: 'Algo deu errado. Tente novamente.',
+      });
+    });
+  });
+
+  describe('Property tests — soft delete', () => {
+    // Feature: soft-delete, Property 13: deactivateChild with pending redemptions returns error containing 'resgates pendentes'
+    // **Validates: Requirements 7.4, 13.7**
+    it('deactivateChild with pending redemptions returns error containing resgates pendentes', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.uuid(), async (childId) => {
+          supabaseMock.rpc.mockResolvedValue({
+            data: null,
+            error: { message: 'Não é possível desativar um filho com resgates pendentes. Confirme ou cancele os resgates antes de desativar.' },
+          });
+          const result = await deactivateChild(childId);
+          expect(result.data).toBeNull();
+          expect(result.error).toBeTruthy();
+          expect(result.error).toContain('resgates pendentes');
+        }),
+        { numRuns: 100 },
+      );
+    });
+
+    // Feature: soft-delete, Property 15: Confirmation dialog message includes correct counts and balance
+    // **Validates: Requirements 13.3, 13.4, 13.5**
+    it('buildChildDeactivateMessage includes correct counts and balance for arbitrary data', () => {
+      fc.assert(
+        fc.property(
+          fc.string({ minLength: 1, maxLength: 50 }),
+          fc.record({
+            pendingCount: fc.nat({ max: 100 }),
+            awaitingCount: fc.nat({ max: 100 }),
+            totalBalance: fc.nat({ max: 10000 }),
+          }),
+          (childName, data) => {
+            const message = buildChildDeactivateMessage(childName, data);
+
+            // Always includes the child name and login block info
+            expect(message).toContain(childName);
+            expect(message).toContain('login');
+
+            if (data.pendingCount > 0) {
+              expect(message).toContain(String(data.pendingCount));
+              expect(message).toContain('cancelada');
+            }
+
+            if (data.awaitingCount > 0) {
+              expect(message).toContain(String(data.awaitingCount));
+              expect(message).toContain('mantida');
+            }
+
+            if (data.totalBalance > 0) {
+              expect(message).toContain(String(data.totalBalance));
+              expect(message).toContain('pts');
+            }
+
+            // Message is never empty
+            expect(message.length).toBeGreaterThan(0);
+          },
+        ),
+        { numRuns: 100 },
+      );
+    });
   });
 });
