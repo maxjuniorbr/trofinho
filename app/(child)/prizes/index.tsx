@@ -15,7 +15,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Trophy, CheckCircle2 } from 'lucide-react-native';
 import type { Prize } from '@lib/prizes';
 import { syncAutomaticAppreciation } from '@lib/balances';
-import { captureException } from '@lib/sentry';
 import {
   useActivePrizes,
   useBalance,
@@ -62,7 +61,7 @@ export default function ChildPrizesScreen() {
       await syncAutomaticAppreciation();
       await refetchAll();
     } catch (e) {
-      captureException(e);
+      console.error(e);
     } finally {
       setRefreshing(false);
     }

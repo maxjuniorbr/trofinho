@@ -9,7 +9,6 @@ import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { Avatar } from '@/components/ui/avatar';
 import { useAdminBalances } from '@/hooks/queries';
 import { syncAutomaticAppreciation } from '@lib/balances';
-import { captureException } from '@lib/sentry';
 import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 
@@ -24,7 +23,7 @@ export default function BalancesAdminScreen() {
     try {
       await syncAutomaticAppreciation();
     } catch (e) {
-      captureException(e);
+      console.error(e);
     }
     await refetch();
   }, [refetch]);

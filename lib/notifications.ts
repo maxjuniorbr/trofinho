@@ -6,7 +6,6 @@ import type {
   NotificationTriggerInput,
 } from 'expo-notifications';
 import { deviceStorage } from './device-storage';
-import { captureException } from './sentry';
 import { supabase } from './supabase';
 
 const NOTIFICATION_PREFERENCES_KEY = 'notification_prefs';
@@ -348,7 +347,7 @@ export async function syncPrefsToServer(prefs: NotificationPrefs): Promise<void>
       .update({ notif_prefs: prefs })
       .eq('id', user.id);
   } catch (error) {
-    captureException(error);
+    console.error(error);
   }
 }
 
@@ -371,7 +370,7 @@ export async function syncPrefsFromServer(): Promise<void> {
       JSON.stringify(serverPrefs),
     );
   } catch (error) {
-    captureException(error);
+    console.error(error);
   }
 }
 
@@ -382,7 +381,7 @@ export async function setNotificationPrefs(
     NOTIFICATION_PREFERENCES_KEY,
     JSON.stringify(preferences),
   );
-  // Fire-and-forget: sync to server, errors logged to Sentry
+  // Fire-and-forget: sync to server, errors logged to console
   syncPrefsToServer(preferences);
 }
 

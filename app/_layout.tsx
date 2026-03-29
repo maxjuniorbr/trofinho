@@ -1,4 +1,4 @@
-import { Stack, useNavigationContainerRef, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
@@ -9,7 +9,6 @@ import { useFonts,
   Nunito_800ExtraBold,
   Nunito_900Black,
 } from '@expo-google-fonts/nunito';
-import * as Sentry from '@sentry/react-native';
 import { supabase } from '@lib/supabase';
 import { getProfile, type UserProfile } from '@lib/auth';
 import { syncAutomaticAppreciation } from '@lib/balances';
@@ -21,17 +20,6 @@ import {
 } from '@lib/notifications';
 import { ThemeProvider, useTheme } from '@/context/theme-context';
 import { QueryProvider } from '@/context/query-client';
-import {
-  initSentry,
-  registerNavigationRef,
-  setUserContext,
-  clearUserContext,
-  captureException,
-} from '@lib/sentry';
-
-// Initialize Sentry before the React tree. Reads DSN from EXPO_PUBLIC_SENTRY_DSN;
-// if not set, all Sentry calls become no-ops.
-initSentry();
 
 SplashScreen.preventAutoHideAsync();
 
@@ -78,9 +66,7 @@ function RootLayout() {
   );
 }
 
-// Sentry.wrap adds a root error boundary and performance profiling.
-// Must receive a named reference so Sentry can identify the component in traces.
-export default Sentry.wrap(RootLayout);
+export default RootLayout;
 
 function RootNavigator({
   ready,
@@ -96,27 +82,10 @@ function RootNavigator({
   const { colors } = useTheme();
   const [pushToken, setPushToken] = useState<string | null>(null);
   const lastSavedPushTokenKeyRef = useRef<string | null>(null);
-  const navigationRef = useNavigationContainerRef();
-
-  // Wire up Sentry navigation instrumentation once the container is available.
-  useEffect(() => {
-    registerNavigationRef(navigationRef);
-  }, [navigationRef]);
-
-  // Sync user context with Sentry on every profile change.
-  // undefined = still loading, skip. null = signed out, clear context.
-  useEffect(() => {
-    if (profile?.id) {
-      setUserContext(profile.id, profile.papel);
-    } else if (profile === null) {
-      clearUserContext();
-    }
-  }, [profile]);
-
   // Fire-and-forget sync of automatic appreciation on startup
   useEffect(() => {
     if (!profile?.familia_id) return;
-    syncAutomaticAppreciation().catch(captureException);
+    syncAutomaticAppreciation().catch(console.error);
   }, [profile?.familia_id]);
 
   // Register for push notifications only after the user is authenticated.

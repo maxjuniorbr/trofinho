@@ -21,7 +21,6 @@ import {
 import { useTheme } from '@/context/theme-context';
 import { spacing } from '@/constants/theme';
 import { signOut } from '@lib/auth';
-import { captureException } from '@lib/sentry';
 import {
   setNotificationPrefs,
   type NotificationPrefs,
@@ -56,7 +55,7 @@ export default function ProfileScreen() {
 
   const handleSignOut = async () => {
     setLoggingOut(true);
-    try { await signOut(); } catch (e) { captureException(e); setLoggingOut(false); }
+    try { await signOut(); } catch (e) { console.error(e); setLoggingOut(false); }
   };
 
   const handleNotificationPreferencesChange = async (next: NotificationPrefs) => {
@@ -69,7 +68,7 @@ export default function ProfileScreen() {
     try {
       await setNotificationPrefs(next);
     } catch (e) {
-      captureException(e);
+      console.error(e);
       setNotificationPreferences(previous);
       setNotificationPreferencesError('Não foi possível salvar as preferências agora.');
     } finally {
