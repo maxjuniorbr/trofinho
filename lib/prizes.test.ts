@@ -3,6 +3,7 @@ import fc from 'fast-check';
 
 const notifyRedemptionRequestedMock = vi.hoisted(() => vi.fn());
 const uploadImageToPublicBucketMock = vi.hoisted(() => vi.fn());
+const dispatchPushNotificationMock = vi.hoisted(() => vi.fn());
 
 const supabaseMock = vi.hoisted(() => ({
   from: vi.fn(),
@@ -22,6 +23,10 @@ vi.mock('./notifications', () => ({
 
 vi.mock('./storage', () => ({
   uploadImageToPublicBucket: uploadImageToPublicBucketMock,
+}));
+
+vi.mock('./push', () => ({
+  dispatchPushNotification: dispatchPushNotificationMock,
 }));
 
 import {
@@ -87,6 +92,7 @@ describe('prizes', () => {
   beforeEach(() => {
     notifyRedemptionRequestedMock.mockReset();
     uploadImageToPublicBucketMock.mockReset();
+    dispatchPushNotificationMock.mockReset();
     supabaseMock.from.mockReset();
     supabaseMock.rpc.mockReset();
     supabaseMock.auth.getUser.mockReset();
@@ -361,6 +367,61 @@ describe('prizes', () => {
       error: 'Não foi possível fazer upload da imagem do prêmio.',
       imageUrl: null,
       pointsMessage: null,
+    });
+  });
+
+  describe('push notification dispatch', () => {
+    it('requestRedemption dispatches resgate_solicitado with correct payload when opts provided', async () => {
+      supabaseMock.rpc.mockResolvedValueOnce({ data: 'redemption-1', error: null });
+
+      await requestRedemption('prize-1', {
+        familiaId: 'family-1',
+        childName: 'Lia',
+        prizeName: 'Sorvete',
+      });
+
+      expect(dispatchPushNotificationMock).toHaveBeenCalledWith(
+        'resgate_solicitado',
+        'family-1',
+        { childName: 'Lia', prizeName: 'Sorvete' },
+      );
+    });
+
+    it('confirmRedemption dispatches resgate_confirmado with correct payload when opts provided', async () => {
+      supabaseMock.rpc.mockResolvedValueOnce({ error: null });
+
+      await confirmRedemption('red-1', {
+        familiaId: 'family-1',
+        userId: 'child-user-1',
+        prizeName: 'Cinema',
+      });
+
+      expect(dispatchPushNotificationMock).toHaveBeenCalledWith(
+        'resgate_confirmado',
+        'family-1',
+        { userId: 'child-user-1', prizeName: 'Cinema' },
+      );
+    });
+
+    it('requestRedemption does not dispatch when opts not provided', async () => {
+      supabaseMock.rpc.mockResolvedValueOnce({ data: 'redemption-1', error: null });
+
+      await requestRedemption('prize-1');
+
+      expect(dispatchPushNotificationMock).not.toHaveBeenCalled();
+    });
+
+    it('dispatch failure does not affect the RPC return value', async () => {
+      supabaseMock.rpc.mockResolvedValueOnce({ error: null });
+      dispatchPushNotificationMock.mockRejectedValueOnce(new Error('push failed'));
+
+      const result = await confirmRedemption('red-1', {
+        familiaId: 'family-1',
+        userId: 'child-user-1',
+        prizeName: 'Livro',
+      });
+
+      expect(result).toEqual({ error: null });
     });
   });
 
