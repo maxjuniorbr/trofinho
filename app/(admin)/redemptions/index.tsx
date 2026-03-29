@@ -28,6 +28,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { formatDate } from '@lib/utils';
 import { useAdminRedemptions, useConfirmRedemption, useCancelRedemption, useProfile } from '@/hooks/queries';
+import { useTransientMessage } from '@/hooks/use-transient-message';
 
 type ConfirmModalState = {
   visible: boolean;
@@ -60,6 +61,8 @@ export default function AdminRedemptionsScreen() {
   const cancelMutation = useCancelRedemption();
 
   const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const visibleSuccess = useTransientMessage(actionSuccess);
   const [modal, setModal] = useState<ConfirmModalState>(MODAL_INITIAL);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const hasError = Boolean(error);
@@ -67,11 +70,13 @@ export default function AdminRedemptionsScreen() {
 
   const handleConfirm = (redemptionId: string, childName: string, childUserId: string | null, prizeName: string) => {
     setActionError(null);
+    setActionSuccess(null);
     setModal({ visible: true, type: 'confirm', redemptionId, childName, childUserId, prizeName, points: 0 });
   };
 
   const handleCancel = (redemptionId: string, childName: string, prizeName: string, points: number) => {
     setActionError(null);
+    setActionSuccess(null);
     setModal({ visible: true, type: 'cancel', redemptionId, childName, childUserId: null, prizeName, points });
   };
 
@@ -87,12 +92,12 @@ export default function AdminRedemptionsScreen() {
           prizeName: modal.prizeName,
         } : undefined,
       }, {
-        onSuccess: () => setProcessingId(null),
+        onSuccess: () => { setProcessingId(null); setActionSuccess('Resgate confirmado com sucesso.'); },
         onError: (err) => { setProcessingId(null); setActionError(err.message); },
       });
     } else {
       cancelMutation.mutate(redemptionId, {
-        onSuccess: () => setProcessingId(null),
+        onSuccess: () => { setProcessingId(null); setActionSuccess('Resgate cancelado. Pontos estornados.'); },
         onError: (err) => { setProcessingId(null); setActionError(err.message); },
       });
     }
@@ -144,6 +149,7 @@ export default function AdminRedemptionsScreen() {
           refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} tintColor={colors.brand.vivid} />}
           ListHeaderComponent={
             <>
+              {visibleSuccess ? <InlineMessage message={visibleSuccess} variant="success" /> : null}
               {actionError ? <InlineMessage message={actionError} variant="error" /> : null}
               {pending.length > 0 && (
                 <View style={styles.secaoHeader}>

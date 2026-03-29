@@ -41,6 +41,7 @@ import { TransactionIcon } from '@/components/balance/transaction-icon';
 import { PointsDisplay } from '@/components/ui/points-display';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { getSafeBottomPadding } from '@lib/safe-area';
+import { useTransientMessage } from '@/hooks/use-transient-message';
 
 export default function ChildBalanceScreen() {
   const router = useRouter();
@@ -70,6 +71,8 @@ export default function ChildBalanceScreen() {
   const [amountStr, setAmountStr] = useState('');
   const [modalError, setModalError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [transferSuccess, setTransferSuccess] = useState<string | null>(null);
+  const visibleTransferSuccess = useTransientMessage(transferSuccess);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -93,6 +96,7 @@ export default function ChildBalanceScreen() {
       await transferMutation.mutateAsync({ childId, amount: v });
       setModalVisible(false);
       setAmountStr('');
+      setTransferSuccess(`${v} ponto${v === 1 ? '' : 's'} guardado${v === 1 ? '' : 's'} no cofrinho.`);
     } catch (e) {
       setModalError(e instanceof Error ? e.message : 'Não foi possível transferir.');
     }
@@ -134,6 +138,11 @@ export default function ChildBalanceScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
         ListHeaderComponent={
           <>
+            {visibleTransferSuccess ? (
+              <View style={{ marginBottom: spacing['3'] }}>
+                <InlineMessage message={visibleTransferSuccess} variant="success" />
+              </View>
+            ) : null}
             <View style={styles.cardsRow}>
               <View style={[styles.balanceCard, { backgroundColor: colors.bg.elevated }, shadows.goldGlow]}>
                 <View style={styles.balanceLabelRow}>
