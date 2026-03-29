@@ -126,14 +126,14 @@ export async function applyPenalty(
   childId: string,
   amount: number,
   description: string
-): Promise<{ error: string | null }> {
-  const { error } = await supabase.rpc('aplicar_penalizacao', {
+): Promise<{ data: { deducted: number } | null; error: string | null }> {
+  const { data, error } = await supabase.rpc('aplicar_penalizacao', {
     p_filho_id: childId,
     p_valor: amount,
     p_descricao: description,
   });
-  if (error) return { error: localizeRpcError(error.message) };
-  return { error: null };
+  if (error) return { data: null, error: localizeRpcError(error.message) };
+  return { data: { deducted: (data as number) ?? amount }, error: null };
 }
 
 export async function configureAppreciation(

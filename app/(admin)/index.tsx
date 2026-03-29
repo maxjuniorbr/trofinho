@@ -33,7 +33,7 @@ import {
   combineQueryStates,
 } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
-import { radii, shadows, spacing, typography, type ThemeColors } from '@/constants/theme';
+import { radii, shadows, spacing, typography, withAlpha, type ThemeColors } from '@/constants/theme';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { NotificationPermissionBanner } from '@/components/ui/notification-permission-banner';
@@ -80,7 +80,7 @@ function getMetricAppearance(tone: MetricTone, colors: ThemeColors) {
   if (tone === 'danger') {
     return {
       backgroundColor: colors.semantic.errorBg,
-      borderColor: colors.semantic.error + '40',
+      borderColor: withAlpha(colors.semantic.error, 0.25),
       valueColor: colors.semantic.error,
       labelColor: colors.semantic.error,
     };
@@ -334,7 +334,7 @@ export default function AdminHomeScreen() {
             </Pressable>
           </View>
           <Pressable
-            style={[styles.navCard, { backgroundColor: colors.bg.surface, borderColor: colors.semantic.error + '40' }, shadows.card]}
+            style={[styles.navCard, { backgroundColor: colors.bg.surface, borderColor: withAlpha(colors.semantic.error, 0.25) }, shadows.card]}
             onPress={() => router.push('/(admin)/tasks')}
             accessibilityRole="button"
             accessibilityLabel={`${pendingValidationCount} tarefas aguardando validação`}

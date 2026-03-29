@@ -2,7 +2,7 @@ import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type PressableProps } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/context/theme-context';
-import { gradients, radii, shadows, spacing, typography } from '@/constants/theme';
+import { gradients, radii, shadows, spacing, typography, withAlpha } from '@/constants/theme';
 import * as Haptics from 'expo-haptics';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
@@ -95,7 +95,7 @@ export function Button({
   const borderColor = () => {
     switch (variant) {
       case 'secondary': return colors.border.default;
-      case 'outline':   return colors.brand.vivid + '4D'; // 30% opacity
+      case 'outline':   return withAlpha(colors.brand.vivid, 0.30);
       default:          return 'transparent';
     }
   };

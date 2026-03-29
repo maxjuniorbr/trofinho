@@ -1,4 +1,5 @@
 import {
+  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -30,7 +31,7 @@ import {
   combineQueryStates,
 } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
-import { radii, shadows, spacing, typography } from '@/constants/theme';
+import { radii, shadows, spacing, typography, withAlpha } from '@/constants/theme';
 import { PointsDisplay } from '@/components/ui/points-display';
 import { LogoutButton } from '@/components/ui/logout-button';
 import { NotificationPermissionBanner } from '@/components/ui/notification-permission-banner';
@@ -106,7 +107,16 @@ export default function FilhoHomeScreen() {
     }
   };
 
-  const handleSignOut = async () => { setLoggingOut(true); await signOut(); };
+  const handleSignOut = () => {
+    Alert.alert('Sair do app?', 'Você precisará entrar novamente.', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Sair',
+        style: 'destructive',
+        onPress: async () => { setLoggingOut(true); await signOut(); },
+      },
+    ]);
+  };
 
   if (isLoading) {
     return (
@@ -199,7 +209,7 @@ export default function FilhoHomeScreen() {
             styles.tarefasCard,
             {
               backgroundColor: colors.bg.surface,
-              borderColor: hasPending ? colors.semantic.error + '50' : colors.border.subtle,
+              borderColor: hasPending ? withAlpha(colors.semantic.error, 0.31) : colors.border.subtle,
             },
             shadows.card,
             pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
