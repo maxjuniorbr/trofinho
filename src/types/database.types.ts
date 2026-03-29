@@ -474,6 +474,10 @@ export type Database = {
         Returns: undefined
       }
       confirmar_resgate: { Args: { p_resgate_id: string }; Returns: undefined }
+      concluir_atribuicao: {
+        Args: { p_atribuicao_id: string; p_evidencia_url?: string | null }
+        Returns: undefined
+      }
       desativar_premio: {
         Args: { p_premio_id: string }
         Returns: number

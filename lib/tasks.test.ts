@@ -155,7 +155,7 @@ function createAssignmentWithChild(
     validada_por: null,
     created_at: '2026-03-21T00:00:00Z',
     competencia: null,
-    filhos: { nome: 'Lia' },
+    filhos: { nome: 'Lia', usuario_id: null },
     ...overrides,
   };
 }
