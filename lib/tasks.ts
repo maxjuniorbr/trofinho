@@ -271,14 +271,10 @@ export async function completeAssignment(
     evidenceUrl = result.url;
   }
 
-  const { error } = await supabase
-    .from('atribuicoes')
-    .update({
-      status: 'aguardando_validacao',
-      evidencia_url: evidenceUrl,
-    })
-    .eq('id', assignmentId)
-    .eq('status', 'pendente');
+  const { error } = await supabase.rpc('concluir_atribuicao', {
+    p_atribuicao_id: assignmentId,
+    p_evidencia_url: evidenceUrl,
+  });
 
   if (error) return { error: localizeRpcError(error.message) };
   await notifyTaskCompleted();
