@@ -1,4 +1,5 @@
 import {
+  AppState,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -134,9 +135,19 @@ export default function AdminHomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    isNotificationPermissionDenied()
-      .then(setShowNotificationBanner)
-      .catch(() => setShowNotificationBanner(false));
+    const check = () => {
+      isNotificationPermissionDenied()
+        .then(setShowNotificationBanner)
+        .catch(() => setShowNotificationBanner(false));
+    };
+
+    check();
+
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') check();
+    });
+
+    return () => sub.remove();
   }, []);
 
   const handleRefresh = async () => {
