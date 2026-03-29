@@ -296,37 +296,52 @@ export default function TaskDetailAdminScreen() {
     });
   }, [notes, rejectMutation, task]);
 
+  const executeDeactivate = useCallback(() => {
+    if (!task) return;
+    deactivateMutation.mutate(task.id, {
+      onSuccess: (data) => {
+        const count = data?.pendingValidationCount ?? 0;
+        if (count > 0) {
+          setFeedbackMessage(`Tarefa desativada. ${count} atribuições ainda aguardam validação.`);
+          setFeedbackVariant('warning');
+        } else {
+          setFeedbackMessage('Tarefa desativada com sucesso.');
+          setFeedbackVariant('success');
+        }
+        setFeedbackKey((k) => k + 1);
+      },
+      onError: (err) => {
+        setFeedbackMessage(err.message);
+        setFeedbackVariant('warning');
+        setFeedbackKey((k) => k + 1);
+      },
+    });
+  }, [task, deactivateMutation]);
+
   const handleDeactivate = useCallback(() => {
     if (!task) return;
     const message = buildTaskDeactivateMessage(task, task.atribuicoes);
     Alert.alert('Desativar tarefa?', message, [
       { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Desativar',
-        style: 'destructive',
-        onPress: () => {
-          deactivateMutation.mutate(task.id, {
-            onSuccess: (data) => {
-              const count = data?.pendingValidationCount ?? 0;
-              if (count > 0) {
-                setFeedbackMessage(`Tarefa desativada. ${count} atribuições ainda aguardam validação.`);
-                setFeedbackVariant('warning');
-              } else {
-                setFeedbackMessage('Tarefa desativada com sucesso.');
-                setFeedbackVariant('success');
-              }
-              setFeedbackKey((k) => k + 1);
-            },
-            onError: (err) => {
-              setFeedbackMessage(err.message);
-              setFeedbackVariant('warning');
-              setFeedbackKey((k) => k + 1);
-            },
-          });
-        },
-      },
+      { text: 'Desativar', style: 'destructive', onPress: executeDeactivate },
     ]);
-  }, [task, deactivateMutation]);
+  }, [task, executeDeactivate]);
+
+  const executeReactivate = useCallback(() => {
+    if (!task) return;
+    reactivateMutation.mutate(task.id, {
+      onSuccess: () => {
+        setFeedbackMessage('Tarefa reativada com sucesso.');
+        setFeedbackVariant('success');
+        setFeedbackKey((k) => k + 1);
+      },
+      onError: (err) => {
+        setFeedbackMessage(err.message);
+        setFeedbackVariant('warning');
+        setFeedbackKey((k) => k + 1);
+      },
+    });
+  }, [task, reactivateMutation]);
 
   const handleReactivate = useCallback(() => {
     if (!task) return;
@@ -335,26 +350,10 @@ export default function TaskDetailAdminScreen() {
       'A tarefa voltará a aparecer para os filhos e gerar atribuições diárias (se aplicável).',
       [
         { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Reativar',
-          onPress: () => {
-            reactivateMutation.mutate(task.id, {
-              onSuccess: () => {
-                setFeedbackMessage('Tarefa reativada com sucesso.');
-                setFeedbackVariant('success');
-                setFeedbackKey((k) => k + 1);
-              },
-              onError: (err) => {
-                setFeedbackMessage(err.message);
-                setFeedbackVariant('warning');
-                setFeedbackKey((k) => k + 1);
-              },
-            });
-          },
-        },
+        { text: 'Reativar', onPress: executeReactivate },
       ],
     );
-  }, [task, reactivateMutation]);
+  }, [task, executeReactivate]);
 
   useEffect(() => {
     if (updated === '1') {
