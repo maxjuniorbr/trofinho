@@ -1,4 +1,6 @@
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useNavigationContainerRef, useRouter, useSegments } from 'expo-router';
+import { isRunningInExpoGo } from 'expo';
+import * as Sentry from '@sentry/react-native';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
@@ -21,9 +23,28 @@ import {
 import { ThemeProvider, useTheme } from '@/context/theme-context';
 import { QueryProvider } from '@/context/query-client';
 
+const navigationIntegration = Sentry.reactNavigationIntegration({
+  enableTimeToInitialDisplay: !isRunningInExpoGo(),
+});
+
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  sendDefaultPii: true,
+  tracesSampleRate: __DEV__ ? 1.0 : 0.2,
+  profilesSampleRate: 1.0,
+  replaysOnErrorSampleRate: 1.0,
+  replaysSessionSampleRate: __DEV__ ? 1.0 : 0.1,
+  enableLogs: true,
+  integrations: [navigationIntegration, Sentry.mobileReplayIntegration()],
+  enableNativeFramesTracking: !isRunningInExpoGo(),
+  environment: __DEV__ ? 'development' : 'production',
+  debug: __DEV__,
+});
+
 SplashScreen.preventAutoHideAsync();
 
 function RootLayout() {
+  const ref = useNavigationContainerRef();
   const [ready, setReady] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null | undefined>(undefined);
 
@@ -34,6 +55,12 @@ function RootLayout() {
     Nunito_800ExtraBold,
     Nunito_900Black,
   });
+
+  useEffect(() => {
+    if (ref) {
+      navigationIntegration.registerNavigationContainer(ref);
+    }
+  }, [ref]);
 
   useEffect(() => {
     const authStateHandler = createAuthStateHandler({
@@ -66,7 +93,7 @@ function RootLayout() {
   );
 }
 
-export default RootLayout;
+export default Sentry.wrap(RootLayout);
 
 function RootNavigator({
   ready,

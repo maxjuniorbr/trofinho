@@ -43,7 +43,14 @@
       "expo-secure-store",
       "expo-font",
       "expo-image",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "maxjuniorbrs-organization",
+          "project": "react-native"
+        }
+      ]
     ],
     "extra": {
       "router": {},
