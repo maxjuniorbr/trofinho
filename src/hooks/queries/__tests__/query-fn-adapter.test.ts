@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as fc from 'fast-check';
-import { queryFnAdapter, mutationFnAdapter } from '../query-fn-adapter';
+import { queryFnAdapter, nullableQueryFnAdapter, mutationFnAdapter } from '../query-fn-adapter';
 
 describe('queryFnAdapter', () => {
   // Feature: react-query-migration, Property 2: queryFnAdapter success/error contract
@@ -63,6 +63,23 @@ describe('queryFnAdapter', () => {
         { numRuns: 100 },
       );
     });
+  });
+});
+
+describe('nullableQueryFnAdapter', () => {
+  it('returns data when error is null and data is non-null', async () => {
+    const adapter = nullableQueryFnAdapter(() => Promise.resolve({ data: { id: 1 }, error: null }));
+    await expect(adapter()).resolves.toEqual({ id: 1 });
+  });
+
+  it('returns null when error is null and data is null', async () => {
+    const adapter = nullableQueryFnAdapter(() => Promise.resolve({ data: null, error: null }));
+    await expect(adapter()).resolves.toBeNull();
+  });
+
+  it('throws when error is non-null', async () => {
+    const adapter = nullableQueryFnAdapter(() => Promise.resolve({ data: null, error: 'falhou' }));
+    await expect(adapter()).rejects.toThrow('falhou');
   });
 });
 

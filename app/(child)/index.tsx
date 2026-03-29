@@ -35,6 +35,7 @@ import { PointsDisplay } from '@/components/ui/points-display';
 import { LogoutButton } from '@/components/ui/logout-button';
 import { NotificationPermissionBanner } from '@/components/ui/notification-permission-banner';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
+import { InlineMessage } from '@/components/ui/inline-message';
 import { mascotImage, celebratingImage } from '@/constants/assets';
 
 import type { LucideIcon } from 'lucide-react-native';
@@ -136,6 +137,12 @@ export default function FilhoHomeScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
+
+      {error ? (
+        <View style={{ paddingHorizontal: spacing['4'], paddingTop: spacing['4'] }}>
+          <InlineMessage message="Não foi possível carregar todos os dados. Puxe para atualizar." variant="warning" />
+        </View>
+      ) : null}
 
       <View style={styles.hero}>
         <Text style={[styles.heroSub, { color: colors.text.secondary }]}>{getGreeting()} 🏆</Text>

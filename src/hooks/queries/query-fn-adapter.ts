@@ -16,6 +16,20 @@ export function queryFnAdapter<T>(
 }
 
 /**
+ * Like queryFnAdapter but allows null data without throwing.
+ * Use for queries where null is a valid state (e.g., balance for a new child).
+ */
+export function nullableQueryFnAdapter<T>(
+  fn: () => Promise<{ data: T; error: string | null }>,
+): () => Promise<T> {
+  return async () => {
+    const result = await fn();
+    if (result.error) throw new Error(result.error);
+    return result.data;
+  };
+}
+
+/**
  * Wraps a lib/ mutation function that returns { error } and converts it
  * to React Query's contract: returns void on success, throws on error.
  */

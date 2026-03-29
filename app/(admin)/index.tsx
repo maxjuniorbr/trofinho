@@ -38,6 +38,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { NotificationPermissionBanner } from '@/components/ui/notification-permission-banner';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
+import { InlineMessage } from '@/components/ui/inline-message';
 
 import type { LucideIcon } from 'lucide-react-native';
 
@@ -203,6 +204,12 @@ export default function AdminHomeScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
+
+      {error ? (
+        <View style={{ paddingHorizontal: spacing['4'], paddingTop: spacing['4'] }}>
+          <InlineMessage message="Não foi possível carregar todos os dados. Puxe para atualizar." variant="warning" />
+        </View>
+      ) : null}
 
       <View style={styles.hero}>
         <View style={styles.heroText}>
