@@ -31,6 +31,22 @@ export default function AdminChildDetailScreen() {
   const [feedbackKey, setFeedbackKey] = useState(0);
   const visibleFeedback = useTransientMessage(feedbackMessage, { resetKey: feedbackKey });
 
+  const executeDeactivate = useCallback(() => {
+    if (!child) return;
+    deactivateMutation.mutate(child.id, {
+      onSuccess: () => {
+        setFeedbackMessage(`${child.nome} foi desativado.`);
+        setFeedbackVariant('success');
+        setFeedbackKey((k) => k + 1);
+      },
+      onError: (err) => {
+        setFeedbackMessage(err.message);
+        setFeedbackVariant('error');
+        setFeedbackKey((k) => k + 1);
+      },
+    });
+  }, [child, deactivateMutation]);
+
   const handleDeactivate = useCallback(() => {
     if (!child) return;
     Alert.alert(
@@ -38,27 +54,26 @@ export default function AdminChildDetailScreen() {
       `${child.nome} não poderá mais fazer login no app. Atribuições pendentes serão canceladas.`,
       [
         { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Desativar',
-          style: 'destructive',
-          onPress: () => {
-            deactivateMutation.mutate(child.id, {
-              onSuccess: () => {
-                setFeedbackMessage(`${child.nome} foi desativado.`);
-                setFeedbackVariant('success');
-                setFeedbackKey((k) => k + 1);
-              },
-              onError: (err) => {
-                setFeedbackMessage(err.message);
-                setFeedbackVariant('error');
-                setFeedbackKey((k) => k + 1);
-              },
-            });
-          },
-        },
+        { text: 'Desativar', style: 'destructive', onPress: executeDeactivate },
       ],
     );
-  }, [child, deactivateMutation]);
+  }, [child, executeDeactivate]);
+
+  const executeReactivate = useCallback(() => {
+    if (!child) return;
+    reactivateMutation.mutate(child.id, {
+      onSuccess: () => {
+        setFeedbackMessage(`${child.nome} foi reativado.`);
+        setFeedbackVariant('success');
+        setFeedbackKey((k) => k + 1);
+      },
+      onError: (err) => {
+        setFeedbackMessage(err.message);
+        setFeedbackVariant('error');
+        setFeedbackKey((k) => k + 1);
+      },
+    });
+  }, [child, reactivateMutation]);
 
   const handleReactivate = useCallback(() => {
     if (!child) return;
@@ -67,26 +82,10 @@ export default function AdminChildDetailScreen() {
       `${child.nome} poderá fazer login novamente e retomar as atividades.`,
       [
         { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Reativar',
-          onPress: () => {
-            reactivateMutation.mutate(child.id, {
-              onSuccess: () => {
-                setFeedbackMessage(`${child.nome} foi reativado.`);
-                setFeedbackVariant('success');
-                setFeedbackKey((k) => k + 1);
-              },
-              onError: (err) => {
-                setFeedbackMessage(err.message);
-                setFeedbackVariant('error');
-                setFeedbackKey((k) => k + 1);
-              },
-            });
-          },
-        },
+        { text: 'Reativar', onPress: executeReactivate },
       ],
     );
-  }, [child, reactivateMutation]);
+  }, [child, executeReactivate]);
 
   if (isLoading) {
     return (
