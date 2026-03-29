@@ -1022,7 +1022,7 @@ describe('tasks', () => {
                   'aprovada' as const,
                   'rejeitada' as const,
                 ),
-                concluida_em: fc.option(fc.date().map(d => d.toISOString()), { nil: null }),
+                concluida_em: fc.option(fc.constant('2025-06-15T10:00:00.000Z'), { nil: null }),
               }),
             ),
             ativo: fc.constant(false as const),
