@@ -14,6 +14,7 @@ const OPTIONS: ReadonlyArray<{
   { key: 'tarefaConcluida', label: 'Tarefa concluída pelo filho' },
   { key: 'resgatesSolicitado', label: 'Resgate solicitado' },
   { key: 'resgateConfirmado', label: 'Resgate confirmado' },
+  { key: 'resgateCancelado', label: 'Resgate cancelado' },
 ];
 
 type NotificationCardProps = Readonly<{

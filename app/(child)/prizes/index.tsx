@@ -74,9 +74,9 @@ export default function ChildPrizesScreen() {
     try {
       await redeemMutation.mutateAsync({
         prizeId: prize.id,
-        opts: profile ? {
+        opts: profile?.familia_id ? {
           familiaId: profile.familia_id,
-          childName: profile.nome,
+          childName: profile.nome ?? '',
           prizeName: prize.nome,
         } : undefined,
       });

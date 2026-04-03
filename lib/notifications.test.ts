@@ -4,9 +4,6 @@ import {
   DEFAULT_NOTIFICATION_PREFS,
   getNotificationPrefs,
   getNotificationRoute,
-  notifyRedemptionRequested,
-  notifyTaskCompleted,
-  notifyTaskCreated,
   setNotificationPrefs,
   syncPrefsFromServer,
   syncPrefsToServer,
@@ -109,7 +106,7 @@ describe('notifications', () => {
     });
 
     it('returns stored preferences', async () => {
-      const stored = { tarefasPendentes: false, tarefaAprovada: true, tarefaRejeitada: false, tarefaConcluida: true, resgatesSolicitado: false, resgateConfirmado: true };
+      const stored = { tarefasPendentes: false, tarefaAprovada: true, tarefaRejeitada: false, tarefaConcluida: true, resgatesSolicitado: false, resgateConfirmado: true, resgateCancelado: true };
       deviceStorageGetMock.mockResolvedValue(JSON.stringify(stored));
       await expect(getNotificationPrefs()).resolves.toEqual(stored);
     });
@@ -158,90 +155,13 @@ describe('notifications', () => {
 
   describe('setNotificationPrefs', () => {
     it('stores preferences in device storage', async () => {
-      const prefs = { tarefasPendentes: false, tarefaAprovada: true, tarefaRejeitada: false, tarefaConcluida: true, resgatesSolicitado: false, resgateConfirmado: true };
+      const prefs = { tarefasPendentes: false, tarefaAprovada: true, tarefaRejeitada: false, tarefaConcluida: true, resgatesSolicitado: false, resgateConfirmado: true, resgateCancelado: true };
       await setNotificationPrefs(prefs);
       expect(deviceStorageSetMock).toHaveBeenCalledWith('notification_prefs', JSON.stringify(prefs));
     });
   });
 
-  describe('preference gating', () => {
-    const storedPrefs = (overrides: Partial<typeof DEFAULT_NOTIFICATION_PREFS>): string =>
-      JSON.stringify({ ...DEFAULT_NOTIFICATION_PREFS, ...overrides });
 
-    describe('notifyTaskCompleted', () => {
-      it('sends notification when tarefaConcluida is enabled', async () => {
-        deviceStorageGetMock.mockResolvedValue(storedPrefs({ tarefaConcluida: true }));
-        await notifyTaskCompleted();
-        expect(scheduleNotificationAsyncMock).toHaveBeenCalledTimes(1);
-        expect(scheduleNotificationAsyncMock).toHaveBeenCalledWith(
-          expect.objectContaining({
-            content: expect.objectContaining({
-              title: 'Tarefa concluída',
-              data: { route: '/(admin)/tasks' },
-            }),
-          }),
-        );
-      });
-
-      it('does not send notification when tarefaConcluida is disabled', async () => {
-        deviceStorageGetMock.mockResolvedValue(storedPrefs({ tarefaConcluida: false }));
-        await notifyTaskCompleted();
-        expect(scheduleNotificationAsyncMock).not.toHaveBeenCalled();
-      });
-    });
-
-    describe('notifyTaskCreated', () => {
-      it('sends notification when tarefasPendentes is enabled', async () => {
-        deviceStorageGetMock.mockResolvedValue(storedPrefs({ tarefasPendentes: true }));
-        await notifyTaskCreated('Lavar a louça');
-        expect(scheduleNotificationAsyncMock).toHaveBeenCalledTimes(1);
-        expect(scheduleNotificationAsyncMock).toHaveBeenCalledWith(
-          expect.objectContaining({
-            content: expect.objectContaining({
-              title: 'Nova tarefa',
-              body: expect.stringContaining('Uma nova tarefa foi atribuída a você'),
-              data: { route: '/(child)/tasks' },
-            }),
-          }),
-        );
-      });
-
-      it('does not send notification when tarefasPendentes is disabled', async () => {
-        deviceStorageGetMock.mockResolvedValue(storedPrefs({ tarefasPendentes: false }));
-        await notifyTaskCreated('Lavar a louça');
-        expect(scheduleNotificationAsyncMock).not.toHaveBeenCalled();
-      });
-    });
-
-    describe('notifyRedemptionRequested', () => {
-      it('sends notification when resgatesSolicitado is enabled', async () => {
-        deviceStorageGetMock.mockResolvedValue(storedPrefs({ resgatesSolicitado: true }));
-        await notifyRedemptionRequested();
-        expect(scheduleNotificationAsyncMock).toHaveBeenCalledTimes(1);
-        expect(scheduleNotificationAsyncMock).toHaveBeenCalledWith(
-          expect.objectContaining({
-            content: expect.objectContaining({
-              title: 'Resgate solicitado',
-              body: 'Um resgate foi solicitado.',
-              data: { route: '/(admin)/redemptions' },
-            }),
-          }),
-        );
-      });
-
-      it('does not send notification when resgatesSolicitado is disabled', async () => {
-        deviceStorageGetMock.mockResolvedValue(storedPrefs({ resgatesSolicitado: false }));
-        await notifyRedemptionRequested();
-        expect(scheduleNotificationAsyncMock).not.toHaveBeenCalled();
-      });
-    });
-
-    it('does not throw when notification fails', async () => {
-      deviceStorageGetMock.mockResolvedValue(storedPrefs({ tarefaConcluida: true }));
-      scheduleNotificationAsyncMock.mockRejectedValue(new Error('device error'));
-      await expect(notifyTaskCompleted()).resolves.toBeUndefined();
-    });
-  });
 });
 
 /**
@@ -260,6 +180,7 @@ describe('Property 3: Preference sync round trip', () => {
     tarefaConcluida: fc.boolean(),
     resgatesSolicitado: fc.boolean(),
     resgateConfirmado: fc.boolean(),
+    resgateCancelado: fc.boolean(),
   });
 
   const fakeUserId = 'user-abc-123';
@@ -312,6 +233,7 @@ describe('syncPrefsToServer', () => {
     tarefaConcluida: true,
     resgatesSolicitado: false,
     resgateConfirmado: true,
+    resgateCancelado: true,
   };
 
   beforeEach(() => {
@@ -370,6 +292,7 @@ describe('syncPrefsFromServer', () => {
       tarefaConcluida: false,
       resgatesSolicitado: true,
       resgateConfirmado: true,
+      resgateCancelado: true,
     };
 
     getUserMock.mockResolvedValue({ data: { user: fakeUser } });

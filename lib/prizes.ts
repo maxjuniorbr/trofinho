@@ -1,5 +1,4 @@
 import { localizeRpcError } from './api-error';
-import { notifyRedemptionRequested } from './notifications';
 import { dispatchPushNotification } from './push';
 import { uploadImageToPublicBucket } from './storage';
 import { supabase } from './supabase';
@@ -211,28 +210,47 @@ export async function listRedemptions(): Promise<{
 
 export async function confirmRedemption(
   redemptionId: string,
-  opts?: { familiaId: string; userId: string; prizeName: string },
+  opts: { familiaId: string; userId?: string | null; prizeName: string },
 ): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('confirmar_resgate', {
     p_resgate_id: redemptionId,
   });
 
   if (error) return { error: localizeRpcError(error.message) };
-  if (opts) {
+  
+  if (!opts.userId) {
+    console.warn(`[push] Not dispatching 'resgate_confirmado' for '${opts.prizeName}': Missing required recipient (userId).`);
+  } else {
     dispatchPushNotification('resgate_confirmado', opts.familiaId, {
       userId: opts.userId,
       prizeName: opts.prizeName,
     });
   }
+  
   return { error: null };
 }
 
-export async function cancelRedemption(redemptionId: string): Promise<{ error: string | null }> {
+export async function cancelRedemption(
+  redemptionId: string,
+  opts?: { familiaId: string; userId?: string | null; prizeName: string },
+): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('cancelar_resgate', {
     p_resgate_id: redemptionId,
   });
 
   if (error) return { error: localizeRpcError(error.message) };
+
+  if (opts) {
+    if (!opts.userId) {
+      console.warn(`[push] Not dispatching 'resgate_cancelado' for '${opts.prizeName}': Missing required recipient (userId).`);
+    } else {
+      dispatchPushNotification('resgate_cancelado', opts.familiaId, {
+        userId: opts.userId,
+        prizeName: opts.prizeName,
+      });
+    }
+  }
+  
   return { error: null };
 }
 
@@ -280,8 +298,9 @@ export async function requestRedemption(
   });
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
-  await notifyRedemptionRequested();
-  if (opts) {
+  if (!opts) {
+    console.warn("[push] Not dispatching 'resgate_solicitado': Missing profile context (familiaId).");
+  } else {
     dispatchPushNotification('resgate_solicitado', opts.familiaId, {
       childName: opts.childName,
       prizeName: opts.prizeName,

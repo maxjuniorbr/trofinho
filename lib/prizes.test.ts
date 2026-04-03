@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 
-const notifyRedemptionRequestedMock = vi.hoisted(() => vi.fn());
 const uploadImageToPublicBucketMock = vi.hoisted(() => vi.fn());
 const dispatchPushNotificationMock = vi.hoisted(() => vi.fn());
 
@@ -17,9 +16,7 @@ vi.mock('./supabase', () => ({
   supabase: supabaseMock,
 }));
 
-vi.mock('./notifications', () => ({
-  notifyRedemptionRequested: notifyRedemptionRequestedMock,
-}));
+
 
 vi.mock('./storage', () => ({
   uploadImageToPublicBucket: uploadImageToPublicBucketMock,
@@ -90,7 +87,6 @@ function createEqQuery(result: QueryResult) {
 
 describe('prizes', () => {
   beforeEach(() => {
-    notifyRedemptionRequestedMock.mockReset();
     uploadImageToPublicBucketMock.mockReset();
     dispatchPushNotificationMock.mockReset();
     supabaseMock.from.mockReset();
@@ -263,11 +259,11 @@ describe('prizes', () => {
       .mockResolvedValueOnce({ data: 'redemption-1', error: null })
       .mockResolvedValueOnce({ error: { message: 'confirm failed' } });
 
-    await expect(confirmRedemption('red-1')).resolves.toEqual({ error: null });
+    await expect(confirmRedemption('red-1', { familiaId: 'f1', userId: 'u1', prizeName: 'P' })).resolves.toEqual({ error: null });
     await expect(cancelRedemption('red-1')).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
-    await expect(requestRedemption('prize-1')).resolves.toEqual({ data: 'redemption-1', error: null });
-    await expect(confirmRedemption('red-2')).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
-    expect(notifyRedemptionRequestedMock).toHaveBeenCalledTimes(1);
+    await expect(requestRedemption('prize-1', { familiaId: 'f1', childName: 'C', prizeName: 'P' })).resolves.toEqual({ data: 'redemption-1', error: null });
+    await expect(confirmRedemption('red-2', { familiaId: 'f1', userId: 'u1', prizeName: 'P' })).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
+    expect(dispatchPushNotificationMock).toHaveBeenCalledTimes(2);
   });
 
   it('returns empty lists and success defaults for remaining prize branches', async () => {
@@ -325,7 +321,7 @@ describe('prizes', () => {
     await expect(deactivatePrize('prize-1')).resolves.toEqual({
       data: { pendingCount: 0 }, error: null, warning: null,
     });
-    await expect(requestRedemption('prize-1')).resolves.toEqual({ data: null, error: 'Algo deu errado. Tente novamente.' });
+    await expect(requestRedemption('prize-1', { familiaId: 'f1', childName: 'C', prizeName: 'P' })).resolves.toEqual({ data: null, error: 'Algo deu errado. Tente novamente.' });
     await expect(cancelRedemption('red-2')).resolves.toEqual({ error: null });
     await expect(createPrize({ nome: 'A', descricao: null, custo_pontos: 1 })).resolves.toEqual({
       data: null,
@@ -403,12 +399,12 @@ describe('prizes', () => {
       );
     });
 
-    it('requestRedemption does not dispatch when opts not provided', async () => {
+    it('requestRedemption always dispatches because opts is now required', async () => {
       supabaseMock.rpc.mockResolvedValueOnce({ data: 'redemption-1', error: null });
 
-      await requestRedemption('prize-1');
+      await requestRedemption('prize-1', { familiaId: 'f1', childName: 'C', prizeName: 'P' });
 
-      expect(dispatchPushNotificationMock).not.toHaveBeenCalled();
+      expect(dispatchPushNotificationMock).toHaveBeenCalledTimes(1);
     });
 
     it('dispatch failure does not affect the RPC return value', async () => {
