@@ -48,7 +48,7 @@
         "@sentry/react-native/expo",
         {
           "organization": "maxjuniorbrs-organization",
-          "project": "react-native"
+          "project": "trofinho"
         }
       ]
     ],

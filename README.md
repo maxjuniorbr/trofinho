@@ -10,8 +10,9 @@ Aplicativo mobile de educação financeira familiar. Um adulto administra a fam�
 | Runtime | Expo SDK 55 |
 | Navegação | Expo Router v6 |
 | Linguagem | TypeScript em `strict` |
+| Estado/Cache | React Query (TanStack Query v5) |
 | Backend | Supabase (`Auth`, Postgres, Storage, RLS) |
-| Testes | Vitest |
+| Testes | Vitest com cobertura de testes |
 
 ## Ferramentas e serviços
 
@@ -66,8 +67,10 @@ O projeto segue uma divisão simples e direta:
 - `lib/`: acesso a dados, integração com Supabase, validações e regras de negócio reutilizáveis.
 - `src/components/`: componentes visuais reutilizáveis.
 - `src/constants/`: tokens do design system e utilitários de apresentação.
-- `src/context/`: providers globais, hoje com tema.
-- `supabase/migrations/`: fonte de verdade do banco.
+- `src/context/`: providers base de tema e query client local.
+- `src/hooks/`: custom hooks e queries/mutações (usando React Query) que isolam o estado e o acesso a dados das telas.
+- `src/types/`: tipagem central e tipos gerados via CLI do Supabase.
+- `supabase/migrations/`: fonte de verdade do schema do banco.
 
 ### Organização de rotas
 
@@ -78,7 +81,8 @@ O projeto segue uma divisão simples e direta:
 
 ### Fluxo de dados
 
-- Componentes de tela chamam funções de `lib/*`.
+- Componentes de tela devem usar os custom hooks expostos em `src/hooks/queries` (via React Query) em vez de chamar `lib/*` diretamente para state/fetching, passando a aproveitar o cache global.
+- As funções dentro de `lib/*` executam o acesso puro de rede com validação.
 - `lib/supabase.ts` centraliza o client do Supabase.
 - `lib/auth-state.ts` trata mudanças de autenticação sem bloquear o listener do Supabase.
 - Tipos de apresentação baseados em tema ficam em `src/constants/*`, não em `lib/*`.
@@ -124,12 +128,21 @@ O projeto usa Sentry para monitoramento em produção. A integração captura er
 
 Sem `EXPO_PUBLIC_SENTRY_DSN`, o app continua funcionando normalmente e as chamadas ao Sentry viram no-op.
 
+### Para desenvolvedores (Forks)
+
+Se você clonou este repositório para a sua própria máquina e vai rodar os comandos de build via EAS (na nuvem da Expo), é necessário primeiro desvincular o app da conta original do criador:
+
+1. No `app.json`, **apague** a propriedade final `"owner"` e também o `"projectId"` (dentro de `extra.eas`).
+2. Se quiser evitar warnings/erros de telemetria, remova também o array do pacote Sentry na seção `plugins` ou altere a "organization" para a sua.
+3. No terminal, rode `npx eas init` para criar um projeto correspondente na sua própria conta do Expo.
+
 ### Setup do Backend (Supabase)
 
 O Trofinho depende ativamente de tabelas e funções (RPCs) no Postgres (`supabase/migrations/`). Você pode rodar local com Docker ou na nuvem.
 
-> ⚠️ **IMPORTANTE: Desligue a confirmação de e-mail.** 
-> Para testar o cadastro livremente em ambiente de desenvolvimento (sem configurar SMTP), acesse o painel/Studio do Supabase, vá em **Authentication > Providers > Email** e **desative** a opção "Confirm email". 
+> ⚠️ **DICA (Banco em Nuvem): Desligue a confirmação de e-mail.** 
+> Se for usar Supabase Remoto sem ter configurado servidor de SMTP, acesse seu Studio Web, vá em **Authentication > Providers > Email** e **desative** a opção "Confirm email" para criar as famílias livremente.
+> *(Nota: Para Opção A, via banco local, isso já vem devidamente desabilitado no `config.toml` do repositório).* 
 
 #### Opção A: Supabase Local (Recomendado)
 
@@ -181,13 +194,19 @@ Observação: o projeto usa development build (`expo-dev-client`) para testes em
 
 ## Build
 
-**Desenvolvimento** — gere um development build para iteração no dispositivo:
+**Desenvolvimento (EAS - Nuvem)** — gere um development build para iteração no dispositivo:
 
 ```bash
 npx eas-cli@latest build --profile development --platform android
 ```
 
-Depois de instalar o APK, inicie o dev server:
+**Desenvolvimento (Local/Nativo)** — se você possui o Android Studio e ferramentas nativas instaladas e prefere rodar tudo no seu próprio PC sem a fila da nuvem:
+
+```bash
+npx expo run:android
+```
+
+Depois de instalar/compilar o APK, inicie o dev server:
 
 ```bash
 npm run tunnel
