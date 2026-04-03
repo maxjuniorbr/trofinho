@@ -64,6 +64,7 @@ export type NotificationPrefs = {
   tarefaConcluida: boolean;
   resgatesSolicitado: boolean;
   resgateConfirmado: boolean;
+  resgateCancelado: boolean;
 };
 
 type NotificationData = Readonly<{
@@ -90,6 +91,7 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   tarefaConcluida: true,
   resgatesSolicitado: true,
   resgateConfirmado: true,
+  resgateCancelado: true,
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -149,6 +151,10 @@ function normalizeNotificationPrefs(rawPreferences: string | null): Notification
           legacyPreferences.requestedRedemption,
           legacyPreferences.resgate_solicitado,
         ) ?? DEFAULT_NOTIFICATION_PREFS.resgateConfirmado,
+      resgateCancelado:
+        getBooleanValue(
+          legacyPreferences.resgateCancelado,
+        ) ?? DEFAULT_NOTIFICATION_PREFS.resgateCancelado,
     };
   } catch {
     return DEFAULT_NOTIFICATION_PREFS;
@@ -242,29 +248,16 @@ async function scheduleNotification(
   });
 }
 
-async function notifyIfEnabled(
-  key: keyof NotificationPrefs,
-  title: string,
-  body: string,
-  route: NotificationRoute,
-): Promise<void> {
-  try {
-    const preferences = await getNotificationPrefs();
-    if (!preferences[key]) return;
-
-    await sendLocalNotificationWithData(title, body, { route });
-  } catch {
-    // Notificações locais não podem interromper o fluxo principal do app.
-  }
-}
 
 export async function registerForPushNotifications(): Promise<string | null> {
   if (isExpoGo()) {
+    console.warn('[push-registration] Skipped: running in Expo Go (push not supported)');
     return null;
   }
 
   const Notifications = await getNotificationsModule();
   if (!Notifications) {
+    console.warn('[push-registration] Skipped: expo-notifications module not available');
     return null;
   }
 
@@ -283,13 +276,23 @@ export async function registerForPushNotifications(): Promise<string | null> {
     });
   }
 
-  if (!hasGrantedNotificationPermission(permissions, Notifications) || !Device.isDevice) {
+  if (!hasGrantedNotificationPermission(permissions, Notifications)) {
+    console.warn('[push-registration] Skipped: notification permission denied');
+    return null;
+  }
+
+  if (!Device.isDevice) {
+    console.warn('[push-registration] Skipped: not a physical device (emulator/simulator)');
     return null;
   }
 
   const token = await Notifications.getExpoPushTokenAsync({
     projectId: getExpoProjectId(),
   });
+
+  if (__DEV__) {
+    console.log('[push-registration] Token obtained:', token.data);
+  }
 
   return token.data;
 }
@@ -316,13 +319,6 @@ export async function sendLocalNotification(
   await scheduleNotification(title, body, getImmediateTrigger());
 }
 
-export async function sendLocalNotificationWithData(
-  title: string,
-  body: string,
-  data: NotificationData,
-): Promise<void> {
-  await scheduleNotification(title, body, getImmediateTrigger(), data);
-}
 
 export async function scheduleLocalNotification(
   title: string,
@@ -461,31 +457,4 @@ export async function subscribeToNotificationNavigation(
     receivedSubscription.remove();
     responseSubscription.remove();
   };
-}
-
-export async function notifyTaskCompleted(): Promise<void> {
-  await notifyIfEnabled(
-    'tarefaConcluida',
-    'Tarefa concluída',
-    'Uma tarefa foi enviada para validação.',
-    '/(admin)/tasks',
-  );
-}
-
-export async function notifyTaskCreated(taskTitle: string): Promise<void> {
-  await notifyIfEnabled(
-    'tarefasPendentes',
-    'Nova tarefa',
-    `Uma nova tarefa foi atribuída a você: "${taskTitle}".`,
-    '/(child)/tasks',
-  );
-}
-
-export async function notifyRedemptionRequested(): Promise<void> {
-  await notifyIfEnabled(
-    'resgatesSolicitado',
-    'Resgate solicitado',
-    'Um resgate foi solicitado.',
-    '/(admin)/redemptions',
-  );
 }

@@ -63,7 +63,10 @@ export const usePendingValidationCount = () =>
 export const useCreateTask = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: NewTaskInput) => mutationFnAdapter(() => createTask(input))(),
+    mutationFn: ({ input, opts }: {
+      input: NewTaskInput;
+      opts?: { familiaId: string; taskTitle: string; filhoIds: string[] };
+    }) => mutationFnAdapter(() => createTask(input, opts))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
     },
@@ -86,7 +89,7 @@ export const useApproveAssignment = () => {
   return useMutation({
     mutationFn: ({ assignmentId, opts }: {
       assignmentId: string;
-      opts?: { familiaId: string; userId: string; taskTitle: string };
+      opts: { familiaId: string; userId?: string | null; taskTitle: string };
     }) =>
       mutationFnAdapter(() => approveAssignment(assignmentId, opts))(),
     onSuccess: () => {
@@ -102,7 +105,7 @@ export const useRejectAssignment = () => {
     mutationFn: ({ assignmentId, note, opts }: {
       assignmentId: string;
       note: string;
-      opts?: { familiaId: string; userId: string; taskTitle: string };
+      opts: { familiaId: string; userId?: string | null; taskTitle: string };
     }) =>
       mutationFnAdapter(() => rejectAssignment(assignmentId, note, opts))(),
     onSuccess: () => {
@@ -117,7 +120,7 @@ export const useCompleteAssignment = () => {
     mutationFn: ({ assignmentId, imageUri, opts }: {
       assignmentId: string;
       imageUri: string | null;
-      opts?: { familiaId: string; childName: string; taskTitle: string };
+      opts: { familiaId: string; childName: string; taskTitle: string };
     }) =>
       mutationFnAdapter(() => completeAssignment(assignmentId, imageUri, opts))(),
     onSuccess: () => {

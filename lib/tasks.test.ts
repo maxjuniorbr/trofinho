@@ -5,7 +5,6 @@ const resizeImageMock = vi.hoisted(() => vi.fn((uri: string) => Promise.resolve(
 
 const fileArrayBufferMock = vi.hoisted(() => vi.fn());
 const fileConstructorMock = vi.hoisted(() => vi.fn());
-const notifyTaskCompletedMock = vi.hoisted(() => vi.fn());
 const dispatchPushNotificationMock = vi.hoisted(() => vi.fn());
 
 vi.mock('expo-image-manipulator', () => ({
@@ -18,9 +17,7 @@ vi.mock('./image-utils', async (importOriginal) => {
   return { ...original, resizeImage: resizeImageMock };
 });
 
-vi.mock('./notifications', () => ({
-  notifyTaskCompleted: notifyTaskCompletedMock,
-}));
+
 
 const storageBucketMock = vi.hoisted(() => ({
   createSignedUrl: vi.fn(),
@@ -173,7 +170,6 @@ describe('tasks', () => {
     fileConstructorMock.mockReset();
     storageBucketMock.createSignedUrl.mockReset();
     storageBucketMock.upload.mockReset();
-    notifyTaskCompletedMock.mockReset();
     dispatchPushNotificationMock.mockReset();
 
     supabaseMock.auth.getUser.mockReset();
@@ -324,7 +320,7 @@ describe('tasks', () => {
       filhoIds: ['child-1'],
     })).resolves.toEqual({ error: null });
 
-    await expect(approveAssignment('assignment-1')).resolves.toEqual({
+    await expect(approveAssignment('assignment-1', { familiaId: 'f1', userId: 'u1', taskTitle: 'T' })).resolves.toEqual({
       error: 'Algo deu errado. Tente novamente.',
     });
 
@@ -482,13 +478,13 @@ describe('tasks', () => {
       .mockResolvedValueOnce({ error: null })
       .mockResolvedValueOnce({ error: { message: 'Atribuição não encontrada ou não está aguardando validação' } });
 
-    await expect(rejectAssignment('assignment-1', 'Refazer')).resolves.toEqual({ error: null });
+    await expect(rejectAssignment('assignment-1', 'Refazer', { familiaId: 'f1', userId: 'u1', taskTitle: 'T' })).resolves.toEqual({ error: null });
     expect(supabaseMock.rpc).toHaveBeenCalledWith('rejeitar_atribuicao', {
       p_atribuicao_id: 'assignment-1',
       p_nota_rejeicao: 'Refazer',
     });
 
-    await expect(rejectAssignment('assignment-2', 'Errado')).resolves.toEqual({
+    await expect(rejectAssignment('assignment-2', 'Errado', { familiaId: 'f1', userId: 'u1', taskTitle: 'T' })).resolves.toEqual({
       error: 'Registro não encontrado.',
     });
   });
@@ -572,12 +568,11 @@ describe('tasks', () => {
   it('completes an assignment without evidence via RPC', async () => {
     supabaseMock.rpc.mockResolvedValueOnce({ error: null });
 
-    await expect(completeAssignment('assignment-1', null)).resolves.toEqual({ error: null });
+    await expect(completeAssignment('assignment-1', null, { familiaId: 'f1', childName: 'C', taskTitle: 'T' })).resolves.toEqual({ error: null });
     expect(supabaseMock.rpc).toHaveBeenCalledWith('concluir_atribuicao', {
       p_atribuicao_id: 'assignment-1',
       p_evidencia_url: null,
     });
-    expect(notifyTaskCompletedMock).toHaveBeenCalledTimes(1);
   });
 
   it.each([
@@ -601,7 +596,7 @@ describe('tasks', () => {
     });
     supabaseMock.rpc.mockResolvedValueOnce({ error: null });
 
-    const result = await completeAssignment('assignment-1', `/test/${fileName}`);
+    const result = await completeAssignment('assignment-1', `/test/${fileName}`, { familiaId: 'f1', childName: 'C', taskTitle: 'T' });
 
     expect(fileConstructorMock).toHaveBeenCalledWith(`/test/${fileName}`);
     expect(storageBucketMock.upload).toHaveBeenCalledWith(
@@ -614,7 +609,6 @@ describe('tasks', () => {
       p_evidencia_url: `family-1/child-1/${fileName}`,
     });
     expect(result).toEqual({ error: null });
-    expect(notifyTaskCompletedMock).toHaveBeenCalled();
   });
 
   it('returns upload errors from evidence completion', async () => {
@@ -630,7 +624,7 @@ describe('tasks', () => {
       error: { message: 'upload failed' },
     });
 
-    await expect(completeAssignment('assignment-1', '/test/photo.jpg')).resolves.toEqual({
+    await expect(completeAssignment('assignment-1', '/test/photo.jpg', { familiaId: 'f1', childName: 'C', taskTitle: 'T' })).resolves.toEqual({
       error: 'Erro ao fazer upload da imagem.',
     });
   });
@@ -641,7 +635,7 @@ describe('tasks', () => {
       .mockResolvedValueOnce({ data: { user: { id: 'user-1' } } })
       .mockResolvedValueOnce({ data: { user: { id: 'user-1' } } });
 
-    await expect(completeAssignment('assignment-1', '/test/photo.jpg')).resolves.toEqual({
+    await expect(completeAssignment('assignment-1', '/test/photo.jpg', { familiaId: 'f1', childName: 'C', taskTitle: 'T' })).resolves.toEqual({
       error: 'Usuário não autenticado',
     });
 
@@ -649,7 +643,7 @@ describe('tasks', () => {
       .mockReturnValueOnce(createSingleQuery({ data: null, error: { message: 'profile failed' } }))
       .mockReturnValueOnce(createSingleQuery({ data: { id: 'child-1' }, error: null }));
 
-    await expect(completeAssignment('assignment-1', '/test/photo.jpg')).resolves.toEqual({
+    await expect(completeAssignment('assignment-1', '/test/photo.jpg', { familiaId: 'f1', childName: 'C', taskTitle: 'T' })).resolves.toEqual({
       error: 'Perfil não encontrado',
     });
 
@@ -657,7 +651,7 @@ describe('tasks', () => {
       .mockReturnValueOnce(createSingleQuery({ data: { familia_id: 'family-1' }, error: null }))
       .mockReturnValueOnce(createSingleQuery({ data: null, error: { message: 'child failed' } }));
 
-    await expect(completeAssignment('assignment-1', '/test/photo.jpg')).resolves.toEqual({
+    await expect(completeAssignment('assignment-1', '/test/photo.jpg', { familiaId: 'f1', childName: 'C', taskTitle: 'T' })).resolves.toEqual({
       error: 'Filho não encontrado',
     });
   });
@@ -681,7 +675,7 @@ describe('tasks', () => {
     });
     supabaseMock.rpc.mockResolvedValueOnce({ error: null });
 
-    await expect(completeAssignment('assignment-1', '/test/photo.jpg')).resolves.toEqual({ error: null });
+    await expect(completeAssignment('assignment-1', '/test/photo.jpg', { familiaId: 'f1', childName: 'C', taskTitle: 'T' })).resolves.toEqual({ error: null });
     expect(storageBucketMock.upload).toHaveBeenCalledWith(
       expect.any(String),
       arrayBuffer,
@@ -707,11 +701,11 @@ describe('tasks', () => {
       })
       .mockRejectedValueOnce(new Error('network blew up'));
 
-    await expect(completeAssignment('assignment-1', '/test/photo.jpg')).resolves.toEqual({
+    await expect(completeAssignment('assignment-1', '/test/photo.jpg', { familiaId: 'f1', childName: 'C', taskTitle: 'T' })).resolves.toEqual({
       error: 'Não foi possível ler a imagem selecionada',
     });
 
-    await expect(completeAssignment('assignment-1', '/test/photo.jpg')).resolves.toEqual({
+    await expect(completeAssignment('assignment-1', '/test/photo.jpg', { familiaId: 'f1', childName: 'C', taskTitle: 'T' })).resolves.toEqual({
       error: 'network blew up',
     });
   });
@@ -727,7 +721,7 @@ describe('tasks', () => {
     fileArrayBufferMock.mockResolvedValue(new ArrayBuffer(8));
     storageBucketMock.upload.mockRejectedValueOnce({ message: 'structured error' });
 
-    await expect(completeAssignment('assignment-1', '/test/photo.jpg')).resolves.toEqual({
+    await expect(completeAssignment('assignment-1', '/test/photo.jpg', { familiaId: 'f1', childName: 'C', taskTitle: 'T' })).resolves.toEqual({
       error: 'structured error',
     });
 
@@ -800,12 +794,12 @@ describe('tasks', () => {
       );
     });
 
-    it('approveAssignment does not dispatch when opts not provided', async () => {
+    it('approveAssignment always dispatches because opts is now required', async () => {
       supabaseMock.rpc.mockResolvedValueOnce({ error: null });
 
-      await approveAssignment('assignment-1');
+      await approveAssignment('assignment-1', { familiaId: 'f1', userId: 'u1', taskTitle: 'T' });
 
-      expect(dispatchPushNotificationMock).not.toHaveBeenCalled();
+      expect(dispatchPushNotificationMock).toHaveBeenCalledTimes(1);
     });
 
     it('dispatch failure does not affect the RPC return value', async () => {
@@ -863,7 +857,7 @@ describe('tasks', () => {
           });
           supabaseMock.rpc.mockResolvedValueOnce({ error: null });
 
-          await completeAssignment('assignment-1', `/test/photo.${ext}`);
+          await completeAssignment('assignment-1', `/test/photo.${ext}`, { familiaId: 'f1', childName: 'C', taskTitle: 'T' });
 
           const uploadPath: string = storageBucketMock.upload.mock.calls[0][0];
           const expectedPrefix = `${familiaId}/${filhoId}/evidencia_`;

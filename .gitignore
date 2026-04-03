@@ -41,6 +41,7 @@ yarn-error.*
 # Local agent instructions
 .github/copilot-instructions.md
 .github/instructions/
+.github/prompts/
 
 # Local Supabase
 supabase/.branches/

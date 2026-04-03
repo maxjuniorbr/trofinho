@@ -250,11 +250,11 @@ export default function TaskDetailAdminScreen() {
 
     approveMutation.mutate({
       assignmentId: assignment.id,
-      opts: assignment.filhos.usuario_id && task ? {
-        familiaId: task.familia_id,
+      opts: {
+        familiaId: task!.familia_id,
         userId: assignment.filhos.usuario_id,
-        taskTitle: task.titulo,
-      } : undefined,
+        taskTitle: task!.titulo,
+      },
     }, {
       onSuccess: () => {
         setActions((prev) => ({ ...prev, [assignment.id]: null }));
@@ -279,11 +279,11 @@ export default function TaskDetailAdminScreen() {
     rejectMutation.mutate({
       assignmentId: assignment.id,
       note: note.trim(),
-      opts: assignment.filhos.usuario_id && task ? {
-        familiaId: task.familia_id,
+      opts: {
+        familiaId: task!.familia_id,
         userId: assignment.filhos.usuario_id,
-        taskTitle: task.titulo,
-      } : undefined,
+        taskTitle: task!.titulo,
+      },
     }, {
       onSuccess: () => {
         setActions((prev) => ({ ...prev, [assignment.id]: null }));

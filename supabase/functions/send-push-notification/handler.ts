@@ -6,15 +6,18 @@
 export type PushEvent =
   | 'tarefa_aprovada'
   | 'tarefa_rejeitada'
+  | 'tarefa_criada'
   | 'resgate_confirmado'
   | 'resgate_solicitado'
+  | 'resgate_cancelado'
   | 'tarefa_concluida';
 
 export type EventPayload =
   | { userId: string; taskTitle: string }
   | { userId: string; prizeName: string }
   | { childName: string; prizeName: string }
-  | { childName: string; taskTitle: string };
+  | { childName: string; taskTitle: string }
+  | { filhoIds: string[]; taskTitle: string };
 
 export type NotificationPrefs = {
   tarefasPendentes?: boolean;
@@ -23,6 +26,7 @@ export type NotificationPrefs = {
   tarefaConcluida?: boolean;
   resgatesSolicitado?: boolean;
   resgateConfirmado?: boolean;
+  resgateCancelado?: boolean;
 };
 
 export type PushNotificationRequest = {
@@ -37,11 +41,15 @@ export type PushNotificationResponse = {
   cleaned: number;
 };
 
+const DEFAULT_CHANNEL_ID = 'trofinho-default';
+
 export type ExpoPushMessage = {
   to: string;
   title: string;
   body: string;
   sound: 'default';
+  priority: 'high';
+  channelId: string;
   data: { route: string };
 };
 
@@ -73,8 +81,10 @@ export interface SupabaseClientLike {
 const VALID_EVENTS: ReadonlySet<string> = new Set<PushEvent>([
   'tarefa_aprovada',
   'tarefa_rejeitada',
+  'tarefa_criada',
   'resgate_confirmado',
   'resgate_solicitado',
+  'resgate_cancelado',
   'tarefa_concluida',
 ]);
 
@@ -131,9 +141,19 @@ const MESSAGE_TEMPLATES: Record<PushEvent, MessageTemplate> = {
     bodyTemplate: 'Sua tarefa "{taskTitle}" foi rejeitada. Confira o motivo.',
     route: '/(child)/tasks',
   },
+  tarefa_criada: {
+    title: 'Nova tarefa 📝',
+    bodyTemplate: 'Você tem uma nova tarefa: "{taskTitle}".',
+    route: '/(child)/tasks',
+  },
   resgate_confirmado: {
     title: 'Resgate confirmado 🎉',
     bodyTemplate: 'Seu resgate de "{prizeName}" foi confirmado!',
+    route: '/(child)/redemptions',
+  },
+  resgate_cancelado: {
+    title: 'Resgate cancelado',
+    bodyTemplate: 'Seu resgate de "{prizeName}" foi cancelado pelo responsável.',
     route: '/(child)/redemptions',
   },
   resgate_solicitado: {
@@ -160,6 +180,8 @@ export function buildMessage(event: PushEvent, payload: EventPayload): MessageCo
     title: template.title,
     body,
     sound: 'default',
+    priority: 'high',
+    channelId: DEFAULT_CHANNEL_ID,
     data: { route: template.route },
   };
 }
@@ -170,6 +192,7 @@ const CHILD_TARGETED_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>([
   'tarefa_aprovada',
   'tarefa_rejeitada',
   'resgate_confirmado',
+  'resgate_cancelado',
 ]);
 
 const ADMIN_TARGETED_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>([
@@ -177,12 +200,19 @@ const ADMIN_TARGETED_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>([
   'tarefa_concluida',
 ]);
 
+/** Events targeting multiple children via filhoIds. */
+const MULTI_CHILD_TARGETED_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>([
+  'tarefa_criada',
+]);
+
 const PREFERENCE_KEY_MAP: Record<PushEvent, keyof NotificationPrefs> = {
   tarefa_aprovada: 'tarefaAprovada',
   tarefa_rejeitada: 'tarefaRejeitada',
+  tarefa_criada: 'tarefasPendentes',
   tarefa_concluida: 'tarefaConcluida',
   resgate_solicitado: 'resgatesSolicitado',
   resgate_confirmado: 'resgateConfirmado',
+  resgate_cancelado: 'resgateCancelado',
 };
 
 export function getPreferenceKey(event: PushEvent): keyof NotificationPrefs {
@@ -199,6 +229,25 @@ export async function resolveRecipientUserIds(
     const userId = (payload as { userId: string }).userId;
     if (!userId) return [];
     return [userId];
+  }
+
+  if (MULTI_CHILD_TARGETED_EVENTS.has(event)) {
+    const filhoIds = (payload as { filhoIds: string[] }).filhoIds;
+    if (!filhoIds || filhoIds.length === 0) return [];
+
+    const { data, error } = await supabase
+      .from('filhos')
+      .select('usuario_id')
+      .in('id', filhoIds);
+
+    if (error) {
+      console.error('[send-push-notification] Error resolving filhoIds to user IDs:', error);
+      return [];
+    }
+
+    return (data ?? [])
+      .map((f: Record<string, unknown>) => f.usuario_id as string | null)
+      .filter((id): id is string => !!id);
   }
 
   if (ADMIN_TARGETED_EVENTS.has(event)) {

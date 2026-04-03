@@ -28,7 +28,7 @@ export const useConfirmRedemption = () => {
   return useMutation({
     mutationFn: ({ redemptionId, opts }: {
       redemptionId: string;
-      opts?: { familiaId: string; userId: string; prizeName: string };
+      opts: { familiaId: string; userId?: string | null; prizeName: string };
     }) =>
       mutationFnAdapter(() => confirmRedemption(redemptionId, opts))(),
     onSuccess: () => {
@@ -41,8 +41,11 @@ export const useConfirmRedemption = () => {
 export const useCancelRedemption = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (redemptionId: string) =>
-      mutationFnAdapter(() => cancelRedemption(redemptionId))(),
+    mutationFn: ({ redemptionId, opts }: {
+      redemptionId: string;
+      opts?: { familiaId: string; userId?: string | null; prizeName: string };
+    }) =>
+      mutationFnAdapter(() => cancelRedemption(redemptionId, opts))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.redemptions.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });
