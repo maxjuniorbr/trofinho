@@ -409,6 +409,7 @@ export function getNotificationRoute(data: unknown): NotificationRoute | null {
 
   switch (data.route) {
     case '/(admin)/tasks':
+    case '/(admin)/redemptions':
     case '/(child)/redemptions':
     case '/(child)/tasks':
       return data.route;

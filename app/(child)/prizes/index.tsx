@@ -171,11 +171,13 @@ function PrizeCard({ item, freeBalance, redeeming, onRedeem }: PrizeCardProps) {
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(progressAnim, {
+    const animation = Animated.timing(progressAnim, {
       toValue: progress,
       duration: 700,
       useNativeDriver: false,
-    }).start();
+    });
+    animation.start();
+    return () => animation.stop();
   }, [progress]);
 
   return (

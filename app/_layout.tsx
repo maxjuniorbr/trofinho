@@ -31,7 +31,7 @@ Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
   sendDefaultPii: true,
   tracesSampleRate: __DEV__ ? 1.0 : 0.2,
-  profilesSampleRate: 1.0,
+  profilesSampleRate: __DEV__ ? 1.0 : 0.1,
   replaysOnErrorSampleRate: 1.0,
   replaysSessionSampleRate: __DEV__ ? 1.0 : 0.1,
   enableLogs: true,
@@ -93,6 +93,7 @@ function RootLayout() {
   );
 }
 
+export { ErrorBoundary } from '@/components/ui/route-error-fallback';
 export default Sentry.wrap(RootLayout);
 
 function RootNavigator({
