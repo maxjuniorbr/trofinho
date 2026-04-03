@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 
 const invokeMock = vi.hoisted(() => vi.fn());
+const captureExceptionMock = vi.hoisted(() => vi.fn());
+
 vi.mock('./supabase', () => ({
   supabase: {
     functions: {
@@ -10,11 +12,16 @@ vi.mock('./supabase', () => ({
   },
 }));
 
+vi.mock('@sentry/react-native', () => ({
+  captureException: captureExceptionMock,
+}));
+
 import { dispatchPushNotification } from './push';
 
 describe('dispatchPushNotification', () => {
   beforeEach(() => {
     invokeMock.mockReset();
+    captureExceptionMock.mockReset();
     vi.restoreAllMocks();
   });
 
@@ -23,15 +30,17 @@ describe('dispatchPushNotification', () => {
    * Validates: Requirements 8.1, 8.2, 10.3
    *
    * For any error thrown by supabase.functions.invoke(), dispatchPushNotification
-   * SHALL catch the error, log it via console.error, and SHALL NOT re-throw
-   * or propagate the error to the caller.
+   * SHALL catch the error, log it via console.warn, report to Sentry, and SHALL NOT
+   * re-throw or propagate the error to the caller.
    */
   describe('Property 8: Fire-and-forget error isolation', () => {
     const eventArb = fc.constantFrom(
       'tarefa_aprovada' as const,
       'tarefa_rejeitada' as const,
+      'tarefa_criada' as const,
       'resgate_confirmado' as const,
       'resgate_solicitado' as const,
+      'resgate_cancelado' as const,
       'tarefa_concluida' as const,
     );
 
@@ -46,8 +55,8 @@ describe('dispatchPushNotification', () => {
       fc.dictionary(fc.string(), fc.string()),
     );
 
-    it('never throws regardless of error type', async () => {
-      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    it('never throws regardless of error type (catch path)', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => undefined);
       await fc.assert(
         fc.asyncProperty(eventArb, familiaIdArb, payloadArb, errorArb, async (event, familiaId, payload, error) => {
           invokeMock.mockRejectedValueOnce(error);
@@ -58,26 +67,45 @@ describe('dispatchPushNotification', () => {
       );
     });
 
-    it('logs the thrown error via console.error', async () => {
-      await fc.assert(
-        fc.asyncProperty(eventArb, familiaIdArb, payloadArb, errorArb, async (event, familiaId, payload, error) => {
-          invokeMock.mockReset();
-          const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-          invokeMock.mockRejectedValueOnce(error);
+    it('reports to Sentry on catch path', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const thrownError = new Error('network blew up');
+      invokeMock.mockRejectedValueOnce(thrownError);
 
-          await dispatchPushNotification(event, familiaId, payload);
+      await dispatchPushNotification('tarefa_aprovada', 'family-1', { userId: 'u1', taskTitle: 'T' });
 
-          expect(consoleErrorSpy).toHaveBeenCalledOnce();
-          expect(consoleErrorSpy).toHaveBeenCalledWith(error);
-          consoleErrorSpy.mockRestore();
-        }),
-        { numRuns: 100 },
-      );
+      expect(captureExceptionMock).toHaveBeenCalledOnce();
+      expect(captureExceptionMock).toHaveBeenCalledWith(thrownError, expect.objectContaining({
+        tags: expect.objectContaining({ subsystem: 'push', event: 'tarefa_aprovada' }),
+      }));
+    });
+
+    it('never throws when invoke returns FunctionsHttpError', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const fnError = Object.assign(new Error('Not found'), { name: 'FunctionsHttpError' });
+      invokeMock.mockResolvedValueOnce({ data: null, error: fnError });
+
+      await expect(
+        dispatchPushNotification('tarefa_aprovada', 'family-1', { userId: 'u1', taskTitle: 'T' }),
+      ).resolves.toBeUndefined();
+
+      expect(captureExceptionMock).toHaveBeenCalledOnce();
+    });
+
+    it('logs via console.warn on FunctionsHttpError path', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const fnError = Object.assign(new Error('Edge fn error'), { name: 'FunctionsHttpError' });
+      invokeMock.mockResolvedValueOnce({ data: null, error: fnError });
+
+      await dispatchPushNotification('resgate_solicitado', 'family-1', { childName: 'C', prizeName: 'P' });
+
+      expect(consoleWarnSpy).toHaveBeenCalledOnce();
+      expect(consoleWarnSpy.mock.calls[0][0]).toContain('resgate_solicitado');
     });
   });
 
   it('completes without error on successful invocation', async () => {
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     invokeMock.mockResolvedValueOnce({ data: { sent: 1, failed: 0, cleaned: 0 }, error: null });
 
     await expect(
@@ -91,7 +119,8 @@ describe('dispatchPushNotification', () => {
         payload: { userId: 'u1', taskTitle: 'Lavar louça' },
       },
     });
-    expect(consoleErrorSpy).not.toHaveBeenCalled();
-    consoleErrorSpy.mockRestore();
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
+    expect(captureExceptionMock).not.toHaveBeenCalled();
+    consoleWarnSpy.mockRestore();
   });
 });

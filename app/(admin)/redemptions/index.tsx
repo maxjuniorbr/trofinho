@@ -86,17 +86,24 @@ export default function AdminRedemptionsScreen() {
     if (type === 'confirm') {
       confirmMutation.mutate({
         redemptionId,
-        opts: modal.childUserId && profile ? {
-          familiaId: profile.familia_id,
+        opts: {
+          familiaId: profile!.familia_id,
           userId: modal.childUserId,
           prizeName: modal.prizeName,
-        } : undefined,
+        },
       }, {
         onSuccess: () => { setProcessingId(null); setActionSuccess('Resgate confirmado com sucesso.'); },
         onError: (err) => { setProcessingId(null); setActionError(err.message); },
       });
     } else {
-      cancelMutation.mutate(redemptionId, {
+      cancelMutation.mutate({
+        redemptionId,
+        opts: modal.childUserId ? {
+          familiaId: profile!.familia_id,
+          userId: modal.childUserId,
+          prizeName: modal.prizeName,
+        } : undefined,
+      }, {
         onSuccess: () => { setProcessingId(null); setActionSuccess('Resgate cancelado. Pontos estornados.'); },
         onError: (err) => { setProcessingId(null); setActionError(err.message); },
       });

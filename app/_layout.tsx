@@ -157,7 +157,8 @@ function RootNavigator({
         if (mounted) {
           lastSavedPushTokenKeyRef.current = saveKey;
         }
-      } catch {
+      } catch (error) {
+        console.warn('[push-token] Failed to persist token:', error);
         if (mounted) {
           lastSavedPushTokenKeyRef.current = null;
         }

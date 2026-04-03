@@ -7,7 +7,7 @@ import { FormFooter } from '@/components/ui/form-footer';
 import { TaskFormFields } from '@/components/tasks/task-form-fields';
 import { StickyFooterScreen } from '@/components/ui/sticky-footer-screen';
 import { setNavigationFeedback } from '@lib/navigation-feedback';
-import { useChildrenList, useCreateTask } from '@/hooks/queries';
+import { useChildrenList, useCreateTask, useProfile } from '@/hooks/queries';
 import type { TaskFrequencia } from '@lib/tasks';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
@@ -18,6 +18,7 @@ export default function NewTaskScreen() {
   const styles = useMemo(() => makeStyles(), []);
 
   const { data: children = [], isLoading: loadingChildren } = useChildrenList();
+  const { data: profile } = useProfile();
   const createTaskMutation = useCreateTask();
 
   const [titulo, setTitulo] = useState('');
@@ -48,9 +49,17 @@ export default function NewTaskScreen() {
     if (Number.isNaN(pontosNum) || pontosNum <= 0) return setError('Pontos deve ser um número maior que zero.');
     if (selected.size === 0) return setError('Selecione ao menos um filho para atribuir a tarefa.');
 
+    const filhoIds = Array.from(selected);
     createTaskMutation.mutate({
-      titulo: titulo.trim(), descricao: descricao.trim() || null, pontos: pontosNum,
-      frequencia, exige_evidencia: exigeEvidencia, filhoIds: Array.from(selected),
+      input: {
+        titulo: titulo.trim(), descricao: descricao.trim() || null, pontos: pontosNum,
+        frequencia, exige_evidencia: exigeEvidencia, filhoIds,
+      },
+      opts: profile ? {
+        familiaId: profile.familia_id,
+        taskTitle: titulo.trim(),
+        filhoIds,
+      } : undefined,
     }, {
       onSuccess: () => {
         setNavigationFeedback('admin-task-list', 'Tarefa criada com sucesso.');

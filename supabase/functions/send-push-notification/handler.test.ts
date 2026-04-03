@@ -26,6 +26,8 @@ function makeMessage(token: string): ExpoPushMessage {
     title: 'Test',
     body: 'Test body',
     sound: 'default',
+    priority: 'high',
+    channelId: 'trofinho-default',
     data: { route: '/(child)/tasks' },
   };
 }
@@ -513,17 +515,21 @@ describe('Property 2: Disabled preference prevents ticket generation', () => {
     const EVENT_TO_PREF: Record<PushEvent, keyof NotificationPrefs> = {
       tarefa_aprovada: 'tarefaAprovada',
       tarefa_rejeitada: 'tarefaRejeitada',
+      tarefa_criada: 'tarefasPendentes',
       tarefa_concluida: 'tarefaConcluida',
       resgate_solicitado: 'resgatesSolicitado',
       resgate_confirmado: 'resgateConfirmado',
+      resgate_cancelado: 'resgateCancelado',
     };
 
     const eventArb = fc.constantFrom<PushEvent>(
       'tarefa_aprovada',
       'tarefa_rejeitada',
+      'tarefa_criada',
       'tarefa_concluida',
       'resgate_solicitado',
       'resgate_confirmado',
+      'resgate_cancelado',
     );
 
     fc.assert(
@@ -602,8 +608,10 @@ describe('Property 4: Request body validation', () => {
   const VALID_EVENTS = [
     'tarefa_aprovada',
     'tarefa_rejeitada',
+    'tarefa_criada',
     'resgate_confirmado',
     'resgate_solicitado',
+    'resgate_cancelado',
     'tarefa_concluida',
   ] as const;
 
@@ -776,7 +784,9 @@ describe('Property 6: Message template correctness', () => {
   const EXPECTED_TEMPLATES: Record<PushEvent, { title: string; route: string }> = {
     tarefa_aprovada: { title: 'Tarefa aprovada ✅', route: '/(child)/tasks' },
     tarefa_rejeitada: { title: 'Tarefa rejeitada', route: '/(child)/tasks' },
+    tarefa_criada: { title: 'Nova tarefa 📝', route: '/(child)/tasks' },
     resgate_confirmado: { title: 'Resgate confirmado 🎉', route: '/(child)/redemptions' },
+    resgate_cancelado: { title: 'Resgate cancelado', route: '/(child)/redemptions' },
     resgate_solicitado: { title: 'Resgate solicitado', route: '/(admin)/redemptions' },
     tarefa_concluida: { title: 'Tarefa concluída', route: '/(admin)/tasks' },
   };
@@ -805,11 +815,23 @@ describe('Property 6: Message template correctness', () => {
         payload: p as EventPayload,
         interpolatedValues: [p.prizeName],
       })),
+      // resgate_cancelado: { userId, prizeName }
+      fc.record({ userId: fc.uuid(), prizeName: nonEmptyStrArb }).map((p) => ({
+        event: 'resgate_cancelado' as PushEvent,
+        payload: p as EventPayload,
+        interpolatedValues: [p.prizeName],
+      })),
       // resgate_solicitado: { childName, prizeName }
       fc.record({ childName: nonEmptyStrArb, prizeName: nonEmptyStrArb }).map((p) => ({
         event: 'resgate_solicitado' as PushEvent,
         payload: p as EventPayload,
         interpolatedValues: [p.childName, p.prizeName],
+      })),
+      // tarefa_criada: { filhoIds, taskTitle }
+      fc.record({ filhoIds: fc.array(fc.uuid(), { minLength: 1, maxLength: 3 }), taskTitle: nonEmptyStrArb }).map((p) => ({
+        event: 'tarefa_criada' as PushEvent,
+        payload: p as EventPayload,
+        interpolatedValues: [p.taskTitle],
       })),
       // tarefa_concluida: { childName, taskTitle }
       fc.record({ childName: nonEmptyStrArb, taskTitle: nonEmptyStrArb }).map((p) => ({

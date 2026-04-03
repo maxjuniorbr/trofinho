@@ -1,7 +1,6 @@
 import { localizeRpcError } from './api-error';
 import { toDateString } from './utils';
 import { extractErrorMessage } from './image-utils';
-import { notifyTaskCompleted } from './notifications';
 import { dispatchPushNotification } from './push';
 import { prepareImageUpload } from './storage';
 import { supabase } from './supabase';
@@ -128,7 +127,8 @@ export type TaskEditState = Readonly<{
 }>;
 
 export async function createTask(
-  input: NewTaskInput
+  input: NewTaskInput,
+  opts?: { familiaId: string; taskTitle: string; filhoIds: string[] },
 ): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('criar_tarefa_com_atribuicoes', {
     p_titulo: input.titulo,
@@ -140,8 +140,12 @@ export async function createTask(
   });
 
   if (error) return { error: localizeRpcError(error.message) };
-  // Local notification removed: notifyTaskCreated fired on the admin's device,
-  // not the child's. Push notifications handle cross-device delivery.
+  if (opts) {
+    dispatchPushNotification('tarefa_criada', opts.familiaId, {
+      taskTitle: opts.taskTitle,
+      filhoIds: opts.filhoIds,
+    });
+  }
   return { error: null };
 }
 
@@ -208,26 +212,30 @@ export async function getTaskWithAssignments(
 
 export async function approveAssignment(
   assignmentId: string,
-  opts?: { familiaId: string; userId: string; taskTitle: string },
+  opts: { familiaId: string; userId?: string | null; taskTitle: string },
 ): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('aprovar_atribuicao', {
     atribuicao_id: assignmentId,
   });
 
   if (error) return { error: localizeRpcError(error.message) };
-  if (opts) {
+  
+  if (!opts.userId) {
+    console.warn(`[push] Not dispatching 'tarefa_aprovada' for '${opts.taskTitle}': Missing required recipient (userId).`);
+  } else {
     dispatchPushNotification('tarefa_aprovada', opts.familiaId, {
       userId: opts.userId,
       taskTitle: opts.taskTitle,
     });
   }
+  
   return { error: null };
 }
 
 export async function rejectAssignment(
   assignmentId: string,
   note: string,
-  opts?: { familiaId: string; userId: string; taskTitle: string },
+  opts: { familiaId: string; userId?: string | null; taskTitle: string },
 ): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('rejeitar_atribuicao', {
     p_atribuicao_id: assignmentId,
@@ -235,12 +243,16 @@ export async function rejectAssignment(
   });
 
   if (error) return { error: localizeRpcError(error.message) };
-  if (opts) {
+
+  if (!opts.userId) {
+    console.warn(`[push] Not dispatching 'tarefa_rejeitada' for '${opts.taskTitle}': Missing required recipient (userId).`);
+  } else {
     dispatchPushNotification('tarefa_rejeitada', opts.familiaId, {
       userId: opts.userId,
       taskTitle: opts.taskTitle,
     });
   }
+
   return { error: null };
 }
 
@@ -286,7 +298,7 @@ export async function getChildAssignment(
 export async function completeAssignment(
   assignmentId: string,
   imageUri: string | null,
-  opts?: { familiaId: string; childName: string; taskTitle: string },
+  opts: { familiaId: string; childName: string; taskTitle: string },
 ): Promise<{ error: string | null }> {
   let evidenceUrl: string | null = null;
 
@@ -302,13 +314,10 @@ export async function completeAssignment(
   });
 
   if (error) return { error: localizeRpcError(error.message) };
-  await notifyTaskCompleted();
-  if (opts) {
-    dispatchPushNotification('tarefa_concluida', opts.familiaId, {
-      childName: opts.childName,
-      taskTitle: opts.taskTitle,
-    });
-  }
+  dispatchPushNotification('tarefa_concluida', opts.familiaId, {
+    childName: opts.childName,
+    taskTitle: opts.taskTitle,
+  });
   return { error: null };
 }
 

@@ -199,11 +199,11 @@ export default function ChildTaskDetailScreen() {
       await completeMutation.mutateAsync({
         assignmentId: assignment.id,
         imageUri,
-        opts: profile ? {
+        opts: {
           familiaId: assignment.tarefas.familia_id,
-          childName: profile.nome,
+          childName: profile?.nome ?? '',
           taskTitle: assignment.tarefas.titulo,
-        } : undefined,
+        },
       });
     } catch (error_) {
       setCompletionError(
