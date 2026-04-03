@@ -128,7 +128,11 @@ function RootNavigator({
         if (mounted) {
           setPushToken(token);
         }
-      } catch {
+        if (!token) {
+          console.warn('[push-token] registerForPushNotifications returned null — token not obtained');
+        }
+      } catch (error) {
+        console.warn('[push-token] Exception during push registration:', error);
         if (mounted) {
           setPushToken(null);
         }
