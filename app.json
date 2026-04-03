@@ -21,6 +21,7 @@
     },
     "android": {
       "package": "com.maxjuniorbr.trofinho",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundColor": "#1e1e28",
