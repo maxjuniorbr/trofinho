@@ -126,6 +126,7 @@ export type Database = {
       }
       filhos: {
         Row: {
+          ativo: boolean
           avatar_url: string | null
           created_at: string
           familia_id: string
@@ -134,6 +135,7 @@ export type Database = {
           usuario_id: string | null
         }
         Insert: {
+          ativo?: boolean
           avatar_url?: string | null
           created_at?: string
           familia_id: string
@@ -142,6 +144,7 @@ export type Database = {
           usuario_id?: string | null
         }
         Update: {
+          ativo?: boolean
           avatar_url?: string | null
           created_at?: string
           familia_id?: string
@@ -358,6 +361,7 @@ export type Database = {
       }
       tarefas: {
         Row: {
+          ativo: boolean
           created_at: string
           criado_por: string
           descricao: string | null
@@ -369,6 +373,7 @@ export type Database = {
           titulo: string
         }
         Insert: {
+          ativo?: boolean
           created_at?: string
           criado_por: string
           descricao?: string | null
@@ -380,6 +385,7 @@ export type Database = {
           titulo: string
         }
         Update: {
+          ativo?: boolean
           created_at?: string
           criado_por?: string
           descricao?: string | null
@@ -449,7 +455,7 @@ export type Database = {
     Functions: {
       aplicar_penalizacao: {
         Args: { p_descricao: string; p_filho_id: string; p_valor: number }
-        Returns: undefined
+        Returns: number
       }
       aplicar_valorizacao: { Args: { p_filho_id: string }; Returns: number }
       aprovar_atribuicao: {
@@ -464,7 +470,15 @@ export type Database = {
         Returns: string
       }
       bucket_evidencias_id: { Args: never; Returns: string }
+      cancelar_envio_atribuicao: {
+        Args: { p_atribuicao_id: string }
+        Returns: undefined
+      }
       cancelar_resgate: { Args: { p_resgate_id: string }; Returns: undefined }
+      concluir_atribuicao: {
+        Args: { p_atribuicao_id: string; p_evidencia_url?: string }
+        Returns: undefined
+      }
       configurar_valorizacao: {
         Args: {
           p_filho_id: string
@@ -474,22 +488,6 @@ export type Database = {
         Returns: undefined
       }
       confirmar_resgate: { Args: { p_resgate_id: string }; Returns: undefined }
-      concluir_atribuicao: {
-        Args: { p_atribuicao_id: string; p_evidencia_url?: string | null }
-        Returns: undefined
-      }
-      desativar_filho: {
-        Args: { p_filho_id: string }
-        Returns: Json
-      }
-      desativar_premio: {
-        Args: { p_premio_id: string }
-        Returns: number
-      }
-      desativar_tarefa: {
-        Args: { p_tarefa_id: string }
-        Returns: number
-      }
       criar_familia: {
         Args: { nome_familia: string; nome_usuario: string }
         Returns: string
@@ -522,6 +520,13 @@ export type Database = {
             }
             Returns: string
           }
+      desativar_filho: { Args: { p_filho_id: string }; Returns: Json }
+      desativar_premio: { Args: { p_premio_id: string }; Returns: number }
+      desativar_tarefa: { Args: { p_tarefa_id: string }; Returns: number }
+      editar_filho: {
+        Args: { p_avatar_url?: string; p_filho_id: string; p_nome: string }
+        Returns: undefined
+      }
       editar_premio: {
         Args: {
           p_ativo?: boolean
@@ -555,27 +560,18 @@ export type Database = {
       obter_filho_admin: {
         Args: { p_filho_id: string }
         Returns: {
+          ativo: boolean
           avatar_url: string
           email: string
           id: string
           nome: string
           usuario_id: string
-          ativo: boolean
         }[]
       }
       obter_meu_perfil: { Args: never; Returns: Json }
-      reativar_filho: {
-        Args: { p_filho_id: string }
-        Returns: undefined
-      }
-      reativar_premio: {
-        Args: { p_premio_id: string }
-        Returns: undefined
-      }
-      reativar_tarefa: {
-        Args: { p_tarefa_id: string }
-        Returns: undefined
-      }
+      reativar_filho: { Args: { p_filho_id: string }; Returns: undefined }
+      reativar_premio: { Args: { p_premio_id: string }; Returns: undefined }
+      reativar_tarefa: { Args: { p_tarefa_id: string }; Returns: undefined }
       rejeitar_atribuicao: {
         Args: { p_atribuicao_id: string; p_nota_rejeicao: string }
         Returns: undefined

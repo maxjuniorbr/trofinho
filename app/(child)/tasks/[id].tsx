@@ -1,4 +1,5 @@
 import {
+  Alert,
   StyleSheet,
   Text,
   View,
@@ -7,8 +8,8 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useMemo } from 'react';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useState, useMemo, useCallback } from 'react';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import {
   RefreshCw,
@@ -17,16 +18,23 @@ import {
   Trophy,
   CheckCircle2,
 } from 'lucide-react-native';
-import { getAssignmentPoints, type ChildAssignment } from '@lib/tasks';
+import {
+  getAssignmentCancellationState,
+  getAssignmentCompletionState,
+  getAssignmentPoints,
+  type ChildAssignment,
+} from '@lib/tasks';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
-import { useChildAssignment, useCompleteAssignment, useProfile } from '@/hooks/queries';
+import { useChildAssignment, useCancelAssignmentSubmission, useCompleteAssignment, useProfile } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { StickyFooterScreen } from '@/components/ui/sticky-footer-screen';
+import { Button } from '@/components/ui/button';
 import { InlineMessage } from '@/components/ui/inline-message';
+import { useTransientMessage } from '@/hooks/use-transient-message';
 
 type EvidenceSectionProps = Readonly<{
   evidenceUrl: string | null | undefined;
@@ -79,8 +87,13 @@ function EvidenceSection({ evidenceUrl, imgLoading, imgError, onImgLoadStart, on
 type StatusFooterProps = Readonly<{
   assignment: ChildAssignment;
   completing: boolean;
+  canceling: boolean;
+  completionReason: string | null;
   completionError: string | null;
+  cancelError: string | null;
+  cancelReason: string | null;
   onComplete: () => void;
+  onCancelSubmission: () => void;
   colors: ThemeColors;
   styles: ReturnType<typeof makeStyles>;
 }>;
@@ -103,35 +116,72 @@ function CompleteButtonContent({ requiresEvidence, colors, styles }: CompleteBut
   );
 }
 
-function StatusFooter({ assignment, completing, completionError, onComplete, colors, styles }: StatusFooterProps) {
+function StatusFooter({
+  assignment,
+  completing,
+  canceling,
+  completionReason,
+  completionError,
+  cancelError,
+  cancelReason,
+  onComplete,
+  onCancelSubmission,
+  colors,
+  styles,
+}: StatusFooterProps) {
   if (assignment.status === 'pendente') {
     const requiresEvidence = assignment.tarefas.exige_evidencia;
     return (
       <>
-        {completionError ? <InlineMessage message={completionError} variant="error" /> : null}
-        <Pressable
-          style={[styles.completeBtn, completing && styles.disabledBtn]}
-          onPress={onComplete}
-          disabled={completing}
-          accessibilityRole="button"
-          accessibilityLabel={requiresEvidence ? 'Tirar foto e concluir tarefa' : 'Concluir tarefa'}
-        >
-          {completing
-            ? <ActivityIndicator color={colors.text.inverse} />
-            : <CompleteButtonContent requiresEvidence={requiresEvidence} colors={colors} styles={styles} />}
-        </Pressable>
+        {completionReason ? <InlineMessage message={completionReason} variant="warning" /> : null}
+        {!completionReason && completionError ? <InlineMessage message={completionError} variant="error" /> : null}
+        {!completionReason ? (
+          <Pressable
+            style={[styles.completeBtn, completing && styles.disabledBtn]}
+            onPress={onComplete}
+            disabled={completing}
+            accessibilityRole="button"
+            accessibilityLabel={requiresEvidence ? 'Tirar foto e concluir tarefa' : 'Concluir tarefa'}
+          >
+            {completing
+              ? <ActivityIndicator color={colors.text.inverse} />
+              : <CompleteButtonContent requiresEvidence={requiresEvidence} colors={colors} styles={styles} />}
+          </Pressable>
+        ) : null}
       </>
     );
   }
 
   if (assignment.status === 'aguardando_validacao') {
     return (
-      <View style={styles.awaitingBox}>
-        <View style={styles.statusRow}>
-          <Clock size={14} color={colors.accent.filho} strokeWidth={2} />
-          <Text style={styles.awaitingText}>Aguardando validação do responsável</Text>
+      <>
+        <View style={styles.awaitingBox}>
+          <View style={styles.statusRow}>
+            <Clock size={14} color={colors.accent.filho} strokeWidth={2} />
+            <Text style={styles.awaitingText}>Aguardando validação do responsável</Text>
+          </View>
         </View>
-      </View>
+        {cancelReason ? (
+          <View style={styles.footerMessage}>
+            <InlineMessage message={cancelReason} variant="warning" />
+          </View>
+        ) : null}
+        {!cancelReason && cancelError ? (
+          <View style={styles.footerMessage}>
+            <InlineMessage message={cancelError} variant="error" />
+          </View>
+        ) : null}
+        {!cancelReason ? (
+          <Button
+            variant="danger"
+            label="Cancelar envio"
+            loading={canceling}
+            loadingLabel="Cancelando…"
+            onPress={onCancelSubmission}
+            accessibilityLabel="Cancelar envio da tarefa"
+          />
+        ) : null}
+      </>
     );
   }
 
@@ -178,31 +228,57 @@ export default function ChildTaskDetailScreen() {
   const { data: assignment, isLoading, error, refetch } = useChildAssignment(id);
   const { data: profile } = useProfile();
   const completeMutation = useCompleteAssignment();
+  const cancelMutation = useCancelAssignmentSubmission();
 
   const [completionError, setCompletionError] = useState<string | null>(null);
+  const [cancelError, setCancelError] = useState<string | null>(null);
   const [imgLoading, setImgLoading] = useState(true);
   const [imgError, setImgError] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [feedbackKey, setFeedbackKey] = useState(0);
+  const visibleFeedback = useTransientMessage(feedbackMessage, { resetKey: feedbackKey });
+
+  useFocusEffect(useCallback(() => {
+    setCompletionError(null);
+    setCancelError(null);
+    void refetch();
+  }, [refetch]));
 
   const handleComplete = async () => {
     if (!assignment) return;
     setCompletionError(null);
 
     try {
-      const imageUri = assignment.tarefas.exige_evidencia
+      const latestResult = await refetch();
+      if (latestResult.error) {
+        setCompletionError(latestResult.error.message);
+        return;
+      }
+
+      const latestAssignment = latestResult.data ?? assignment;
+      const completionState = getAssignmentCompletionState(latestAssignment, latestAssignment.tarefas);
+      if (!completionState.canComplete) {
+        if (completionState.reason) {
+          setCompletionError(completionState.reason);
+        }
+        return;
+      }
+
+      const imageUri = latestAssignment.tarefas.exige_evidencia
         ? await pickEvidenceImage()
         : null;
 
-      if (assignment.tarefas.exige_evidencia && !imageUri) {
+      if (latestAssignment.tarefas.exige_evidencia && !imageUri) {
         return;
       }
 
       await completeMutation.mutateAsync({
-        assignmentId: assignment.id,
+        assignmentId: latestAssignment.id,
         imageUri,
         opts: {
-          familiaId: assignment.tarefas.familia_id,
+          familiaId: latestAssignment.tarefas.familia_id,
           childName: profile?.nome ?? '',
-          taskTitle: assignment.tarefas.titulo,
+          taskTitle: latestAssignment.tarefas.titulo,
         },
       });
     } catch (error_) {
@@ -212,6 +288,56 @@ export default function ChildTaskDetailScreen() {
           : 'Não foi possível concluir a tarefa agora.',
       );
     }
+  };
+
+  const handleCancelSubmission = async () => {
+    if (!assignment) return;
+
+    setCancelError(null);
+
+    const latestResult = await refetch();
+    if (latestResult.error) {
+      setCancelError(latestResult.error.message);
+      return;
+    }
+
+    const latestAssignment = latestResult.data ?? assignment;
+    const cancellationState = getAssignmentCancellationState(latestAssignment, latestAssignment.tarefas);
+    if (!cancellationState.canCancel) {
+      if (cancellationState.reason) {
+        setCancelError(cancellationState.reason);
+      }
+      return;
+    }
+
+    Alert.alert(
+      'Cancelar envio?',
+      'A atividade voltará para pendente e poderá ser ajustada antes de um novo envio.',
+      [
+        { text: 'Manter envio', style: 'cancel' },
+        {
+          text: 'Cancelar envio',
+          style: 'destructive',
+          onPress: () => {
+            setCancelError(null);
+            cancelMutation.mutate(
+              { assignmentId: latestAssignment.id },
+              {
+                onSuccess: () => {
+                  setCompletionError(null);
+                  setCancelError(null);
+                  setFeedbackMessage('Envio cancelado com sucesso.');
+                  setFeedbackKey((currentKey) => currentKey + 1);
+                },
+                onError: (mutationError) => {
+                  setCancelError(mutationError.message);
+                },
+              },
+            );
+          },
+        },
+      ],
+    );
   };
 
   if (isLoading) {
@@ -236,14 +362,26 @@ export default function ChildTaskDetailScreen() {
   }
 
   const task = assignment.tarefas;
+  const completionState = getAssignmentCompletionState(assignment, task);
+  const cancellationState = getAssignmentCancellationState(assignment, task);
+  const inactiveTaskMessage = task.ativo === false && assignment.status !== 'pendente'
+    ? assignment.status === 'aguardando_validacao'
+      ? 'Esta tarefa foi desativada pelo responsável. O envio atual segue apenas para acompanhamento e não pode mais ser alterado.'
+      : 'Esta tarefa foi desativada pelo responsável. Volte para a lista para acompanhar as demais tarefas.'
+    : null;
   const footer = assignment.status === 'rejeitada'
     ? undefined
     : (
       <StatusFooter
         assignment={assignment}
         completing={completeMutation.isPending}
+        canceling={cancelMutation.isPending}
+        completionReason={completionState.reason}
         completionError={completionError}
+        cancelError={cancelError}
+        cancelReason={cancellationState.reason}
         onComplete={handleComplete}
+        onCancelSubmission={handleCancelSubmission}
         colors={colors}
         styles={styles}
       />
@@ -263,6 +401,18 @@ export default function ChildTaskDetailScreen() {
       <View style={[styles.statusBadge, { backgroundColor: getAssignmentStatusColor(assignment.status, colors) }]}>
         <Text style={[styles.statusBadgeText, { color: colors.text.inverse }]}>{getAssignmentStatusLabel(assignment.status)}</Text>
       </View>
+
+      {visibleFeedback ? (
+        <View style={styles.feedbackWrapper}>
+          <InlineMessage message={visibleFeedback} variant="success" />
+        </View>
+      ) : null}
+
+      {inactiveTaskMessage ? (
+        <View style={styles.feedbackWrapper}>
+          <InlineMessage message={inactiveTaskMessage} variant="warning" />
+        </View>
+      ) : null}
 
       <View style={styles.card}>
         <View style={styles.cardTop}>
@@ -324,6 +474,7 @@ function makeStyles(colors: ThemeColors) {
       marginBottom: spacing['4'],
     },
     statusBadgeText: { fontSize: typography.size.sm, fontFamily: typography.family.bold },
+    feedbackWrapper: { marginBottom: spacing['4'] },
     card: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,
@@ -363,6 +514,7 @@ function makeStyles(colors: ThemeColors) {
     completeBtnInner: { flexDirection: 'row', alignItems: 'center', gap: spacing['1.5'] },
     disabledBtn: { opacity: 0.6 },
     completeBtnText: { fontSize: typography.size.md, fontFamily: typography.family.bold },
+    footerMessage: { marginTop: spacing['2'] },
     statusRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1.5'] },
     awaitingBox: { backgroundColor: colors.accent.filhoBg, borderRadius: radii.xl, padding: spacing['3'], alignItems: 'center', marginTop: spacing['2'] },
     awaitingText: { fontSize: typography.size.sm, color: colors.accent.filho, fontFamily: typography.family.semibold },

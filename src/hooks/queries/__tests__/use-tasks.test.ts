@@ -35,6 +35,7 @@ vi.mock('../../../../lib/tasks', () => ({
   updateTask: vi.fn().mockResolvedValue({ error: null }),
   approveAssignment: vi.fn().mockResolvedValue({ error: null }),
   rejectAssignment: vi.fn().mockResolvedValue({ error: null }),
+  cancelAssignmentSubmission: vi.fn().mockResolvedValue({ error: null }),
   completeAssignment: vi.fn().mockResolvedValue({ error: null }),
   renewDailyTasks: vi.fn().mockResolvedValue(undefined),
 }));
@@ -151,6 +152,15 @@ describe('use-tasks mutation hooks', () => {
     it('useRejectAssignment invalidates tasks.all only', async () => {
       const { useRejectAssignment } = await loadHooks();
       useRejectAssignment();
+      const onSuccess = lastMutationOpts().onSuccess as () => void;
+      onSuccess();
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.tasks.all });
+      expect(mockInvalidateQueries).not.toHaveBeenCalledWith({ queryKey: queryKeys.balances.all });
+    });
+
+    it('useCancelAssignmentSubmission invalidates tasks.all only', async () => {
+      const { useCancelAssignmentSubmission } = await loadHooks();
+      useCancelAssignmentSubmission();
       const onSuccess = lastMutationOpts().onSuccess as () => void;
       onSuccess();
       expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.tasks.all });

@@ -9,6 +9,7 @@ import {
   updateTask,
   approveAssignment,
   rejectAssignment,
+  cancelAssignmentSubmission,
   completeAssignment,
   deactivateTask,
   reactivateTask,
@@ -109,6 +110,19 @@ export const useRejectAssignment = () => {
     }) =>
       mutationFnAdapter(() => rejectAssignment(assignmentId, note, opts))(),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+    },
+  });
+};
+
+export const useCancelAssignmentSubmission = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ assignmentId }: { assignmentId: string }) =>
+      mutationFnAdapter(() => cancelAssignmentSubmission(assignmentId))(),
+    onSuccess: () => {
+      // All task-derived queries share the ['tasks'] prefix:
+      // child/admin lists, detail screens, pending counters and home summaries.
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
     },
   });

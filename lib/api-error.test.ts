@@ -39,6 +39,12 @@ describe('localizeRpcError', () => {
     );
   });
 
+  it('maps deactivated task completion error to localized message', () => {
+    expect(localizeRpcError('Esta tarefa está desativada e não pode ser enviada para validação')).toBe(
+      'Esta tarefa foi desativada e não pode mais ser enviada para validação.',
+    );
+  });
+
   it('maps deactivated child edit error to localized message', () => {
     expect(localizeRpcError('Não é possível editar um filho desativado.')).toBe(
       'Este filho está desativado e não pode ser editado.',
@@ -90,6 +96,7 @@ describe('property tests', () => {
     ['não encontrad', 'Registro não encontrado.'],
     ['não está aguardando', 'Esta ação não pode ser realizada no momento.'],
     ['não está pendente', 'Esta ação não pode ser realizada no momento.'],
+    ['não pode ser enviada para validação', 'Esta tarefa foi desativada e não pode mais ser enviada para validação.'],
     ['Não é possível editar uma tarefa desativada', 'Esta tarefa está desativada e não pode ser editada.'],
     ['Não é possível editar um filho desativado', 'Este filho está desativado e não pode ser editado.'],
     ['Sua conta foi desativada', 'Sua conta foi desativada. Entre em contato com o responsável.'],

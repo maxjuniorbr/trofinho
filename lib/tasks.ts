@@ -126,6 +126,16 @@ export type TaskEditState = Readonly<{
   infoMessage: string | null;
 }>;
 
+export type AssignmentCancellationState = Readonly<{
+  canCancel: boolean;
+  reason: string | null;
+}>;
+
+export type AssignmentCompletionState = Readonly<{
+  canComplete: boolean;
+  reason: string | null;
+}>;
+
 export async function createTask(
   input: NewTaskInput,
   opts?: { familiaId: string; taskTitle: string; filhoIds: string[] },
@@ -256,6 +266,17 @@ export async function rejectAssignment(
   return { error: null };
 }
 
+export async function cancelAssignmentSubmission(
+  assignmentId: string,
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('cancelar_envio_atribuicao', {
+    p_atribuicao_id: assignmentId,
+  });
+
+  if (error) return { error: localizeRpcError(error.message) };
+  return { error: null };
+}
+
 export async function renewDailyTasks(): Promise<void> {
   await supabase.rpc('garantir_atribuicoes_diarias');
 }
@@ -300,11 +321,12 @@ export async function completeAssignment(
   imageUri: string | null,
   opts: { familiaId: string; childName: string; taskTitle: string },
 ): Promise<{ error: string | null }> {
-  let evidenceUrl: string | null = null;
+  let evidenceUrl: string | undefined;
 
   if (imageUri) {
     const result = await uploadEvidence(imageUri);
     if (result.error) return { error: result.error };
+    if (!result.url) return { error: 'Erro ao fazer upload da imagem.' };
     evidenceUrl = result.url;
   }
 
@@ -319,6 +341,66 @@ export async function completeAssignment(
     taskTitle: opts.taskTitle,
   });
   return { error: null };
+}
+
+export function getAssignmentCancellationState(
+  assignment: Pick<Assignment, 'status' | 'competencia'>,
+  task: Pick<Task, 'ativo' | 'frequencia'>,
+  referenceDate = new Date(),
+): AssignmentCancellationState {
+  if (assignment.status !== 'aguardando_validacao') {
+    return {
+      canCancel: false,
+      reason: null,
+    };
+  }
+
+  if (task.ativo === false) {
+    return {
+      canCancel: false,
+      reason: 'Esta tarefa está desativada e não permite cancelar o envio.',
+    };
+  }
+
+  if (
+    task.frequencia === 'diaria'
+    && assignment.competencia !== null
+    && assignment.competencia < toDateString(referenceDate)
+  ) {
+    return {
+      canCancel: false,
+      reason: 'Não é possível cancelar o envio de uma tarefa diária de data anterior.',
+    };
+  }
+
+  return {
+    canCancel: true,
+    reason: null,
+  };
+}
+
+export function getAssignmentCompletionState(
+  assignment: Pick<Assignment, 'status'>,
+  task: Pick<Task, 'ativo'>,
+): AssignmentCompletionState {
+  if (assignment.status !== 'pendente') {
+    return {
+      canComplete: false,
+      reason: null,
+    };
+  }
+
+  if (task.ativo === false) {
+    return {
+      canComplete: false,
+      reason: 'Esta tarefa foi desativada pelo responsável e não pode mais ser enviada para validação.',
+    };
+  }
+
+  return {
+    canComplete: true,
+    reason: null,
+  };
 }
 
 export function getTaskEditState(

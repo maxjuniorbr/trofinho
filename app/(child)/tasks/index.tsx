@@ -7,8 +7,8 @@ import {
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useMemo } from 'react';
-import { useRouter } from 'expo-router';
+import { useState, useMemo, useCallback } from 'react';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { RefreshCw } from 'lucide-react-native';
 import {
   getAssignmentPoints,
@@ -84,6 +84,10 @@ export default function ChildTasksScreen() {
   const [filter, setFilter] = useState<Filter>('pendente');
   const [refreshing, setRefreshing] = useState(false);
 
+  useFocusEffect(useCallback(() => {
+    void refetch();
+  }, [refetch]));
+
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
@@ -136,12 +140,19 @@ export default function ChildTasksScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
           renderItem={({ item }) => {
             const dateLine = getAssignmentDateLine(item, filter);
+            const isInactive = item.tarefas.ativo === false;
+            const isUnavailable = isInactive && item.status === 'pendente';
             return (
               <Pressable
-                style={styles.card}
-                onPress={() => router.push(`/(child)/tasks/${item.id}` as never)}
+                style={[styles.card, isInactive && styles.inactiveCard]}
+                onPress={isUnavailable ? undefined : () => router.push(`/(child)/tasks/${item.id}` as never)}
+                disabled={isUnavailable}
                 accessibilityRole="button"
-                accessibilityLabel={`Ver detalhes da tarefa ${item.tarefas.titulo}`}
+                accessibilityLabel={
+                  isUnavailable
+                    ? `Tarefa ${item.tarefas.titulo} desativada`
+                    : `Ver detalhes da tarefa ${item.tarefas.titulo}`
+                }
               >
                 <View style={styles.cardTop}>
                   <Text style={styles.cardTitle} numberOfLines={2}>{item.tarefas.titulo}</Text>
@@ -149,6 +160,11 @@ export default function ChildTasksScreen() {
                     <Text style={styles.pointsText}>{getAssignmentPoints(item)} pts</Text>
                   </View>
                 </View>
+                {isInactive ? (
+                  <View style={styles.inactiveTag}>
+                    <Text style={styles.inactiveTagText}>Desativada</Text>
+                  </View>
+                ) : null}
                 <View style={styles.freqRow}>
                   {item.tarefas.frequencia === 'diaria' ? (
                     <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
@@ -186,10 +202,24 @@ function makeStyles(colors: ThemeColors) {
       marginBottom: spacing['3'],
       ...shadows.card,
     },
+    inactiveCard: { opacity: 0.72 },
     cardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: spacing['2'] },
     cardTitle: { flex: 1, fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary, marginRight: spacing['2'] },
     pointsTag: { backgroundColor: colors.accent.filhoBg, borderRadius: radii.sm, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'] },
     pointsText: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.accent.filho },
+    inactiveTag: {
+      alignSelf: 'flex-start',
+      backgroundColor: colors.semantic.warningBg,
+      borderRadius: radii.sm,
+      paddingVertical: spacing['1'],
+      paddingHorizontal: spacing['2'],
+      marginBottom: spacing['2'],
+    },
+    inactiveTagText: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.semibold,
+      color: colors.semantic.warningText,
+    },
     freqRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'], marginBottom: spacing['1'] },
     cardDeadline: { fontSize: typography.size.xs, color: colors.text.muted, marginBottom: spacing['2'] },
     statusTag: { borderRadius: radii.sm, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'], alignSelf: 'flex-start' },
