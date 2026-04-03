@@ -58,11 +58,14 @@ vi.mock('./push', () => ({
 
 import {
   approveAssignment,
+  cancelAssignmentSubmission,
   buildTaskDeactivateMessage,
   completeAssignment,
   countPendingValidations,
   createTask,
   deactivateTask,
+  getAssignmentCancellationState,
+  getAssignmentCompletionState,
   getAssignmentPoints,
   getTaskEditState,
   getChildAssignment,
@@ -393,6 +396,81 @@ describe('tasks', () => {
     })).toBe(15);
   });
 
+  it('exposes cancellation-state rules for inactive tasks and old daily assignments', () => {
+    const referenceDate = new Date('2026-03-21T10:00:00-03:00');
+
+    expect(getAssignmentCancellationState(
+      {
+        status: 'aguardando_validacao',
+        competencia: null,
+      },
+      {
+        ativo: false,
+        frequencia: 'unica',
+      },
+      referenceDate,
+    )).toEqual({
+      canCancel: false,
+      reason: 'Esta tarefa está desativada e não permite cancelar o envio.',
+    });
+
+    expect(getAssignmentCancellationState(
+      {
+        status: 'aguardando_validacao',
+        competencia: '2026-03-20',
+      },
+      {
+        ativo: true,
+        frequencia: 'diaria',
+      },
+      referenceDate,
+    )).toEqual({
+      canCancel: false,
+      reason: 'Não é possível cancelar o envio de uma tarefa diária de data anterior.',
+    });
+
+    expect(getAssignmentCancellationState(
+      {
+        status: 'aguardando_validacao',
+        competencia: '2026-03-21',
+      },
+      {
+        ativo: true,
+        frequencia: 'diaria',
+      },
+      referenceDate,
+    )).toEqual({
+      canCancel: true,
+      reason: null,
+    });
+  });
+
+  it('blocks completion when the task is inactive', () => {
+    expect(getAssignmentCompletionState(
+      {
+        status: 'pendente',
+      },
+      {
+        ativo: false,
+      },
+    )).toEqual({
+      canComplete: false,
+      reason: 'Esta tarefa foi desativada pelo responsável e não pode mais ser enviada para validação.',
+    });
+
+    expect(getAssignmentCompletionState(
+      {
+        status: 'aguardando_validacao',
+      },
+      {
+        ativo: true,
+      },
+    )).toEqual({
+      canComplete: false,
+      reason: null,
+    });
+  });
+
   it('gets task details and signs evidence urls from multiple shapes', async () => {
     supabaseMock.from.mockReturnValueOnce(
       createSingleQuery({
@@ -489,6 +567,46 @@ describe('tasks', () => {
     });
   });
 
+  it('cancels an assignment submission via RPC', async () => {
+    supabaseMock.rpc.mockResolvedValueOnce({ error: null });
+
+    await expect(cancelAssignmentSubmission('assignment-1')).resolves.toEqual({ error: null });
+    expect(supabaseMock.rpc).toHaveBeenCalledWith('cancelar_envio_atribuicao', {
+      p_atribuicao_id: 'assignment-1',
+    });
+  });
+
+  it('localizes cancellation errors for invalid status, inactive task, old daily task and invalid ownership', async () => {
+    supabaseMock.rpc
+      .mockResolvedValueOnce({ error: { message: 'Esta atribuição não está aguardando validação' } })
+      .mockResolvedValueOnce({ error: { message: 'Esta tarefa está desativada' } })
+      .mockResolvedValueOnce({ error: { message: 'Não é possível cancelar envio de tarefa diária de data anterior' } })
+      .mockResolvedValueOnce({ error: { message: 'Apenas filhos podem cancelar o próprio envio' } });
+
+    await expect(cancelAssignmentSubmission('assignment-1')).resolves.toEqual({
+      error: 'Esta ação não pode ser realizada no momento.',
+    });
+    await expect(cancelAssignmentSubmission('assignment-2')).resolves.toEqual({
+      error: 'Esta tarefa está desativada e não permite cancelar o envio.',
+    });
+    await expect(cancelAssignmentSubmission('assignment-3')).resolves.toEqual({
+      error: 'Não é possível cancelar o envio de uma tarefa diária de data anterior.',
+    });
+    await expect(cancelAssignmentSubmission('assignment-4')).resolves.toEqual({
+      error: 'Acesso negado.',
+    });
+  });
+
+  it('uses backend status validation to handle races with approval or rejection', async () => {
+    supabaseMock.rpc.mockResolvedValueOnce({
+      error: { message: 'Esta atribuição não está aguardando validação' },
+    });
+
+    await expect(cancelAssignmentSubmission('assignment-race')).resolves.toEqual({
+      error: 'Esta ação não pode ser realizada no momento.',
+    });
+  });
+
   it('lists child assignments using the current competence filter', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-03-15T10:00:00-03:00'));
@@ -571,7 +689,29 @@ describe('tasks', () => {
     await expect(completeAssignment('assignment-1', null, { familiaId: 'f1', childName: 'C', taskTitle: 'T' })).resolves.toEqual({ error: null });
     expect(supabaseMock.rpc).toHaveBeenCalledWith('concluir_atribuicao', {
       p_atribuicao_id: 'assignment-1',
-      p_evidencia_url: null,
+      p_evidencia_url: undefined,
+    });
+  });
+
+  it('localizes completion errors when the task has been deactivated or the assignment is no longer pending', async () => {
+    supabaseMock.rpc
+      .mockResolvedValueOnce({
+        error: { message: 'Esta tarefa está desativada e não pode ser enviada para validação' },
+      })
+      .mockResolvedValueOnce({
+        error: { message: 'Esta atribuição não está pendente' },
+      });
+
+    await expect(
+      completeAssignment('assignment-1', null, { familiaId: 'f1', childName: 'C', taskTitle: 'T' }),
+    ).resolves.toEqual({
+      error: 'Esta tarefa foi desativada e não pode mais ser enviada para validação.',
+    });
+
+    await expect(
+      completeAssignment('assignment-2', null, { familiaId: 'f1', childName: 'C', taskTitle: 'T' }),
+    ).resolves.toEqual({
+      error: 'Esta ação não pode ser realizada no momento.',
     });
   });
 
