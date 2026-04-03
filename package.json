@@ -62,7 +62,7 @@
     "react-test-renderer": "19.2.0",
     "skills": "^1.4.5",
     "supabase": "^2.81.0",
-    "typescript": "~5.9.2",
+    "typescript": "~6.0.2",
     "vitest": "^4.1.0"
   },
   "private": true

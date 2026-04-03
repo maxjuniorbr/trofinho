@@ -3,11 +3,10 @@
   "compilerOptions": {
     "strict": true,
     "types": ["vitest/globals"],
-    "baseUrl": ".",
     "paths": {
-      "@lib/*": ["lib/*"],
-      "@/*": ["src/*"],
-      "@types/*": ["src/types/*"]
+      "@lib/*": ["./lib/*"],
+      "@/*": ["./src/*"],
+      "@types/*": ["./src/types/*"]
     }
   },
   "exclude": ["coverage", "dist", "node_modules", "supabase/functions/**/index.ts"]
