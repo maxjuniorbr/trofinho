@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View, Pressable, FlatList, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useMemo } from 'react';
 import { useRouter } from 'expo-router';
@@ -56,7 +57,7 @@ export default function AdminChildrenScreen() {
       {(isLoading || error || children.length === 0) ? (
         <EmptyState loading={isLoading} error={error?.message} empty={children.length === 0} emptyMessage={'Nenhum filho cadastrado.\nToque em "+" para cadastrar o primeiro filho.'} onRetry={handleRefresh} />
       ) : (
-        <FlatList
+        <FlashList
           data={children}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}

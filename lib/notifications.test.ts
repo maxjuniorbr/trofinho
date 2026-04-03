@@ -79,6 +79,10 @@ describe('notifications', () => {
       expect(getNotificationRoute({ route: '/(admin)/tasks' })).toBe('/(admin)/tasks');
     });
 
+    it('returns the admin redemptions route', () => {
+      expect(getNotificationRoute({ route: '/(admin)/redemptions' })).toBe('/(admin)/redemptions');
+    });
+
     it('returns child routes', () => {
       expect(getNotificationRoute({ route: '/(child)/tasks' })).toBe('/(child)/tasks');
       expect(getNotificationRoute({ route: '/(child)/redemptions' })).toBe('/(child)/redemptions');

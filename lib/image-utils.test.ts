@@ -81,7 +81,7 @@ describe('resizeImage', () => {
 
     await resizeImage('file:///photo.jpg');
 
-    expect(resize).toHaveBeenCalledWith({ width: 1024 });
+    expect(resize).toHaveBeenCalledWith({ height: 1024 });
   });
 
   it('skips resize when dimensions exactly equal maxDimension', async () => {
@@ -206,7 +206,11 @@ describe('property tests', () => {
 
           const shouldResize = width > maxDimension || height > maxDimension;
           if (shouldResize) {
-            expect(resize).toHaveBeenCalledWith({ width: maxDimension });
+            if (height > width) {
+              expect(resize).toHaveBeenCalledWith({ height: maxDimension });
+            } else {
+              expect(resize).toHaveBeenCalledWith({ width: maxDimension });
+            }
           } else {
             expect(resize).not.toHaveBeenCalled();
           }

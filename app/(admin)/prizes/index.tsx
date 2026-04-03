@@ -3,9 +3,9 @@ import {
   Text,
   View,
   Pressable,
-  FlatList,
   RefreshControl,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -82,7 +82,7 @@ export default function AdminPrizesScreen() {
           onRetry={() => refetch()}
         />
       ) : (
-        <FlatList
+        <FlashList
           data={prizes}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}

@@ -24,12 +24,17 @@ export async function resizeImage(
   const probe = ImageManipulator.manipulate(uri);
   const probeRef = await probe.renderAsync();
   const { width, height } = probeRef;
+  probeRef.release?.();
 
   const context = ImageManipulator.manipulate(uri);
 
-  // Only resize if at least one dimension exceeds maxDimension
+  // Resize constraining the largest dimension
   if (width > maxDimension || height > maxDimension) {
-    context.resize({ width: maxDimension });
+    if (height > width) {
+      context.resize({ height: maxDimension });
+    } else {
+      context.resize({ width: maxDimension });
+    }
   }
 
   const imageRef = await context.renderAsync();
