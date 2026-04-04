@@ -8,6 +8,13 @@ export type AdminChildProfile = Child & {
   email: string | null;
 };
 
+/**
+ * Creates a throwaway Supabase client with `persistSession: false` so that
+ * signing up a child account does NOT overwrite the admin's active session.
+ *
+ * Email confirmation is intentionally disabled for child accounts — they are
+ * created by the admin (parent) and don't have real email access.
+ */
 function createTempClient() {
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
