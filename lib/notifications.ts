@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
+import * as Crypto from 'expo-crypto';
 import * as Device from 'expo-device';
 import type {
   NotificationPermissionsStatus,
@@ -302,9 +303,7 @@ const DEVICE_ID_STORAGE_KEY = 'device_id';
 async function getOrCreateDeviceId(): Promise<string> {
   const existing = await deviceStorage.getItem(DEVICE_ID_STORAGE_KEY);
   if (existing) return existing;
-  // NOSONAR: Math.random() is not used for security — only for a stable device
-  // identifier stored locally. Hermes does not support crypto.randomUUID().
-  const generated = Date.now().toString(36) + Math.random().toString(36).slice(2); // NOSONAR
+  const generated = Crypto.randomUUID();
   await deviceStorage.setItem(DEVICE_ID_STORAGE_KEY, generated);
   return generated;
 }
