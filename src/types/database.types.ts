@@ -588,11 +588,25 @@ export type Database = {
         Args: { p_filho_id: string; p_valor: number }
         Returns: undefined
       }
-      upsert_push_token: { Args: { p_token: string; p_device_id?: string }; Returns: undefined }
+      upsert_push_token:
+        | { Args: { p_token: string }; Returns: undefined }
+        | {
+            Args: { p_device_id?: string; p_token: string }
+            Returns: undefined
+          }
       usuario_autenticado_id: { Args: never; Returns: string }
       usuario_e_admin: { Args: never; Returns: boolean }
       validar_filho_da_familia: {
         Args: { p_familia_id: string; p_filho_id: string }
+        Returns: undefined
+      }
+      verificar_limite_frequencia: {
+        Args: {
+          p_filho_id: string
+          p_janela: string
+          p_limite: number
+          p_tipo: string
+        }
         Returns: undefined
       }
     }

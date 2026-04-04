@@ -52,28 +52,23 @@ describe('useTasksLiveSync', () => {
       renderer = create(<TestComponent familiaId={TEST_FAMILIA_ID} />);
     });
 
+    // Only tarefas is subscribed (filtered by familia_id).
+    // atribuicoes was removed to prevent cross-family data leaks (S2).
+    expect(onMock).toHaveBeenCalledTimes(1);
     expect(onMock).toHaveBeenNthCalledWith(
       1,
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'atribuicoes' },
-      expect.any(Function),
-    );
-    expect(onMock).toHaveBeenNthCalledWith(
-      2,
       'postgres_changes',
       { event: '*', schema: 'public', table: 'tarefas', filter: `familia_id=eq.${TEST_FAMILIA_ID}` },
       expect.any(Function),
     );
     expect(subscribeMock).toHaveBeenCalledTimes(1);
 
-    const assignmentListener = onMock.mock.calls[0][2] as () => void;
-    const taskListener = onMock.mock.calls[1][2] as () => void;
+    const taskListener = onMock.mock.calls[0][2] as () => void;
 
-    assignmentListener();
     taskListener();
 
     expect(invalidateQueriesMock).toHaveBeenCalledWith({ queryKey: queryKeys.tasks.all });
-    expect(invalidateQueriesMock).toHaveBeenCalledTimes(2);
+    expect(invalidateQueriesMock).toHaveBeenCalledTimes(1);
 
     act(() => {
       renderer.unmount();
