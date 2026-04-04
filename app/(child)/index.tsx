@@ -20,7 +20,6 @@ import {
   Wallet,
 } from 'lucide-react-native';
 import { signOut } from '@lib/auth';
-import { syncAutomaticAppreciation } from '@lib/balances';
 import { getGreeting } from '@lib/utils';
 import { isNotificationPermissionDenied } from '@lib/notifications';
 import {
@@ -106,7 +105,6 @@ export default function FilhoHomeScreen() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await syncAutomaticAppreciation();
       await refetchAll();
       const denied = await isNotificationPermissionDenied();
       setShowNotificationBanner(denied);

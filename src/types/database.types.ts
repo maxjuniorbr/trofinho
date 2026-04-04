@@ -564,6 +564,7 @@ export type Database = {
             }
             Returns: string
           }
+      cron_sincronizar_valorizacoes: { Args: never; Returns: number }
       desativar_filho: { Args: { p_filho_id: string }; Returns: Json }
       desativar_premio: { Args: { p_premio_id: string }; Returns: number }
       desativar_tarefa: { Args: { p_tarefa_id: string }; Returns: number }

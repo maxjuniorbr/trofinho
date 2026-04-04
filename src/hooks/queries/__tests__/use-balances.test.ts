@@ -141,19 +141,17 @@ describe('use-balances mutation hooks', () => {
     });
   });
 
-  // Feature: react-query-migration, Property 6: Balance-affecting mutations call syncAutomaticAppreciation before invalidating
-  describe('Property 6: Balance-affecting mutations call syncAutomaticAppreciation before invalidating', () => {
-    it('useApplyPenalty calls syncAutomaticAppreciation before invalidating', async () => {
+  // Feature: S27 — syncAutomaticAppreciation moved to pg_cron; only useConfigureAppreciation still syncs client-side
+  describe('Property 6: Only config mutation calls syncAutomaticAppreciation before invalidating', () => {
+    it('useApplyPenalty invalidates without syncing', async () => {
       const { useApplyPenalty } = await loadHooks();
-      const callOrder: string[] = [];
-      mockSyncAppreciation.mockImplementation(() => { callOrder.push('sync'); return Promise.resolve(); });
-      mockInvalidateQueries.mockImplementation(() => { callOrder.push('invalidate'); });
 
       useApplyPenalty();
-      const onSuccess = lastMutationOpts().onSuccess as () => Promise<void>;
-      await onSuccess();
+      const onSuccess = lastMutationOpts().onSuccess as () => void;
+      onSuccess();
 
-      expect(callOrder).toEqual(['sync', 'invalidate']);
+      expect(mockSyncAppreciation).not.toHaveBeenCalled();
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.balances.all });
     });
 
     it('useConfigureAppreciation calls syncAutomaticAppreciation before invalidating', async () => {
@@ -169,17 +167,15 @@ describe('use-balances mutation hooks', () => {
       expect(callOrder).toEqual(['sync', 'invalidate']);
     });
 
-    it('useTransferToPiggyBank calls syncAutomaticAppreciation before invalidating', async () => {
+    it('useTransferToPiggyBank invalidates without syncing', async () => {
       const { useTransferToPiggyBank } = await loadHooks();
-      const callOrder: string[] = [];
-      mockSyncAppreciation.mockImplementation(() => { callOrder.push('sync'); return Promise.resolve(); });
-      mockInvalidateQueries.mockImplementation(() => { callOrder.push('invalidate'); });
 
       useTransferToPiggyBank();
-      const onSuccess = lastMutationOpts().onSuccess as () => Promise<void>;
-      await onSuccess();
+      const onSuccess = lastMutationOpts().onSuccess as () => void;
+      onSuccess();
 
-      expect(callOrder).toEqual(['sync', 'invalidate']);
+      expect(mockSyncAppreciation).not.toHaveBeenCalled();
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.balances.all });
     });
   });
 });

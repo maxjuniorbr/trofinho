@@ -8,7 +8,6 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { Avatar } from '@/components/ui/avatar';
 import { useAdminBalances } from '@/hooks/queries';
-import { syncAutomaticAppreciation } from '@lib/balances';
 import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 
@@ -20,11 +19,6 @@ export default function BalancesAdminScreen() {
   const { data: balances = [], isLoading, isFetching, refetch } = useAdminBalances();
 
   const handleRefresh = useCallback(async () => {
-    try {
-      await syncAutomaticAppreciation();
-    } catch (e) {
-      console.error(e);
-    }
     await refetch();
   }, [refetch]);
 

@@ -14,7 +14,6 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Trophy, CheckCircle2 } from 'lucide-react-native';
 import type { Prize } from '@lib/prizes';
-import { syncAutomaticAppreciation } from '@lib/balances';
 import {
   useActivePrizes,
   useBalance,
@@ -58,7 +57,6 @@ export default function ChildPrizesScreen() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await syncAutomaticAppreciation();
       await refetchAll();
     } catch (e) {
       console.error(e);
