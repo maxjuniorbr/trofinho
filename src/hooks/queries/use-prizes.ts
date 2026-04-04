@@ -26,7 +26,7 @@ export const usePrizes = () =>
 
 export const usePrizeDetail = (prizeId: string | undefined) =>
   useQuery({
-    queryKey: queryKeys.prizes.detail(prizeId!),
+    queryKey: queryKeys.prizes.detail(prizeId ?? ''),
     queryFn: queryFnAdapter(() => getPrize(prizeId!)),
     staleTime: STALE_TIMES.prizes,
     enabled: !!prizeId,

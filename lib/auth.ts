@@ -105,7 +105,7 @@ export async function createFamily(
   }
 
   // RPC criar_familia returns the new family UUID as text
-  return { familiaId: data as string, error: null };
+  return { familiaId: data, error: null };
 }
 
 export async function updateUserName(

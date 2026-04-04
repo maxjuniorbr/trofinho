@@ -87,7 +87,7 @@ export default function ChildTasksScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(useCallback(() => {
-    void refetch();
+    refetch();
   }, [refetch]));
 
   const handleRefresh = async () => {
