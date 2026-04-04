@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-if [ -n "${GOOGLE_SERVICES_JSON:-}" ]; then
+if [[ -n "${GOOGLE_SERVICES_JSON:-}" ]]; then
   echo "$GOOGLE_SERVICES_JSON" | base64 --decode > ./google-services.json
   echo "google-services.json written from EAS secret."
 fi

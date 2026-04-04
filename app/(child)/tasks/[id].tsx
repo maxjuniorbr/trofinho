@@ -133,9 +133,9 @@ function StatusFooter({
     const requiresEvidence = assignment.tarefas.exige_evidencia;
     return (
       <>
-        {completionReason ? <InlineMessage message={completionReason} variant="warning" /> : null}
-        {!completionReason && completionError ? <InlineMessage message={completionError} variant="error" /> : null}
-        {!completionReason ? (
+        {completionReason && <InlineMessage message={completionReason} variant="warning" />}
+        {!completionReason && completionError && <InlineMessage message={completionError} variant="error" />}
+        {!completionReason && (
           <Pressable
             style={[styles.completeBtn, completing && styles.disabledBtn]}
             onPress={onComplete}
@@ -147,7 +147,7 @@ function StatusFooter({
               ? <ActivityIndicator color={colors.text.inverse} />
               : <CompleteButtonContent requiresEvidence={requiresEvidence} colors={colors} styles={styles} />}
           </Pressable>
-        ) : null}
+        )}
       </>
     );
   }
@@ -161,17 +161,17 @@ function StatusFooter({
             <Text style={styles.awaitingText}>Aguardando validação do responsável</Text>
           </View>
         </View>
-        {cancelReason ? (
+        {cancelReason && (
           <View style={styles.footerMessage}>
             <InlineMessage message={cancelReason} variant="warning" />
           </View>
-        ) : null}
-        {!cancelReason && cancelError ? (
+        )}
+        {!cancelReason && cancelError && (
           <View style={styles.footerMessage}>
             <InlineMessage message={cancelError} variant="error" />
           </View>
-        ) : null}
-        {!cancelReason ? (
+        )}
+        {!cancelReason && (
           <Button
             variant="danger"
             label="Cancelar envio"
@@ -180,7 +180,7 @@ function StatusFooter({
             onPress={onCancelSubmission}
             accessibilityLabel="Cancelar envio da tarefa"
           />
-        ) : null}
+        )}
       </>
     );
   }
@@ -318,25 +318,27 @@ export default function ChildTaskDetailScreen() {
         {
           text: 'Cancelar envio',
           style: 'destructive',
-          onPress: () => {
-            setCancelError(null);
-            cancelMutation.mutate(
-              { assignmentId: latestAssignment.id },
-              {
-                onSuccess: () => {
-                  setCompletionError(null);
-                  setCancelError(null);
-                  setFeedbackMessage('Envio cancelado com sucesso.');
-                  setFeedbackKey((currentKey) => currentKey + 1);
-                },
-                onError: (mutationError) => {
-                  setCancelError(mutationError.message);
-                },
-              },
-            );
-          },
+          onPress: () => executeCancellation(latestAssignment.id),
         },
       ],
+    );
+  };
+
+  const executeCancellation = (assignmentId: string) => {
+    setCancelError(null);
+    cancelMutation.mutate(
+      { assignmentId },
+      {
+        onSuccess: () => {
+          setCompletionError(null);
+          setCancelError(null);
+          setFeedbackMessage('Envio cancelado com sucesso.');
+          setFeedbackKey((currentKey) => currentKey + 1);
+        },
+        onError: (mutationError) => {
+          setCancelError(mutationError.message);
+        },
+      },
     );
   };
 
@@ -364,11 +366,12 @@ export default function ChildTaskDetailScreen() {
   const task = assignment.tarefas;
   const completionState = getAssignmentCompletionState(assignment, task);
   const cancellationState = getAssignmentCancellationState(assignment, task);
-  const inactiveTaskMessage = task.ativo === false && assignment.status !== 'pendente'
-    ? assignment.status === 'aguardando_validacao'
+  let inactiveTaskMessage: string | null = null;
+  if (task.ativo === false && assignment.status !== 'pendente') {
+    inactiveTaskMessage = assignment.status === 'aguardando_validacao'
       ? 'Esta tarefa foi desativada pelo responsável. O envio atual segue apenas para acompanhamento e não pode mais ser alterado.'
-      : 'Esta tarefa foi desativada pelo responsável. Volte para a lista para acompanhar as demais tarefas.'
-    : null;
+      : 'Esta tarefa foi desativada pelo responsável. Volte para a lista para acompanhar as demais tarefas.';
+  }
   const footer = assignment.status === 'rejeitada'
     ? undefined
     : (

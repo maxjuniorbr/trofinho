@@ -45,7 +45,8 @@ export default function BalancesAdminScreen() {
           renderItem={({ item }) => (
             <Pressable
               style={({ pressed }) => {
-                const opacity = item.filhos.ativo === false ? 0.5 : pressed ? 0.9 : 1;
+                const isInactive = item.filhos.ativo === false;
+                const opacity = isInactive ? 0.5 : (pressed ? 0.9 : 1);
                 return [styles.card, shadows.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle, opacity }];
               }}
               onPress={() => router.push({ pathname: '/(admin)/balances/[filho_id]', params: { filho_id: item.filho_id, nome: item.filhos.nome } })}
