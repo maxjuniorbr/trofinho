@@ -3,13 +3,13 @@ import {
   Text,
   View,
   Pressable,
-  FlatList,
   Modal,
   TextInput,
   ActivityIndicator,
   KeyboardAvoidingView,
   RefreshControl,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'expo-router';
@@ -132,13 +132,14 @@ export default function ChildBalanceScreen() {
       <StatusBar style={colors.statusBar} />
       <ScreenHeader title="Meu Saldo" onBack={() => router.back()} backLabel="Início" role="filho" />
 
-      <FlatList
+      <FlashList
         data={transactions}
         keyExtractor={(m) => m.id}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
         ListHeaderComponent={
           <>
+            <View style={{ height: spacing['5'] }} />
             {visibleTransferSuccess ? (
               <View style={{ marginBottom: spacing['3'] }}>
                 <InlineMessage message={visibleTransferSuccess} variant="success" />
@@ -258,7 +259,7 @@ export default function ChildBalanceScreen() {
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    list: { padding: spacing['5'], paddingBottom: spacing['12'] },
+    list: { paddingHorizontal: spacing['5'] },
     cardsRow: { flexDirection: 'row', gap: spacing['3'], marginBottom: spacing['3'] },
     balanceCard: {
       flex: 1,
