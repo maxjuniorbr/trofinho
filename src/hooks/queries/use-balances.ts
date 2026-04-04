@@ -17,7 +17,6 @@ export const useBalance = (childId?: string) =>
     queryKey: childId ? queryKeys.balances.byChild(childId) : queryKeys.balances.self(),
     queryFn: queryFnAdapter(() => getBalance(childId)),
     staleTime: STALE_TIMES.balances,
-    enabled: !!childId,
   });
 
 export const useAdminBalances = () =>
