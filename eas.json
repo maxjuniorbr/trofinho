@@ -5,9 +5,6 @@
   },
   "build": {
     "base": {
-      "android": {
-        "preInstall": "bash scripts/eas-build-pre-install.sh"
-      }
     },
     "development": {
       "extends": "base",
