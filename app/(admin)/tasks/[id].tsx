@@ -19,7 +19,7 @@ import {
   buildTaskDeactivateMessage,
   type AssignmentWithChild,
 } from '@lib/tasks';
-import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
+import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
 import { formatDate, toDateString } from '@lib/utils';
 import { useTaskDetail, useApproveAssignment, useRejectAssignment, useDeactivateTask, useReactivateTask } from '@/hooks/queries';
 import { useTransientMessage } from '@/hooks/use-transient-message';

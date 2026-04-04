@@ -9,7 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { Trophy } from 'lucide-react-native';
-import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@/constants/status';
+import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@lib/status';
 import { useChildRedemptions } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';

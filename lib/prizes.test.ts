@@ -41,7 +41,7 @@ import {
   requestRedemption,
   updatePrize,
 } from './prizes';
-import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@/constants/status';
+import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@lib/status';
 
 type QueryResult = {
   count?: number | null;

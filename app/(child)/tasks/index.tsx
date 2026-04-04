@@ -16,7 +16,7 @@ import {
   type AssignmentStatus,
 } from '@lib/tasks';
 import { formatDate } from '@lib/utils';
-import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
+import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
 import { useChildAssignments } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';

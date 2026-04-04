@@ -18,7 +18,7 @@ import {
   CheckCircle2,
   XCircle,
 } from 'lucide-react-native';
-import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@/constants/status';
+import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@lib/status';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
