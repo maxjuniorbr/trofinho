@@ -14,7 +14,7 @@ export const useTasksLiveSync = (familiaId: string | undefined) => {
     };
 
     const channel = supabase
-      .channel(`tasks-live-sync-${crypto.randomUUID()}`)
+      .channel(`tasks-live-sync-${Date.now()}-${Math.random().toString(36).slice(2)}`) // NOSONAR — not security-sensitive, just channel uniqueness
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
