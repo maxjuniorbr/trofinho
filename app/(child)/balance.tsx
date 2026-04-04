@@ -22,7 +22,6 @@ import {
   getAppreciationPeriodLabel,
   getTransactionTypeLabel,
   isCredit,
-  syncAutomaticAppreciation,
 } from '@lib/balances';
 import { getMyChildId } from '@lib/children';
 import {
@@ -78,7 +77,6 @@ export default function ChildBalanceScreen() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await syncAutomaticAppreciation();
       await refetchAll();
     } catch (e) {
       console.error(e);

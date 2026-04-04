@@ -20,7 +20,6 @@ import {
   Pencil,
   ChevronRight,
 } from 'lucide-react-native';
-import { syncAutomaticAppreciation } from '@lib/balances';
 import { getGreeting } from '@lib/utils';
 import { isNotificationPermissionDenied } from '@lib/notifications';
 import {
@@ -153,7 +152,6 @@ export default function AdminHomeScreen() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await syncAutomaticAppreciation();
       await refetchAll();
       const denied = await isNotificationPermissionDenied();
       setShowNotificationBanner(denied);

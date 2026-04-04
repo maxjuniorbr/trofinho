@@ -49,8 +49,7 @@ export const useApplyPenalty = () => {
       if (result.error) throw new Error(result.error);
       return result.data;
     },
-    onSuccess: async () => {
-      await syncAutomaticAppreciation();
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });
     },
   });
@@ -73,8 +72,7 @@ export const useTransferToPiggyBank = () => {
   return useMutation({
     mutationFn: (args: { childId: string; amount: number }) =>
       mutationFnAdapter(() => transferToPiggyBank(args.childId, args.amount))(),
-    onSuccess: async () => {
-      await syncAutomaticAppreciation();
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });
     },
   });

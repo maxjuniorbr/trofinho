@@ -14,7 +14,6 @@ import {
   TrendingUp,
 } from 'lucide-react-native';
 import {
-  syncAutomaticAppreciation,
   getTransactionTypeLabel,
   getAppreciationPeriodLabel,
   isCredit,
@@ -58,13 +57,8 @@ export default function ChildBalanceAdminScreen() {
   const configureMutation = useConfigureAppreciation();
 
   const handleRefresh = useCallback(async () => {
-    try {
-      await syncAutomaticAppreciation(filho_id);
-    } catch (e) {
-      console.error(e);
-    }
     await refetchAll();
-  }, [filho_id, refetchAll]);
+  }, [refetchAll]);
 
   const handlePenalty = useCallback(async (amount: number, description: string) => {
     if (!filho_id) return { error: 'ID do filho não encontrado' };
