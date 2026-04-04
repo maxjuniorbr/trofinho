@@ -244,18 +244,21 @@ export type Database = {
       push_tokens: {
         Row: {
           created_at: string
+          device_id: string
           id: string
           token: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          device_id?: string
           id?: string
           token: string
           user_id: string
         }
         Update: {
           created_at?: string
+          device_id?: string
           id?: string
           token?: string
           user_id?: string
@@ -585,7 +588,7 @@ export type Database = {
         Args: { p_filho_id: string; p_valor: number }
         Returns: undefined
       }
-      upsert_push_token: { Args: { p_token: string }; Returns: undefined }
+      upsert_push_token: { Args: { p_token: string; p_device_id?: string }; Returns: undefined }
       usuario_autenticado_id: { Args: never; Returns: string }
       usuario_e_admin: { Args: never; Returns: boolean }
       validar_filho_da_familia: {

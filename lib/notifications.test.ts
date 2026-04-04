@@ -4,6 +4,7 @@ import {
   DEFAULT_NOTIFICATION_PREFS,
   getNotificationPrefs,
   getNotificationRoute,
+  savePushToken,
   setNotificationPrefs,
 } from './notifications';
 import type { NotificationPrefs } from './notifications';
@@ -11,6 +12,7 @@ import type { NotificationPrefs } from './notifications';
 const scheduleNotificationAsyncMock = vi.hoisted(() => vi.fn());
 const deviceStorageGetMock = vi.hoisted(() => vi.fn());
 const deviceStorageSetMock = vi.hoisted(() => vi.fn());
+const rpcMock = vi.hoisted(() => vi.fn());
 const getUserMock = vi.hoisted(() => vi.fn());
 const updateMock = vi.hoisted(() => vi.fn());
 const selectMock = vi.hoisted(() => vi.fn());
@@ -52,7 +54,7 @@ vi.mock('./device-storage', () => ({
 
 vi.mock('./supabase', () => ({
   supabase: {
-    rpc: vi.fn(),
+    rpc: rpcMock,
     auth: { getUser: getUserMock },
     from: vi.fn(() => ({
       update: vi.fn(() => ({ eq: updateMock })),
@@ -65,6 +67,7 @@ describe('notifications', () => {
   beforeEach(() => {
     deviceStorageGetMock.mockReset();
     deviceStorageSetMock.mockReset();
+    rpcMock.mockReset();
     scheduleNotificationAsyncMock.mockReset();
     scheduleNotificationAsyncMock.mockResolvedValue(undefined);
     getUserMock.mockReset();
@@ -187,6 +190,71 @@ describe('notifications', () => {
  * and then reading it back via getNotificationPrefs SHALL produce an
  * equivalent NotificationPrefs object.
  */
+describe('savePushToken', () => {
+  beforeEach(() => {
+    deviceStorageGetMock.mockReset();
+    deviceStorageSetMock.mockReset();
+    rpcMock.mockReset();
+  });
+
+  it('reuses existing device_id from storage and calls rpc', async () => {
+    deviceStorageGetMock.mockResolvedValue('existing-device-id');
+    rpcMock.mockResolvedValue({ error: null });
+
+    await savePushToken('ExponentPushToken[abc123]');
+
+    expect(rpcMock).toHaveBeenCalledWith('upsert_push_token', {
+      p_token: 'ExponentPushToken[abc123]',
+      p_device_id: 'existing-device-id',
+    });
+    expect(deviceStorageSetMock).not.toHaveBeenCalled();
+  });
+
+  it('generates and persists a new device_id when storage is empty', async () => {
+    deviceStorageGetMock.mockResolvedValue(null);
+    deviceStorageSetMock.mockResolvedValue(undefined);
+    rpcMock.mockResolvedValue({ error: null });
+
+    await savePushToken('ExponentPushToken[xyz]');
+
+    expect(deviceStorageSetMock).toHaveBeenCalledWith(
+      'device_id',
+      expect.any(String),
+    );
+    const savedId = deviceStorageSetMock.mock.calls[0][1] as string;
+    expect(rpcMock).toHaveBeenCalledWith('upsert_push_token', {
+      p_token: 'ExponentPushToken[xyz]',
+      p_device_id: savedId,
+    });
+  });
+
+  it('trims whitespace from the token before calling rpc', async () => {
+    deviceStorageGetMock.mockResolvedValue('dev-id');
+    rpcMock.mockResolvedValue({ error: null });
+
+    await savePushToken('  ExponentPushToken[padded]  ');
+
+    expect(rpcMock).toHaveBeenCalledWith('upsert_push_token', {
+      p_token: 'ExponentPushToken[padded]',
+      p_device_id: 'dev-id',
+    });
+  });
+
+  it('throws a user-facing error when rpc fails', async () => {
+    deviceStorageGetMock.mockResolvedValue('dev-id');
+    rpcMock.mockResolvedValue({ error: { message: 'network error' } });
+
+    await expect(savePushToken('ExponentPushToken[fail]')).rejects.toThrow(
+      'Não foi possível salvar o token de notificação.',
+    );
+  });
+
+  it('throws for an empty token', async () => {
+    await expect(savePushToken('   ')).rejects.toThrow('Token de push inválido.');
+    expect(rpcMock).not.toHaveBeenCalled();
+  });
+});
+
 describe('Property 3: Preference round trip (server-first)', () => {
   const prefsArb = fc.record({
     tarefasPendentes: fc.boolean(),
