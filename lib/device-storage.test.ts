@@ -73,6 +73,13 @@ describe('deviceStorage', () => {
     expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('large');
     expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('large_chunk_0');
     expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('large_chunk_1');
+
+    // Count must be written BEFORE chunks to prevent corruption on crash
+    const setCalls = vi.mocked(SecureStore.setItemAsync).mock.calls;
+    const countCallIndex = setCalls.findIndex(([key]) => key === 'large_chunks');
+    const chunkCallIndex = setCalls.findIndex(([key]) => String(key).startsWith('large_chunk_'));
+    expect(countCallIndex).toBeLessThan(chunkCallIndex);
+
     expect(SecureStore.setItemAsync).toHaveBeenCalledWith('large_chunks', '3');
     expect(
       vi.mocked(SecureStore.setItemAsync).mock.calls.some(([key]) => String(key).startsWith('large_chunk_'))
