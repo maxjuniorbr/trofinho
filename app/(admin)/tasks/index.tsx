@@ -163,6 +163,7 @@ export default function AdminTasksScreen() {
           refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} tintColor={colors.brand.vivid} />}
           onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
           onEndReachedThreshold={0.5}
+          ListHeaderComponent={<View style={{ height: spacing['4'] }} />}
           ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
           renderItem={({ item }) => (
             <AdminTaskCard
@@ -181,7 +182,7 @@ export default function AdminTasksScreen() {
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     feedbackWrapper: { paddingHorizontal: spacing['4'], paddingTop: spacing['4'] },
-    lista: { padding: spacing['4'], paddingBottom: spacing['12'] },
+    lista: { paddingHorizontal: spacing['4'] },
     card: { borderRadius: radii.xl, borderWidth: 1, padding: spacing['4'], marginBottom: spacing['3'] },
     cardTopo: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing['2'] },
     cardTituloRow: { flex: 1, marginRight: spacing['2'], gap: spacing['1'] },

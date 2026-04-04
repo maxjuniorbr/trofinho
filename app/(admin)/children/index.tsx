@@ -62,6 +62,8 @@ export default function AdminChildrenScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
           refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
+          ListHeaderComponent={<View style={{ height: spacing['4'] }} />}
+          ListFooterComponent={<View style={{ height: spacing['12'] }} />}
           renderItem={({ item }) => {
             const balance = balancesMap.get(item.id);
             return (
@@ -106,7 +108,7 @@ export default function AdminChildrenScreen() {
 function makeStyles() {
   return StyleSheet.create({
     container: { flex: 1 },
-    lista: { padding: spacing['4'], gap: spacing['3'], paddingBottom: spacing['12'] },
+    lista: { paddingHorizontal: spacing['4'], gap: spacing['3'] },
     card: {
       borderRadius: radii.xl,
       borderWidth: 1,

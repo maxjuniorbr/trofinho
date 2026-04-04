@@ -158,6 +158,7 @@ export default function AdminRedemptionsScreen() {
           refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} tintColor={colors.brand.vivid} />}
           ListHeaderComponent={
             <>
+              <View style={{ height: spacing['4'] }} />
               {visibleSuccess ? <InlineMessage message={visibleSuccess} variant="success" /> : null}
               {actionError ? <InlineMessage message={actionError} variant="error" /> : null}
               {pending.length > 0 && (
@@ -285,7 +286,7 @@ export default function AdminRedemptionsScreen() {
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
-    lista: { padding: spacing['4'], paddingBottom: spacing['12'] },
+    lista: { paddingHorizontal: spacing['4'] },
     secaoHeader: { paddingVertical: spacing['2'] },
     secaoTituloRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     secaoTitulo: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.text.muted, textTransform: 'uppercase', letterSpacing: 0.5 },

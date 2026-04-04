@@ -140,6 +140,7 @@ export default function ChildTasksScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
+          ListHeaderComponent={<View style={{ height: spacing['4'] }} />}
           renderItem={({ item }) => {
             const dateLine = getAssignmentDateLine(item, filter);
             const isInactive = item.tarefas.ativo === false;
@@ -199,7 +200,7 @@ export default function ChildTasksScreen() {
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    list: { padding: spacing['4'], paddingBottom: spacing['12'] },
+    list: { paddingHorizontal: spacing['4'] },
     card: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,

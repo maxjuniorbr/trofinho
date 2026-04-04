@@ -60,6 +60,7 @@ export default function ChildRedemptionsScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
+          ListHeaderComponent={<View style={{ height: spacing['4'] }} />}
           renderItem={({ item }) => (
             <View style={styles.card}>
               <View style={styles.cardTop}>
@@ -91,7 +92,7 @@ export default function ChildRedemptionsScreen() {
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
-    list: { padding: spacing['4'], paddingBottom: spacing['12'] },
+    list: { paddingHorizontal: spacing['4'] },
     card: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,
