@@ -436,13 +436,23 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
     );
   }
 
+  // S22: Reject oversized payloads before parsing
+  const MAX_BODY_BYTES = 10_240; // 10 KB
+  const contentLength = Number(req.headers.get('content-length') ?? 0);
+  if (contentLength > MAX_BODY_BYTES) {
+    return new Response(
+      JSON.stringify({ error: 'Payload too large' }),
+      { status: 413, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+
   // Parse body
   let body: unknown;
   try {
     body = await req.json();
   } catch {
     return new Response(
-      JSON.stringify({ error: 'Invalid request body', details: 'Could not parse JSON' }),
+      JSON.stringify({ error: 'Invalid request body' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } },
     );
   }
@@ -451,7 +461,7 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
   const validation = validateRequest(body);
   if (!validation.valid) {
     return new Response(
-      JSON.stringify({ error: 'Invalid request body', details: validation.error }),
+      JSON.stringify({ error: 'Invalid request body' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } },
     );
   }

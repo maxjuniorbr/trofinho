@@ -29,13 +29,13 @@ const navigationIntegration = Sentry.reactNavigationIntegration({
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-  sendDefaultPii: true,
+  sendDefaultPii: false,
   tracesSampleRate: __DEV__ ? 1 : 0.2,
   profilesSampleRate: __DEV__ ? 1 : 0.1,
   replaysOnErrorSampleRate: 1,
   replaysSessionSampleRate: __DEV__ ? 1 : 0.1,
   enableLogs: true,
-  integrations: [navigationIntegration, Sentry.mobileReplayIntegration()],
+  integrations: [navigationIntegration],
   enableNativeFramesTracking: !isRunningInExpoGo(),
   environment: __DEV__ ? 'development' : 'production',
   debug: __DEV__,
