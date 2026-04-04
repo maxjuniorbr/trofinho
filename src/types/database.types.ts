@@ -106,6 +106,47 @@ export type Database = {
           },
         ]
       }
+      audit_log: {
+        Row: {
+          acao: string
+          alvo_id: string | null
+          alvo_tipo: string
+          created_at: string
+          detalhes: Json | null
+          familia_id: string
+          id: string
+          operador_id: string
+        }
+        Insert: {
+          acao: string
+          alvo_id?: string | null
+          alvo_tipo: string
+          created_at?: string
+          detalhes?: Json | null
+          familia_id: string
+          id?: string
+          operador_id: string
+        }
+        Update: {
+          acao?: string
+          alvo_id?: string | null
+          alvo_tipo?: string
+          created_at?: string
+          detalhes?: Json | null
+          familia_id?: string
+          id?: string
+          operador_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_familia_id_fkey"
+            columns: ["familia_id"]
+            isOneToOne: false
+            referencedRelation: "familias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       familias: {
         Row: {
           created_at: string
@@ -575,6 +616,15 @@ export type Database = {
       reativar_filho: { Args: { p_filho_id: string }; Returns: undefined }
       reativar_premio: { Args: { p_premio_id: string }; Returns: undefined }
       reativar_tarefa: { Args: { p_tarefa_id: string }; Returns: undefined }
+      registrar_audit: {
+        Args: {
+          p_acao: string
+          p_alvo_id?: string
+          p_alvo_tipo: string
+          p_detalhes?: Json
+        }
+        Returns: undefined
+      }
       rejeitar_atribuicao: {
         Args: { p_atribuicao_id: string; p_nota_rejeicao: string }
         Returns: undefined
