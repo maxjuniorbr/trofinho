@@ -1,12 +1,13 @@
 import { Stack } from 'expo-router';
 import { useTheme } from '@/context/theme-context';
-import { useTasksLiveSync } from '@/hooks/queries';
+import { useTasksLiveSync, useProfile } from '@/hooks/queries';
 
 export { ErrorBoundary } from '@/components/ui/route-error-fallback';
 
 export default function ChildLayout() {
   const { colors } = useTheme();
-  useTasksLiveSync();
+  const { data: profile } = useProfile();
+  useTasksLiveSync(profile?.familia_id);
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg.canvas } }}>
       <Stack.Screen name="index" />
