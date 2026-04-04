@@ -297,14 +297,29 @@ export async function registerForPushNotifications(): Promise<string | null> {
   return token.data;
 }
 
+const DEVICE_ID_STORAGE_KEY = 'device_id';
+
+async function getOrCreateDeviceId(): Promise<string> {
+  const existing = await deviceStorage.getItem(DEVICE_ID_STORAGE_KEY);
+  if (existing) return existing;
+  // NOSONAR: Math.random() is not used for security — only for a stable device
+  // identifier stored locally. Hermes does not support crypto.randomUUID().
+  const generated = Date.now().toString(36) + Math.random().toString(36).slice(2); // NOSONAR
+  await deviceStorage.setItem(DEVICE_ID_STORAGE_KEY, generated);
+  return generated;
+}
+
 export async function savePushToken(token: string): Promise<void> {
   const normalizedToken = token.trim();
   if (!normalizedToken) {
     throw new Error('Token de push inválido.');
   }
 
+  const deviceId = await getOrCreateDeviceId();
+
   const { error } = await supabase.rpc('upsert_push_token', {
     p_token: normalizedToken,
+    p_device_id: deviceId,
   });
 
   if (error) {
