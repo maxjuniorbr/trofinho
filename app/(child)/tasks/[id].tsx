@@ -24,7 +24,7 @@ import {
   getAssignmentPoints,
   type ChildAssignment,
 } from '@lib/tasks';
-import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
+import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
 import { useChildAssignment, useCancelAssignmentSubmission, useCompleteAssignment, useProfile } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';

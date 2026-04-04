@@ -5,6 +5,7 @@ type AuthStateHandlerOptions = Readonly<{
   getProfile: () => Promise<UserProfile | null>;
   onProfileChange: (profile: UserProfile | null) => void;
   onReadyChange: (ready: boolean) => void;
+  onSignOut?: () => void;
 }>;
 
 type AuthStateHandler = Readonly<{
@@ -16,6 +17,7 @@ export function createAuthStateHandler({
   getProfile,
   onProfileChange,
   onReadyChange,
+  onSignOut,
 }: AuthStateHandlerOptions): AuthStateHandler {
   let active = true;
   let requestId = 0;
@@ -40,6 +42,7 @@ export function createAuthStateHandler({
 
       if (!active) return;
 
+      onSignOut?.();
       onProfileChange(null);
       onReadyChange(true);
       return;

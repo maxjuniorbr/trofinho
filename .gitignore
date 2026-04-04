@@ -48,6 +48,10 @@ supabase/.branches/
 supabase/.temp/
 *.pem
 
+# Firebase service account keys
+*-firebase-adminsdk-*.json
+*-firebase-adminsdk-*.json:Zone.Identifier
+
 # Local temp
 temp/
 

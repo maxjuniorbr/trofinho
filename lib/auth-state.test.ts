@@ -6,12 +6,14 @@ describe('createAuthStateHandler', () => {
   const getProfile = vi.fn<() => Promise<UserProfile | null>>();
   const onProfileChange = vi.fn<(profile: UserProfile | null) => void>();
   const onReadyChange = vi.fn<(ready: boolean) => void>();
+  const onSignOut = vi.fn();
 
   beforeEach(() => {
     vi.useFakeTimers();
     getProfile.mockReset();
     onProfileChange.mockReset();
     onReadyChange.mockReset();
+    onSignOut.mockReset();
   });
 
   it('defers profile refresh until after the auth callback returns', async () => {
@@ -167,5 +169,24 @@ describe('createAuthStateHandler', () => {
       papel: 'admin',
       nome: 'Ana',
     });
+  });
+
+  it('calls onSignOut before onProfileChange on SIGNED_OUT', () => {
+    const callOrder: string[] = [];
+    const trackingOnProfileChange = vi.fn(() => callOrder.push('profileChange'));
+    const trackingOnSignOut = vi.fn(() => callOrder.push('signOut'));
+
+    const handler = createAuthStateHandler({
+      getProfile,
+      onProfileChange: trackingOnProfileChange,
+      onReadyChange,
+      onSignOut: trackingOnSignOut,
+    });
+
+    handler.handleAuthStateChange('SIGNED_OUT', null);
+
+    expect(trackingOnSignOut).toHaveBeenCalledTimes(1);
+    expect(trackingOnProfileChange).toHaveBeenCalledWith(null);
+    expect(callOrder).toEqual(['signOut', 'profileChange']);
   });
 });

@@ -79,7 +79,7 @@ import {
   updateTask,
 } from './tasks';
 import type { AssignmentWithChild, TaskDetail, TaskListItem } from './tasks';
-import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@/constants/status';
+import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
 
 type QueryResult = {
   count?: number | null;

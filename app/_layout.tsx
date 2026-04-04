@@ -21,7 +21,7 @@ import {
   subscribeToNotificationNavigation,
 } from '@lib/notifications';
 import { ThemeProvider, useTheme } from '@/context/theme-context';
-import { QueryProvider } from '@/context/query-client';
+import { QueryProvider, queryClient } from '@/context/query-client';
 
 const navigationIntegration = Sentry.reactNavigationIntegration({
   enableTimeToInitialDisplay: !isRunningInExpoGo(),
@@ -67,6 +67,7 @@ function RootLayout() {
       getProfile,
       onProfileChange: setProfile,
       onReadyChange: setReady,
+      onSignOut: () => queryClient.clear(),
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
