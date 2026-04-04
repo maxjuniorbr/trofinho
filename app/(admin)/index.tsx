@@ -179,19 +179,19 @@ export default function AdminHomeScreen() {
     {
       key: 'children',
       value: children.length.toLocaleString('pt-BR'),
-      label: 'filhos',
+      label: 'Filhos',
       tone: 'neutral',
     },
     {
       key: 'family-points',
       value: totalPoints.toLocaleString('pt-BR'),
-      label: 'pts da família',
+      label: 'Pontos da família',
       tone: 'gold',
     },
     {
       key: 'pending',
       value: pendingValidationCount.toLocaleString('pt-BR'),
-      label: 'para validar',
+      label: 'Para validar',
       tone: pendingValidationCount > 0 ? 'danger' : 'neutral',
     },
   ];

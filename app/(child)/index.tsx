@@ -230,7 +230,7 @@ export default function FilhoHomeScreen() {
             <ClipboardList size={22} color={colors.accent.filho} strokeWidth={1.5} />
           </View>
           <View style={styles.tarefasBody}>
-            <Text style={[styles.tarefasTitle, { color: colors.text.primary }]}>Minhas Tarefas</Text>
+            <Text style={[styles.tarefasTitle, { color: colors.text.primary }]}>Minhas tarefas</Text>
             <Text style={[styles.tarefasSub, { color: colors.text.secondary }]}>
               {hasPending
                 ? `${pendingCount} ${pendingTaskLabel}`
