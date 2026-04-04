@@ -71,13 +71,17 @@ export async function registerChild(
   return { error: null };
 }
 
-export async function listChildren(): Promise<{
+export async function listChildren(onlyActive = false): Promise<{
   data: Child[];
   error: string | null;
 }> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('filhos')
-    .select('id, nome, usuario_id, avatar_url, ativo')
+    .select('id, nome, usuario_id, avatar_url, ativo');
+
+  if (onlyActive) query = query.eq('ativo', true);
+
+  const { data, error } = await query
     .order('nome')
     .returns<Child[]>();
 
