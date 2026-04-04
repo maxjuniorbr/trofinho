@@ -48,6 +48,7 @@ const rpcErrorMatchers = [
   ['Prêmio não encontrado ou não disponível', 'Prêmio não disponível.'],
   ['já pertence a uma família', 'Você já tem uma família cadastrada.'],
   ['Sem índice de valorização', 'Valorização não configurada.'],
+  ['Limite de operações atingido', 'Muitas tentativas. Aguarde um momento e tente novamente.'],
 ] as const;
 
 export function localizeRpcError(message: string, fallback?: string): string {
