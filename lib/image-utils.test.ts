@@ -10,7 +10,7 @@ vi.mock('expo-image-manipulator', () => ({
   SaveFormat: { JPEG: 'jpeg' },
 }));
 
-import { inferImageExtension, inferImageContentType, extractErrorMessage, resizeImage } from './image-utils';
+import { inferImageExtension, inferImageContentType, extractErrorMessage, resizeImage, readImageAsArrayBuffer } from './image-utils';
 import { ImageManipulator } from 'expo-image-manipulator';
 
 describe('resizeImage', () => {
@@ -177,6 +177,37 @@ describe('extractErrorMessage', () => {
 
   it('retorna fallback para objeto com message não-string', () => {
     expect(extractErrorMessage({ message: 123 }, 'fallback')).toBe('fallback');
+  });
+});
+
+describe('readImageAsArrayBuffer', () => {
+  it('rejects remote files exceeding 10 MB via content-length', async () => {
+    const mockResponse = {
+      ok: true,
+      headers: { get: (h: string) => h === 'content-length' ? '20000000' : null },
+      arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockResponse));
+
+    await expect(readImageAsArrayBuffer('https://example.com/huge.jpg'))
+      .rejects.toThrow('muito grande');
+
+    vi.unstubAllGlobals();
+  });
+
+  it('rejects remote files exceeding 10 MB via actual buffer size', async () => {
+    const hugeBuffer = new ArrayBuffer(11 * 1024 * 1024);
+    const mockResponse = {
+      ok: true,
+      headers: { get: () => null },
+      arrayBuffer: () => Promise.resolve(hugeBuffer),
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockResponse));
+
+    await expect(readImageAsArrayBuffer('https://example.com/huge.jpg'))
+      .rejects.toThrow('muito grande');
+
+    vi.unstubAllGlobals();
   });
 });
 

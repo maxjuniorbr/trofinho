@@ -45,6 +45,9 @@ export async function resizeImage(
   return result.uri;
 }
 
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
+const FETCH_TIMEOUT_MS = 15_000;
+
 export async function readImageAsArrayBuffer(imageUri: string): Promise<ArrayBuffer> {
   const normalizedUri = imageUri.split('?')[0] ?? imageUri;
 
@@ -53,19 +56,43 @@ export async function readImageAsArrayBuffer(imageUri: string): Promise<ArrayBuf
     !normalizedUri.startsWith('https://')
   ) {
     try {
-      return await new File(normalizedUri).arrayBuffer();
-    } catch {
+      const buffer = await new File(normalizedUri).arrayBuffer();
+      if (buffer.byteLength > MAX_IMAGE_BYTES) {
+        throw new Error('Imagem muito grande (máx. 10 MB)');
+      }
+      return buffer;
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('muito grande')) throw err;
       // If local read fails, fall back to fetch.
     }
   }
 
-  const response = await fetch(imageUri);
+  const fetchWithTimeout = (): Promise<Response> => {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('Tempo esgotado ao carregar imagem')), FETCH_TIMEOUT_MS);
+      fetch(imageUri)
+        .then((res) => { clearTimeout(timer); resolve(res); })
+        .catch((err) => { clearTimeout(timer); reject(err); });
+    });
+  };
+
+  const response = await fetchWithTimeout();
 
   if (!response.ok) {
     throw new Error('Não foi possível ler a imagem selecionada');
   }
 
-  return response.arrayBuffer();
+  const contentLength = Number(response.headers?.get('content-length') ?? 0);
+  if (contentLength > MAX_IMAGE_BYTES) {
+    throw new Error('Imagem muito grande (máx. 10 MB)');
+  }
+
+  const buffer = await response.arrayBuffer();
+  if (buffer.byteLength > MAX_IMAGE_BYTES) {
+    throw new Error('Imagem muito grande (máx. 10 MB)');
+  }
+
+  return buffer;
 }
 
 export function inferImageExtension(imageUri: string): string {
