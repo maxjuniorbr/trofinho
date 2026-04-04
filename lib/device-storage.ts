@@ -42,10 +42,12 @@ async function secureSet(key: string, value: string): Promise<void> {
   await SecureStore.deleteItemAsync(key);
   await secureClearChunks(key);
 
+  // Write count FIRST so a crash mid-write leaves a recoverable state.
+  // On read, missing chunks are detected and treated as corruption (returns null).
+  await SecureStore.setItemAsync(`${key}_chunks`, String(chunks.length));
   await Promise.all(
     chunks.map((chunk, i) => SecureStore.setItemAsync(`${key}_chunk_${i}`, chunk)),
   );
-  await SecureStore.setItemAsync(`${key}_chunks`, String(chunks.length));
 }
 
 async function secureClearChunks(key: string): Promise<void> {
