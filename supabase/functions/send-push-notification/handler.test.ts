@@ -45,12 +45,19 @@ function createMockSupabase(overrides?: {
   selectUsuariosResult?: { data: Record<string, unknown>[] | null; error: unknown };
   selectTokensResult?: { data: Record<string, unknown>[] | null; error: unknown };
   callerFamiliaId?: string;
+  authGetUserResult?: { data: { user: { id: string } | null }; error: unknown };
 }) {
   const deleteMock = vi.fn().mockReturnValue({
     in: vi.fn().mockResolvedValue({ error: overrides?.deleteResult?.error ?? null }),
   });
 
   const callerFamiliaId = overrides?.callerFamiliaId ?? 'fam-1';
+
+  const authMock = {
+    getUser: vi.fn().mockResolvedValue(
+      overrides?.authGetUserResult ?? { data: { user: { id: 'user-1' } }, error: null },
+    ),
+  };
 
   const fromMock = vi.fn().mockImplementation((table: string) => {
     if (table === 'push_tokens') {
@@ -88,7 +95,7 @@ function createMockSupabase(overrides?: {
     };
   });
 
-  return { from: fromMock, _deleteMock: deleteMock } as unknown as SupabaseClientLike & { _deleteMock: ReturnType<typeof vi.fn> };
+  return { auth: authMock, from: fromMock, _deleteMock: deleteMock } as unknown as SupabaseClientLike & { _deleteMock: ReturnType<typeof vi.fn> };
 }
 
 // ─── sendToExpoPushApi ───────────────────────────────────────────────────────
@@ -238,8 +245,7 @@ describe('processTicketResults', () => {
 
 describe('handleRequest — Expo Push API integration', () => {
   const SERVICE_KEY = 'test-service-role-key';
-  // Fake JWT with sub: 'user-1' for family validation
-  const FAKE_JWT = `eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.${btoa(JSON.stringify({ sub: 'user-1' }))}.fake-signature`;
+  const FAKE_JWT = 'valid-test-token';
 
   const makeDeps = (supabase: SupabaseClientLike): HandlerDeps => ({
     getServiceRoleKey: () => SERVICE_KEY,
@@ -354,6 +360,24 @@ describe('handleRequest — Expo Push API integration', () => {
 
     expect(res.status).toBe(500);
     expect(json.error).toBe('Internal error');
+  });
+
+  it('returns HTTP 401 when auth.getUser rejects the token (forged/expired JWT)', async () => {
+    const supabase = createMockSupabase({
+      authGetUserResult: { data: { user: null }, error: { message: 'invalid token' } },
+    });
+
+    const req = makeReq({
+      event: 'tarefa_aprovada',
+      familiaId: 'fam-1',
+      payload: { userId: 'user-1', taskTitle: 'Test' },
+    });
+
+    const res = await handleRequest(req, makeDeps(supabase));
+    const json = await res.json() as { error: string };
+
+    expect(res.status).toBe(401);
+    expect(json.error).toBe('Unauthorized');
   });
 
   it('returns HTTP 403 when caller familiaId does not match request familiaId', async () => {
