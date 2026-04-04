@@ -1,5 +1,6 @@
 export type NavigationFeedbackKey =
   | 'admin-task-list'
+  | 'admin-task-detail'
   | 'admin-prize-list';
 
 export type NavigationFeedback = Readonly<{

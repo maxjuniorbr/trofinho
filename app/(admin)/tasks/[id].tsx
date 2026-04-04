@@ -20,6 +20,7 @@ import {
   type AssignmentWithChild,
 } from '@lib/tasks';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
+import { consumeNavigationFeedback } from '@lib/navigation-feedback';
 import { formatDate, toDateString } from '@lib/utils';
 import { useTaskDetail, useApproveAssignment, useRejectAssignment, useDeactivateTask, useReactivateTask } from '@/hooks/queries';
 import { useTransientMessage } from '@/hooks/use-transient-message';
@@ -217,7 +218,7 @@ function AssignmentCard({
 }
 
 export default function TaskDetailAdminScreen() {
-  const { id, updated } = useLocalSearchParams<{ id: string; updated?: string }>();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -229,7 +230,8 @@ export default function TaskDetailAdminScreen() {
   const deactivateMutation = useDeactivateTask();
   const reactivateMutation = useReactivateTask();
 
-  const [showUpdatedMessage, setShowUpdatedMessage] = useState(updated === '1');
+  const navFeedback = consumeNavigationFeedback('admin-task-detail');
+  const visibleUpdatedMessage = useTransientMessage(navFeedback?.message ?? null);
   const [actions, setActions] = useState<Record<string, 'rejecting' | 'processing' | null>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -355,27 +357,6 @@ export default function TaskDetailAdminScreen() {
     );
   }, [task, executeReactivate]);
 
-  useEffect(() => {
-    if (updated === '1') {
-      setShowUpdatedMessage(true);
-    }
-  }, [updated]);
-
-  useEffect(() => {
-    if (isLoading || updated !== '1' || !showUpdatedMessage) {
-      return;
-    }
-
-    const timeoutId = globalThis.setTimeout(() => {
-      setShowUpdatedMessage(false);
-      router.setParams({ updated: undefined });
-    }, 4000);
-
-    return () => {
-      globalThis.clearTimeout(timeoutId);
-    };
-  }, [isLoading, router, showUpdatedMessage, updated]);
-
   if (isLoading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
@@ -428,9 +409,9 @@ export default function TaskDetailAdminScreen() {
           </View>
         ) : null}
 
-        {showUpdatedMessage ? (
+        {visibleUpdatedMessage ? (
           <View style={styles.feedbackWrapper}>
-            <InlineMessage message="Tarefa atualizada com sucesso." variant="success" />
+            <InlineMessage message={visibleUpdatedMessage} variant="success" />
           </View>
         ) : null}
 
