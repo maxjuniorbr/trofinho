@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { getTaskEditState } from '@lib/tasks';
+import { setNavigationFeedback } from '@lib/navigation-feedback';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FormFooter } from '@/components/ui/form-footer';
@@ -88,9 +89,10 @@ export default function EditTaskScreen() {
       },
     }, {
       onSuccess: () => {
+        setNavigationFeedback('admin-task-detail', 'Tarefa atualizada com sucesso.');
         router.dismissTo({
           pathname: '/(admin)/tasks/[id]',
-          params: { id: task.id, updated: '1' },
+          params: { id: task.id },
         });
       },
       onError: (err) => {
