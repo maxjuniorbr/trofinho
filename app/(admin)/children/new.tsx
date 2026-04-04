@@ -43,7 +43,7 @@ export default function NewChildScreen() {
     const emailValue = email.trim().toLowerCase();
     if (!name.trim()) return setError('Informe o nome do filho.');
     if (!isValidEmail(emailValue)) return setError('E-mail inválido.');
-    if (tempPassword.length < 6) return setError('A senha temporária deve ter ao menos 6 caracteres.');
+    if (tempPassword.length < 6) return setError('A senha temporária deve ter pelo menos 6 caracteres.');
     if (tempPassword !== confirmPassword) return setError('As senhas não coincidem.');
     setSubmitting(true);
     const { error: registerError } = await registerChild(name.trim(), emailValue, tempPassword);
