@@ -52,20 +52,29 @@ const PRIZE_IMAGE_OPTIONS = {
   compress: 0.65,
 } as const;
 
-export async function listPrizes(limit = 50): Promise<{
+export async function listPrizes(
+  page = 0,
+  pageSize = 20,
+): Promise<{
   data: Prize[];
+  hasMore: boolean;
   error: string | null;
 }> {
+  const from = page * pageSize;
+  const to = from + pageSize;
+
   const { data, error } = await supabase
     .from('premios')
     .select('*')
     .order('ativo', { ascending: false })
     .order('nome')
-    .limit(limit)
+    .range(from, to)
     .returns<Prize[]>();
 
-  if (error) return { data: [], error: localizeRpcError(error.message) };
-  return { data: data ?? [], error: null };
+  if (error) return { data: [], hasMore: false, error: localizeRpcError(error.message) };
+  const items = data ?? [];
+  const hasMore = items.length > pageSize;
+  return { data: hasMore ? items.slice(0, pageSize) : items, hasMore, error: null };
 }
 
 export async function getPrize(id: string): Promise<{
@@ -192,20 +201,29 @@ export async function reactivatePrize(id: string): Promise<{ error: string | nul
   return { error: null };
 }
 
-export async function listRedemptions(): Promise<{
+export async function listRedemptions(
+  page = 0,
+  pageSize = 20,
+): Promise<{
   data: RedemptionWithChildAndPrize[];
+  hasMore: boolean;
   error: string | null;
 }> {
+  const from = page * pageSize;
+  const to = from + pageSize;
+
   // .returns needed: joined shape (filhos + premios) differs from generated row type
   const { data, error } = await supabase
     .from('resgates')
     .select('*, filhos(nome, usuario_id), premios(nome)')
     .order('created_at', { ascending: false })
-    .limit(100)
+    .range(from, to)
     .returns<RedemptionWithChildAndPrize[]>();
 
-  if (error) return { data: [], error: localizeRpcError(error.message) };
-  return { data: data ?? [], error: null };
+  if (error) return { data: [], hasMore: false, error: localizeRpcError(error.message) };
+  const items = data ?? [];
+  const hasMore = items.length > pageSize;
+  return { data: hasMore ? items.slice(0, pageSize) : items, hasMore, error: null };
 }
 
 export async function confirmRedemption(
@@ -270,20 +288,29 @@ export async function listActivePrizes(): Promise<{
   return { data: data ?? [], error: null };
 }
 
-export async function listChildRedemptions(): Promise<{
+export async function listChildRedemptions(
+  page = 0,
+  pageSize = 20,
+): Promise<{
   data: RedemptionWithPrize[];
+  hasMore: boolean;
   error: string | null;
 }> {
+  const from = page * pageSize;
+  const to = from + pageSize;
+
   // .returns needed: joined shape (premios) differs from generated row type
   const { data, error } = await supabase
     .from('resgates')
     .select('*, premios(nome, custo_pontos)')
     .order('created_at', { ascending: false })
-    .limit(100)
+    .range(from, to)
     .returns<RedemptionWithPrize[]>();
 
-  if (error) return { data: [], error: localizeRpcError(error.message) };
-  return { data: data ?? [], error: null };
+  if (error) return { data: [], hasMore: false, error: localizeRpcError(error.message) };
+  const items = data ?? [];
+  const hasMore = items.length > pageSize;
+  return { data: hasMore ? items.slice(0, pageSize) : items, hasMore, error: null };
 }
 
 export async function requestRedemption(

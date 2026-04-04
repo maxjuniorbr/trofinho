@@ -64,6 +64,7 @@ function createOrderQuery(result: QueryResult, callsBeforeResolve = 0) {
     eq: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
     order: vi.fn(),
+    range: vi.fn().mockReturnThis(),
     returns: vi.fn().mockResolvedValue(result),
     select: vi.fn().mockReturnThis(),
   };
@@ -112,7 +113,7 @@ describe('prizes', () => {
       .mockReturnValueOnce(listQuery)
       .mockReturnValueOnce(getQuery);
 
-    await expect(listPrizes()).resolves.toEqual({ data: [{ id: 'prize-1' }], error: null });
+    await expect(listPrizes()).resolves.toEqual({ data: [{ id: 'prize-1' }], hasMore: false, error: null });
     await expect(getPrize('prize-1')).resolves.toEqual({ data: { id: 'prize-1' }, error: null });
   });
 
@@ -246,9 +247,9 @@ describe('prizes', () => {
       .mockReturnValueOnce(childQuery)
       .mockReturnValueOnce(countQuery);
 
-    await expect(listRedemptions()).resolves.toEqual({ data: [{ id: 'red-1' }], error: null });
+    await expect(listRedemptions()).resolves.toEqual({ data: [{ id: 'red-1' }], hasMore: false, error: null });
     await expect(listActivePrizes()).resolves.toEqual({ data: [{ id: 'active-1' }], error: null });
-    await expect(listChildRedemptions()).resolves.toEqual({ data: [{ id: 'child-red-1' }], error: null });
+    await expect(listChildRedemptions()).resolves.toEqual({ data: [{ id: 'child-red-1' }], hasMore: false, error: null });
     await expect(countPendingRedemptions()).resolves.toEqual({ data: 4, error: null });
   });
 
@@ -272,7 +273,7 @@ describe('prizes', () => {
     supabaseMock.from.mockReturnValueOnce(listQuery);
     supabaseMock.rpc.mockResolvedValueOnce({ data: null, error: null });
 
-    await expect(listRedemptions()).resolves.toEqual({ data: [], error: null });
+    await expect(listRedemptions()).resolves.toEqual({ data: [], hasMore: false, error: null });
     await expect(reactivatePrize('prize-2')).resolves.toEqual({ error: null });
   });
 
@@ -290,11 +291,11 @@ describe('prizes', () => {
       .mockReturnValueOnce(activeErrorQuery)
       .mockReturnValueOnce(childRedErrorQuery);
 
-    await expect(listPrizes()).resolves.toEqual({ data: [], error: 'Algo deu errado. Tente novamente.' });
+    await expect(listPrizes()).resolves.toEqual({ data: [], hasMore: false, error: 'Algo deu errado. Tente novamente.' });
     await expect(getPrize('prize-x')).resolves.toEqual({ data: null, error: 'Algo deu errado. Tente novamente.' });
-    await expect(listRedemptions()).resolves.toEqual({ data: [], error: 'Algo deu errado. Tente novamente.' });
+    await expect(listRedemptions()).resolves.toEqual({ data: [], hasMore: false, error: 'Algo deu errado. Tente novamente.' });
     await expect(listActivePrizes()).resolves.toEqual({ data: [], error: 'Algo deu errado. Tente novamente.' });
-    await expect(listChildRedemptions()).resolves.toEqual({ data: [], error: 'Algo deu errado. Tente novamente.' });
+    await expect(listChildRedemptions()).resolves.toEqual({ data: [], hasMore: false, error: 'Algo deu errado. Tente novamente.' });
   });
 
   it('returns errors from write operations and handles edge cases', async () => {
@@ -342,9 +343,9 @@ describe('prizes', () => {
       .mockReturnValueOnce(childNullQuery);
 
     await expect(reactivatePrize('prize-1')).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
-    await expect(listPrizes()).resolves.toEqual({ data: [], error: null });
+    await expect(listPrizes()).resolves.toEqual({ data: [], hasMore: false, error: null });
     await expect(listActivePrizes()).resolves.toEqual({ data: [], error: null });
-    await expect(listChildRedemptions()).resolves.toEqual({ data: [], error: null });
+    await expect(listChildRedemptions()).resolves.toEqual({ data: [], hasMore: false, error: null });
   });
 
   it('returns upload errors when the prize image upload fails', async () => {

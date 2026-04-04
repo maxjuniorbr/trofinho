@@ -12,6 +12,10 @@ vi.mock('@tanstack/react-query', () => {
       capturedQuery.options.push(opts);
       return { data: undefined, isLoading: false, error: null };
     }),
+    useInfiniteQuery: vi.fn((opts: Record<string, unknown>) => {
+      capturedQuery.options.push(opts);
+      return { data: undefined, isLoading: false, error: null, fetchNextPage: vi.fn(), hasNextPage: false, isFetchingNextPage: false };
+    }),
     useMutation: vi.fn((opts: Record<string, unknown>) => {
       capturedMutation.options.push(opts);
       return { mutate: vi.fn(), isLoading: false };
@@ -55,16 +59,16 @@ describe('use-redemptions query hooks', () => {
     it('useAdminRedemptions queryFn calls listRedemptions', async () => {
       const { useAdminRedemptions } = await loadHooks();
       useAdminRedemptions();
-      const qf = lastQueryOpts().queryFn as () => Promise<unknown>;
-      await qf();
+      const qf = lastQueryOpts().queryFn as (ctx: { pageParam: number }) => Promise<unknown>;
+      await qf({ pageParam: 0 });
       expect(prizesLib.listRedemptions).toHaveBeenCalled();
     });
 
     it('useChildRedemptions queryFn calls listChildRedemptions', async () => {
       const { useChildRedemptions } = await loadHooks();
       useChildRedemptions();
-      const qf = lastQueryOpts().queryFn as () => Promise<unknown>;
-      await qf();
+      const qf = lastQueryOpts().queryFn as (ctx: { pageParam: number }) => Promise<unknown>;
+      await qf({ pageParam: 0 });
       expect(prizesLib.listChildRedemptions).toHaveBeenCalled();
     });
 

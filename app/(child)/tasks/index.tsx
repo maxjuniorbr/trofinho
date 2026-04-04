@@ -24,6 +24,7 @@ import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
+import { ListFooter } from '@/components/ui/list-footer';
 import { SegmentedBar, type SegmentOption } from '@/components/ui/segmented-bar';
 
 type Filter = 'pendente' | 'aguardando_validacao' | 'historico';
@@ -80,7 +81,8 @@ export default function ChildTasksScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const { data: assignments = [], isLoading, error, refetch } = useChildAssignments();
+  const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useChildAssignments();
+  const assignments = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
   const [filter, setFilter] = useState<Filter>('pendente');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -186,6 +188,9 @@ export default function ChildTasksScreen() {
               </Pressable>
             );
           }}
+          onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
         />
       )}
     </SafeScreenFrame>

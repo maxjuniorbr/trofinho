@@ -12,10 +12,13 @@ const focusEffectMock = vi.hoisted(() => ({
 }));
 
 const childAssignmentsMock = vi.hoisted(() => ({
-  data: [] as unknown[],
+  data: { pages: [{ data: [] as unknown[], hasMore: false }], pageParams: [0] } as { pages: { data: unknown[]; hasMore: boolean }[]; pageParams: number[] } | undefined,
   isLoading: false,
   error: null as Error | null,
   refetch: vi.fn(),
+  fetchNextPage: vi.fn(),
+  hasNextPage: false,
+  isFetchingNextPage: false,
 }));
 
 const createHostComponent = vi.hoisted(() => {
@@ -72,7 +75,7 @@ vi.mock('@lib/utils', () => ({
   formatDate: (value: string) => value,
 }));
 
-vi.mock('@/constants/status', () => ({
+vi.mock('@lib/status', () => ({
   getAssignmentStatusColor: () => '#308CE8',
   getAssignmentStatusLabel: (status: string) => status,
 }));
@@ -127,6 +130,11 @@ vi.mock('@/components/ui/segmented-bar', () => ({
     React.createElement('SegmentedBar', props),
 }));
 
+vi.mock('@/components/ui/list-footer', () => ({
+  ListFooter: (props: Record<string, unknown>) =>
+    React.createElement('ListFooter', props),
+}));
+
 import ChildTasksScreen from '../../app/(child)/tasks/index';
 
 function render(element: React.ReactElement) {
@@ -159,7 +167,7 @@ describe('ChildTasksScreen', () => {
     routerMock.back.mockReset();
     routerMock.push.mockReset();
     focusEffectMock.callback = null;
-    childAssignmentsMock.data = [makeAssignment()];
+    childAssignmentsMock.data = { pages: [{ data: [makeAssignment()], hasMore: false }], pageParams: [0] };
     childAssignmentsMock.isLoading = false;
     childAssignmentsMock.error = null;
     childAssignmentsMock.refetch.mockReset();
@@ -178,7 +186,7 @@ describe('ChildTasksScreen', () => {
   });
 
   it('renders inactive pending tasks as unavailable', () => {
-    childAssignmentsMock.data = [
+    childAssignmentsMock.data = { pages: [{ data: [
       makeAssignment({
         tarefas: {
           titulo: 'Arrumar a cama',
@@ -186,7 +194,7 @@ describe('ChildTasksScreen', () => {
           ativo: false,
         },
       }),
-    ];
+    ], hasMore: false }], pageParams: [0] };
 
     const renderer = render(<ChildTasksScreen />);
 

@@ -60,7 +60,7 @@ export default function FilhoHomeScreen() {
   const family = familyQuery.data ?? null;
 
   const assignmentsQuery = useChildAssignments();
-  const assignments = assignmentsQuery.data ?? [];
+  const assignments = useMemo(() => assignmentsQuery.data?.pages.flatMap((p) => p.data) ?? [], [assignmentsQuery.data]);
 
   const balanceQuery = useBalance();
   const balanceData = balanceQuery.data ?? null;

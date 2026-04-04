@@ -26,17 +26,20 @@ const confirmMutationMock = vi.hoisted(() => ({
 }));
 
 const redemptionsMock = vi.hoisted(() => ({
-  data: [] as Array<{
+  data: undefined as { pages: { data: Array<{
     id: string;
     status: string;
     pontos_debitados: number;
     created_at: string;
-    filhos: { nome: string };
+    filhos: { nome: string; usuario_id: string | null };
     premios: { nome: string };
-  }>,
+  }>; hasMore: boolean }[]; pageParams: number[] } | undefined,
   isLoading: false,
   error: null as Error | null,
   refetch: vi.fn(),
+  fetchNextPage: vi.fn(),
+  hasNextPage: false,
+  isFetchingNextPage: false,
 }));
 
 const createHostComponent = vi.hoisted(() => {
@@ -126,7 +129,7 @@ function makePendingRedemption(id: string, childName: string, prizeName: string,
     status: 'pendente',
     pontos_debitados: points,
     created_at: '2024-01-01T00:00:00Z',
-    filhos: { nome: childName },
+    filhos: { nome: childName, usuario_id: null },
     premios: { nome: prizeName },
   };
 }
@@ -163,7 +166,7 @@ describe('AdminRedemptionsScreen — cancellation dialog property tests', () => 
     alertMock.alert.mockReset();
     cancelMutationMock.mutate.mockReset();
     confirmMutationMock.mutate.mockReset();
-    redemptionsMock.data = [];
+    redemptionsMock.data = undefined;
     redemptionsMock.isLoading = false;
     redemptionsMock.error = null;
     redemptionsMock.refetch.mockReset();
@@ -178,9 +181,9 @@ describe('AdminRedemptionsScreen — cancellation dialog property tests', () => 
         (points, childName) => {
           alertMock.alert.mockReset();
 
-          redemptionsMock.data = [
+          redemptionsMock.data = { pages: [{ data: [
             makePendingRedemption('r-1', childName, 'Premio Teste', points),
-          ];
+          ], hasMore: false }], pageParams: [0] };
 
           const renderer = render(<AdminRedemptionsScreen />);
 
@@ -218,9 +221,9 @@ describe('AdminRedemptionsScreen — cancellation dialog property tests', () => 
           alertMock.alert.mockReset();
           cancelMutationMock.mutate.mockReset();
 
-          redemptionsMock.data = [
+          redemptionsMock.data = { pages: [{ data: [
             makePendingRedemption('r-1', 'Filho Teste', 'Premio Teste', points),
-          ];
+          ], hasMore: false }], pageParams: [0] };
 
           const renderer = render(<AdminRedemptionsScreen />);
 

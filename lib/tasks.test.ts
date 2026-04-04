@@ -93,6 +93,7 @@ function createOrderQuery(result: QueryResult, orderCallsBeforeResolve = 0) {
     limit: vi.fn().mockReturnThis(),
     or: vi.fn().mockReturnThis(),
     order: vi.fn(),
+    range: vi.fn().mockReturnThis(),
     returns: vi.fn().mockResolvedValue(result),
     select: vi.fn().mockReturnThis(),
   };
@@ -276,6 +277,7 @@ describe('tasks', () => {
 
     await expect(listAdminTasks()).resolves.toEqual({
       data: [{ id: 'task-1' }],
+      hasMore: false,
       error: null,
     });
   });
@@ -286,6 +288,7 @@ describe('tasks', () => {
 
     await expect(listAdminTasks()).resolves.toEqual({
       data: [],
+      hasMore: false,
       error: 'Algo deu errado. Tente novamente.',
     });
   });
@@ -616,6 +619,7 @@ describe('tasks', () => {
 
     await expect(listChildAssignments()).resolves.toEqual({
       data: [{ id: 'assignment-1' }],
+      hasMore: false,
       error: null,
     });
 
@@ -633,6 +637,7 @@ describe('tasks', () => {
 
     await expect(listChildAssignments()).resolves.toEqual({
       data: [],
+      hasMore: false,
       error: 'Algo deu errado. Tente novamente.',
     });
 

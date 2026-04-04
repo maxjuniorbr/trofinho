@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   listPrizes,
   getPrize,
@@ -11,13 +11,16 @@ import {
   type PrizeInput,
   type UpdatePrizeInput,
 } from '../../../lib/prizes';
-import { queryFnAdapter, mutationFnAdapter } from './query-fn-adapter';
-import { queryKeys, STALE_TIMES } from './query-keys';
+import { queryFnAdapter, mutationFnAdapter, paginatedQueryFnAdapter, type PaginatedPage } from './query-fn-adapter';
+import { queryKeys, STALE_TIMES, PAGE_SIZES } from './query-keys';
 
 export const usePrizes = () =>
-  useQuery({
+  useInfiniteQuery({
     queryKey: queryKeys.prizes.lists(),
-    queryFn: queryFnAdapter(() => listPrizes()),
+    queryFn: paginatedQueryFnAdapter(listPrizes, PAGE_SIZES.prizes),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage: PaginatedPage<unknown>, _allPages: unknown[], lastPageParam: number) =>
+      lastPage.hasMore ? lastPageParam + 1 : undefined,
     staleTime: STALE_TIMES.prizes,
   });
 
