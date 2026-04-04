@@ -17,7 +17,8 @@ export default function NewTaskScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(), []);
 
-  const { data: children = [], isLoading: loadingChildren } = useChildrenList();
+  const { data: allChildren = [], isLoading: loadingChildren } = useChildrenList();
+  const children = useMemo(() => allChildren.filter((c) => c.ativo !== false), [allChildren]);
   const { data: profile } = useProfile();
   const createTaskMutation = useCreateTask();
 
