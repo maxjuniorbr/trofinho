@@ -17,6 +17,7 @@ export const useBalance = (childId?: string) =>
     queryKey: childId ? queryKeys.balances.byChild(childId) : queryKeys.balances.self(),
     queryFn: queryFnAdapter(() => getBalance(childId)),
     staleTime: STALE_TIMES.balances,
+    enabled: !!childId,
   });
 
 export const useAdminBalances = () =>
@@ -37,6 +38,7 @@ export const useTransactions = (childId: string) =>
     getNextPageParam: (lastPage: PaginatedPage<unknown>, _allPages: unknown[], lastPageParam: number) =>
       lastPage.hasMore ? lastPageParam + 1 : undefined,
     staleTime: STALE_TIMES.balances,
+    enabled: !!childId,
   });
 
 export const useApplyPenalty = () => {
