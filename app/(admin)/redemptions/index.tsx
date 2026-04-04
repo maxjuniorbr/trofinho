@@ -26,6 +26,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
+import { ListFooter } from '@/components/ui/list-footer';
 import { formatDate } from '@lib/utils';
 import { useAdminRedemptions, useConfirmRedemption, useCancelRedemption, useProfile } from '@/hooks/queries';
 import { useTransientMessage } from '@/hooks/use-transient-message';
@@ -55,7 +56,8 @@ export default function AdminRedemptionsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const { data: redemptions = [], isLoading, error, refetch } = useAdminRedemptions();
+  const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useAdminRedemptions();
+  const redemptions = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
   const { data: profile } = useProfile();
   const confirmMutation = useConfirmRedemption();
   const cancelMutation = useCancelRedemption();
@@ -237,6 +239,9 @@ export default function AdminRedemptionsScreen() {
               </>
             );
           }}
+          onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
         />
       )}
 

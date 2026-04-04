@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Badge } from '@/components/ui/badge';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
+import { ListFooter } from '@/components/ui/list-footer';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import {
   consumeNavigationFeedback,
@@ -99,7 +100,8 @@ export default function AdminTasksScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const { data: tasks = [], isLoading, error, refetch } = useAdminTasks();
+  const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useAdminTasks();
+  const tasks = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
   const [sort, setSort] = useState<AdminTaskSort>('action_first');
   const [successFeedback, setSuccessFeedback] = useState<NavigationFeedback | null>(null);
 
@@ -159,6 +161,9 @@ export default function AdminTasksScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
           refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} tintColor={colors.brand.vivid} />}
+          onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
           renderItem={({ item }) => (
             <AdminTaskCard
               item={item}

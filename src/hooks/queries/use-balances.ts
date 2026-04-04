@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getBalance,
   listAdminBalances,
@@ -9,8 +9,8 @@ import {
   syncAutomaticAppreciation,
   type AppreciationPeriod,
 } from '../../../lib/balances';
-import { queryFnAdapter, mutationFnAdapter } from './query-fn-adapter';
-import { queryKeys, STALE_TIMES } from './query-keys';
+import { queryFnAdapter, mutationFnAdapter, paginatedQueryFnAdapter, type PaginatedPage } from './query-fn-adapter';
+import { queryKeys, STALE_TIMES, PAGE_SIZES } from './query-keys';
 
 export const useBalance = (childId?: string) =>
   useQuery({
@@ -27,9 +27,15 @@ export const useAdminBalances = () =>
   });
 
 export const useTransactions = (childId: string) =>
-  useQuery({
+  useInfiniteQuery({
     queryKey: queryKeys.balances.transactions(childId),
-    queryFn: queryFnAdapter(() => listTransactions(childId)),
+    queryFn: paginatedQueryFnAdapter(
+      (page, pageSize) => listTransactions(childId, page, pageSize),
+      PAGE_SIZES.transactions,
+    ),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage: PaginatedPage<unknown>, _allPages: unknown[], lastPageParam: number) =>
+      lastPage.hasMore ? lastPageParam + 1 : undefined,
     staleTime: STALE_TIMES.balances,
   });
 

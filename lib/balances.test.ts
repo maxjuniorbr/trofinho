@@ -30,6 +30,7 @@ function createQuery(result: { data?: unknown; error?: { code?: string; message:
     eq: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
+    range: vi.fn().mockReturnThis(),
     returns: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue(result),
   };
@@ -98,21 +99,21 @@ describe('balances', () => {
     await expect(listAdminBalances()).resolves.toEqual({ data: [], error: 'Algo deu errado. Tente novamente.' });
   });
 
-  it('lists transactions with limit and ordering', async () => {
+  it('lists transactions with pagination and ordering', async () => {
     const query = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
+      range: vi.fn().mockReturnThis(),
       returns: vi.fn().mockResolvedValue({ data: [{ id: 'tx-1' }], error: null }),
     };
     supabaseMock.from.mockReturnValue(query);
 
-    const result = await listTransactions('child-1', 5);
+    const result = await listTransactions('child-1');
 
     expect(query.eq).toHaveBeenCalledWith('filho_id', 'child-1');
-    expect(query.limit).toHaveBeenCalledWith(5);
-    expect(result).toEqual({ data: [{ id: 'tx-1' }], error: null });
+    expect(query.range).toHaveBeenCalledWith(0, 20);
+    expect(result).toEqual({ data: [{ id: 'tx-1' }], hasMore: false, error: null });
   });
 
   it('delegates balance mutations to RPC calls', async () => {
@@ -146,8 +147,8 @@ describe('balances', () => {
     };
     const listErrorQuery = {
       eq: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
+      range: vi.fn().mockReturnThis(),
       returns: vi.fn().mockResolvedValue({ data: null, error: { message: 'list failed' } }),
       select: vi.fn().mockReturnThis(),
     };
@@ -159,7 +160,7 @@ describe('balances', () => {
       .mockResolvedValueOnce({ error: null });
 
     await expect(listAdminBalances()).resolves.toEqual({ data: [], error: null });
-    await expect(listTransactions('child-1')).resolves.toEqual({ data: [], error: 'Algo deu errado. Tente novamente.' });
+    await expect(listTransactions('child-1')).resolves.toEqual({ data: [], hasMore: false, error: 'Algo deu errado. Tente novamente.' });
     await expect(applyPenalty('child-1', 2, 'Atraso')).resolves.toEqual({ data: { deducted: 2 }, error: null });
   });
 

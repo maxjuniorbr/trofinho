@@ -188,19 +188,28 @@ export async function countPendingValidations(): Promise<{
   return { data: count ?? 0, error: null };
 }
 
-export async function listAdminTasks(limit = 50): Promise<{
+export async function listAdminTasks(
+  page = 0,
+  pageSize = 20,
+): Promise<{
   data: TaskListItem[];
+  hasMore: boolean;
   error: string | null;
 }> {
+  const from = page * pageSize;
+  const to = from + pageSize; // fetch one extra to detect next page
+
   const { data, error } = await supabase
     .from('tarefas')
-    .select('id, titulo, pontos, frequencia, created_at, atribuicoes(status)')
+    .select('id, titulo, pontos, frequencia, created_at, ativo, atribuicoes(status)')
     .order('created_at', { ascending: false })
-    .limit(limit)
+    .range(from, to)
     .returns<TaskListItem[]>();
 
-  if (error) return { data: [], error: localizeRpcError(error.message) };
-  return { data: data ?? [], error: null };
+  if (error) return { data: [], hasMore: false, error: localizeRpcError(error.message) };
+  const items = data ?? [];
+  const hasMore = items.length > pageSize;
+  return { data: hasMore ? items.slice(0, pageSize) : items, hasMore, error: null };
 }
 
 export async function getTaskWithAssignments(
@@ -281,24 +290,33 @@ export async function renewDailyTasks(): Promise<void> {
   await supabase.rpc('garantir_atribuicoes_diarias');
 }
 
-export async function listChildAssignments(): Promise<{
+export async function listChildAssignments(
+  page = 0,
+  pageSize = 20,
+): Promise<{
   data: ChildAssignment[];
+  hasMore: boolean;
   error: string | null;
 }> {
   const today = toDateString(new Date());
   const visibleAssignmentsFilter =
     `competencia.is.null,competencia.eq.${today},status.in.(aprovada,rejeitada)`;
 
+  const from = page * pageSize;
+  const to = from + pageSize;
+
   const { data, error } = await supabase
     .from('atribuicoes')
     .select('*, tarefas(*)')
     .or(visibleAssignmentsFilter)
     .order('created_at', { ascending: false })
-    .limit(100)
+    .range(from, to)
     .returns<ChildAssignment[]>();
 
-  if (error) return { data: [], error: localizeRpcError(error.message) };
-  return { data: data ?? [], error: null };
+  if (error) return { data: [], hasMore: false, error: localizeRpcError(error.message) };
+  const items = data ?? [];
+  const hasMore = items.length > pageSize;
+  return { data: hasMore ? items.slice(0, pageSize) : items, hasMore, error: null };
 }
 
 export async function getChildAssignment(

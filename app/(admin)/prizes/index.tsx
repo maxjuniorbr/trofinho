@@ -17,6 +17,7 @@ import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
+import { ListFooter } from '@/components/ui/list-footer';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import {
   consumeNavigationFeedback,
@@ -29,7 +30,8 @@ export default function AdminPrizesScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const { data: prizes = [], isLoading, error, refetch } = usePrizes();
+  const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = usePrizes();
+  const prizes = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
   const [successFeedback, setSuccessFeedback] = useState<NavigationFeedback | null>(null);
   const visibleSuccessMessage = useTransientMessage(
     successFeedback?.message ?? null,
@@ -137,6 +139,9 @@ export default function AdminPrizesScreen() {
               />
             </View>
           )}
+          onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
         />
       )}
     </SafeScreenFrame>

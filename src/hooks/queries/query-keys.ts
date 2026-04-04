@@ -58,3 +58,10 @@ export const STALE_TIMES = {
   redemptions: 60_000,
   family: 60_000,
 } as const;
+
+export const PAGE_SIZES = {
+  tasks: 20,
+  prizes: 20,
+  redemptions: 20,
+  transactions: 20,
+} as const;

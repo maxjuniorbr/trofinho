@@ -1,6 +1,8 @@
-import type { UseQueryResult } from '@tanstack/react-query';
+import type { UseQueryResult, UseInfiniteQueryResult } from '@tanstack/react-query';
 
-export const combineQueryStates = (...queries: UseQueryResult<unknown>[]) => ({
+type AnyQueryResult = UseQueryResult<unknown> | UseInfiniteQueryResult<unknown, Error>;
+
+export const combineQueryStates = (...queries: AnyQueryResult[]) => ({
   isLoading: queries.some((q) => q.isLoading),
   isFetching: queries.some((q) => q.isFetching),
   error: queries.find((q) => q.error)?.error ?? null,

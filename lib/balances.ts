@@ -95,18 +95,24 @@ export async function listAdminBalances(): Promise<{ data: BalanceWithChild[]; e
 
 export async function listTransactions(
   childId: string,
-  limit = 30
-): Promise<{ data: Transaction[]; error: string | null }> {
+  page = 0,
+  pageSize = 20,
+): Promise<{ data: Transaction[]; hasMore: boolean; error: string | null }> {
+  const from = page * pageSize;
+  const to = from + pageSize;
+
   const { data, error } = await supabase
     .from('movimentacoes')
     .select('*')
     .eq('filho_id', childId)
     .order('created_at', { ascending: false })
-    .limit(limit)
+    .range(from, to)
     .returns<Transaction[]>();
 
-  if (error) return { data: [], error: localizeRpcError(error.message) };
-  return { data: data ?? [], error: null };
+  if (error) return { data: [], hasMore: false, error: localizeRpcError(error.message) };
+  const items = data ?? [];
+  const hasMore = items.length > pageSize;
+  return { data: hasMore ? items.slice(0, pageSize) : items, hasMore, error: null };
 }
 
 export async function transferToPiggyBank(

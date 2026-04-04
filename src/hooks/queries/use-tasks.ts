@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   listAdminTasks,
   getTaskWithAssignments,
@@ -17,13 +17,16 @@ import {
   type NewTaskInput,
   type UpdateTaskInput,
 } from '../../../lib/tasks';
-import { queryFnAdapter, mutationFnAdapter } from './query-fn-adapter';
-import { queryKeys, STALE_TIMES } from './query-keys';
+import { queryFnAdapter, mutationFnAdapter, paginatedQueryFnAdapter, type PaginatedPage } from './query-fn-adapter';
+import { queryKeys, STALE_TIMES, PAGE_SIZES } from './query-keys';
 
 export const useAdminTasks = () =>
-  useQuery({
+  useInfiniteQuery({
     queryKey: queryKeys.tasks.lists(),
-    queryFn: queryFnAdapter(() => listAdminTasks()),
+    queryFn: paginatedQueryFnAdapter(listAdminTasks, PAGE_SIZES.tasks),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage: PaginatedPage<unknown>, _allPages: unknown[], lastPageParam: number) =>
+      lastPage.hasMore ? lastPageParam + 1 : undefined,
     staleTime: STALE_TIMES.tasks,
   });
 
@@ -36,12 +39,17 @@ export const useTaskDetail = (taskId: string | undefined) =>
   });
 
 export const useChildAssignments = () =>
-  useQuery({
+  useInfiniteQuery({
     queryKey: queryKeys.tasks.childAssignments(),
-    queryFn: queryFnAdapter(async () => {
-      await renewDailyTasks();
-      return listChildAssignments();
-    }),
+    queryFn: async ({ pageParam }) => {
+      if (pageParam === 0) await renewDailyTasks();
+      const result = await listChildAssignments(pageParam, PAGE_SIZES.tasks);
+      if (result.error) throw new Error(result.error);
+      return { data: result.data, hasMore: result.hasMore };
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage: PaginatedPage<unknown>, _allPages: unknown[], lastPageParam: number) =>
+      lastPage.hasMore ? lastPageParam + 1 : undefined,
     staleTime: STALE_TIMES.tasks,
   });
 

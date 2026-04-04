@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   listRedemptions,
   listChildRedemptions,
@@ -6,20 +6,26 @@ import {
   cancelRedemption,
   requestRedemption,
 } from '../../../lib/prizes';
-import { queryFnAdapter, mutationFnAdapter } from './query-fn-adapter';
-import { queryKeys, STALE_TIMES } from './query-keys';
+import { queryFnAdapter, mutationFnAdapter, paginatedQueryFnAdapter, type PaginatedPage } from './query-fn-adapter';
+import { queryKeys, STALE_TIMES, PAGE_SIZES } from './query-keys';
 
 export const useAdminRedemptions = () =>
-  useQuery({
+  useInfiniteQuery({
     queryKey: queryKeys.redemptions.admin(),
-    queryFn: queryFnAdapter(() => listRedemptions()),
+    queryFn: paginatedQueryFnAdapter(listRedemptions, PAGE_SIZES.redemptions),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage: PaginatedPage<unknown>, _allPages: unknown[], lastPageParam: number) =>
+      lastPage.hasMore ? lastPageParam + 1 : undefined,
     staleTime: STALE_TIMES.redemptions,
   });
 
 export const useChildRedemptions = () =>
-  useQuery({
+  useInfiniteQuery({
     queryKey: queryKeys.redemptions.child(),
-    queryFn: queryFnAdapter(() => listChildRedemptions()),
+    queryFn: paginatedQueryFnAdapter(listChildRedemptions, PAGE_SIZES.redemptions),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage: PaginatedPage<unknown>, _allPages: unknown[], lastPageParam: number) =>
+      lastPage.hasMore ? lastPageParam + 1 : undefined,
     staleTime: STALE_TIMES.redemptions,
   });
 

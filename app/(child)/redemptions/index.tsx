@@ -17,6 +17,7 @@ import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
+import { ListFooter } from '@/components/ui/list-footer';
 import { formatDate } from '@lib/utils';
 
 export default function ChildRedemptionsScreen() {
@@ -24,7 +25,8 @@ export default function ChildRedemptionsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const { data: redemptions = [], isLoading, error, refetch, isFetching } = useChildRedemptions();
+  const { data, isLoading, error, refetch, isFetching, fetchNextPage, hasNextPage, isFetchingNextPage } = useChildRedemptions();
+  const redemptions = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
 
   const errorMessage = error?.message ?? null;
   const hasError = Boolean(errorMessage);
@@ -77,6 +79,9 @@ export default function ChildRedemptionsScreen() {
               </View>
             </View>
           )}
+          onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
         />
       )}
     </SafeScreenFrame>

@@ -39,6 +39,7 @@ import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { TransactionIcon } from '@/components/balance/transaction-icon';
 import { PointsDisplay } from '@/components/ui/points-display';
 import { InlineMessage } from '@/components/ui/inline-message';
+import { ListFooter } from '@/components/ui/list-footer';
 import { getSafeBottomPadding } from '@lib/safe-area';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 
@@ -60,7 +61,8 @@ export default function ChildBalanceScreen() {
   const balance = balanceQuery.data ?? null;
 
   const transactionsQuery = useTransactions(childId ?? '');
-  const transactions = transactionsQuery.data ?? [];
+  const transactions = useMemo(() => transactionsQuery.data?.pages.flatMap((p) => p.data) ?? [], [transactionsQuery.data]);
+  const { fetchNextPage, hasNextPage, isFetchingNextPage } = transactionsQuery;
 
   const { isLoading, error, refetchAll } = combineQueryStates(balanceQuery, transactionsQuery);
 
@@ -204,6 +206,9 @@ export default function ChildBalanceScreen() {
             </Text>
           </View>
         )}
+        onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
       />
 
       <Modal visible={modalVisible} transparent animationType="slide">

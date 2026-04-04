@@ -41,3 +41,20 @@ export function mutationFnAdapter(
     if (result.error) throw new Error(result.error);
   };
 }
+
+export type PaginatedPage<T> = { data: T[]; hasMore: boolean };
+
+/**
+ * Wraps a paginated lib/ function for useInfiniteQuery.
+ * The lib/ function must accept (page, pageSize) and return { data, hasMore, error }.
+ */
+export function paginatedQueryFnAdapter<T>(
+  fn: (page: number, pageSize: number) => Promise<{ data: T[]; hasMore: boolean; error: string | null }>,
+  pageSize: number,
+): (ctx: { pageParam: number }) => Promise<PaginatedPage<T>> {
+  return async ({ pageParam }) => {
+    const result = await fn(pageParam, pageSize);
+    if (result.error) throw new Error(result.error);
+    return { data: result.data, hasMore: result.hasMore };
+  };
+}

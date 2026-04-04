@@ -32,6 +32,7 @@ import { PenaltyModal, PenaltyButton } from '@/components/balance/penalty-modal'
 import { AppreciationModal } from '@/components/balance/appreciation-modal';
 import { TransactionIcon } from '@/components/balance/transaction-icon';
 import { InlineMessage } from '@/components/ui/inline-message';
+import { ListFooter } from '@/components/ui/list-footer';
 
 type ModalType = 'penalizar' | 'valorizacao_config' | null;
 
@@ -46,7 +47,8 @@ export default function ChildBalanceAdminScreen() {
   const { isLoading, isFetching, refetchAll } = combineQueryStates(balanceQuery, transactionsQuery);
 
   const balance = balanceQuery.data ?? null;
-  const transactions = transactionsQuery.data ?? [];
+  const transactions = useMemo(() => transactionsQuery.data?.pages.flatMap((p) => p.data) ?? [], [transactionsQuery.data]);
+  const { fetchNextPage, hasNextPage, isFetchingNextPage } = transactionsQuery;
 
   const [modalType, setModalType] = useState<ModalType>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -197,6 +199,9 @@ export default function ChildBalanceAdminScreen() {
             </Text>
           </View>
         )}
+        onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
       />
 
       <PenaltyModal

@@ -13,6 +13,10 @@ vi.mock('@tanstack/react-query', () => {
       capturedQuery.options.push(opts);
       return { data: undefined, isLoading: false, error: null };
     }),
+    useInfiniteQuery: vi.fn((opts: Record<string, unknown>) => {
+      capturedQuery.options.push(opts);
+      return { data: undefined, isLoading: false, error: null, fetchNextPage: vi.fn(), hasNextPage: false, isFetchingNextPage: false };
+    }),
     useMutation: vi.fn((opts: Record<string, unknown>) => {
       capturedMutation.options.push(opts);
       return { mutate: vi.fn(), isLoading: false };
@@ -98,16 +102,16 @@ describe('use-tasks query hooks', () => {
     it('useAdminTasks queryFn calls listAdminTasks', async () => {
       const { useAdminTasks } = await loadHooks();
       useAdminTasks();
-      const qf = lastQueryOpts().queryFn as () => Promise<unknown>;
-      await qf();
+      const qf = lastQueryOpts().queryFn as (ctx: { pageParam: number }) => Promise<unknown>;
+      await qf({ pageParam: 0 });
       expect(tasksLib.listAdminTasks).toHaveBeenCalled();
     });
 
     it('useChildAssignments queryFn calls renewDailyTasks then listChildAssignments', async () => {
       const { useChildAssignments } = await loadHooks();
       useChildAssignments();
-      const qf = lastQueryOpts().queryFn as () => Promise<unknown>;
-      await qf();
+      const qf = lastQueryOpts().queryFn as (ctx: { pageParam: number }) => Promise<unknown>;
+      await qf({ pageParam: 0 });
       expect(tasksLib.renewDailyTasks).toHaveBeenCalled();
       expect(tasksLib.listChildAssignments).toHaveBeenCalled();
     });
