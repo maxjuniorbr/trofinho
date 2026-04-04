@@ -5,8 +5,6 @@ import {
   getNotificationPrefs,
   getNotificationRoute,
   setNotificationPrefs,
-  syncPrefsFromServer,
-  syncPrefsToServer,
 } from './notifications';
 import type { NotificationPrefs } from './notifications';
 
@@ -104,18 +102,36 @@ describe('notifications', () => {
   });
 
   describe('getNotificationPrefs', () => {
-    it('returns defaults when nothing is stored', async () => {
-      deviceStorageGetMock.mockResolvedValue(null);
-      await expect(getNotificationPrefs()).resolves.toEqual(DEFAULT_NOTIFICATION_PREFS);
+    it('returns server prefs and caches locally when authenticated', async () => {
+      const serverPrefs = { tarefasPendentes: false, tarefaAprovada: true, tarefaRejeitada: false, tarefaConcluida: true, resgatesSolicitado: false, resgateConfirmado: true, resgateCancelado: true };
+      getUserMock.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+      selectMock.mockResolvedValue({ data: { notif_prefs: serverPrefs }, error: null });
+      await expect(getNotificationPrefs()).resolves.toEqual(serverPrefs);
+      expect(deviceStorageSetMock).toHaveBeenCalledWith('notification_prefs', JSON.stringify(serverPrefs));
     });
 
-    it('returns stored preferences', async () => {
+    it('falls back to local cache on network error', async () => {
       const stored = { tarefasPendentes: false, tarefaAprovada: true, tarefaRejeitada: false, tarefaConcluida: true, resgatesSolicitado: false, resgateConfirmado: true, resgateCancelado: true };
+      getUserMock.mockRejectedValue(new Error('network'));
       deviceStorageGetMock.mockResolvedValue(JSON.stringify(stored));
       await expect(getNotificationPrefs()).resolves.toEqual(stored);
     });
 
-    it('normalizes legacy camelCase keys', async () => {
+    it('falls back to local cache when user is not authenticated', async () => {
+      getUserMock.mockResolvedValue({ data: { user: null } });
+      deviceStorageGetMock.mockResolvedValue(null);
+      await expect(getNotificationPrefs()).resolves.toEqual(DEFAULT_NOTIFICATION_PREFS);
+    });
+
+    it('falls back to local cache when server returns error', async () => {
+      getUserMock.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+      selectMock.mockResolvedValue({ data: null, error: { message: 'db error' } });
+      deviceStorageGetMock.mockResolvedValue(null);
+      await expect(getNotificationPrefs()).resolves.toEqual(DEFAULT_NOTIFICATION_PREFS);
+    });
+
+    it('normalizes legacy camelCase keys from local cache', async () => {
+      getUserMock.mockRejectedValue(new Error('offline'));
       const legacy = { pendingTasks: false, completedTask: true, requestedRedemption: false };
       deviceStorageGetMock.mockResolvedValue(JSON.stringify(legacy));
       const prefs = await getNotificationPrefs();
@@ -127,41 +143,36 @@ describe('notifications', () => {
       expect(prefs.resgateConfirmado).toBe(false);
     });
 
-    it('normalizes legacy snake_case keys', async () => {
-      const legacy = { tarefas_pendentes: true, tarefa_concluida: false, resgate_solicitado: true };
-      deviceStorageGetMock.mockResolvedValue(JSON.stringify(legacy));
-      const prefs = await getNotificationPrefs();
-      expect(prefs.tarefasPendentes).toBe(true);
-      expect(prefs.tarefaAprovada).toBe(false);
-      expect(prefs.tarefaRejeitada).toBe(false);
-      expect(prefs.tarefaConcluida).toBe(false);
-      expect(prefs.resgatesSolicitado).toBe(true);
-      expect(prefs.resgateConfirmado).toBe(true);
-    });
-
-    it('prefers current keys over legacy keys when both are present', async () => {
-      const mixed = { tarefasPendentes: false, pendingTasks: true };
-      deviceStorageGetMock.mockResolvedValue(JSON.stringify(mixed));
-      const prefs = await getNotificationPrefs();
-      expect(prefs.tarefasPendentes).toBe(false);
-    });
-
-    it('returns defaults for invalid JSON', async () => {
+    it('returns defaults for invalid JSON in local cache', async () => {
+      getUserMock.mockRejectedValue(new Error('offline'));
       deviceStorageGetMock.mockResolvedValue('not-json');
-      await expect(getNotificationPrefs()).resolves.toEqual(DEFAULT_NOTIFICATION_PREFS);
-    });
-
-    it('returns defaults for non-object JSON', async () => {
-      deviceStorageGetMock.mockResolvedValue('"string"');
       await expect(getNotificationPrefs()).resolves.toEqual(DEFAULT_NOTIFICATION_PREFS);
     });
   });
 
   describe('setNotificationPrefs', () => {
-    it('stores preferences in device storage', async () => {
+    it('writes to server then caches locally', async () => {
       const prefs = { tarefasPendentes: false, tarefaAprovada: true, tarefaRejeitada: false, tarefaConcluida: true, resgatesSolicitado: false, resgateConfirmado: true, resgateCancelado: true };
+      getUserMock.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+      updateMock.mockResolvedValue({ data: null, error: null });
       await setNotificationPrefs(prefs);
+      expect(updateMock).toHaveBeenCalledWith('id', 'user-1');
       expect(deviceStorageSetMock).toHaveBeenCalledWith('notification_prefs', JSON.stringify(prefs));
+    });
+
+    it('throws when user is not authenticated', async () => {
+      const prefs = DEFAULT_NOTIFICATION_PREFS;
+      getUserMock.mockResolvedValue({ data: { user: null } });
+      await expect(setNotificationPrefs(prefs)).rejects.toThrow('Usu\u00e1rio n\u00e3o autenticado.');
+      expect(deviceStorageSetMock).not.toHaveBeenCalled();
+    });
+
+    it('throws when server update fails and does not cache locally', async () => {
+      const prefs = DEFAULT_NOTIFICATION_PREFS;
+      getUserMock.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+      updateMock.mockResolvedValue({ data: null, error: { message: 'db error' } });
+      await expect(setNotificationPrefs(prefs)).rejects.toEqual({ message: 'db error' });
+      expect(deviceStorageSetMock).not.toHaveBeenCalled();
     });
   });
 
@@ -169,14 +180,14 @@ describe('notifications', () => {
 });
 
 /**
- * Property 3: Preference sync round trip
+ * Property 3: Preference round trip (server-first)
  * Validates: Requirements 1.5, 1.6
  *
- * For any valid NotificationPrefs object, writing it to the server via
- * syncPrefsToServer and then reading it back via syncPrefsFromServer
- * SHALL produce an equivalent NotificationPrefs object.
+ * For any valid NotificationPrefs object, writing it via setNotificationPrefs
+ * and then reading it back via getNotificationPrefs SHALL produce an
+ * equivalent NotificationPrefs object.
  */
-describe('Property 3: Preference sync round trip', () => {
+describe('Property 3: Preference round trip (server-first)', () => {
   const prefsArb = fc.record({
     tarefasPendentes: fc.boolean(),
     tarefaAprovada: fc.boolean(),
@@ -189,7 +200,7 @@ describe('Property 3: Preference sync round trip', () => {
 
   const fakeUserId = 'user-abc-123';
 
-  it('round-trips any NotificationPrefs through server sync', async () => {
+  it('round-trips any NotificationPrefs through set then get', async () => {
     await fc.assert(
       fc.asyncProperty(prefsArb, async (prefs: NotificationPrefs) => {
         getUserMock.mockReset();
@@ -197,144 +208,22 @@ describe('Property 3: Preference sync round trip', () => {
         selectMock.mockReset();
         deviceStorageSetMock.mockReset();
 
-        // Mock authenticated user
         getUserMock.mockResolvedValue({ data: { user: { id: fakeUserId } } });
+        updateMock.mockResolvedValue({ data: null, error: null });
 
-        // Capture prefs written by syncPrefsToServer
-        let capturedPrefs: NotificationPrefs | undefined;
-        updateMock.mockImplementation(() => {
-          capturedPrefs = prefs;
-          return { data: null, error: null };
-        });
+        await setNotificationPrefs(prefs);
 
-        await syncPrefsToServer(prefs);
-
-        // Mock syncPrefsFromServer to return the same prefs that were written
         selectMock.mockResolvedValue({
-          data: { notif_prefs: capturedPrefs },
+          data: { notif_prefs: prefs },
           error: null,
         });
 
-        await syncPrefsFromServer();
-
-        // Verify deviceStorage.setItem was called with the round-tripped prefs
-        expect(deviceStorageSetMock).toHaveBeenCalledWith(
-          'notification_prefs',
-          JSON.stringify(prefs),
-        );
+        const result = await getNotificationPrefs();
+        expect(result).toEqual(prefs);
       }),
       { numRuns: 100 },
     );
   });
 });
 
-describe('syncPrefsToServer', () => {
-  const fakeUser = { id: 'user-sync-123' };
-  const prefs: NotificationPrefs = {
-    tarefasPendentes: false,
-    tarefaAprovada: true,
-    tarefaRejeitada: false,
-    tarefaConcluida: true,
-    resgatesSolicitado: false,
-    resgateConfirmado: true,
-    resgateCancelado: true,
-  };
 
-  beforeEach(() => {
-    getUserMock.mockReset();
-    updateMock.mockReset();
-    selectMock.mockReset();
-    deviceStorageSetMock.mockReset();
-    vi.restoreAllMocks();
-  });
-
-  it('calls supabase update when user is authenticated', async () => {
-    getUserMock.mockResolvedValue({ data: { user: fakeUser } });
-    updateMock.mockResolvedValue({ data: null, error: null });
-
-    await syncPrefsToServer(prefs);
-
-    expect(getUserMock).toHaveBeenCalled();
-    expect(updateMock).toHaveBeenCalledWith('id', fakeUser.id);
-  });
-
-  it('does nothing when user is not authenticated', async () => {
-    getUserMock.mockResolvedValue({ data: { user: null } });
-
-    await syncPrefsToServer(prefs);
-
-    expect(updateMock).not.toHaveBeenCalled();
-  });
-
-  it('catches errors and logs via console.error', async () => {
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const error = new Error('network failure');
-    getUserMock.mockRejectedValue(error);
-
-    await expect(syncPrefsToServer(prefs)).resolves.toBeUndefined();
-    expect(consoleErrorSpy).toHaveBeenCalledWith(error);
-    consoleErrorSpy.mockRestore();
-  });
-});
-
-describe('syncPrefsFromServer', () => {
-  const fakeUser = { id: 'user-sync-456' };
-
-  beforeEach(() => {
-    getUserMock.mockReset();
-    updateMock.mockReset();
-    selectMock.mockReset();
-    deviceStorageSetMock.mockReset();
-    vi.restoreAllMocks();
-  });
-
-  it('overwrites local storage with server prefs', async () => {
-    const serverPrefs: NotificationPrefs = {
-      tarefasPendentes: true,
-      tarefaAprovada: false,
-      tarefaRejeitada: false,
-      tarefaConcluida: false,
-      resgatesSolicitado: true,
-      resgateConfirmado: true,
-      resgateCancelado: true,
-    };
-
-    getUserMock.mockResolvedValue({ data: { user: fakeUser } });
-    selectMock.mockResolvedValue({ data: { notif_prefs: serverPrefs }, error: null });
-
-    await syncPrefsFromServer();
-
-    expect(deviceStorageSetMock).toHaveBeenCalledWith(
-      'notification_prefs',
-      JSON.stringify(serverPrefs),
-    );
-  });
-
-  it('does nothing when user is not authenticated', async () => {
-    getUserMock.mockResolvedValue({ data: { user: null } });
-
-    await syncPrefsFromServer();
-
-    expect(selectMock).not.toHaveBeenCalled();
-    expect(deviceStorageSetMock).not.toHaveBeenCalled();
-  });
-
-  it('catches errors and logs via console.error', async () => {
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const error = new Error('network failure');
-    getUserMock.mockRejectedValue(error);
-
-    await expect(syncPrefsFromServer()).resolves.toBeUndefined();
-    expect(consoleErrorSpy).toHaveBeenCalledWith(error);
-    consoleErrorSpy.mockRestore();
-  });
-
-  it('does nothing when server returns error', async () => {
-    getUserMock.mockResolvedValue({ data: { user: fakeUser } });
-    selectMock.mockResolvedValue({ data: null, error: { message: 'not found' } });
-
-    await syncPrefsFromServer();
-
-    expect(deviceStorageSetMock).not.toHaveBeenCalled();
-  });
-});
