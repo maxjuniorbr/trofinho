@@ -14,7 +14,7 @@ export const useTasksLiveSync = (familiaId: string | undefined) => {
     };
 
     const channel = supabase
-      .channel(`tasks-live-sync-${Math.random().toString(36).slice(2)}`)
+      .channel(`tasks-live-sync-${crypto.randomUUID()}`)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
@@ -29,7 +29,7 @@ export const useTasksLiveSync = (familiaId: string | undefined) => {
       .subscribe();
 
     return () => {
-      void supabase.removeChannel(channel);
+      supabase.removeChannel(channel);
     };
   }, [queryClient, familiaId]);
 };

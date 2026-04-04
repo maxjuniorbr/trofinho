@@ -239,13 +239,13 @@ export async function approveAssignment(
 
   if (error) return { error: localizeRpcError(error.message) };
   
-  if (!opts.userId) {
-    console.warn(`[push] Not dispatching 'tarefa_aprovada' for '${opts.taskTitle}': Missing required recipient (userId).`);
-  } else {
+  if (opts.userId) {
     dispatchPushNotification('tarefa_aprovada', opts.familiaId, {
       userId: opts.userId,
       taskTitle: opts.taskTitle,
     });
+  } else {
+    console.warn(`[push] Not dispatching 'tarefa_aprovada' for '${opts.taskTitle}': Missing required recipient (userId).`);
   }
   
   return { error: null };
@@ -263,13 +263,13 @@ export async function rejectAssignment(
 
   if (error) return { error: localizeRpcError(error.message) };
 
-  if (!opts.userId) {
-    console.warn(`[push] Not dispatching 'tarefa_rejeitada' for '${opts.taskTitle}': Missing required recipient (userId).`);
-  } else {
+  if (opts.userId) {
     dispatchPushNotification('tarefa_rejeitada', opts.familiaId, {
       userId: opts.userId,
       taskTitle: opts.taskTitle,
     });
+  } else {
+    console.warn(`[push] Not dispatching 'tarefa_rejeitada' for '${opts.taskTitle}': Missing required recipient (userId).`);
   }
 
   return { error: null };

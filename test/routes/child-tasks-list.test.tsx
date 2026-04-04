@@ -52,7 +52,7 @@ vi.mock('@shopify/flash-list', () => ({
   }) => React.createElement(
     'FlashList',
     props,
-    data.map((item, index) => React.createElement(React.Fragment, { key: index }, renderItem({ item }))),
+    data.map((item, index) => React.createElement(React.Fragment, { key: `mock-${index}` }, renderItem({ item }))),
   ),
 }));
 
