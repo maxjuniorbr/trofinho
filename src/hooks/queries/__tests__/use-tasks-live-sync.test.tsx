@@ -25,10 +25,13 @@ vi.mock('@lib/supabase', () => ({
   },
 }));
 
+import { supabase } from '@lib/supabase';
 import { useTasksLiveSync } from '../use-tasks-live-sync';
 
-function TestComponent() {
-  useTasksLiveSync();
+const TEST_FAMILIA_ID = 'familia-123';
+
+function TestComponent({ familiaId }: { familiaId?: string }) {
+  useTasksLiveSync(familiaId);
   return null;
 }
 
@@ -40,12 +43,13 @@ describe('useTasksLiveSync', () => {
     onMock.mockReset();
     onMock.mockReturnValue(channelMock);
     subscribeMock.mockReturnValue(channelMock);
+    vi.mocked(supabase.channel).mockClear();
   });
 
   it('subscribes to task-related tables and invalidates tasks.all on changes', () => {
     let renderer!: ReactTestRenderer;
     act(() => {
-      renderer = create(<TestComponent />);
+      renderer = create(<TestComponent familiaId={TEST_FAMILIA_ID} />);
     });
 
     expect(onMock).toHaveBeenNthCalledWith(
@@ -57,7 +61,7 @@ describe('useTasksLiveSync', () => {
     expect(onMock).toHaveBeenNthCalledWith(
       2,
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'tarefas' },
+      { event: '*', schema: 'public', table: 'tarefas', filter: `familia_id=eq.${TEST_FAMILIA_ID}` },
       expect.any(Function),
     );
     expect(subscribeMock).toHaveBeenCalledTimes(1);
@@ -76,5 +80,21 @@ describe('useTasksLiveSync', () => {
     });
 
     expect(removeChannelMock).toHaveBeenCalledWith(channelMock);
+  });
+
+  it('does not subscribe when familiaId is undefined', () => {
+    let renderer!: ReactTestRenderer;
+    act(() => {
+      renderer = create(<TestComponent />);
+    });
+
+    expect(supabase.channel).not.toHaveBeenCalled();
+    expect(subscribeMock).not.toHaveBeenCalled();
+
+    act(() => {
+      renderer.unmount();
+    });
+
+    expect(removeChannelMock).not.toHaveBeenCalled();
   });
 });
