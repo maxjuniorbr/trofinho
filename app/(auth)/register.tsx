@@ -37,7 +37,7 @@ export default function RegisterScreen() {
     if (!emailValue) return 'Informe seu e-mail.';
     if (!isValidEmail(emailValue)) return 'E-mail inválido.';
     if (!password) return 'Crie uma senha.';
-    if (password.length < 6) return 'A senha deve ter ao menos 6 caracteres.';
+    if (password.length < 6) return 'A senha deve ter pelo menos 6 caracteres.';
     if (password !== confirmPassword) return 'As senhas não coincidem.';
     return null;
   };

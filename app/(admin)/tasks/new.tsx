@@ -48,7 +48,7 @@ export default function NewTaskScreen() {
     if (!titulo.trim()) return setError('Informe o título da tarefa.');
     const pontosNum = Number.parseInt(pontos, 10);
     if (Number.isNaN(pontosNum) || pontosNum <= 0) return setError('Pontos deve ser um número maior que zero.');
-    if (selected.size === 0) return setError('Selecione ao menos um filho para atribuir a tarefa.');
+    if (selected.size === 0) return setError('Selecione pelo menos um filho para atribuir a tarefa.');
 
     const filhoIds = Array.from(selected);
     createTaskMutation.mutate({

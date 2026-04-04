@@ -178,7 +178,7 @@ describe('auth screens', () => {
 
     changeInput(renderer, 1, '123');
     await pressButton(renderer, 'Entrar');
-    expect(screenText(renderer)).toContain('A senha deve ter ao menos 6 caracteres.');
+    expect(screenText(renderer)).toContain('A senha deve ter pelo menos 6 caracteres.');
 
     const registerButton = getButton(renderer, 'Criar conta');
     expect(registerButton.props.style({ pressed: true })[1].opacity).toBe(0.65);
@@ -246,7 +246,7 @@ describe('auth screens', () => {
 
     changeInput(renderer, 2, '123');
     await pressButton(renderer, 'Criar conta');
-    expect(screenText(renderer)).toContain('A senha deve ter ao menos 6 caracteres.');
+    expect(screenText(renderer)).toContain('A senha deve ter pelo menos 6 caracteres.');
 
     changeInput(renderer, 2, '123456');
     changeInput(renderer, 3, '654321');
