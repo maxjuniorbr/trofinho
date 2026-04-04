@@ -236,13 +236,13 @@ export async function confirmRedemption(
 
   if (error) return { error: localizeRpcError(error.message) };
   
-  if (!opts.userId) {
-    console.warn(`[push] Not dispatching 'resgate_confirmado' for '${opts.prizeName}': Missing required recipient (userId).`);
-  } else {
+  if (opts.userId) {
     dispatchPushNotification('resgate_confirmado', opts.familiaId, {
       userId: opts.userId,
       prizeName: opts.prizeName,
     });
+  } else {
+    console.warn(`[push] Not dispatching 'resgate_confirmado' for '${opts.prizeName}': Missing required recipient (userId).`);
   }
   
   return { error: null };
@@ -259,13 +259,13 @@ export async function cancelRedemption(
   if (error) return { error: localizeRpcError(error.message) };
 
   if (opts) {
-    if (!opts.userId) {
-      console.warn(`[push] Not dispatching 'resgate_cancelado' for '${opts.prizeName}': Missing required recipient (userId).`);
-    } else {
+    if (opts.userId) {
       dispatchPushNotification('resgate_cancelado', opts.familiaId, {
         userId: opts.userId,
         prizeName: opts.prizeName,
       });
+    } else {
+      console.warn(`[push] Not dispatching 'resgate_cancelado' for '${opts.prizeName}': Missing required recipient (userId).`);
     }
   }
   
@@ -325,16 +325,16 @@ export async function requestRedemption(
   });
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
-  if (!opts) {
-    console.warn("[push] Not dispatching 'resgate_solicitado': Missing profile context (familiaId).");
-  } else {
+  if (opts) {
     dispatchPushNotification('resgate_solicitado', opts.familiaId, {
       childName: opts.childName,
       prizeName: opts.prizeName,
     });
+  } else {
+    console.warn("[push] Not dispatching 'resgate_solicitado': Missing profile context (familiaId).");
   }
   // RPC solicitar_resgate returns the redemption ID as text
-  return { data: data as string, error: null };
+  return { data: data, error: null };
 }
 
 export async function countPendingRedemptions(): Promise<{

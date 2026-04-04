@@ -241,7 +241,7 @@ export default function ChildTaskDetailScreen() {
   useFocusEffect(useCallback(() => {
     setCompletionError(null);
     setCancelError(null);
-    void refetch();
+    refetch();
   }, [refetch]));
 
   const handleComplete = async () => {
