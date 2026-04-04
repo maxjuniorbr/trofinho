@@ -23,6 +23,7 @@ describe('localizeRpcError', () => {
     expect(localizeRpcError('Título obrigatório')).toBe('Título obrigatório.');
     expect(localizeRpcError('Atribuição não encontrada ou não está aguardando validação')).toBe('Registro não encontrado.');
     expect(localizeRpcError('Esta tarefa já foi concluída e não pode ser editada.')).toBe('Esta tarefa já foi concluída e não pode ser editada.');
+    expect(localizeRpcError('Limite de operações atingido. Tente novamente em alguns minutos.')).toBe('Muitas tentativas. Aguarde um momento e tente novamente.');
   });
 
   it('returns a generic fallback for unknown RPC errors', () => {
