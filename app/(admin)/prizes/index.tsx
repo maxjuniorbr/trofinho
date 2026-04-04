@@ -90,10 +90,13 @@ export default function AdminPrizesScreen() {
           contentContainerStyle={styles.lista}
           refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} tintColor={colors.brand.vivid} />}
           ListHeaderComponent={
-            <Text style={styles.resumo}>
-              {active.length} ativo{active.length === 1 ? '' : 's'}
-              {inactiveSummary}
-            </Text>
+            <>
+              <View style={{ height: spacing['4'] }} />
+              <Text style={styles.resumo}>
+                {active.length} ativo{active.length === 1 ? '' : 's'}
+                {inactiveSummary}
+              </Text>
+            </>
           }
           renderItem={({ item }) => (
             <View
@@ -155,7 +158,7 @@ function makeStyles(colors: ThemeColors) {
       paddingHorizontal: spacing['4'],
       paddingTop: spacing['4'],
     },
-    lista: { padding: spacing['4'], gap: spacing['3'], paddingBottom: spacing['12'] },
+    lista: { paddingHorizontal: spacing['4'], gap: spacing['3'] },
     resumo: { fontSize: typography.size.xs, color: colors.text.muted, marginBottom: spacing['1'] },
     card: {
       backgroundColor: colors.bg.surface,
