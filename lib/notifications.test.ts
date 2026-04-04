@@ -26,6 +26,8 @@ vi.mock('expo-constants', () => ({
   ExecutionEnvironment: { StoreClient: 'storeClient' },
 }));
 
+vi.mock('expo-crypto', () => ({ randomUUID: () => '00000000-0000-0000-0000-000000000000' }));
+
 vi.mock('expo-device', () => ({ isDevice: true }));
 
 vi.mock('expo-notifications', () => ({

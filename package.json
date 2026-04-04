@@ -27,6 +27,7 @@
     "expo": "~55.0.11",
     "expo-clipboard": "~55.0.11",
     "expo-constants": "~55.0.11",
+    "expo-crypto": "~55.0.12",
     "expo-dev-client": "~55.0.22",
     "expo-device": "~55.0.12",
     "expo-file-system": "~55.0.14",
