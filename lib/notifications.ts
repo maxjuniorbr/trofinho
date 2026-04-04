@@ -329,56 +329,49 @@ export async function scheduleLocalNotification(
 }
 
 export async function getNotificationPrefs(): Promise<NotificationPrefs> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('notif_prefs')
+        .eq('id', user.id)
+        .single();
+
+      if (!error && data?.notif_prefs) {
+        const serverPrefs = data.notif_prefs as NotificationPrefs;
+        await deviceStorage.setItem(
+          NOTIFICATION_PREFERENCES_KEY,
+          JSON.stringify(serverPrefs),
+        );
+        return serverPrefs;
+      }
+    }
+  } catch {
+    // Network error — fall back to local cache
+  }
+
   const rawPreferences = await deviceStorage.getItem(NOTIFICATION_PREFERENCES_KEY);
   return normalizeNotificationPrefs(rawPreferences);
-}
-
-export async function syncPrefsToServer(prefs: NotificationPrefs): Promise<void> {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    await supabase
-      .from('usuarios')
-      .update({ notif_prefs: prefs })
-      .eq('id', user.id);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-export async function syncPrefsFromServer(): Promise<void> {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('usuarios')
-      .select('notif_prefs')
-      .eq('id', user.id)
-      .single();
-
-    if (error || !data?.notif_prefs) return;
-
-    const serverPrefs = data.notif_prefs as NotificationPrefs;
-    await deviceStorage.setItem(
-      NOTIFICATION_PREFERENCES_KEY,
-      JSON.stringify(serverPrefs),
-    );
-  } catch (error) {
-    console.error(error);
-  }
 }
 
 export async function setNotificationPrefs(
   preferences: NotificationPrefs,
 ): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Usuário não autenticado.');
+
+  const { error } = await supabase
+    .from('usuarios')
+    .update({ notif_prefs: preferences })
+    .eq('id', user.id);
+
+  if (error) throw error;
+
   await deviceStorage.setItem(
     NOTIFICATION_PREFERENCES_KEY,
     JSON.stringify(preferences),
   );
-  // Fire-and-forget: sync to server, errors logged to console
-  syncPrefsToServer(preferences);
 }
 
 export async function isNotificationPermissionDenied(): Promise<boolean> {
