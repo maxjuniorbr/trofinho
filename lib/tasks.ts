@@ -299,8 +299,9 @@ export async function listChildAssignments(
   error: string | null;
 }> {
   const today = toDateString(new Date());
+  const sevenDaysAgo = toDateString(new Date(Date.now() - 7 * 86_400_000));
   const visibleAssignmentsFilter =
-    `competencia.is.null,competencia.eq.${today},status.in.(aprovada,rejeitada)`;
+    `competencia.is.null,competencia.eq.${today},and(competencia.gte.${sevenDaysAgo},status.in.(aprovada,rejeitada))`;
 
   const from = page * pageSize;
   const to = from + pageSize;

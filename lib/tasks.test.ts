@@ -624,7 +624,7 @@ describe('tasks', () => {
     });
 
     expect(query.or).toHaveBeenCalledWith(
-      'competencia.is.null,competencia.eq.2026-03-15,status.in.(aprovada,rejeitada)'
+      'competencia.is.null,competencia.eq.2026-03-15,and(competencia.gte.2026-03-08,status.in.(aprovada,rejeitada))'
     );
 
     vi.useRealTimers();
