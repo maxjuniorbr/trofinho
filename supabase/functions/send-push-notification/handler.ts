@@ -71,15 +71,44 @@ export interface SupabaseClientLike {
   };
   from(table: string): {
     select(columns: string): {
-      eq(column: string, value: string): {
-        eq(column: string, value: string): PromiseLike<{ data: Record<string, unknown>[] | null; error: unknown }>;
+      eq(
+        column: string,
+        value: string,
+      ): {
+        eq(
+          column: string,
+          value: string,
+        ): PromiseLike<{ data: Record<string, unknown>[] | null; error: unknown }>;
       } & PromiseLike<{ data: Record<string, unknown>[] | null; error: unknown }>;
-      in(column: string, values: string[]): PromiseLike<{ data: Record<string, unknown>[] | null; error: unknown }>;
+      in(
+        column: string,
+        values: string[],
+      ): PromiseLike<{ data: Record<string, unknown>[] | null; error: unknown }>;
     };
     delete(): {
       in(column: string, values: string[]): PromiseLike<{ error: unknown }>;
     };
   };
+}
+
+export const ADMIN_ONLY_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>([
+  'tarefa_criada',
+  'tarefa_aprovada',
+  'tarefa_rejeitada',
+  'resgate_confirmado',
+]);
+
+export const FILHO_ONLY_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>([
+  'tarefa_concluida',
+  'resgate_solicitado',
+]);
+
+// resgate_cancelado is allowed for both roles (admin and filho can cancel pending redemptions)
+
+export function isEventAllowedForRole(event: PushEvent, papel: string): boolean {
+  if (ADMIN_ONLY_EVENTS.has(event)) return papel === 'admin';
+  if (FILHO_ONLY_EVENTS.has(event)) return papel === 'filho';
+  return true;
 }
 
 // ─── Validation helpers ──────────────────────────────────────────────────────
@@ -94,13 +123,15 @@ const VALID_EVENTS: ReadonlySet<string> = new Set<PushEvent>([
   'tarefa_concluida',
 ]);
 
-export function validateRequest(body: unknown): {
-  valid: true;
-  data: PushNotificationRequest;
-} | {
-  valid: false;
-  error: string;
-} {
+export function validateRequest(body: unknown):
+  | {
+      valid: true;
+      data: PushNotificationRequest;
+    }
+  | {
+      valid: false;
+      error: string;
+    } {
   if (body === null || typeof body !== 'object') {
     return { valid: false, error: 'Request body must be a JSON object' };
   }
@@ -209,9 +240,7 @@ const ADMIN_TARGETED_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>([
 ]);
 
 /** Events targeting multiple children via filhoIds. */
-const MULTI_CHILD_TARGETED_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>([
-  'tarefa_criada',
-]);
+const MULTI_CHILD_TARGETED_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>(['tarefa_criada']);
 
 const PREFERENCE_KEY_MAP: Record<PushEvent, keyof NotificationPrefs> = {
   tarefa_aprovada: 'tarefaAprovada',
@@ -243,10 +272,7 @@ export async function resolveRecipientUserIds(
     const filhoIds = (payload as { filhoIds: string[] }).filhoIds;
     if (!filhoIds || filhoIds.length === 0) return [];
 
-    const { data, error } = await supabase
-      .from('filhos')
-      .select('usuario_id')
-      .in('id', filhoIds);
+    const { data, error } = await supabase.from('filhos').select('usuario_id').in('id', filhoIds);
 
     if (error) {
       console.error('[send-push-notification] Error resolving filhoIds to user IDs:', error);
@@ -336,9 +362,7 @@ const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
  * Sends an array of ExpoPushMessages to the Expo Push API.
  * Returns the ticket results from the API response.
  */
-export async function sendToExpoPushApi(
-  messages: ExpoPushMessage[],
-): Promise<ExpoTicketResult[]> {
+export async function sendToExpoPushApi(messages: ExpoPushMessage[]): Promise<ExpoTicketResult[]> {
   const response = await fetch(EXPO_PUSH_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -349,7 +373,7 @@ export async function sendToExpoPushApi(
     throw new Error(`Expo Push API returned HTTP ${response.status}`);
   }
 
-  const json = await response.json() as { data: ExpoTicketResult[] };
+  const json = (await response.json()) as { data: ExpoTicketResult[] };
   return json.data;
 }
 
@@ -389,10 +413,7 @@ export async function processTicketResults(
   }
 
   if (tokensToDelete.length > 0) {
-    const { error } = await supabase
-      .from('push_tokens')
-      .delete()
-      .in('token', tokensToDelete);
+    const { error } = await supabase.from('push_tokens').delete().in('token', tokensToDelete);
 
     if (error) {
       console.error('[send-push-notification] Error deleting invalid tokens:', error);
@@ -414,38 +435,38 @@ export interface HandlerDeps {
 
 export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Response> {
   if (req.method !== 'POST') {
-    return new Response(
-      JSON.stringify({ error: 'Method not allowed' }),
-      { status: 405, headers: { 'Content-Type': 'application/json' } },
-    );
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   // Auth check: accept any Bearer token (user JWT from supabase.functions.invoke).
   // The service role key is used internally for DB queries that bypass RLS.
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.replace(/^Bearer\s+/i, '').trim()) {
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized' }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } },
-    );
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   const serviceRoleKey = deps.getServiceRoleKey();
   if (!serviceRoleKey) {
-    return new Response(
-      JSON.stringify({ error: 'Internal error' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } },
-    );
+    return new Response(JSON.stringify({ error: 'Internal error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   // S22: Reject oversized payloads before parsing
   const MAX_BODY_BYTES = 10_240; // 10 KB
   const contentLength = Number(req.headers.get('content-length') ?? 0);
   if (contentLength > MAX_BODY_BYTES) {
-    return new Response(
-      JSON.stringify({ error: 'Payload too large' }),
-      { status: 413, headers: { 'Content-Type': 'application/json' } },
-    );
+    return new Response(JSON.stringify({ error: 'Payload too large' }), {
+      status: 413,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   // Parse body
@@ -453,19 +474,19 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
   try {
     body = await req.json();
   } catch {
-    return new Response(
-      JSON.stringify({ error: 'Invalid request body' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } },
-    );
+    return new Response(JSON.stringify({ error: 'Invalid request body' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   // Validate body
   const validation = validateRequest(body);
   if (!validation.valid) {
-    return new Response(
-      JSON.stringify({ error: 'Invalid request body' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } },
-    );
+    return new Response(JSON.stringify({ error: 'Invalid request body' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   const { event, familiaId, payload } = validation.data;
@@ -477,31 +498,39 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
   const userToken = authHeader.replace(/^Bearer\s+/i, '');
   const { data: authData, error: authError } = await supabase.auth.getUser(userToken);
   if (authError || !authData.user) {
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized' }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } },
-    );
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
   const callerId = authData.user.id;
 
   const { data: callerRows, error: callerError } = await supabase
     .from('usuarios')
-    .select('familia_id')
+    .select('familia_id, papel')
     .eq('id', callerId);
 
   if (callerError || !callerRows || callerRows.length === 0) {
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized' }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } },
-    );
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   const callerFamiliaId = callerRows[0].familia_id as string;
   if (callerFamiliaId !== familiaId) {
-    return new Response(
-      JSON.stringify({ error: 'Forbidden' }),
-      { status: 403, headers: { 'Content-Type': 'application/json' } },
-    );
+    return new Response(JSON.stringify({ error: 'Forbidden' }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const callerPapel = callerRows[0].papel as string;
+  if (!isEventAllowedForRole(event, callerPapel)) {
+    return new Response(JSON.stringify({ error: 'Forbidden' }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   try {
@@ -518,15 +547,18 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
     const tickets = await sendToExpoPushApi(messages);
     const response = await processTicketResults(supabase, tickets, tokens);
 
-    return new Response(
-      JSON.stringify(response),
-      { status: 200, headers: { 'Content-Type': 'application/json' } },
-    );
+    return new Response(JSON.stringify(response), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (error) {
-    console.error(`[send-push-notification] Error processing ${event} for family ${familiaId}:`, error);
-    return new Response(
-      JSON.stringify({ error: 'Internal error' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } },
+    console.error(
+      `[send-push-notification] Error processing ${event} for family ${familiaId}:`,
+      error,
     );
+    return new Response(JSON.stringify({ error: 'Internal error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
