@@ -56,7 +56,7 @@ export default function AdminRedemptionsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useAdminRedemptions();
+  const { data, isLoading, isFetching, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useAdminRedemptions();
   const redemptions = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
   const { data: profile } = useProfile();
   const confirmMutation = useConfirmRedemption();
@@ -155,7 +155,7 @@ export default function AdminRedemptionsScreen() {
           data={redemptions}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
-          refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} tintColor={colors.brand.vivid} />}
+          refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.brand.vivid} />}
           ListHeaderComponent={
             <>
               <View style={{ height: spacing['4'] }} />

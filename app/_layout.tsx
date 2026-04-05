@@ -217,8 +217,12 @@ function RootNavigator({
     let unsubscribe: () => void = () => undefined;
 
     const setupNotificationNavigation = async () => {
-      const cleanup = await subscribeToNotificationNavigation((route) => {
-        router.push(route);
+      const cleanup = await subscribeToNotificationNavigation((target) => {
+        if (target.entityId) {
+          router.push(`${target.route}/${target.entityId}` as never);
+        } else {
+          router.push(target.route);
+        }
       });
 
       if (active) {

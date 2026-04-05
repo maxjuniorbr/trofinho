@@ -100,7 +100,7 @@ export default function AdminTasksScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useAdminTasks();
+  const { data, isLoading, isFetching, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useAdminTasks();
   const tasks = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
   const [sort, setSort] = useState<AdminTaskSort>('action_first');
   const [successFeedback, setSuccessFeedback] = useState<NavigationFeedback | null>(null);
@@ -160,7 +160,7 @@ export default function AdminTasksScreen() {
           data={sortedTasks}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
-          refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} tintColor={colors.brand.vivid} />}
+          refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.brand.vivid} />}
           onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
           onEndReachedThreshold={0.5}
           ListHeaderComponent={<View style={{ height: spacing['4'] }} />}

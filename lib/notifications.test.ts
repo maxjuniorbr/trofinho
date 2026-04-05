@@ -79,16 +79,32 @@ describe('notifications', () => {
 
   describe('getNotificationRoute', () => {
     it('returns the admin tasks route', () => {
-      expect(getNotificationRoute({ route: '/(admin)/tasks' })).toBe('/(admin)/tasks');
+      expect(getNotificationRoute({ route: '/(admin)/tasks' })).toEqual({ route: '/(admin)/tasks', entityId: undefined });
     });
 
     it('returns the admin redemptions route', () => {
-      expect(getNotificationRoute({ route: '/(admin)/redemptions' })).toBe('/(admin)/redemptions');
+      expect(getNotificationRoute({ route: '/(admin)/redemptions' })).toEqual({ route: '/(admin)/redemptions', entityId: undefined });
     });
 
     it('returns child routes', () => {
-      expect(getNotificationRoute({ route: '/(child)/tasks' })).toBe('/(child)/tasks');
-      expect(getNotificationRoute({ route: '/(child)/redemptions' })).toBe('/(child)/redemptions');
+      expect(getNotificationRoute({ route: '/(child)/tasks' })).toEqual({ route: '/(child)/tasks', entityId: undefined });
+      expect(getNotificationRoute({ route: '/(child)/redemptions' })).toEqual({ route: '/(child)/redemptions', entityId: undefined });
+    });
+
+    it('includes entityId when present', () => {
+      expect(getNotificationRoute({ route: '/(child)/tasks', entityId: 'abc-123' })).toEqual({
+        route: '/(child)/tasks',
+        entityId: 'abc-123',
+      });
+      expect(getNotificationRoute({ route: '/(admin)/tasks', entityId: 'task-456' })).toEqual({
+        route: '/(admin)/tasks',
+        entityId: 'task-456',
+      });
+    });
+
+    it('ignores empty or non-string entityId', () => {
+      expect(getNotificationRoute({ route: '/(child)/tasks', entityId: '' })).toEqual({ route: '/(child)/tasks', entityId: undefined });
+      expect(getNotificationRoute({ route: '/(child)/tasks', entityId: 42 })).toEqual({ route: '/(child)/tasks', entityId: undefined });
     });
 
     it('returns null for an unknown route', () => {
@@ -135,17 +151,11 @@ describe('notifications', () => {
       await expect(getNotificationPrefs()).resolves.toEqual(DEFAULT_NOTIFICATION_PREFS);
     });
 
-    it('normalizes legacy camelCase keys from local cache', async () => {
+    it('returns defaults for unrecognized legacy keys in local cache', async () => {
       getUserMock.mockRejectedValue(new Error('offline'));
       const legacy = { pendingTasks: false, completedTask: true, requestedRedemption: false };
       deviceStorageGetMock.mockResolvedValue(JSON.stringify(legacy));
-      const prefs = await getNotificationPrefs();
-      expect(prefs.tarefasPendentes).toBe(false);
-      expect(prefs.tarefaAprovada).toBe(true);
-      expect(prefs.tarefaRejeitada).toBe(true);
-      expect(prefs.tarefaConcluida).toBe(true);
-      expect(prefs.resgatesSolicitado).toBe(false);
-      expect(prefs.resgateConfirmado).toBe(false);
+      await expect(getNotificationPrefs()).resolves.toEqual(DEFAULT_NOTIFICATION_PREFS);
     });
 
     it('returns defaults for invalid JSON in local cache', async () => {

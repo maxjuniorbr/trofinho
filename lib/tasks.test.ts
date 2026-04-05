@@ -903,7 +903,7 @@ describe('tasks', () => {
       expect(dispatchPushNotificationMock).toHaveBeenCalledWith(
         'tarefa_aprovada',
         'family-1',
-        { userId: 'child-user-1', taskTitle: 'Arrumar a cama' },
+        { userId: 'child-user-1', taskTitle: 'Arrumar a cama', entityId: 'assignment-1' },
       );
     });
 
@@ -919,7 +919,7 @@ describe('tasks', () => {
       expect(dispatchPushNotificationMock).toHaveBeenCalledWith(
         'tarefa_rejeitada',
         'family-1',
-        { userId: 'child-user-1', taskTitle: 'Lavar louça' },
+        { userId: 'child-user-1', taskTitle: 'Lavar louça', entityId: 'assignment-1' },
       );
     });
 

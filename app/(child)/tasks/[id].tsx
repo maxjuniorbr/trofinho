@@ -34,6 +34,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { StickyFooterScreen } from '@/components/ui/sticky-footer-screen';
 import { Button } from '@/components/ui/button';
 import { InlineMessage } from '@/components/ui/inline-message';
+import { FullscreenImageViewer } from '@/components/ui/fullscreen-image-viewer';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 
 type EvidenceSectionProps = Readonly<{
@@ -43,11 +44,12 @@ type EvidenceSectionProps = Readonly<{
   onImgLoadStart: () => void;
   onImgLoadEnd: () => void;
   onImgError: () => void;
+  onImagePress: (url: string) => void;
   colors: ThemeColors;
   styles: ReturnType<typeof makeStyles>;
 }>;
 
-function EvidenceSection({ evidenceUrl, imgLoading, imgError, onImgLoadStart, onImgLoadEnd, onImgError, colors, styles }: EvidenceSectionProps) {
+function EvidenceSection({ evidenceUrl, imgLoading, imgError, onImgLoadStart, onImgLoadEnd, onImgError, onImagePress, colors, styles }: EvidenceSectionProps) {
   if (!evidenceUrl) return null;
 
   if (imgError) {
@@ -64,7 +66,12 @@ function EvidenceSection({ evidenceUrl, imgLoading, imgError, onImgLoadStart, on
   return (
     <View style={styles.evidenceBox}>
       <Text style={styles.evidenceLabel}>Foto enviada:</Text>
-      <View style={styles.evidenceImgWrapper}>
+      <Pressable
+        style={styles.evidenceImgWrapper}
+        onPress={() => onImagePress(evidenceUrl)}
+        accessibilityRole="button"
+        accessibilityLabel="Ver foto em tela cheia"
+      >
         <Image
           source={evidenceUrl}
           style={styles.evidenceImg}
@@ -79,7 +86,7 @@ function EvidenceSection({ evidenceUrl, imgLoading, imgError, onImgLoadStart, on
             <ActivityIndicator size="small" color={colors.accent.filho} />
           </View>
         ) : null}
-      </View>
+      </Pressable>
     </View>
   );
 }
@@ -237,6 +244,7 @@ export default function ChildTaskDetailScreen() {
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [feedbackKey, setFeedbackKey] = useState(0);
   const visibleFeedback = useTransientMessage(feedbackMessage, { resetKey: feedbackKey });
+  const [fullscreenImageUrl, setFullscreenImageUrl] = useState<string | null>(null);
 
   useFocusEffect(useCallback(() => {
     setCompletionError(null);
@@ -279,6 +287,7 @@ export default function ChildTaskDetailScreen() {
           familiaId: latestAssignment.tarefas.familia_id,
           childName: profile?.nome ?? '',
           taskTitle: latestAssignment.tarefas.titulo,
+          taskId: latestAssignment.tarefas.id,
         },
       });
     } catch (error_) {
@@ -391,6 +400,7 @@ export default function ChildTaskDetailScreen() {
     );
 
   return (
+    <>
     <StickyFooterScreen
       title="Detalhe"
       onBack={() => router.back()}
@@ -450,6 +460,7 @@ export default function ChildTaskDetailScreen() {
         onImgLoadStart={() => setImgLoading(true)}
         onImgLoadEnd={() => setImgLoading(false)}
         onImgError={() => { setImgLoading(false); setImgError(true); }}
+        onImagePress={(url) => setFullscreenImageUrl(url)}
         colors={colors}
         styles={styles}
       />
@@ -462,6 +473,15 @@ export default function ChildTaskDetailScreen() {
         </View>
       ) : null}
     </StickyFooterScreen>
+
+    {fullscreenImageUrl ? (
+      <FullscreenImageViewer
+        visible
+        imageUrl={fullscreenImageUrl}
+        onClose={() => setFullscreenImageUrl(null)}
+      />
+    ) : null}
+    </>
   );
 }
 

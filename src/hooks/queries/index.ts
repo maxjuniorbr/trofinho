@@ -8,5 +8,5 @@ export { useBalance, useAdminBalances, useTransactions, useApplyPenalty, useConf
 export { useChildrenList, useChildDetail, useDeactivateChild, useReactivateChild } from './use-children';
 export { usePrizes, usePrizeDetail, useActivePrizes, usePendingRedemptionCount, useCreatePrize, useUpdatePrize, useDeactivatePrize, useReactivatePrize } from './use-prizes';
 export { useAdminRedemptions, useChildRedemptions, useConfirmRedemption, useCancelRedemption, useRequestRedemption } from './use-redemptions';
-export { useProfile, useCurrentAuthUser, useNotificationPrefs, useUpdateUserName, useUpdateUserPassword, useUpdateUserAvatar } from './use-profile';
+export { useProfile, useCurrentAuthUser, useNotificationPrefs, useUpdateUserName, useUpdateUserPassword, useUpdateUserAvatar, useDeleteAccount } from './use-profile';
 export { useFamily } from './use-family';

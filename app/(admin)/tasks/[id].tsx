@@ -31,6 +31,7 @@ import { Button } from '@/components/ui/button';
 import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { InlineMessage } from '@/components/ui/inline-message';
+import { FullscreenImageViewer } from '@/components/ui/fullscreen-image-viewer';
 import { getSafeBottomPadding } from '@lib/safe-area';
 
 type DateLine = { label: string; date: string };
@@ -77,6 +78,7 @@ type AssignmentCardProps = Readonly<{
   onCancelReject: () => void;
   onNoteChange: (value: string) => void;
   onImageStateChange: (state: 'loading' | 'loaded' | 'error') => void;
+  onImagePress: (url: string) => void;
 }>;
 
 function AssignmentCard({
@@ -93,6 +95,7 @@ function AssignmentCard({
   onCancelReject,
   onNoteChange,
   onImageStateChange,
+  onImagePress,
 }: AssignmentCardProps) {
   const processing = action === 'processing';
   const statusColor = getAssignmentStatusColor(assignment.status, colors);
@@ -120,7 +123,12 @@ function AssignmentCard({
             <Text style={[styles.evidenciaFallbackText, { color: colors.text.muted }]}>Não foi possível carregar a imagem</Text>
           </View>
         ) : (
-          <View style={styles.evidenciaImgWrapper}>
+          <Pressable
+            style={styles.evidenciaImgWrapper}
+            onPress={() => onImagePress(evidenceUrl)}
+            accessibilityRole="button"
+            accessibilityLabel="Ver foto em tela cheia"
+          >
             <Image
               source={evidenceUrl}
               style={styles.evidenciaImg}
@@ -135,7 +143,7 @@ function AssignmentCard({
                 <ActivityIndicator size="small" color={colors.accent.admin} />
               </View>
             )}
-          </View>
+          </Pressable>
         )
       )}
 
@@ -240,6 +248,7 @@ export default function TaskDetailAdminScreen() {
   const [feedbackVariant, setFeedbackVariant] = useState<'success' | 'warning'>('success');
   const [feedbackKey, setFeedbackKey] = useState(0);
   const visibleFeedback = useTransientMessage(feedbackMessage, { resetKey: feedbackKey });
+  const [fullscreenImageUrl, setFullscreenImageUrl] = useState<string | null>(null);
 
   const getAction = useCallback((assignmentId: string) => actions[assignmentId] ?? null, [actions]);
   const getNote = useCallback((assignmentId: string) => notes[assignmentId] ?? '', [notes]);
@@ -478,6 +487,7 @@ export default function TaskDetailAdminScreen() {
               onCancelReject={() => setActions((prev) => ({ ...prev, [assignment.id]: null }))}
               onNoteChange={(value) => setNotes((prev) => ({ ...prev, [assignment.id]: value }))}
               onImageStateChange={(state) => setImgStates((prev) => ({ ...prev, [assignment.id]: state }))}
+              onImagePress={(url) => setFullscreenImageUrl(url)}
             />
           ))
         )}
@@ -495,6 +505,14 @@ export default function TaskDetailAdminScreen() {
           </View>
         )}
       </ScrollView>
+
+      {fullscreenImageUrl ? (
+        <FullscreenImageViewer
+          visible
+          imageUrl={fullscreenImageUrl}
+          onClose={() => setFullscreenImageUrl(null)}
+        />
+      ) : null}
     </View>
   );
 }
