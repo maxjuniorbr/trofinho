@@ -155,6 +155,17 @@ export async function updateUserPassword(
   return { error: null };
 }
 
+export async function deleteAccount(): Promise<{ error: AuthError | null }> {
+  const { error } = await supabase.rpc('excluir_minha_conta');
+
+  if (error) {
+    return { error: { message: localizeRpcError(error.message) } };
+  }
+
+  await supabase.auth.signOut({ scope: 'local' });
+  return { error: null };
+}
+
 export async function updateUserAvatar(
   imageUri: string
 ): Promise<{ url: string | null; error: AuthError | null }> {

@@ -5,6 +5,7 @@ import {
   updateUserName,
   updateUserPassword,
   updateUserAvatar,
+  deleteAccount,
 } from '../../../lib/auth';
 import { getNotificationPrefs } from '../../../lib/notifications';
 import { queryKeys, STALE_TIMES } from './query-keys';
@@ -72,3 +73,11 @@ export const useUpdateUserAvatar = () => {
     },
   });
 };
+
+export const useDeleteAccount = () =>
+  useMutation({
+    mutationFn: async () => {
+      const result = await deleteAccount();
+      if (result.error) throw new Error(result.error.message);
+    },
+  });
