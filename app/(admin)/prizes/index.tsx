@@ -30,7 +30,7 @@ export default function AdminPrizesScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = usePrizes();
+  const { data, isLoading, isFetching, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = usePrizes();
   const prizes = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
   const [successFeedback, setSuccessFeedback] = useState<NavigationFeedback | null>(null);
   const visibleSuccessMessage = useTransientMessage(
@@ -88,7 +88,7 @@ export default function AdminPrizesScreen() {
           data={prizes}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
-          refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} tintColor={colors.brand.vivid} />}
+          refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.brand.vivid} />}
           ListHeaderComponent={
             <>
               <View style={{ height: spacing['4'] }} />

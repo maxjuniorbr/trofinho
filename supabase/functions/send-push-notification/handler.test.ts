@@ -6,6 +6,7 @@ import {
   isPreferenceEnabled,
   getPreferenceKey,
   resolveRecipientUserIds,
+  resolveTokens,
   validateRequest,
   buildMessage,
   type SupabaseClientLike,
@@ -394,6 +395,363 @@ describe('handleRequest — Expo Push API integration', () => {
 
     expect(res.status).toBe(403);
     expect(json.error).toBe('Forbidden');
+  });
+});
+
+// ─── handleRequest — error paths ─────────────────────────────────────────────
+
+describe('handleRequest — error paths', () => {
+  const SERVICE_KEY = 'test-service-role-key';
+  const FAKE_JWT = 'valid-test-token';
+
+  const makeDeps = (supabase: SupabaseClientLike, overrides?: Partial<HandlerDeps>): HandlerDeps => ({
+    getServiceRoleKey: () => SERVICE_KEY,
+    getSupabaseUrl: () => 'https://test.supabase.co',
+    createSupabaseClient: () => supabase,
+    ...overrides,
+  });
+
+  const makeReqWithMethod = (method: string, body?: Record<string, unknown>): Request =>
+    new Request('https://localhost/send-push-notification', {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${FAKE_JWT}`,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    }) as unknown as Request;
+
+  const makeReqWithHeaders = (headers: Record<string, string>, body?: Record<string, unknown>): Request =>
+    new Request('https://localhost/send-push-notification', {
+      method: 'POST',
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    }) as unknown as Request;
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('returns HTTP 405 for non-POST methods', async () => {
+    const supabase = createMockSupabase();
+    const res = await handleRequest(makeReqWithMethod('GET'), makeDeps(supabase));
+    const json = await res.json() as { error: string };
+
+    expect(res.status).toBe(405);
+    expect(json.error).toBe('Method not allowed');
+  });
+
+  it('returns HTTP 401 when Authorization header is missing', async () => {
+    const supabase = createMockSupabase();
+    const req = makeReqWithHeaders(
+      { 'Content-Type': 'application/json' },
+      { event: 'tarefa_aprovada', familiaId: 'fam-1', payload: { userId: 'u1', taskTitle: 't' } },
+    );
+
+    const res = await handleRequest(req, makeDeps(supabase));
+    const json = await res.json() as { error: string };
+
+    expect(res.status).toBe(401);
+    expect(json.error).toBe('Unauthorized');
+  });
+
+  it('returns HTTP 500 when service role key is missing', async () => {
+    const supabase = createMockSupabase();
+    const req = makeReqWithMethod('POST', {
+      event: 'tarefa_aprovada',
+      familiaId: 'fam-1',
+      payload: { userId: 'u1', taskTitle: 't' },
+    });
+
+    const deps = makeDeps(supabase, { getServiceRoleKey: () => undefined });
+    const res = await handleRequest(req, deps);
+    const json = await res.json() as { error: string };
+
+    expect(res.status).toBe(500);
+    expect(json.error).toBe('Internal error');
+  });
+
+  it('returns HTTP 413 when content-length exceeds 10 KB', async () => {
+    const supabase = createMockSupabase();
+    const req = new Request('https://localhost/send-push-notification', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${FAKE_JWT}`,
+        'content-length': '20000',
+      },
+      body: JSON.stringify({ event: 'tarefa_aprovada', familiaId: 'fam-1', payload: {} }),
+    }) as unknown as Request;
+
+    const res = await handleRequest(req, makeDeps(supabase));
+    const json = await res.json() as { error: string };
+
+    expect(res.status).toBe(413);
+    expect(json.error).toBe('Payload too large');
+  });
+
+  it('returns HTTP 400 for invalid JSON body', async () => {
+    const supabase = createMockSupabase();
+    const req = new Request('https://localhost/send-push-notification', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${FAKE_JWT}`,
+      },
+      body: 'not-json{{{',
+    }) as unknown as Request;
+
+    const res = await handleRequest(req, makeDeps(supabase));
+    const json = await res.json() as { error: string };
+
+    expect(res.status).toBe(400);
+    expect(json.error).toBe('Invalid request body');
+  });
+
+  it('returns HTTP 400 for invalid event in validated body', async () => {
+    const supabase = createMockSupabase();
+    const req = makeReqWithMethod('POST', {
+      event: 'invalid_event',
+      familiaId: 'fam-1',
+      payload: { userId: 'u1' },
+    });
+
+    const res = await handleRequest(req, makeDeps(supabase));
+    const json = await res.json() as { error: string };
+
+    expect(res.status).toBe(400);
+    expect(json.error).toBe('Invalid request body');
+  });
+
+  it('returns HTTP 401 when caller DB lookup returns no rows', async () => {
+    const supabase = createMockSupabase();
+    // Override from('usuarios').select().eq() to return empty data
+    supabase.from = vi.fn().mockImplementation((table: string) => {
+      if (table === 'usuarios') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+          }),
+        };
+      }
+      return createMockSupabase().from(table);
+    }) as SupabaseClientLike['from'];
+
+    const req = makeReqWithMethod('POST', {
+      event: 'tarefa_aprovada',
+      familiaId: 'fam-1',
+      payload: { userId: 'user-1', taskTitle: 'Test' },
+    });
+
+    const res = await handleRequest(req, makeDeps(supabase));
+    const json = await res.json() as { error: string };
+
+    expect(res.status).toBe(401);
+    expect(json.error).toBe('Unauthorized');
+  });
+
+  it('returns HTTP 401 when caller DB lookup returns an error', async () => {
+    const supabase = createMockSupabase();
+    supabase.from = vi.fn().mockImplementation((table: string) => {
+      if (table === 'usuarios') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ data: null, error: { message: 'DB error' } }),
+          }),
+        };
+      }
+      return createMockSupabase().from(table);
+    }) as SupabaseClientLike['from'];
+
+    const req = makeReqWithMethod('POST', {
+      event: 'tarefa_aprovada',
+      familiaId: 'fam-1',
+      payload: { userId: 'user-1', taskTitle: 'Test' },
+    });
+
+    const res = await handleRequest(req, makeDeps(supabase));
+    const json = await res.json() as { error: string };
+
+    expect(res.status).toBe(401);
+    expect(json.error).toBe('Unauthorized');
+  });
+});
+
+// ─── resolveRecipientUserIds — error paths ───────────────────────────────────
+
+describe('resolveRecipientUserIds — error paths', () => {
+  it('returns [] when filhoIds is empty', async () => {
+    const supabase = createMockSupabase();
+    const result = await resolveRecipientUserIds(
+      supabase,
+      'tarefa_criada',
+      'fam-1',
+      { filhoIds: [], taskTitle: 'Test' },
+    );
+    expect(result).toEqual([]);
+  });
+
+  it('returns [] when filhoIds DB query fails', async () => {
+    const supabase = createMockSupabase();
+    supabase.from = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        in: vi.fn().mockResolvedValue({ data: null, error: { message: 'DB error' } }),
+      }),
+    }) as SupabaseClientLike['from'];
+
+    const result = await resolveRecipientUserIds(
+      supabase,
+      'tarefa_criada',
+      'fam-1',
+      { filhoIds: ['f-1'], taskTitle: 'Test' },
+    );
+    expect(result).toEqual([]);
+  });
+
+  it('filters out filhos with null usuario_id', async () => {
+    const supabase = createMockSupabase();
+    supabase.from = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        in: vi.fn().mockResolvedValue({
+          data: [{ usuario_id: 'u-1' }, { usuario_id: null }, { usuario_id: 'u-3' }],
+          error: null,
+        }),
+      }),
+    }) as SupabaseClientLike['from'];
+
+    const result = await resolveRecipientUserIds(
+      supabase,
+      'tarefa_criada',
+      'fam-1',
+      { filhoIds: ['f-1', 'f-2', 'f-3'], taskTitle: 'Test' },
+    );
+    expect(result).toEqual(['u-1', 'u-3']);
+  });
+
+  it('returns [] for child event when userId is missing', async () => {
+    const supabase = createMockSupabase();
+    const result = await resolveRecipientUserIds(
+      supabase,
+      'tarefa_aprovada',
+      'fam-1',
+      { userId: '', taskTitle: 'Test' } as EventPayload,
+    );
+    expect(result).toEqual([]);
+  });
+
+  it('returns [] when admin query fails for admin-targeted event', async () => {
+    const supabase = createMockSupabase({
+      selectUsuariosResult: { data: null, error: { message: 'DB error' } },
+    });
+
+    const result = await resolveRecipientUserIds(
+      supabase,
+      'resgate_solicitado',
+      'fam-1',
+      { childName: 'Ana', prizeName: 'Bici' },
+    );
+    expect(result).toEqual([]);
+  });
+});
+
+// ─── resolveTokens — error paths ─────────────────────────────────────────────
+
+describe('resolveTokens — error paths', () => {
+  it('returns [] when no recipient user IDs are resolved', async () => {
+    const supabase = createMockSupabase();
+    const result = await resolveTokens(
+      supabase,
+      'tarefa_criada',
+      'fam-1',
+      { filhoIds: [], taskTitle: 'Test' },
+    );
+    expect(result).toEqual([]);
+  });
+
+  it('returns [] when user preferences query fails', async () => {
+    // Override: first call resolves recipients OK, second call (usuarios prefs) fails
+    const supabase = createMockSupabase();
+    let callCount = 0;
+    supabase.from = vi.fn().mockImplementation((table: string) => {
+      if (table === 'usuarios') {
+        callCount++;
+        if (callCount === 1) {
+          // resolveRecipientUserIds for admin-targeted event
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({ data: [{ id: 'admin-1' }], error: null }),
+              }),
+            }),
+          };
+        }
+        // resolveTokens user prefs query
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockResolvedValue({ data: null, error: { message: 'DB error' } }),
+          }),
+        };
+      }
+      return createMockSupabase().from(table);
+    }) as SupabaseClientLike['from'];
+
+    const result = await resolveTokens(
+      supabase,
+      'resgate_solicitado',
+      'fam-1',
+      { childName: 'Ana', prizeName: 'Bici' },
+    );
+    expect(result).toEqual([]);
+  });
+
+  it('returns [] when all users have the preference disabled', async () => {
+    const supabase = createMockSupabase();
+    let callCount = 0;
+    supabase.from = vi.fn().mockImplementation((table: string) => {
+      if (table === 'usuarios') {
+        callCount++;
+        if (callCount === 1) {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({ data: [{ id: 'admin-1' }], error: null }),
+              }),
+            }),
+          };
+        }
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockResolvedValue({
+              data: [{ id: 'admin-1', notif_prefs: { resgatesSolicitado: false } }],
+              error: null,
+            }),
+          }),
+        };
+      }
+      return createMockSupabase().from(table);
+    }) as SupabaseClientLike['from'];
+
+    const result = await resolveTokens(
+      supabase,
+      'resgate_solicitado',
+      'fam-1',
+      { childName: 'Ana', prizeName: 'Bici' },
+    );
+    expect(result).toEqual([]);
+  });
+
+  it('returns [] when push_tokens query fails', async () => {
+    const supabase = createMockSupabase({
+      selectTokensResult: { data: null, error: { message: 'DB error' } },
+    });
+
+    const result = await resolveTokens(
+      supabase,
+      'tarefa_aprovada',
+      'fam-1',
+      { userId: 'user-1', taskTitle: 'Test' },
+    );
+    expect(result).toEqual([]);
   });
 });
 
@@ -905,6 +1263,23 @@ describe('Property 6: Message template correctness', () => {
       }),
       { numRuns: 100 },
     );
+  });
+
+  it('data.entityId is included when payload contains entityId', () => {
+    const msg = buildMessage('tarefa_aprovada', {
+      userId: 'u-1',
+      taskTitle: 'Clean room',
+      entityId: 'assignment-123',
+    });
+    expect(msg.data.entityId).toBe('assignment-123');
+  });
+
+  it('data.entityId is omitted when payload has no entityId', () => {
+    const msg = buildMessage('resgate_confirmado', {
+      userId: 'u-1',
+      prizeName: 'Bike',
+    });
+    expect(msg.data.entityId).toBeUndefined();
   });
 });
 

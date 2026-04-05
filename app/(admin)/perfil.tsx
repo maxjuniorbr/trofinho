@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   ScrollView,
   StyleSheet,
@@ -25,7 +26,8 @@ import {
   setNotificationPrefs,
   type NotificationPrefs,
 } from '@lib/notifications';
-import { useProfile, useCurrentAuthUser, useNotificationPrefs, combineQueryStates } from '@/hooks/queries';
+import { useProfile, useCurrentAuthUser, useNotificationPrefs, useDeleteAccount, combineQueryStates } from '@/hooks/queries';
+import { Button } from '@/components/ui/button';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -47,6 +49,7 @@ export default function ProfileScreen() {
   const [notificationPreferencesError, setNotificationPreferencesError] = useState<string | null>(null);
   const [savingNotificationPreferences, setSavingNotificationPreferences] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const deleteAccountMutation = useDeleteAccount();
 
   // Use query data as base, local overrides for optimistic updates
   const effectivePrefs = notificationPreferences ?? notificationPrefsQuery.data ?? null;
@@ -56,6 +59,21 @@ export default function ProfileScreen() {
   const handleSignOut = async () => {
     setLoggingOut(true);
     try { await signOut(); } catch (e) { console.error(e); setLoggingOut(false); }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Excluir conta',
+      'Todos os dados da família serão apagados permanentemente. Essa ação não pode ser desfeita.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir conta',
+          style: 'destructive',
+          onPress: () => deleteAccountMutation.mutate(),
+        },
+      ],
+    );
   };
 
   const handleNotificationPreferencesChange = async (next: NotificationPrefs) => {
@@ -129,6 +147,15 @@ export default function ProfileScreen() {
           ) : null}
 
           <LogoutButton onPress={handleSignOut} loading={loggingOut} />
+
+          <Button
+            variant="danger"
+            label="Excluir minha conta"
+            loadingLabel="Excluindo…"
+            loading={deleteAccountMutation.isPending}
+            onPress={handleDeleteAccount}
+            accessibilityLabel="Excluir minha conta"
+          />
         </ScrollView>
       </SafeScreenFrame>
     </KeyboardAvoidingView>

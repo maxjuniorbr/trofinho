@@ -238,6 +238,7 @@ export async function approveAssignment(
     dispatchPushNotification('tarefa_aprovada', opts.familiaId, {
       userId: opts.userId,
       taskTitle: opts.taskTitle,
+      entityId: assignmentId,
     });
   } else {
     console.warn(`[push] Not dispatching 'tarefa_aprovada' for '${opts.taskTitle}': Missing required recipient (userId).`);
@@ -262,6 +263,7 @@ export async function rejectAssignment(
     dispatchPushNotification('tarefa_rejeitada', opts.familiaId, {
       userId: opts.userId,
       taskTitle: opts.taskTitle,
+      entityId: assignmentId,
     });
   } else {
     console.warn(`[push] Not dispatching 'tarefa_rejeitada' for '${opts.taskTitle}': Missing required recipient (userId).`);
@@ -333,7 +335,7 @@ export async function getChildAssignment(
 export async function completeAssignment(
   assignmentId: string,
   imageUri: string | null,
-  opts: { familiaId: string; childName: string; taskTitle: string },
+  opts: { familiaId: string; childName: string; taskTitle: string; taskId?: string },
 ): Promise<{ error: string | null }> {
   let evidenceUrl: string | undefined;
 
@@ -353,6 +355,7 @@ export async function completeAssignment(
   dispatchPushNotification('tarefa_concluida', opts.familiaId, {
     childName: opts.childName,
     taskTitle: opts.taskTitle,
+    ...(opts.taskId ? { entityId: opts.taskId } : {}),
   });
   return { error: null };
 }

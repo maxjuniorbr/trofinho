@@ -72,19 +72,6 @@ type NotificationData = Readonly<{
   route: NotificationRoute;
 }>;
 
-type LegacyNotificationPrefs = Partial<{
-  pendingTasks: boolean;
-  completedTask: boolean;
-  requestedRedemption: boolean;
-  tarefas_pendentes: boolean;
-  tarefa_concluida: boolean;
-  resgate_solicitado: boolean;
-  // New granular keys (may or may not exist in stored JSON)
-  tarefaAprovada: boolean;
-  tarefaRejeitada: boolean;
-  resgateConfirmado: boolean;
-}>;
-
 export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   tarefasPendentes: true,
   tarefaAprovada: true,
@@ -99,10 +86,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function getBooleanValue(...values: unknown[]): boolean | undefined {
-  return values.find((value): value is boolean => typeof value === 'boolean');
-}
-
 function normalizeNotificationPrefs(rawPreferences: string | null): NotificationPrefs {
   if (!rawPreferences) return DEFAULT_NOTIFICATION_PREFS;
 
@@ -110,52 +93,17 @@ function normalizeNotificationPrefs(rawPreferences: string | null): Notification
     const parsed = JSON.parse(rawPreferences) as unknown;
     if (!isRecord(parsed)) return DEFAULT_NOTIFICATION_PREFS;
 
-    const legacyPreferences = parsed as LegacyNotificationPrefs & Partial<NotificationPrefs>;
+    const asBoolean = (v: unknown): boolean | undefined =>
+      typeof v === 'boolean' ? v : undefined;
 
     return {
-      tarefasPendentes:
-        getBooleanValue(
-          legacyPreferences.tarefasPendentes,
-          legacyPreferences.pendingTasks,
-          legacyPreferences.tarefas_pendentes,
-        ) ?? DEFAULT_NOTIFICATION_PREFS.tarefasPendentes,
-      tarefaAprovada:
-        getBooleanValue(
-          legacyPreferences.tarefaAprovada,
-          legacyPreferences.tarefaConcluida,
-          legacyPreferences.completedTask,
-          legacyPreferences.tarefa_concluida,
-        ) ?? DEFAULT_NOTIFICATION_PREFS.tarefaAprovada,
-      tarefaRejeitada:
-        getBooleanValue(
-          legacyPreferences.tarefaRejeitada,
-          legacyPreferences.tarefaConcluida,
-          legacyPreferences.completedTask,
-          legacyPreferences.tarefa_concluida,
-        ) ?? DEFAULT_NOTIFICATION_PREFS.tarefaRejeitada,
-      tarefaConcluida:
-        getBooleanValue(
-          legacyPreferences.tarefaConcluida,
-          legacyPreferences.completedTask,
-          legacyPreferences.tarefa_concluida,
-        ) ?? DEFAULT_NOTIFICATION_PREFS.tarefaConcluida,
-      resgatesSolicitado:
-        getBooleanValue(
-          legacyPreferences.resgatesSolicitado,
-          legacyPreferences.requestedRedemption,
-          legacyPreferences.resgate_solicitado,
-        ) ?? DEFAULT_NOTIFICATION_PREFS.resgatesSolicitado,
-      resgateConfirmado:
-        getBooleanValue(
-          legacyPreferences.resgateConfirmado,
-          legacyPreferences.resgatesSolicitado,
-          legacyPreferences.requestedRedemption,
-          legacyPreferences.resgate_solicitado,
-        ) ?? DEFAULT_NOTIFICATION_PREFS.resgateConfirmado,
-      resgateCancelado:
-        getBooleanValue(
-          legacyPreferences.resgateCancelado,
-        ) ?? DEFAULT_NOTIFICATION_PREFS.resgateCancelado,
+      tarefasPendentes: asBoolean(parsed.tarefasPendentes) ?? DEFAULT_NOTIFICATION_PREFS.tarefasPendentes,
+      tarefaAprovada: asBoolean(parsed.tarefaAprovada) ?? DEFAULT_NOTIFICATION_PREFS.tarefaAprovada,
+      tarefaRejeitada: asBoolean(parsed.tarefaRejeitada) ?? DEFAULT_NOTIFICATION_PREFS.tarefaRejeitada,
+      tarefaConcluida: asBoolean(parsed.tarefaConcluida) ?? DEFAULT_NOTIFICATION_PREFS.tarefaConcluida,
+      resgatesSolicitado: asBoolean(parsed.resgatesSolicitado) ?? DEFAULT_NOTIFICATION_PREFS.resgatesSolicitado,
+      resgateConfirmado: asBoolean(parsed.resgateConfirmado) ?? DEFAULT_NOTIFICATION_PREFS.resgateConfirmado,
+      resgateCancelado: asBoolean(parsed.resgateCancelado) ?? DEFAULT_NOTIFICATION_PREFS.resgateCancelado,
     };
   } catch {
     return DEFAULT_NOTIFICATION_PREFS;
@@ -411,22 +359,31 @@ export async function isNotificationPermissionDenied(): Promise<boolean> {
   }
 }
 
-export function getNotificationRoute(data: unknown): NotificationRoute | null {
+export type NotificationNavTarget = {
+  route: NotificationRoute;
+  entityId?: string;
+};
+
+export function getNotificationRoute(data: unknown): NotificationNavTarget | null {
   if (!isRecord(data)) return null;
 
   switch (data.route) {
     case '/(admin)/tasks':
     case '/(admin)/redemptions':
     case '/(child)/redemptions':
-    case '/(child)/tasks':
-      return data.route;
+    case '/(child)/tasks': {
+      const entityId = typeof data.entityId === 'string' && data.entityId
+        ? data.entityId
+        : undefined;
+      return { route: data.route, entityId };
+    }
     default:
       return null;
   }
 }
 
 export async function subscribeToNotificationNavigation(
-  onRoute: (route: NotificationRoute) => void,
+  onRoute: (target: NotificationNavTarget) => void,
 ): Promise<() => void> {
   const Notifications = await getNotificationsModule();
   if (!Notifications) {
@@ -434,10 +391,10 @@ export async function subscribeToNotificationNavigation(
   }
 
   function redirectFromNotificationData(data: unknown) {
-    const route = getNotificationRoute(data);
-    if (!route) return;
+    const target = getNotificationRoute(data);
+    if (!target) return;
 
-    onRoute(route);
+    onRoute(target);
   }
 
   const lastNotificationResponse = Notifications.getLastNotificationResponse();

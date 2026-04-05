@@ -142,7 +142,7 @@ export const useCompleteAssignment = () => {
     mutationFn: ({ assignmentId, imageUri, opts }: {
       assignmentId: string;
       imageUri: string | null;
-      opts: { familiaId: string; childName: string; taskTitle: string };
+      opts: { familiaId: string; childName: string; taskTitle: string; taskId?: string };
     }) =>
       mutationFnAdapter(() => completeAssignment(assignmentId, imageUri, opts))(),
     onSuccess: () => {

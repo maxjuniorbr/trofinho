@@ -13,10 +13,10 @@ export type PushEvent =
   | 'tarefa_concluida';
 
 export type EventPayload =
-  | { userId: string; taskTitle: string }
+  | { userId: string; taskTitle: string; entityId?: string }
   | { userId: string; prizeName: string }
   | { childName: string; prizeName: string }
-  | { childName: string; taskTitle: string }
+  | { childName: string; taskTitle: string; entityId?: string }
   | { filhoIds: string[]; taskTitle: string };
 
 export type NotificationPrefs = {
@@ -50,7 +50,7 @@ export type ExpoPushMessage = {
   sound: 'default';
   priority: 'high';
   channelId: string;
-  data: { route: string };
+  data: { route: string; entityId?: string };
 };
 
 export type ExpoTicketResult =
@@ -182,13 +182,15 @@ export function buildMessage(event: PushEvent, payload: EventPayload): MessageCo
     (_, key: string) => (payload as Record<string, string>)[key] ?? '',
   );
 
+  const entityId = 'entityId' in payload ? payload.entityId : undefined;
+
   return {
     title: template.title,
     body,
     sound: 'default',
     priority: 'high',
     channelId: DEFAULT_CHANNEL_ID,
-    data: { route: template.route },
+    data: { route: template.route, ...(entityId ? { entityId } : {}) },
   };
 }
 
