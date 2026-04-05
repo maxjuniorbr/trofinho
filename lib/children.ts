@@ -137,8 +137,7 @@ export async function deactivateChild(childId: string): Promise<{
     p_filho_id: childId,
   });
   if (error) return { data: null, error: localizeRpcError(error.message) };
-  const result = data as unknown as { pendingValidationCount: number; totalBalance: number };
-  return { data: result, error: null };
+  return { data: data as { pendingValidationCount: number; totalBalance: number }, error: null };
 }
 
 export async function reactivateChild(childId: string): Promise<{
@@ -164,11 +163,19 @@ export function buildChildDeactivateMessage(
   parts.push(`${childName} não poderá mais fazer login no app.`);
 
   if (data.pendingCount > 0) {
-    parts.push(`${data.pendingCount} atribuição(ões) pendente(s) será(ão) cancelada(s).`);
+    parts.push(
+      data.pendingCount === 1
+        ? '1 atribuição pendente será cancelada.'
+        : `${data.pendingCount} atribuições pendentes serão canceladas.`,
+    );
   }
 
   if (data.awaitingCount > 0) {
-    parts.push(`${data.awaitingCount} atribuição(ões) aguardando validação será(ão) mantida(s).`);
+    parts.push(
+      data.awaitingCount === 1
+        ? '1 atribuição aguardando validação será mantida.'
+        : `${data.awaitingCount} atribuições aguardando validação serão mantidas.`,
+    );
   }
 
   if (data.totalBalance > 0) {

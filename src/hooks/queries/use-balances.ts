@@ -9,13 +9,13 @@ import {
   syncAutomaticAppreciation,
   type AppreciationPeriod,
 } from '../../../lib/balances';
-import { queryFnAdapter, mutationFnAdapter, paginatedQueryFnAdapter, type PaginatedPage } from './query-fn-adapter';
+import { queryFnAdapter, nullableQueryFnAdapter, mutationFnAdapter, paginatedQueryFnAdapter, type PaginatedPage } from './query-fn-adapter';
 import { queryKeys, STALE_TIMES, PAGE_SIZES } from './query-keys';
 
 export const useBalance = (childId?: string) =>
   useQuery({
     queryKey: childId ? queryKeys.balances.byChild(childId) : queryKeys.balances.self(),
-    queryFn: queryFnAdapter(() => getBalance(childId)),
+    queryFn: nullableQueryFnAdapter(() => getBalance(childId)),
     staleTime: STALE_TIMES.balances,
   });
 

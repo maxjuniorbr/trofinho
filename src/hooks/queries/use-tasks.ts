@@ -74,7 +74,7 @@ export const useCreateTask = () => {
   return useMutation({
     mutationFn: ({ input, opts }: {
       input: NewTaskInput;
-      opts?: { familiaId: string; taskTitle: string; filhoIds: string[] };
+      opts?: { familiaId: string; filhoIds: string[] };
     }) => mutationFnAdapter(() => createTask(input, opts))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });

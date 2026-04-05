@@ -235,13 +235,13 @@ describe('tasks', () => {
       expect(result.map((t) => t.id)).toEqual(['3', '4', '1', '2']);
     });
 
-    it('preserves original order in newest_first mode', () => {
+    it('sorts by created_at descending in newest_first mode', () => {
       const tasks = [
         makeTask('1', ['pendente']),
         makeTask('2', ['aguardando_validacao']),
       ];
       const result = sortAdminTasks(tasks, 'newest_first');
-      expect(result.map((t) => t.id)).toEqual(['1', '2']);
+      expect(result.map((t) => t.id)).toEqual(['2', '1']);
     });
 
     it('does not mutate the input array', () => {
