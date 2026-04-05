@@ -55,3 +55,21 @@ export function localizeRpcError(message: string, fallback?: string): string {
   const matchedEntry = rpcErrorMatchers.find(([matcher]) => message.includes(matcher));
   return matchedEntry?.[1] ?? fallback ?? 'Algo deu errado. Tente novamente.';
 }
+
+export function extractErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof error.message === 'string' &&
+    error.message.trim()
+  ) {
+    return error.message;
+  }
+
+  return fallback;
+}

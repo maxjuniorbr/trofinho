@@ -5,7 +5,7 @@ import {
   confirmRedemption,
   cancelRedemption,
   requestRedemption,
-} from '../../../lib/prizes';
+} from '../../../lib/redemptions';
 import { queryFnAdapter, mutationFnAdapter, paginatedQueryFnAdapter, type PaginatedPage } from './query-fn-adapter';
 import { queryKeys, STALE_TIMES, PAGE_SIZES } from './query-keys';
 

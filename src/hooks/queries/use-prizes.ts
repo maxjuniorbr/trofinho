@@ -3,7 +3,6 @@ import {
   listPrizes,
   getPrize,
   listActivePrizes,
-  countPendingRedemptions,
   createPrize,
   updatePrize,
   deactivatePrize,
@@ -11,6 +10,7 @@ import {
   type PrizeInput,
   type UpdatePrizeInput,
 } from '../../../lib/prizes';
+import { countPendingRedemptions } from '../../../lib/redemptions';
 import { queryFnAdapter, mutationFnAdapter, paginatedQueryFnAdapter, type PaginatedPage } from './query-fn-adapter';
 import { queryKeys, STALE_TIMES, PAGE_SIZES } from './query-keys';
 

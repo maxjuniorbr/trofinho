@@ -11,6 +11,9 @@ vi.mock('./image-utils', () => ({
   readImageAsArrayBuffer: readImageAsArrayBufferMock,
   inferImageExtension: inferImageExtensionMock,
   inferImageContentType: inferImageContentTypeMock,
+}));
+
+vi.mock('./api-error', () => ({
   extractErrorMessage: (error: unknown, fallback: string) => {
     if (error instanceof Error && error.message.trim()) return error.message;
     return fallback;

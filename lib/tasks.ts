@@ -1,17 +1,10 @@
 import { localizeRpcError } from './api-error';
 import { toDateString } from './utils';
-import { extractErrorMessage } from './image-utils';
+import { extractErrorMessage } from './api-error';
 import { dispatchPushNotification } from './push';
 import { prepareImageUpload } from './storage';
 import { supabase } from './supabase';
-
-export type Child = {
-  id: string;
-  nome: string;
-  usuario_id: string | null;
-  avatar_url?: string | null;
-  ativo: boolean;
-};
+import type { Child } from './children';
 
 export type TaskFrequencia = 'diaria' | 'unica';
 

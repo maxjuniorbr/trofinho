@@ -32,11 +32,14 @@ vi.mock('../../../../lib/prizes', () => ({
   listPrizes: vi.fn().mockResolvedValue({ data: [], error: null }),
   getPrize: vi.fn().mockResolvedValue({ data: { id: 'x', nome: 'Test' }, error: null }),
   listActivePrizes: vi.fn().mockResolvedValue({ data: [], error: null }),
-  countPendingRedemptions: vi.fn().mockResolvedValue({ data: 0, error: null }),
   createPrize: vi.fn().mockResolvedValue({ data: { id: 'new' }, error: null }),
   updatePrize: vi.fn().mockResolvedValue({ error: null, imageUrl: null, pointsMessage: null }),
   deactivatePrize: vi.fn().mockResolvedValue({ error: null }),
   reactivatePrize: vi.fn().mockResolvedValue({ error: null }),
+}));
+
+vi.mock('../../../../lib/redemptions', () => ({
+  countPendingRedemptions: vi.fn().mockResolvedValue({ data: 0, error: null }),
 }));
 
 import * as prizesLib from '../../../../lib/prizes';
