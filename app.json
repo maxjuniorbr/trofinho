@@ -7,6 +7,14 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
+    "updates": {
+      "url": "https://u.expo.dev/8493d389-e92f-4a23-854d-bea1b62ae83a",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "splash": {
       "image": "./assets/trofinho-mascot.png",
       "resizeMode": "contain",
