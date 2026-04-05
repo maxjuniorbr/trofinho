@@ -39,13 +39,13 @@ export interface BalanceWithChild extends Balance {
 
 export function getTransactionTypeLabel(type: TransactionType): string {
   const map: Record<TransactionType, string> = {
-    credito:                'Tarefa aprovada',
-    debito:                 'Débito',
+    credito: 'Tarefa aprovada',
+    debito: 'Débito',
     transferencia_cofrinho: 'Para cofrinho',
-    valorizacao:            'Valorização',
-    penalizacao:            'Penalização',
-    resgate:                'Resgate de prêmio',
-    estorno_resgate:        'Estorno de resgate',
+    valorizacao: 'Valorização',
+    penalizacao: 'Penalização',
+    resgate: 'Resgate de prêmio',
+    estorno_resgate: 'Estorno de resgate',
   };
   return map[type] ?? type;
 }
@@ -63,10 +63,10 @@ export function getAppreciationPeriodLabel(period: AppreciationPeriod): string {
   return map[period];
 }
 
-export async function getBalance(childId?: string): Promise<{ data: Balance | null; error: string | null }> {
-  let query = supabase
-    .from('saldos')
-    .select('*');
+export async function getBalance(
+  childId?: string,
+): Promise<{ data: Balance | null; error: string | null }> {
+  let query = supabase.from('saldos').select('*');
 
   if (childId) {
     query = query.eq('filho_id', childId);
@@ -82,7 +82,10 @@ export async function getBalance(childId?: string): Promise<{ data: Balance | nu
   return { data, error: null };
 }
 
-export async function listAdminBalances(): Promise<{ data: BalanceWithChild[]; error: string | null }> {
+export async function listAdminBalances(): Promise<{
+  data: BalanceWithChild[];
+  error: string | null;
+}> {
   const { data, error } = await supabase
     .from('saldos')
     .select('*, filhos(nome, ativo)')
@@ -117,7 +120,7 @@ export async function listTransactions(
 
 export async function transferToPiggyBank(
   childId: string,
-  amount: number
+  amount: number,
 ): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('transferir_para_cofrinho', {
     p_filho_id: childId,
@@ -130,7 +133,7 @@ export async function transferToPiggyBank(
 export async function applyPenalty(
   childId: string,
   amount: number,
-  description: string
+  description: string,
 ): Promise<{ data: { deducted: number } | null; error: string | null }> {
   const { data, error } = await supabase.rpc('aplicar_penalizacao', {
     p_filho_id: childId,
@@ -144,7 +147,7 @@ export async function applyPenalty(
 export async function configureAppreciation(
   childId: string,
   rate: number,
-  period: AppreciationPeriod
+  period: AppreciationPeriod,
 ): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('configurar_valorizacao', {
     p_filho_id: childId,
@@ -157,10 +160,11 @@ export async function configureAppreciation(
 
 export async function syncAutomaticAppreciation(childId?: string): Promise<void> {
   try {
-    const args = childId ? { p_filho_id: childId } : undefined;
-    args
-      ? await supabase.rpc('sincronizar_valorizacoes_automaticas', args)
-      : await supabase.rpc('sincronizar_valorizacoes_automaticas');
+    if (childId) {
+      await supabase.rpc('sincronizar_valorizacoes_automaticas', { p_filho_id: childId });
+    } else {
+      await supabase.rpc('sincronizar_valorizacoes_automaticas');
+    }
   } catch (error) {
     console.error(error);
     // Best-effort: sync failure must not block balance reads

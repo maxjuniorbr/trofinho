@@ -6,15 +6,13 @@ export const queryKeys = {
     detail: (id: string) => [...queryKeys.tasks.details(), id] as const,
     pendingCount: () => [...queryKeys.tasks.all, 'pending-count'] as const,
     childAssignments: () => [...queryKeys.tasks.all, 'child-assignments'] as const,
-    childAssignment: (id: string) =>
-      [...queryKeys.tasks.all, 'child-assignment', id] as const,
+    childAssignment: (id: string) => [...queryKeys.tasks.all, 'child-assignment', id] as const,
   },
   balances: {
     all: ['balances'] as const,
     lists: () => [...queryKeys.balances.all, 'list'] as const,
     self: () => [...queryKeys.balances.all, 'self'] as const,
-    byChild: (childId: string) =>
-      [...queryKeys.balances.all, 'by-child', childId] as const,
+    byChild: (childId: string) => [...queryKeys.balances.all, 'by-child', childId] as const,
     transactions: (childId: string) =>
       [...queryKeys.balances.all, 'transactions', childId] as const,
   },
@@ -28,8 +26,7 @@ export const queryKeys = {
     lists: () => [...queryKeys.prizes.all, 'list'] as const,
     detail: (id: string) => [...queryKeys.prizes.all, 'detail', id] as const,
     active: () => [...queryKeys.prizes.all, 'active'] as const,
-    pendingRedemptionCount: () =>
-      [...queryKeys.prizes.all, 'pending-redemption-count'] as const,
+    pendingRedemptionCount: () => [...queryKeys.prizes.all, 'pending-redemption-count'] as const,
   },
   redemptions: {
     all: ['redemptions'] as const,
@@ -40,8 +37,7 @@ export const queryKeys = {
     all: ['profile'] as const,
     current: () => [...queryKeys.profile.all, 'current'] as const,
     authUser: () => [...queryKeys.profile.all, 'auth-user'] as const,
-    notificationPrefs: () =>
-      [...queryKeys.profile.all, 'notification-prefs'] as const,
+    notificationPrefs: () => [...queryKeys.profile.all, 'notification-prefs'] as const,
   },
   family: {
     all: ['family'] as const,

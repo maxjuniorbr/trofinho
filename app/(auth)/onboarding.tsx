@@ -1,8 +1,4 @@
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-} from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useState, useMemo } from 'react';
 import { createFamily, signOut } from '@lib/auth';
@@ -40,13 +36,19 @@ export default function OnboardingScreen() {
 
   const handleCreateFamily = async () => {
     const validationError = validate();
-    if (validationError) { setError(validationError); return; }
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
 
     setError('');
     setLoading(true);
     const { error: createError } = await createFamily(familyName.trim(), adminName.trim());
 
-    if (createError) { setLoading(false); setError(localizeSupabaseError(createError.message)); }
+    if (createError) {
+      setLoading(false);
+      setError(localizeSupabaseError(createError.message));
+    }
 
     // Navigation is handled by the root layout auth state handler.
     // Keep the button in loading state until the redirect happens.
@@ -71,7 +73,10 @@ export default function OnboardingScreen() {
         focused={focusedField === 'familyName'}
         placeholder="Ex: Família Silva"
         value={familyName}
-        onChangeText={(value) => { setFamilyName(value); setError(''); }}
+        onChangeText={(value) => {
+          setFamilyName(value);
+          setError('');
+        }}
         onFocus={() => setFocusedField('familyName')}
         onBlur={() => setFocusedField(null)}
         autoCapitalize="words"
@@ -84,7 +89,10 @@ export default function OnboardingScreen() {
         focused={focusedField === 'adminName'}
         placeholder="Como quer ser chamado"
         value={adminName}
-        onChangeText={(value) => { setAdminName(value); setError(''); }}
+        onChangeText={(value) => {
+          setAdminName(value);
+          setError('');
+        }}
         onFocus={() => setFocusedField('adminName')}
         onBlur={() => setFocusedField(null)}
         autoCapitalize="words"
@@ -106,10 +114,7 @@ export default function OnboardingScreen() {
           style={({ pressed }) => {
             const opacity = isBusy ? 0.55 : 1;
 
-            return [
-              styles.secondaryButton,
-              { opacity: !isBusy && pressed ? 0.65 : opacity },
-            ];
+            return [styles.secondaryButton, { opacity: !isBusy && pressed ? 0.65 : opacity }];
           }}
           onPress={handleBack}
           disabled={isBusy}

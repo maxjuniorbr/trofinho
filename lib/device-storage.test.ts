@@ -82,7 +82,9 @@ describe('deviceStorage', () => {
 
     expect(SecureStore.setItemAsync).toHaveBeenCalledWith('large_chunks', '3');
     expect(
-      vi.mocked(SecureStore.setItemAsync).mock.calls.some(([key]) => String(key).startsWith('large_chunk_'))
+      vi
+        .mocked(SecureStore.setItemAsync)
+        .mock.calls.some(([key]) => String(key).startsWith('large_chunk_')),
     ).toBe(true);
   });
 

@@ -22,17 +22,8 @@ export function NotificationPermissionBanner() {
       ]}
     >
       <View style={styles.content}>
-        <View
-          style={[
-            styles.iconBox,
-            { backgroundColor: colors.bg.surface },
-          ]}
-        >
-          <BellOff
-            size={18}
-            color={colors.semantic.warningText}
-            strokeWidth={2}
-          />
+        <View style={[styles.iconBox, { backgroundColor: colors.bg.surface }]}>
+          <BellOff size={18} color={colors.semantic.warningText} strokeWidth={2} />
         </View>
         <View style={styles.textBox}>
           <Text style={[styles.title, { color: colors.text.primary }]}>

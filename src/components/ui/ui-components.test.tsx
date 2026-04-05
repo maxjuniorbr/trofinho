@@ -1,27 +1,11 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Haptics from 'expo-haptics';
 import { Plus } from 'lucide-react-native';
 import { lightColors } from '@/constants/theme';
-
-const routerMock = vi.hoisted(() => ({
-  canGoBack: vi.fn(),
-  replace: vi.fn(),
-}));
-
-vi.mock('expo-router', () => ({
-  useRouter: () => routerMock,
-}));
 
 import { Avatar } from './avatar';
 import { Badge } from './badge';
@@ -31,6 +15,15 @@ import { EmptyState } from './empty-state';
 import { Input } from './input';
 import { PointsDisplay } from './points-display';
 import { HeaderIconButton, ScreenHeader } from './screen-header';
+
+const routerMock = vi.hoisted(() => ({
+  canGoBack: vi.fn(),
+  replace: vi.fn(),
+}));
+
+vi.mock('expo-router', () => ({
+  useRouter: () => routerMock,
+}));
 
 function flattenStyle(style: unknown): Record<string, any> {
   return StyleSheet.flatten(style) as Record<string, any>;
@@ -57,14 +50,17 @@ describe('ui components', () => {
     expect(initialsRenderer.root.findByType(Text).props.children).toBe('MS');
 
     const solidRenderer = render(<Avatar name="Joao Pedro" solidColor="#123456" />);
-    const solidGradient = solidRenderer.root.findAll((node) =>
-      Array.isArray(node.props.colors) &&
-      node.props.colors[0] === '#123456' &&
-      node.props.colors[1] === '#123456'
+    const solidGradient = solidRenderer.root.findAll(
+      (node) =>
+        Array.isArray(node.props.colors) &&
+        node.props.colors[0] === '#123456' &&
+        node.props.colors[1] === '#123456',
     )[0];
     expect(solidGradient.props.colors).toEqual(['#123456', '#123456']);
 
-    const imageRenderer = render(<Avatar name="Ana Beatriz" imageUri="https://img.example.com/avatar.jpg" />);
+    const imageRenderer = render(
+      <Avatar name="Ana Beatriz" imageUri="https://img.example.com/avatar.jpg" />,
+    );
     const image = imageRenderer.root.findByType(Image);
 
     expect(image.props.accessibilityLabel).toBe('Ana Beatriz');
@@ -104,11 +100,13 @@ describe('ui components', () => {
 
     expect(Haptics.impactAsync).toHaveBeenCalledWith(Haptics.ImpactFeedbackStyle.Light);
     expect(onPrimaryPress).toHaveBeenCalled();
-    const primaryGradient = primaryRenderer.root.findAll((node) => Array.isArray(node.props.colors))[0];
+    const primaryGradient = primaryRenderer.root.findAll((node) =>
+      Array.isArray(node.props.colors),
+    )[0];
     expect(primaryGradient.props.colors).toBeTruthy();
 
     const secondaryRenderer = render(
-      <Button label="Carregando" variant="secondary" loading size="lg" />
+      <Button label="Carregando" variant="secondary" loading size="lg" />,
     );
     const secondaryPressable = secondaryRenderer.root.findByType(Pressable);
     const secondaryStyle = flattenStyle(secondaryPressable.props.style({ pressed: true }));
@@ -116,7 +114,9 @@ describe('ui components', () => {
     expect(secondaryPressable.props.disabled).toBe(true);
     expect(secondaryStyle.borderWidth).toBe(1);
     expect(secondaryStyle.opacity).toBe(0.45);
-    expect(secondaryRenderer.root.findByType(ActivityIndicator).props.color).toBe(lightColors.text.primary);
+    expect(secondaryRenderer.root.findByType(ActivityIndicator).props.color).toBe(
+      lightColors.text.primary,
+    );
   });
 
   it('computes button styles for outline, danger, ghost, and small sizes', () => {
@@ -128,7 +128,9 @@ describe('ui components', () => {
     expect(outlineStyle.opacity).toBe(0.8);
 
     const dangerRenderer = render(<Button label="Excluir" variant="danger" />);
-    const dangerStyle = flattenStyle(dangerRenderer.root.findByType(Pressable).props.style({ pressed: false }));
+    const dangerStyle = flattenStyle(
+      dangerRenderer.root.findByType(Pressable).props.style({ pressed: false }),
+    );
     expect(dangerStyle.backgroundColor).toBe(lightColors.semantic.errorBg);
 
     const ghostRenderer = render(<Button label="Cancelar" variant="ghost" />);
@@ -137,11 +139,19 @@ describe('ui components', () => {
   });
 
   it('renders cards with default, elevated, glow, and no-padding modes', () => {
-    const defaultRenderer = render(<Card><Text>Conteudo</Text></Card>);
-    expect(flattenStyle(defaultRenderer.root.findByType(View).props.style).padding).toBeGreaterThan(0);
+    const defaultRenderer = render(
+      <Card>
+        <Text>Conteudo</Text>
+      </Card>,
+    );
+    expect(flattenStyle(defaultRenderer.root.findByType(View).props.style).padding).toBeGreaterThan(
+      0,
+    );
 
     const elevatedRenderer = render(<Card elevated />);
-    expect(flattenStyle(elevatedRenderer.root.findByType(View).props.style).shadowOpacity).toBeDefined();
+    expect(
+      flattenStyle(elevatedRenderer.root.findByType(View).props.style).shadowOpacity,
+    ).toBeDefined();
 
     const glowRenderer = render(<Card glow noPadding />);
     const glowStyle = flattenStyle(glowRenderer.root.findByType(View).props.style);
@@ -152,7 +162,9 @@ describe('ui components', () => {
 
   it('handles empty state loading, error, empty, retry, and null branches', async () => {
     const loadingRenderer = render(<EmptyState loading />);
-    expect(loadingRenderer.root.findByType(ActivityIndicator).props.color).toBe(lightColors.brand.vivid);
+    expect(loadingRenderer.root.findByType(ActivityIndicator).props.color).toBe(
+      lightColors.brand.vivid,
+    );
 
     const onRetry = vi.fn();
     const errorRenderer = render(<EmptyState error="Falhou" onRetry={onRetry} />);
@@ -163,16 +175,26 @@ describe('ui components', () => {
     });
 
     expect(onRetry).toHaveBeenCalled();
-    expect(errorRenderer.root.findAllByType(Text).map((node) => node.props.children).join(' '))
-      .toContain('Algo deu errado');
+    expect(
+      errorRenderer.root
+        .findAllByType(Text)
+        .map((node) => node.props.children)
+        .join(' '),
+    ).toContain('Algo deu errado');
 
     // Error state uses AlertTriangle icon instead of emoji
     const alertIcon = errorRenderer.root.findAll((node) => String(node.type) === 'AlertTriangle');
     expect(alertIcon.length).toBe(1);
 
-    const emptyRenderer = render(<EmptyState empty emptyTitle="Sem tarefas" emptyMessage="Nada por aqui" />);
-    expect(emptyRenderer.root.findAllByType(Text).map((node) => node.props.children).join(' '))
-      .toContain('Sem tarefas');
+    const emptyRenderer = render(
+      <EmptyState empty emptyTitle="Sem tarefas" emptyMessage="Nada por aqui" />,
+    );
+    expect(
+      emptyRenderer.root
+        .findAllByType(Text)
+        .map((node) => node.props.children)
+        .join(' '),
+    ).toContain('Sem tarefas');
 
     // Empty state uses mascot image instead of emoji
     const mascotImage = emptyRenderer.root.findByType(Image);
@@ -184,12 +206,7 @@ describe('ui components', () => {
 
   it('renders inputs with labels and error messages', () => {
     const renderer = render(
-      <Input
-        label="Nome"
-        value="Lia"
-        onChangeText={() => undefined}
-        error="Obrigatorio"
-      />
+      <Input label="Nome" value="Lia" onChangeText={() => undefined} error="Obrigatorio" />,
     );
 
     const nodes = renderer.root.findAllByType(Text);
@@ -206,7 +223,9 @@ describe('ui components', () => {
     expect(goldTexts[0].props.children).toBe('1.250');
     expect(flattenStyle(goldTexts[0].props.style).color).toBe(lightColors.brand.vivid);
 
-    const amberRenderer = render(<PointsDisplay value={30} label="Bonus" variant="amber" size="lg" />);
+    const amberRenderer = render(
+      <PointsDisplay value={30} label="Bonus" variant="amber" size="lg" />,
+    );
     const amberTexts = amberRenderer.root.findAllByType(Text);
     expect(flattenStyle(amberTexts[0].props.style).color).toBe(lightColors.brand.dim);
 
@@ -228,7 +247,9 @@ describe('ui components', () => {
     expect(onBack).toHaveBeenCalled();
     expect(routerMock.replace).not.toHaveBeenCalled();
     expect(backButton.props.accessibilityLabel).toBe('Voltar para Voltar');
-    expect(flattenStyle(backButton.props.style({ pressed: false })).backgroundColor).toBe(lightColors.bg.muted);
+    expect(flattenStyle(backButton.props.style({ pressed: false })).backgroundColor).toBe(
+      lightColors.bg.muted,
+    );
     expect(flattenStyle(backButton.props.style({ pressed: false })).width).toBe(40);
   });
 
@@ -236,7 +257,12 @@ describe('ui components', () => {
     routerMock.canGoBack.mockReturnValue(false);
 
     const childRenderer = render(
-      <ScreenHeader title="Tarefa" onBack={() => undefined} role="filho" rightAction={<Text>Acao</Text>} />
+      <ScreenHeader
+        title="Tarefa"
+        onBack={() => undefined}
+        role="filho"
+        rightAction={<Text>Acao</Text>}
+      />,
     );
     const childBackButton = childRenderer.root.findByType(Pressable);
 
@@ -245,11 +271,19 @@ describe('ui components', () => {
     });
 
     expect(routerMock.replace).toHaveBeenCalledWith('/(child)/');
-    expect(flattenStyle(childBackButton.props.style({ pressed: false })).backgroundColor).toBe(lightColors.bg.muted);
-    expect(childRenderer.root.findAllByType(Text).map((node) => node.props.children).join(' '))
-      .toContain('Acao');
+    expect(flattenStyle(childBackButton.props.style({ pressed: false })).backgroundColor).toBe(
+      lightColors.bg.muted,
+    );
+    expect(
+      childRenderer.root
+        .findAllByType(Text)
+        .map((node) => node.props.children)
+        .join(' '),
+    ).toContain('Acao');
 
-    const adminRenderer = render(<ScreenHeader title="Admin" onBack={() => undefined} role="admin" />);
+    const adminRenderer = render(
+      <ScreenHeader title="Admin" onBack={() => undefined} role="admin" />,
+    );
     await act(async () => {
       adminRenderer.root.findByType(Pressable).props.onPress();
     });
@@ -263,11 +297,7 @@ describe('ui components', () => {
   it('renders header icon buttons with the same visual treatment as the back button', () => {
     const onPress = vi.fn();
     const renderer = render(
-      <HeaderIconButton
-        icon={Plus}
-        onPress={onPress}
-        accessibilityLabel="Criar item"
-      />
+      <HeaderIconButton icon={Plus} onPress={onPress} accessibilityLabel="Criar item" />,
     );
 
     const button = renderer.root.findByType(Pressable);
@@ -288,7 +318,7 @@ describe('ui components', () => {
         accessibilityLabel="Acao"
         tone="accent"
         role="filho"
-      />
+      />,
     );
 
     const style = flattenStyle(renderer.root.findByType(Pressable).props.style({ pressed: false }));

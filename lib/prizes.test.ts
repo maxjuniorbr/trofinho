@@ -1,31 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 
-const uploadImageToPublicBucketMock = vi.hoisted(() => vi.fn());
-const dispatchPushNotificationMock = vi.hoisted(() => vi.fn());
-
-const supabaseMock = vi.hoisted(() => ({
-  from: vi.fn(),
-  rpc: vi.fn(),
-  auth: {
-    getUser: vi.fn(),
-  },
-}));
-
-vi.mock('./supabase', () => ({
-  supabase: supabaseMock,
-}));
-
-
-
-vi.mock('./storage', () => ({
-  uploadImageToPublicBucket: uploadImageToPublicBucketMock,
-}));
-
-vi.mock('./push', () => ({
-  dispatchPushNotification: dispatchPushNotificationMock,
-}));
-
 import {
   createPrize,
   deactivatePrize,
@@ -44,6 +19,29 @@ import {
   requestRedemption,
 } from './redemptions';
 import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@lib/status';
+
+const uploadImageToPublicBucketMock = vi.hoisted(() => vi.fn());
+const dispatchPushNotificationMock = vi.hoisted(() => vi.fn());
+
+const supabaseMock = vi.hoisted(() => ({
+  from: vi.fn(),
+  rpc: vi.fn(),
+  auth: {
+    getUser: vi.fn(),
+  },
+}));
+
+vi.mock('./supabase', () => ({
+  supabase: supabaseMock,
+}));
+
+vi.mock('./storage', () => ({
+  uploadImageToPublicBucket: uploadImageToPublicBucketMock,
+}));
+
+vi.mock('./push', () => ({
+  dispatchPushNotification: dispatchPushNotificationMock,
+}));
 
 type QueryResult = {
   count?: number | null;
@@ -111,11 +109,13 @@ describe('prizes', () => {
     const listQuery = createOrderQuery({ data: [{ id: 'prize-1' }], error: null }, 1);
     const getQuery = createSingleQuery({ data: { id: 'prize-1' }, error: null });
 
-    supabaseMock.from
-      .mockReturnValueOnce(listQuery)
-      .mockReturnValueOnce(getQuery);
+    supabaseMock.from.mockReturnValueOnce(listQuery).mockReturnValueOnce(getQuery);
 
-    await expect(listPrizes()).resolves.toEqual({ data: [{ id: 'prize-1' }], hasMore: false, error: null });
+    await expect(listPrizes()).resolves.toEqual({
+      data: [{ id: 'prize-1' }],
+      hasMore: false,
+      error: null,
+    });
     await expect(getPrize('prize-1')).resolves.toEqual({ data: { id: 'prize-1' }, error: null });
   });
 
@@ -124,9 +124,7 @@ describe('prizes', () => {
     const insertQuery = createSingleQuery({ data: { id: 'prize-1' }, error: null });
 
     supabaseMock.auth.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
-    supabaseMock.from
-      .mockReturnValueOnce(profileQuery)
-      .mockReturnValueOnce(insertQuery);
+    supabaseMock.from.mockReturnValueOnce(profileQuery).mockReturnValueOnce(insertQuery);
 
     const result = await createPrize({ nome: 'Sorvete', descricao: null, custo_pontos: 50 });
 
@@ -163,18 +161,28 @@ describe('prizes', () => {
       .mockResolvedValueOnce({ data: null, error: { message: 'cannot deactivate' } })
       .mockResolvedValueOnce({ data: null, error: null });
 
-    await expect(updatePrize('prize-1', {
-      nome: 'Novo',
-      descricao: 'D',
-      custo_pontos: 10,
-    })).resolves.toEqual({ error: null, imageUrl: null, pointsMessage: null });
-    await expect(updatePrize('prize-1', {
-      nome: 'Novo',
-      descricao: 'D',
-      custo_pontos: 10,
-    })).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.', imageUrl: null, pointsMessage: null });
+    await expect(
+      updatePrize('prize-1', {
+        nome: 'Novo',
+        descricao: 'D',
+        custo_pontos: 10,
+      }),
+    ).resolves.toEqual({ error: null, imageUrl: null, pointsMessage: null });
+    await expect(
+      updatePrize('prize-1', {
+        nome: 'Novo',
+        descricao: 'D',
+        custo_pontos: 10,
+      }),
+    ).resolves.toEqual({
+      error: 'Algo deu errado. Tente novamente.',
+      imageUrl: null,
+      pointsMessage: null,
+    });
     await expect(deactivatePrize('prize-1')).resolves.toEqual({
-      data: null, error: 'Algo deu errado. Tente novamente.', warning: null,
+      data: null,
+      error: 'Algo deu errado. Tente novamente.',
+      warning: null,
     });
     await expect(reactivatePrize('prize-1')).resolves.toEqual({ error: null });
   });
@@ -187,13 +195,15 @@ describe('prizes', () => {
     });
     supabaseMock.rpc.mockResolvedValue({ data: null, error: null });
 
-    await expect(updatePrize('prize-2', {
-      nome: 'Cinema',
-      descricao: 'Sessão especial',
-      custo_pontos: 120,
-      ativo: false,
-      imageUri: 'file:///data/user/0/com.trofinho/cache/prize.jpg',
-    })).resolves.toEqual({
+    await expect(
+      updatePrize('prize-2', {
+        nome: 'Cinema',
+        descricao: 'Sessão especial',
+        custo_pontos: 120,
+        ativo: false,
+        imageUri: 'file:///data/user/0/com.trofinho/cache/prize.jpg',
+      }),
+    ).resolves.toEqual({
       error: null,
       imageUrl: 'https://cdn.example.com/prize-2/capa.jpg?t=2',
       pointsMessage: null,
@@ -221,13 +231,15 @@ describe('prizes', () => {
       error: null,
     });
 
-    await expect(updatePrize('prize-3', {
-      nome: 'Livro',
-      descricao: 'Edição nova',
-      custo_pontos: 80,
-      ativo: true,
-      imagem_url: 'https://cdn.example.com/prize-3/capa.jpg',
-    })).resolves.toEqual({
+    await expect(
+      updatePrize('prize-3', {
+        nome: 'Livro',
+        descricao: 'Edição nova',
+        custo_pontos: 80,
+        ativo: true,
+        imagem_url: 'https://cdn.example.com/prize-3/capa.jpg',
+      }),
+    ).resolves.toEqual({
       error: null,
       imageUrl: 'https://cdn.example.com/prize-3/capa.jpg',
       pointsMessage: 'Não é possível alterar os pontos pois há resgates em aberto.',
@@ -249,9 +261,17 @@ describe('prizes', () => {
       .mockReturnValueOnce(childQuery)
       .mockReturnValueOnce(countQuery);
 
-    await expect(listRedemptions()).resolves.toEqual({ data: [{ id: 'red-1' }], hasMore: false, error: null });
+    await expect(listRedemptions()).resolves.toEqual({
+      data: [{ id: 'red-1' }],
+      hasMore: false,
+      error: null,
+    });
     await expect(listActivePrizes()).resolves.toEqual({ data: [{ id: 'active-1' }], error: null });
-    await expect(listChildRedemptions()).resolves.toEqual({ data: [{ id: 'child-red-1' }], hasMore: false, error: null });
+    await expect(listChildRedemptions()).resolves.toEqual({
+      data: [{ id: 'child-red-1' }],
+      hasMore: false,
+      error: null,
+    });
     await expect(countPendingRedemptions()).resolves.toEqual({ data: 4, error: null });
   });
 
@@ -262,10 +282,18 @@ describe('prizes', () => {
       .mockResolvedValueOnce({ data: 'redemption-1', error: null })
       .mockResolvedValueOnce({ error: { message: 'confirm failed' } });
 
-    await expect(confirmRedemption('red-1', { familiaId: 'f1', userId: 'u1', prizeName: 'P' })).resolves.toEqual({ error: null });
-    await expect(cancelRedemption('red-1')).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
-    await expect(requestRedemption('prize-1', { familiaId: 'f1', childName: 'C', prizeName: 'P' })).resolves.toEqual({ data: 'redemption-1', error: null });
-    await expect(confirmRedemption('red-2', { familiaId: 'f1', userId: 'u1', prizeName: 'P' })).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
+    await expect(
+      confirmRedemption('red-1', { familiaId: 'f1', userId: 'u1', prizeName: 'P' }),
+    ).resolves.toEqual({ error: null });
+    await expect(cancelRedemption('red-1')).resolves.toEqual({
+      error: 'Algo deu errado. Tente novamente.',
+    });
+    await expect(
+      requestRedemption('prize-1', { familiaId: 'f1', childName: 'C', prizeName: 'P' }),
+    ).resolves.toEqual({ data: 'redemption-1', error: null });
+    await expect(
+      confirmRedemption('red-2', { familiaId: 'f1', userId: 'u1', prizeName: 'P' }),
+    ).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
     expect(dispatchPushNotificationMock).toHaveBeenCalledTimes(2);
   });
 
@@ -282,7 +310,10 @@ describe('prizes', () => {
   it('returns errors from prize read and list operations', async () => {
     const listErrorQuery = createOrderQuery({ data: null, error: { message: 'list error' } }, 1);
     const getErrorQuery = createSingleQuery({ data: null, error: { message: 'not found' } });
-    const redemptionErrorQuery = createOrderQuery({ data: null, error: { message: 'redemption error' } });
+    const redemptionErrorQuery = createOrderQuery({
+      data: null,
+      error: { message: 'redemption error' },
+    });
     const activeErrorQuery = createOrderQuery({ data: null, error: { message: 'active error' } });
     const childRedErrorQuery = createOrderQuery({ data: null, error: { message: 'child error' } });
 
@@ -293,18 +324,39 @@ describe('prizes', () => {
       .mockReturnValueOnce(activeErrorQuery)
       .mockReturnValueOnce(childRedErrorQuery);
 
-    await expect(listPrizes()).resolves.toEqual({ data: [], hasMore: false, error: 'Algo deu errado. Tente novamente.' });
-    await expect(getPrize('prize-x')).resolves.toEqual({ data: null, error: 'Algo deu errado. Tente novamente.' });
-    await expect(listRedemptions()).resolves.toEqual({ data: [], hasMore: false, error: 'Algo deu errado. Tente novamente.' });
-    await expect(listActivePrizes()).resolves.toEqual({ data: [], error: 'Algo deu errado. Tente novamente.' });
-    await expect(listChildRedemptions()).resolves.toEqual({ data: [], hasMore: false, error: 'Algo deu errado. Tente novamente.' });
+    await expect(listPrizes()).resolves.toEqual({
+      data: [],
+      hasMore: false,
+      error: 'Algo deu errado. Tente novamente.',
+    });
+    await expect(getPrize('prize-x')).resolves.toEqual({
+      data: null,
+      error: 'Algo deu errado. Tente novamente.',
+    });
+    await expect(listRedemptions()).resolves.toEqual({
+      data: [],
+      hasMore: false,
+      error: 'Algo deu errado. Tente novamente.',
+    });
+    await expect(listActivePrizes()).resolves.toEqual({
+      data: [],
+      error: 'Algo deu errado. Tente novamente.',
+    });
+    await expect(listChildRedemptions()).resolves.toEqual({
+      data: [],
+      hasMore: false,
+      error: 'Algo deu errado. Tente novamente.',
+    });
   });
 
   it('returns errors from write operations and handles edge cases', async () => {
     const countErrorQuery = createEqQuery({ count: null, error: { message: 'count error' } });
     const countNullQuery = createEqQuery({ count: null, error: null });
     const profileQuery = createSingleQuery({ data: { familia_id: 'fam-1' }, error: null });
-    const insertErrorQuery = createSingleQuery({ data: null, error: { message: 'constraint violation' } });
+    const insertErrorQuery = createSingleQuery({
+      data: null,
+      error: { message: 'constraint violation' },
+    });
 
     supabaseMock.from
       .mockReturnValueOnce(countErrorQuery)
@@ -319,12 +371,19 @@ describe('prizes', () => {
 
     supabaseMock.auth.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
 
-    await expect(countPendingRedemptions()).resolves.toEqual({ data: 0, error: 'Algo deu errado. Tente novamente.' });
+    await expect(countPendingRedemptions()).resolves.toEqual({
+      data: 0,
+      error: 'Algo deu errado. Tente novamente.',
+    });
     await expect(countPendingRedemptions()).resolves.toEqual({ data: 0, error: null });
     await expect(deactivatePrize('prize-1')).resolves.toEqual({
-      data: { pendingCount: 0 }, error: null, warning: null,
+      data: { pendingCount: 0 },
+      error: null,
+      warning: null,
     });
-    await expect(requestRedemption('prize-1', { familiaId: 'f1', childName: 'C', prizeName: 'P' })).resolves.toEqual({ data: null, error: 'Algo deu errado. Tente novamente.' });
+    await expect(
+      requestRedemption('prize-1', { familiaId: 'f1', childName: 'C', prizeName: 'P' }),
+    ).resolves.toEqual({ data: null, error: 'Algo deu errado. Tente novamente.' });
     await expect(cancelRedemption('red-2')).resolves.toEqual({ error: null });
     await expect(createPrize({ nome: 'A', descricao: null, custo_pontos: 1 })).resolves.toEqual({
       data: null,
@@ -344,10 +403,16 @@ describe('prizes', () => {
       .mockReturnValueOnce(activeNullQuery)
       .mockReturnValueOnce(childNullQuery);
 
-    await expect(reactivatePrize('prize-1')).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
+    await expect(reactivatePrize('prize-1')).resolves.toEqual({
+      error: 'Algo deu errado. Tente novamente.',
+    });
     await expect(listPrizes()).resolves.toEqual({ data: [], hasMore: false, error: null });
     await expect(listActivePrizes()).resolves.toEqual({ data: [], error: null });
-    await expect(listChildRedemptions()).resolves.toEqual({ data: [], hasMore: false, error: null });
+    await expect(listChildRedemptions()).resolves.toEqual({
+      data: [],
+      hasMore: false,
+      error: null,
+    });
   });
 
   it('returns upload errors when the prize image upload fails', async () => {
@@ -355,7 +420,12 @@ describe('prizes', () => {
       .mockResolvedValueOnce({ error: 'upload failed', publicUrl: null })
       .mockResolvedValueOnce({ error: null, publicUrl: null });
 
-    const input = { nome: 'A', descricao: null, custo_pontos: 10, imageUri: 'file:///cache/img.jpg' };
+    const input = {
+      nome: 'A',
+      descricao: null,
+      custo_pontos: 10,
+      imageUri: 'file:///cache/img.jpg',
+    };
 
     await expect(updatePrize('prize-1', input)).resolves.toEqual({
       error: 'upload failed',
@@ -379,11 +449,10 @@ describe('prizes', () => {
         prizeName: 'Sorvete',
       });
 
-      expect(dispatchPushNotificationMock).toHaveBeenCalledWith(
-        'resgate_solicitado',
-        'family-1',
-        { childName: 'Lia', prizeName: 'Sorvete' },
-      );
+      expect(dispatchPushNotificationMock).toHaveBeenCalledWith('resgate_solicitado', 'family-1', {
+        childName: 'Lia',
+        prizeName: 'Sorvete',
+      });
     });
 
     it('confirmRedemption dispatches resgate_confirmado with correct payload when opts provided', async () => {
@@ -395,11 +464,10 @@ describe('prizes', () => {
         prizeName: 'Cinema',
       });
 
-      expect(dispatchPushNotificationMock).toHaveBeenCalledWith(
-        'resgate_confirmado',
-        'family-1',
-        { userId: 'child-user-1', prizeName: 'Cinema' },
-      );
+      expect(dispatchPushNotificationMock).toHaveBeenCalledWith('resgate_confirmado', 'family-1', {
+        userId: 'child-user-1',
+        prizeName: 'Cinema',
+      });
     });
 
     it('requestRedemption always dispatches because opts is now required', async () => {

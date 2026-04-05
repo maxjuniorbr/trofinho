@@ -116,9 +116,7 @@ export function ScreenHeader({
         {title}
       </Text>
 
-      <View style={styles.side}>
-        {rightAction ?? null}
-      </View>
+      <View style={styles.side}>{rightAction ?? null}</View>
     </View>
   );
 }

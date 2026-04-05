@@ -11,14 +11,9 @@ export type ResizeImageOptions = Readonly<{
   compress?: number;
 }>;
 
-export async function resizeImage(
-  uri: string,
-  options: ResizeImageOptions = {},
-): Promise<string> {
-  const {
-    maxDimension = DEFAULT_MAX_IMAGE_DIMENSION,
-    compress = DEFAULT_IMAGE_COMPRESS_QUALITY,
-  } = options;
+export async function resizeImage(uri: string, options: ResizeImageOptions = {}): Promise<string> {
+  const { maxDimension = DEFAULT_MAX_IMAGE_DIMENSION, compress = DEFAULT_IMAGE_COMPRESS_QUALITY } =
+    options;
 
   // Render first to get original dimensions
   const probe = ImageManipulator.manipulate(uri);
@@ -51,10 +46,7 @@ const FETCH_TIMEOUT_MS = 15_000;
 export async function readImageAsArrayBuffer(imageUri: string): Promise<ArrayBuffer> {
   const normalizedUri = imageUri.split('?')[0] ?? imageUri;
 
-  if (
-    !normalizedUri.startsWith('http://') &&
-    !normalizedUri.startsWith('https://')
-  ) {
+  if (!normalizedUri.startsWith('http://') && !normalizedUri.startsWith('https://')) {
     try {
       const buffer = await new File(normalizedUri).arrayBuffer();
       if (buffer.byteLength > MAX_IMAGE_BYTES) {

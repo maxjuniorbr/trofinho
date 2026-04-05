@@ -32,13 +32,14 @@ export function Avatar({ name, size = 44, solidColor, imageUri }: ReadonlyAvatar
     );
   }
 
-  const initials = name
-    .trim()
-    .split(' ')
-    .map((w) => w.charAt(0).toUpperCase())
-    .filter(Boolean)
-    .slice(0, 2)
-    .join('') || '?';
+  const initials =
+    name
+      .trim()
+      .split(' ')
+      .map((w) => w.charAt(0).toUpperCase())
+      .filter(Boolean)
+      .slice(0, 2)
+      .join('') || '?';
 
   const fontSize = Math.round(size * 0.4);
 

@@ -4,10 +4,10 @@ import { InlineMessage } from '@/components/ui/inline-message';
 import { radii, spacing, typography } from '@/constants/theme';
 import type { NotificationPrefs } from '@lib/notifications';
 
-const OPTIONS: ReadonlyArray<{
+const OPTIONS: readonly {
   key: keyof NotificationPrefs;
   label: string;
-}> = [
+}[] = [
   { key: 'tarefasPendentes', label: 'Tarefas pendentes' },
   { key: 'tarefaAprovada', label: 'Tarefa aprovada' },
   { key: 'tarefaRejeitada', label: 'Tarefa rejeitada' },
@@ -50,11 +50,10 @@ export function NotificationCard({
           key={key}
           style={[
             styles.row,
-            index < OPTIONS.length - 1
-              && {
-                borderBottomWidth: 1,
-                borderBottomColor: colors.border.subtle,
-              },
+            index < OPTIONS.length - 1 && {
+              borderBottomWidth: 1,
+              borderBottomColor: colors.border.subtle,
+            },
           ]}
         >
           <Text style={[styles.label, { color: colors.text.primary }]}>{label}</Text>

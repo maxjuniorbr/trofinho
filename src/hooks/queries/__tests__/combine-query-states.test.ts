@@ -20,19 +20,13 @@ describe('combineQueryStates', () => {
   });
 
   it('returns isLoading true when any query is loading', () => {
-    const result = combineQueryStates(
-      makeQuery(),
-      makeQuery({ isLoading: true }),
-    );
+    const result = combineQueryStates(makeQuery(), makeQuery({ isLoading: true }));
 
     expect(result.isLoading).toBe(true);
   });
 
   it('returns isFetching true when any query is fetching', () => {
-    const result = combineQueryStates(
-      makeQuery({ isFetching: true }),
-      makeQuery(),
-    );
+    const result = combineQueryStates(makeQuery({ isFetching: true }), makeQuery());
 
     expect(result.isFetching).toBe(true);
   });
@@ -41,10 +35,7 @@ describe('combineQueryStates', () => {
     const err1 = new Error('first');
     const err2 = new Error('second');
 
-    const result = combineQueryStates(
-      makeQuery({ error: err1 }),
-      makeQuery({ error: err2 }),
-    );
+    const result = combineQueryStates(makeQuery({ error: err1 }), makeQuery({ error: err2 }));
 
     expect(result.error).toBe(err1);
   });

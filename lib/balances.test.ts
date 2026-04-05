@@ -1,15 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as fc from 'fast-check';
 
-const supabaseMock = vi.hoisted(() => ({
-  from: vi.fn(),
-  rpc: vi.fn(),
-}));
-
-vi.mock('./supabase', () => ({
-  supabase: supabaseMock,
-}));
-
 import {
   applyPenalty,
   configureAppreciation,
@@ -24,7 +15,19 @@ import {
 } from './balances';
 import type { TransactionType } from './balances';
 
-function createQuery(result: { data?: unknown; error?: { code?: string; message: string } | null }) {
+const supabaseMock = vi.hoisted(() => ({
+  from: vi.fn(),
+  rpc: vi.fn(),
+}));
+
+vi.mock('./supabase', () => ({
+  supabase: supabaseMock,
+}));
+
+function createQuery(result: {
+  data?: unknown;
+  error?: { code?: string; message: string } | null;
+}) {
   return {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
@@ -91,12 +94,16 @@ describe('balances', () => {
       returns: vi.fn().mockResolvedValue({ data: null, error: { message: 'list failed' } }),
     };
 
-    supabaseMock.from
-      .mockReturnValueOnce(balanceQuery)
-      .mockReturnValueOnce(listQuery);
+    supabaseMock.from.mockReturnValueOnce(balanceQuery).mockReturnValueOnce(listQuery);
 
-    await expect(getBalance()).resolves.toEqual({ data: null, error: 'Algo deu errado. Tente novamente.' });
-    await expect(listAdminBalances()).resolves.toEqual({ data: [], error: 'Algo deu errado. Tente novamente.' });
+    await expect(getBalance()).resolves.toEqual({
+      data: null,
+      error: 'Algo deu errado. Tente novamente.',
+    });
+    await expect(listAdminBalances()).resolves.toEqual({
+      data: [],
+      error: 'Algo deu errado. Tente novamente.',
+    });
   });
 
   it('lists transactions with pagination and ordering', async () => {
@@ -124,9 +131,14 @@ describe('balances', () => {
       .mockResolvedValueOnce({ error: { message: 'transfer failed' } });
 
     await expect(transferToPiggyBank('child-1', 10)).resolves.toEqual({ error: null });
-    await expect(applyPenalty('child-1', 3, 'Late')).resolves.toEqual({ data: null, error: 'Algo deu errado. Tente novamente.' });
+    await expect(applyPenalty('child-1', 3, 'Late')).resolves.toEqual({
+      data: null,
+      error: 'Algo deu errado. Tente novamente.',
+    });
     await expect(configureAppreciation('child-1', 12, 'mensal')).resolves.toEqual({ error: null });
-    await expect(transferToPiggyBank('child-1', 4)).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
+    await expect(transferToPiggyBank('child-1', 4)).resolves.toEqual({
+      error: 'Algo deu errado. Tente novamente.',
+    });
 
     expect(supabaseMock.rpc).toHaveBeenNthCalledWith(1, 'transferir_para_cofrinho', {
       p_filho_id: 'child-1',
@@ -153,15 +165,19 @@ describe('balances', () => {
       select: vi.fn().mockReturnThis(),
     };
 
-    supabaseMock.from
-      .mockReturnValueOnce(emptyBalancesQuery)
-      .mockReturnValueOnce(listErrorQuery);
-    supabaseMock.rpc
-      .mockResolvedValueOnce({ error: null });
+    supabaseMock.from.mockReturnValueOnce(emptyBalancesQuery).mockReturnValueOnce(listErrorQuery);
+    supabaseMock.rpc.mockResolvedValueOnce({ error: null });
 
     await expect(listAdminBalances()).resolves.toEqual({ data: [], error: null });
-    await expect(listTransactions('child-1')).resolves.toEqual({ data: [], hasMore: false, error: 'Algo deu errado. Tente novamente.' });
-    await expect(applyPenalty('child-1', 2, 'Atraso')).resolves.toEqual({ data: { deducted: 2 }, error: null });
+    await expect(listTransactions('child-1')).resolves.toEqual({
+      data: [],
+      hasMore: false,
+      error: 'Algo deu errado. Tente novamente.',
+    });
+    await expect(applyPenalty('child-1', 2, 'Atraso')).resolves.toEqual({
+      data: { deducted: 2 },
+      error: null,
+    });
   });
 
   it('syncs automatic appreciation with and without child id', async () => {
@@ -193,7 +209,13 @@ describe('balances', () => {
 
   describe('property tests', () => {
     const allTransactionTypes: TransactionType[] = [
-      'credito', 'debito', 'transferencia_cofrinho', 'valorizacao', 'penalizacao', 'resgate', 'estorno_resgate',
+      'credito',
+      'debito',
+      'transferencia_cofrinho',
+      'valorizacao',
+      'penalizacao',
+      'resgate',
+      'estorno_resgate',
     ];
 
     // Feature: review-phases-1-2-implementation, Property 1: Transaction type labels are exhaustive

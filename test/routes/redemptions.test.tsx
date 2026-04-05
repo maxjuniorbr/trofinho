@@ -5,6 +5,8 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 
+import AdminRedemptionsScreen from '../../app/(admin)/redemptions/index';
+
 // --- Hoisted mocks ---
 
 const alertMock = vi.hoisted(() => ({
@@ -26,14 +28,22 @@ const confirmMutationMock = vi.hoisted(() => ({
 }));
 
 const redemptionsMock = vi.hoisted(() => ({
-  data: undefined as { pages: { data: Array<{
-    id: string;
-    status: string;
-    pontos_debitados: number;
-    created_at: string;
-    filhos: { nome: string; usuario_id: string | null };
-    premios: { nome: string };
-  }>; hasMore: boolean }[]; pageParams: number[] } | undefined,
+  data: undefined as
+    | {
+        pages: {
+          data: {
+            id: string;
+            status: string;
+            pontos_debitados: number;
+            created_at: string;
+            filhos: { nome: string; usuario_id: string | null };
+            premios: { nome: string };
+          }[];
+          hasMore: boolean;
+        }[];
+        pageParams: number[];
+      }
+    | undefined,
   isLoading: false,
   error: null as Error | null,
   refetch: vi.fn(),
@@ -73,7 +83,11 @@ vi.mock('expo-router', () => ({
 }));
 
 vi.mock('@shopify/flash-list', () => ({
-  FlashList: ({ data, renderItem, ListHeaderComponent }: {
+  FlashList: ({
+    data,
+    renderItem,
+    ListHeaderComponent,
+  }: {
     data: unknown[];
     renderItem: (info: { item: unknown; index: number }) => React.ReactNode;
     ListHeaderComponent?: React.ReactNode;
@@ -90,30 +104,27 @@ vi.mock('@/hooks/queries', () => ({
   useAdminRedemptions: () => redemptionsMock,
   useConfirmRedemption: () => confirmMutationMock,
   useCancelRedemption: () => cancelMutationMock,
-  useProfile: () => ({ data: { id: 'admin-1', familia_id: 'fam-1', nome: 'Admin', papel: 'admin' } }),
+  useProfile: () => ({
+    data: { id: 'admin-1', familia_id: 'fam-1', nome: 'Admin', papel: 'admin' },
+  }),
 }));
 
 vi.mock('@/components/ui/empty-state', () => ({
-  EmptyState: (props: Record<string, unknown>) =>
-    React.createElement('EmptyState', props),
+  EmptyState: (props: Record<string, unknown>) => React.createElement('EmptyState', props),
 }));
 
 vi.mock('@/components/ui/inline-message', () => ({
-  InlineMessage: (props: Record<string, unknown>) =>
-    React.createElement('InlineMessage', props),
+  InlineMessage: (props: Record<string, unknown>) => React.createElement('InlineMessage', props),
 }));
 
 vi.mock('@/components/ui/screen-header', () => ({
-  ScreenHeader: (props: Record<string, unknown>) =>
-    React.createElement('ScreenHeader', props),
+  ScreenHeader: (props: Record<string, unknown>) => React.createElement('ScreenHeader', props),
 }));
 
 vi.mock('@/components/ui/safe-screen-frame', () => ({
   SafeScreenFrame: ({ children }: { children: React.ReactNode }) =>
     React.createElement('SafeScreenFrame', null, children),
 }));
-
-import AdminRedemptionsScreen from '../../app/(admin)/redemptions/index';
 
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
@@ -181,9 +192,15 @@ describe('AdminRedemptionsScreen — cancellation dialog property tests', () => 
         (points, childName) => {
           alertMock.alert.mockReset();
 
-          redemptionsMock.data = { pages: [{ data: [
-            makePendingRedemption('r-1', childName, 'Premio Teste', points),
-          ], hasMore: false }], pageParams: [0] };
+          redemptionsMock.data = {
+            pages: [
+              {
+                data: [makePendingRedemption('r-1', childName, 'Premio Teste', points)],
+                hasMore: false,
+              },
+            ],
+            pageParams: [0],
+          };
 
           const renderer = render(<AdminRedemptionsScreen />);
 
@@ -214,50 +231,52 @@ describe('AdminRedemptionsScreen — cancellation dialog property tests', () => 
   // **Validates: Requirements 3.4, 3.5**
   it('P8-cancel: cancel mutation is called only when user confirms the Alert, not on dismiss', () => {
     fc.assert(
-      fc.property(
-        fc.integer({ min: 1, max: 99999 }),
-        fc.boolean(),
-        (points, userConfirms) => {
-          alertMock.alert.mockReset();
-          cancelMutationMock.mutate.mockReset();
+      fc.property(fc.integer({ min: 1, max: 99999 }), fc.boolean(), (points, userConfirms) => {
+        alertMock.alert.mockReset();
+        cancelMutationMock.mutate.mockReset();
 
-          redemptionsMock.data = { pages: [{ data: [
-            makePendingRedemption('r-1', 'Filho Teste', 'Premio Teste', points),
-          ], hasMore: false }], pageParams: [0] };
+        redemptionsMock.data = {
+          pages: [
+            {
+              data: [makePendingRedemption('r-1', 'Filho Teste', 'Premio Teste', points)],
+              hasMore: false,
+            },
+          ],
+          pageParams: [0],
+        };
 
-          const renderer = render(<AdminRedemptionsScreen />);
+        const renderer = render(<AdminRedemptionsScreen />);
 
-          // Open modal
-          const cancelButtons = findCancelButton(renderer);
+        // Open modal
+        const cancelButtons = findCancelButton(renderer);
+        act(() => {
+          cancelButtons[0].props.onPress();
+        });
+
+        // Trigger Alert from modal
+        const modalConfirmButtons = findModalConfirmButton(renderer);
+        act(() => {
+          modalConfirmButtons[0].props.onPress();
+        });
+
+        expect(alertMock.alert).toHaveBeenCalledTimes(1);
+        const buttons = alertMock.alert.mock.calls[0][2] as {
+          text: string;
+          style: string;
+          onPress?: () => void;
+        }[];
+
+        if (userConfirms) {
+          const destructiveBtn = buttons.find((b) => b.style === 'destructive');
           act(() => {
-            cancelButtons[0].props.onPress();
+            destructiveBtn!.onPress!();
           });
-
-          // Trigger Alert from modal
-          const modalConfirmButtons = findModalConfirmButton(renderer);
-          act(() => {
-            modalConfirmButtons[0].props.onPress();
-          });
-
-          expect(alertMock.alert).toHaveBeenCalledTimes(1);
-          const buttons = alertMock.alert.mock.calls[0][2] as Array<{
-            text: string;
-            style: string;
-            onPress?: () => void;
-          }>;
-
-          if (userConfirms) {
-            const destructiveBtn = buttons.find((b) => b.style === 'destructive');
-            act(() => {
-              destructiveBtn!.onPress!();
-            });
-            expect(cancelMutationMock.mutate).toHaveBeenCalledTimes(1);
-          } else {
-            // User cancels — do not press the destructive button
-            expect(cancelMutationMock.mutate).not.toHaveBeenCalled();
-          }
-        },
-      ),
+          expect(cancelMutationMock.mutate).toHaveBeenCalledTimes(1);
+        } else {
+          // User cancels — do not press the destructive button
+          expect(cancelMutationMock.mutate).not.toHaveBeenCalled();
+        }
+      }),
       { numRuns: 100 },
     );
   });

@@ -59,19 +59,32 @@ export function AppreciationModal({
     const result = await onSave(idx, period);
     setSaving(false);
 
-    if (result.error) { setError(result.error); return; }
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
     handleClose();
-  }
+  };
 
   return (
     <Modal visible={visible} transparent animationType="slide">
-      <KeyboardAvoidingView style={[styles.overlay, { backgroundColor: colors.overlay.scrim }]} behavior="padding">
+      <KeyboardAvoidingView
+        style={[styles.overlay, { backgroundColor: colors.overlay.scrim }]}
+        behavior="padding"
+      >
         <View style={[styles.box, { backgroundColor: colors.bg.surface }]}>
           <Text style={[styles.title, { color: colors.text.primary }]}>Configurar valorização</Text>
 
           <Text style={[styles.label, { color: colors.text.secondary }]}>Índice (%) *</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.bg.canvas, borderColor: colors.border.default, color: colors.text.primary }]}
+            style={[
+              styles.input,
+              {
+                backgroundColor: colors.bg.canvas,
+                borderColor: colors.border.default,
+                color: colors.text.primary,
+              },
+            ]}
             value={rate}
             onChangeText={setRate}
             placeholder="Ex: 5"
@@ -88,7 +101,10 @@ export function AppreciationModal({
                 style={[
                   styles.periodBtn,
                   { borderColor: colors.border.default },
-                  period === p.value && [styles.periodActive, { backgroundColor: colors.accent.adminBg, borderColor: colors.accent.adminDim }],
+                  period === p.value && [
+                    styles.periodActive,
+                    { backgroundColor: colors.accent.adminBg, borderColor: colors.accent.adminDim },
+                  ],
                 ]}
                 onPress={() => setPeriod(p.value)}
               >
@@ -96,7 +112,10 @@ export function AppreciationModal({
                   style={[
                     styles.periodText,
                     { color: colors.text.secondary },
-                    period === p.value && { color: colors.accent.admin, fontFamily: typography.family.bold },
+                    period === p.value && {
+                      color: colors.accent.admin,
+                      fontFamily: typography.family.bold,
+                    },
                   ]}
                 >
                   {p.label}
@@ -106,17 +125,31 @@ export function AppreciationModal({
           </View>
           <FormFooter message={error} compact>
             <View style={styles.buttons}>
-              <Pressable style={[styles.btn, styles.btnCancel, { borderColor: colors.border.default }]} onPress={handleClose}>
-                <Text style={[styles.btnCancelText, { color: colors.text.secondary }]}>Cancelar</Text>
+              <Pressable
+                style={[styles.btn, styles.btnCancel, { borderColor: colors.border.default }]}
+                onPress={handleClose}
+              >
+                <Text style={[styles.btnCancelText, { color: colors.text.secondary }]}>
+                  Cancelar
+                </Text>
               </Pressable>
               <Pressable
-                style={[styles.btn, styles.btnConfirm, { backgroundColor: colors.accent.adminDim }, saving && styles.btnDisabled]}
+                style={[
+                  styles.btn,
+                  styles.btnConfirm,
+                  { backgroundColor: colors.accent.adminDim },
+                  saving && styles.btnDisabled,
+                ]}
                 onPress={handleSave}
                 disabled={saving}
               >
-                {saving
-                  ? <ActivityIndicator color={colors.text.inverse} />
-                  : <Text style={[styles.btnConfirmText, { color: colors.text.inverse }]}>Salvar</Text>}
+                {saving ? (
+                  <ActivityIndicator color={colors.text.inverse} />
+                ) : (
+                  <Text style={[styles.btnConfirmText, { color: colors.text.inverse }]}>
+                    Salvar
+                  </Text>
+                )}
               </Pressable>
             </View>
           </FormFooter>
@@ -129,25 +162,42 @@ export function AppreciationModal({
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
   box: {
-    borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl,
-    padding: spacing['6'], paddingBottom: spacing['12'], gap: spacing['3'],
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
+    padding: spacing['6'],
+    paddingBottom: spacing['12'],
+    gap: spacing['3'],
   },
   title: { fontSize: typography.size.lg, fontFamily: typography.family.bold },
   label: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
   input: {
-    borderRadius: radii.md, borderWidth: 1,
-    paddingHorizontal: spacing['3'], paddingVertical: spacing['3'],
-    fontSize: typography.size.md, minHeight: 48,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    paddingHorizontal: spacing['3'],
+    paddingVertical: spacing['3'],
+    fontSize: typography.size.md,
+    minHeight: 48,
   },
   periodRow: { flexDirection: 'row', gap: spacing['2'] },
   periodBtn: {
-    flex: 1, borderRadius: radii.md, borderWidth: 1,
-    paddingVertical: spacing['2'], alignItems: 'center', minHeight: 44, justifyContent: 'center',
+    flex: 1,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    paddingVertical: spacing['2'],
+    alignItems: 'center',
+    minHeight: 44,
+    justifyContent: 'center',
   },
   periodActive: {},
   periodText: { fontSize: typography.size.sm, fontFamily: typography.family.medium },
   buttons: { flexDirection: 'row', gap: spacing['3'] },
-  btn: { flex: 1, borderRadius: radii.lg, paddingVertical: spacing['3'], alignItems: 'center', minHeight: 48 },
+  btn: {
+    flex: 1,
+    borderRadius: radii.lg,
+    paddingVertical: spacing['3'],
+    alignItems: 'center',
+    minHeight: 48,
+  },
   btnCancel: { borderWidth: 1 },
   btnCancelText: { fontFamily: typography.family.semibold },
   btnConfirm: {},

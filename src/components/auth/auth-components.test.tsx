@@ -1,16 +1,13 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import {
-  ActivityIndicator,
-  Animated,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-} from 'react-native';
+import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, TextInput } from 'react-native';
 import { Image } from 'expo-image';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { lightColors } from '@/constants/theme';
+
+import { Button } from '../ui/button';
+import { AuthShell } from './auth-shell';
+import { AuthTextField } from './auth-text-field';
 
 vi.mock('../../../assets/trofinho-mascot.png', () => ({
   default: 1,
@@ -22,10 +19,6 @@ vi.mock('expo-router', () => ({
     replace: vi.fn(),
   }),
 }));
-
-import { Button } from '../ui/button';
-import { AuthShell } from './auth-shell';
-import { AuthTextField } from './auth-text-field';
 
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
@@ -57,7 +50,7 @@ describe('auth components', () => {
         loading={false}
         onPress={onPress}
         accessibilityLabel="Entrar"
-      />
+      />,
     );
     const idlePressable = idleRenderer.root.findByType(Pressable);
 
@@ -73,12 +66,14 @@ describe('auth components', () => {
         loading
         onPress={onPress}
         accessibilityLabel="Entrando"
-      />
+      />,
     );
     const loadingPressable = loadingRenderer.root.findByType(Pressable);
 
     expect(loadingPressable.props.disabled).toBe(true);
-    expect(loadingRenderer.root.findByType(ActivityIndicator).props.color).toBe(lightColors.text.onBrand);
+    expect(loadingRenderer.root.findByType(ActivityIndicator).props.color).toBe(
+      lightColors.text.onBrand,
+    );
     expect(loadingRenderer.root.findByType(Text).props.children).toBe('Entrando...');
   });
 
@@ -89,18 +84,13 @@ describe('auth components', () => {
         focused
         value="max@example.com"
         onChangeText={() => undefined}
-      />
+      />,
     );
     const focusedInput = focusedRenderer.root.findByType(TextInput);
     expect(flattenStyle(focusedInput.props.style).borderColor).toBe(lightColors.border.focus);
 
     const defaultRenderer = render(
-      <AuthTextField
-        label="Senha"
-        focused={false}
-        value="123456"
-        onChangeText={() => undefined}
-      />
+      <AuthTextField label="Senha" focused={false} value="123456" onChangeText={() => undefined} />,
     );
     const defaultInput = defaultRenderer.root.findByType(TextInput);
     expect(flattenStyle(defaultInput.props.style).borderColor).toBe(lightColors.border.default);
@@ -110,7 +100,7 @@ describe('auth components', () => {
     const renderer = render(
       <AuthShell title="Trofinho" subtitle="Subtitulo" variant="hero">
         <Text>Conteudo</Text>
-      </AuthShell>
+      </AuthShell>,
     );
 
     expect(Animated.parallel as unknown as Mock).toHaveBeenCalledTimes(1);
@@ -129,7 +119,7 @@ describe('auth components', () => {
     const renderer = render(
       <AuthShell title="Login" subtitle="Acesse sua conta">
         <Text>Formulario</Text>
-      </AuthShell>
+      </AuthShell>,
     );
 
     const image = renderer.root.findByType(Image);
@@ -147,12 +137,13 @@ describe('auth components', () => {
         subtitle="Subtitulo"
       >
         <Text>Formulario</Text>
-      </AuthShell>
+      </AuthShell>,
     );
 
     const buttons = renderer.root.findAllByType(Pressable);
     expect(buttons[0]?.props.accessibilityLabel).toBe('Voltar para Login');
-    expect(flattenStyle(buttons[0]?.props.style({ pressed: false })).backgroundColor)
-      .toBe(lightColors.bg.muted);
+    expect(flattenStyle(buttons[0]?.props.style({ pressed: false })).backgroundColor).toBe(
+      lightColors.bg.muted,
+    );
   });
 });

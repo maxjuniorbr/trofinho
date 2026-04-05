@@ -1,9 +1,4 @@
-import {
-  StyleSheet,
-  Text,
-  View,
-  RefreshControl,
-} from 'react-native';
+import { StyleSheet, Text, View, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo } from 'react';
@@ -25,7 +20,16 @@ export default function ChildRedemptionsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const { data, isLoading, error, refetch, isFetching, fetchNextPage, hasNextPage, isFetchingNextPage } = useChildRedemptions();
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+    isFetching,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useChildRedemptions();
   const redemptions = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
 
   const errorMessage = error?.message ?? null;
@@ -44,7 +48,12 @@ export default function ChildRedemptionsScreen() {
   return (
     <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader title="Meus Resgates" onBack={() => router.back()} backLabel="Início" role="filho" />
+      <ScreenHeader
+        title="Meus Resgates"
+        onBack={() => router.back()}
+        backLabel="Início"
+        role="filho"
+      />
 
       {shouldShowEmptyState ? (
         <EmptyState
@@ -59,14 +68,30 @@ export default function ChildRedemptionsScreen() {
           data={redemptions}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={isFetching && !isLoading}
+              onRefresh={handleRefresh}
+              tintColor={colors.brand.vivid}
+            />
+          }
           ListHeaderComponent={<View style={{ height: spacing['4'] }} />}
           renderItem={({ item }) => (
             <View style={styles.card}>
               <View style={styles.cardTop}>
                 <Text style={styles.cardName}>{item.premios.nome}</Text>
-                <View style={[styles.statusBadge, { backgroundColor: getRedemptionStatusColor(item.status, colors) + '22' }]}>
-                  <Text style={[styles.statusText, { color: getRedemptionStatusColor(item.status, colors) }]}>
+                <View
+                  style={[
+                    styles.statusBadge,
+                    { backgroundColor: getRedemptionStatusColor(item.status, colors) + '22' },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.statusText,
+                      { color: getRedemptionStatusColor(item.status, colors) },
+                    ]}
+                  >
                     {getRedemptionStatusLabel(item.status)}
                   </Text>
                 </View>
@@ -80,7 +105,9 @@ export default function ChildRedemptionsScreen() {
               </View>
             </View>
           )}
-          onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
+          onEndReached={() => {
+            if (hasNextPage) fetchNextPage();
+          }}
           onEndReachedThreshold={0.5}
           ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
         />
@@ -103,12 +130,26 @@ function makeStyles(colors: ThemeColors) {
       ...shadows.card,
     },
     cardTop: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
-    cardName: { fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary, flex: 1 },
-    statusBadge: { borderRadius: radii.md, borderCurve: 'continuous', paddingHorizontal: spacing['2'], paddingVertical: spacing['1'] },
+    cardName: {
+      fontSize: typography.size.md,
+      fontFamily: typography.family.semibold,
+      color: colors.text.primary,
+      flex: 1,
+    },
+    statusBadge: {
+      borderRadius: radii.md,
+      borderCurve: 'continuous',
+      paddingHorizontal: spacing['2'],
+      paddingVertical: spacing['1'],
+    },
     statusText: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
     cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     cardPointsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
-    cardPoints: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.accent.filho },
+    cardPoints: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.bold,
+      color: colors.accent.filho,
+    },
     cardDate: { fontSize: typography.size.xs, color: colors.text.muted },
   });
 }

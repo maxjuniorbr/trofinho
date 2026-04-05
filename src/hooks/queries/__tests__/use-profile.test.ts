@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { queryKeys, STALE_TIMES } from '../query-keys';
 
+import * as authLib from '../../../../lib/auth';
+import * as notificationsLib from '../../../../lib/notifications';
+import * as rq from '@tanstack/react-query';
+
 const mockInvalidateQueries = vi.fn();
 
 vi.mock('@tanstack/react-query', () => {
@@ -25,7 +29,9 @@ vi.mock('@tanstack/react-query', () => {
 });
 
 vi.mock('../../../../lib/auth', () => ({
-  getProfile: vi.fn().mockResolvedValue({ id: 'u1', familia_id: 'f1', papel: 'admin', nome: 'Test' }),
+  getProfile: vi
+    .fn()
+    .mockResolvedValue({ id: 'u1', familia_id: 'f1', papel: 'admin', nome: 'Test' }),
   getCurrentAuthUser: vi.fn().mockResolvedValue({ email: 'test@test.com', avatarUrl: null }),
   updateUserName: vi.fn().mockResolvedValue({ error: null }),
   updateUserPassword: vi.fn().mockResolvedValue({ error: null }),
@@ -40,15 +46,18 @@ vi.mock('../../../../lib/notifications', () => ({
   }),
 }));
 
-import * as authLib from '../../../../lib/auth';
-import * as notificationsLib from '../../../../lib/notifications';
-import * as rq from '@tanstack/react-query';
-
 type CapturedStore = { options: Record<string, unknown>[] };
 const getCapturedQuery = () => (rq as unknown as { _capturedQuery: CapturedStore })._capturedQuery;
-const getCapturedMutation = () => (rq as unknown as { _capturedMutation: CapturedStore })._capturedMutation;
-const lastQueryOpts = () => { const o = getCapturedQuery().options; return o.at(-1)!; };
-const lastMutationOpts = () => { const o = getCapturedMutation().options; return o.at(-1)!; };
+const getCapturedMutation = () =>
+  (rq as unknown as { _capturedMutation: CapturedStore })._capturedMutation;
+const lastQueryOpts = () => {
+  const o = getCapturedQuery().options;
+  return o.at(-1)!;
+};
+const lastMutationOpts = () => {
+  const o = getCapturedMutation().options;
+  return o.at(-1)!;
+};
 
 beforeEach(() => {
   getCapturedQuery().options = [];

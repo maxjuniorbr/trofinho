@@ -88,9 +88,9 @@ export async function createPrize(input: PrizeInput): Promise<{
   const { data, error } = await supabase
     .from('premios')
     .insert({
-      familia_id:   profile.familia_id,
-      nome:         input.nome,
-      descricao:    input.descricao,
+      familia_id: profile.familia_id,
+      nome: input.nome,
+      descricao: input.descricao,
       custo_pontos: input.custo_pontos,
     })
     .select()
@@ -102,7 +102,7 @@ export async function createPrize(input: PrizeInput): Promise<{
 
 export async function updatePrize(
   id: string,
-  input: UpdatePrizeInput
+  input: UpdatePrizeInput,
 ): Promise<{ error: string | null; imageUrl: string | null; pointsMessage: string | null }> {
   let nextImageUrl = input.imagem_url ?? null;
 
@@ -163,9 +163,7 @@ export async function deactivatePrize(id: string): Promise<{
 
   const pendingCount = data ?? 0;
   const warning =
-    pendingCount > 0
-      ? `Existem ${pendingCount} resgates pendentes para este prêmio.`
-      : null;
+    pendingCount > 0 ? `Existem ${pendingCount} resgates pendentes para este prêmio.` : null;
 
   return { data: { pendingCount }, error: null, warning };
 }

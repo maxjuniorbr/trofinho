@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { queryKeys, STALE_TIMES } from '../query-keys';
 
+import * as balancesLib from '../../../../lib/balances';
+import * as rq from '@tanstack/react-query';
+
 const mockInvalidateQueries = vi.fn();
 
 vi.mock('@tanstack/react-query', () => {
@@ -14,7 +17,14 @@ vi.mock('@tanstack/react-query', () => {
     }),
     useInfiniteQuery: vi.fn((opts: Record<string, unknown>) => {
       capturedQuery.options.push(opts);
-      return { data: undefined, isLoading: false, error: null, fetchNextPage: vi.fn(), hasNextPage: false, isFetchingNextPage: false };
+      return {
+        data: undefined,
+        isLoading: false,
+        error: null,
+        fetchNextPage: vi.fn(),
+        hasNextPage: false,
+        isFetchingNextPage: false,
+      };
     }),
     useMutation: vi.fn((opts: Record<string, unknown>) => {
       capturedMutation.options.push(opts);
@@ -31,7 +41,9 @@ vi.mock('@tanstack/react-query', () => {
 const mockSyncAppreciation = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('../../../../lib/balances', () => ({
-  getBalance: vi.fn().mockResolvedValue({ data: { filho_id: 'x', saldo_livre: 0, cofrinho: 0 }, error: null }),
+  getBalance: vi
+    .fn()
+    .mockResolvedValue({ data: { filho_id: 'x', saldo_livre: 0, cofrinho: 0 }, error: null }),
   listAdminBalances: vi.fn().mockResolvedValue({ data: [], error: null }),
   listTransactions: vi.fn().mockResolvedValue({ data: [], error: null }),
   applyPenalty: vi.fn().mockResolvedValue({ error: null }),
@@ -40,14 +52,18 @@ vi.mock('../../../../lib/balances', () => ({
   syncAutomaticAppreciation: (...args: unknown[]) => mockSyncAppreciation(...args),
 }));
 
-import * as balancesLib from '../../../../lib/balances';
-import * as rq from '@tanstack/react-query';
-
 type CapturedStore = { options: Record<string, unknown>[] };
 const getCapturedQuery = () => (rq as unknown as { _capturedQuery: CapturedStore })._capturedQuery;
-const getCapturedMutation = () => (rq as unknown as { _capturedMutation: CapturedStore })._capturedMutation;
-const lastQueryOpts = () => { const o = getCapturedQuery().options; return o.at(-1)!; };
-const lastMutationOpts = () => { const o = getCapturedMutation().options; return o.at(-1)!; };
+const getCapturedMutation = () =>
+  (rq as unknown as { _capturedMutation: CapturedStore })._capturedMutation;
+const lastQueryOpts = () => {
+  const o = getCapturedQuery().options;
+  return o.at(-1)!;
+};
+const lastMutationOpts = () => {
+  const o = getCapturedMutation().options;
+  return o.at(-1)!;
+};
 
 beforeEach(() => {
   getCapturedQuery().options = [];
@@ -157,8 +173,13 @@ describe('use-balances mutation hooks', () => {
     it('useConfigureAppreciation calls syncAutomaticAppreciation before invalidating', async () => {
       const { useConfigureAppreciation } = await loadHooks();
       const callOrder: string[] = [];
-      mockSyncAppreciation.mockImplementation(() => { callOrder.push('sync'); return Promise.resolve(); });
-      mockInvalidateQueries.mockImplementation(() => { callOrder.push('invalidate'); });
+      mockSyncAppreciation.mockImplementation(() => {
+        callOrder.push('sync');
+        return Promise.resolve();
+      });
+      mockInvalidateQueries.mockImplementation(() => {
+        callOrder.push('invalidate');
+      });
 
       useConfigureAppreciation();
       const onSuccess = lastMutationOpts().onSuccess as () => Promise<void>;

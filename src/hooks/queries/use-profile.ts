@@ -54,7 +54,13 @@ export const useUpdateUserName = () => {
 
 export const useUpdateUserPassword = () =>
   useMutation({
-    mutationFn: async ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) => {
+    mutationFn: async ({
+      currentPassword,
+      newPassword,
+    }: {
+      currentPassword: string;
+      newPassword: string;
+    }) => {
       const result = await updateUserPassword(currentPassword, newPassword);
       if (result.error) throw new Error(result.error.message);
     },

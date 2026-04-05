@@ -1,5 +1,12 @@
 import React from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, type PressableProps } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type PressableProps,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/context/theme-context';
 import { gradients, radii, shadows, spacing, typography, withAlpha } from '@/constants/theme';
@@ -68,35 +75,49 @@ export function Button({
   const { colors } = useTheme();
 
   const isDisabled = disabled || loading;
-  const { fontSize, lineHeight, paddingHorizontal, paddingVertical, minHeight } = getSizeTokens(size);
+  const { fontSize, lineHeight, paddingHorizontal, paddingVertical, minHeight } =
+    getSizeTokens(size);
 
   const isPrimary = variant === 'primary';
 
   const bg = () => {
     switch (variant) {
-      case 'primary':   return colors.brand.vivid;
-      case 'secondary': return colors.bg.elevated;
-      case 'ghost':     return 'transparent';
-      case 'danger':    return colors.semantic.errorBg;
-      case 'outline':   return 'transparent';
+      case 'primary':
+        return colors.brand.vivid;
+      case 'secondary':
+        return colors.bg.elevated;
+      case 'ghost':
+        return 'transparent';
+      case 'danger':
+        return colors.semantic.errorBg;
+      case 'outline':
+        return 'transparent';
     }
   };
 
   const fg = () => {
     switch (variant) {
-      case 'primary':   return colors.text.onBrand;
-      case 'secondary': return colors.text.primary;
-      case 'ghost':     return colors.text.secondary;
-      case 'danger':    return colors.semantic.error;
-      case 'outline':   return colors.brand.vivid;
+      case 'primary':
+        return colors.text.onBrand;
+      case 'secondary':
+        return colors.text.primary;
+      case 'ghost':
+        return colors.text.secondary;
+      case 'danger':
+        return colors.semantic.error;
+      case 'outline':
+        return colors.brand.vivid;
     }
   };
 
   const borderColor = () => {
     switch (variant) {
-      case 'secondary': return colors.border.default;
-      case 'outline':   return withAlpha(colors.brand.vivid, 0.3);
-      default:          return 'transparent';
+      case 'secondary':
+        return colors.border.default;
+      case 'outline':
+        return withAlpha(colors.brand.vivid, 0.3);
+      default:
+        return 'transparent';
     }
   };
 

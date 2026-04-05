@@ -79,16 +79,28 @@ describe('notifications', () => {
 
   describe('getNotificationRoute', () => {
     it('returns the admin tasks route', () => {
-      expect(getNotificationRoute({ route: '/(admin)/tasks' })).toEqual({ route: '/(admin)/tasks', entityId: undefined });
+      expect(getNotificationRoute({ route: '/(admin)/tasks' })).toEqual({
+        route: '/(admin)/tasks',
+        entityId: undefined,
+      });
     });
 
     it('returns the admin redemptions route', () => {
-      expect(getNotificationRoute({ route: '/(admin)/redemptions' })).toEqual({ route: '/(admin)/redemptions', entityId: undefined });
+      expect(getNotificationRoute({ route: '/(admin)/redemptions' })).toEqual({
+        route: '/(admin)/redemptions',
+        entityId: undefined,
+      });
     });
 
     it('returns child routes', () => {
-      expect(getNotificationRoute({ route: '/(child)/tasks' })).toEqual({ route: '/(child)/tasks', entityId: undefined });
-      expect(getNotificationRoute({ route: '/(child)/redemptions' })).toEqual({ route: '/(child)/redemptions', entityId: undefined });
+      expect(getNotificationRoute({ route: '/(child)/tasks' })).toEqual({
+        route: '/(child)/tasks',
+        entityId: undefined,
+      });
+      expect(getNotificationRoute({ route: '/(child)/redemptions' })).toEqual({
+        route: '/(child)/redemptions',
+        entityId: undefined,
+      });
     });
 
     it('includes entityId when present', () => {
@@ -103,8 +115,14 @@ describe('notifications', () => {
     });
 
     it('ignores empty or non-string entityId', () => {
-      expect(getNotificationRoute({ route: '/(child)/tasks', entityId: '' })).toEqual({ route: '/(child)/tasks', entityId: undefined });
-      expect(getNotificationRoute({ route: '/(child)/tasks', entityId: 42 })).toEqual({ route: '/(child)/tasks', entityId: undefined });
+      expect(getNotificationRoute({ route: '/(child)/tasks', entityId: '' })).toEqual({
+        route: '/(child)/tasks',
+        entityId: undefined,
+      });
+      expect(getNotificationRoute({ route: '/(child)/tasks', entityId: 42 })).toEqual({
+        route: '/(child)/tasks',
+        entityId: undefined,
+      });
     });
 
     it('returns null for an unknown route', () => {
@@ -124,15 +142,34 @@ describe('notifications', () => {
 
   describe('getNotificationPrefs', () => {
     it('returns server prefs and caches locally when authenticated', async () => {
-      const serverPrefs = { tarefasPendentes: false, tarefaAprovada: true, tarefaRejeitada: false, tarefaConcluida: true, resgatesSolicitado: false, resgateConfirmado: true, resgateCancelado: true };
+      const serverPrefs = {
+        tarefasPendentes: false,
+        tarefaAprovada: true,
+        tarefaRejeitada: false,
+        tarefaConcluida: true,
+        resgatesSolicitado: false,
+        resgateConfirmado: true,
+        resgateCancelado: true,
+      };
       getUserMock.mockResolvedValue({ data: { user: { id: 'user-1' } } });
       selectMock.mockResolvedValue({ data: { notif_prefs: serverPrefs }, error: null });
       await expect(getNotificationPrefs()).resolves.toEqual(serverPrefs);
-      expect(deviceStorageSetMock).toHaveBeenCalledWith('notification_prefs', JSON.stringify(serverPrefs));
+      expect(deviceStorageSetMock).toHaveBeenCalledWith(
+        'notification_prefs',
+        JSON.stringify(serverPrefs),
+      );
     });
 
     it('falls back to local cache on network error', async () => {
-      const stored = { tarefasPendentes: false, tarefaAprovada: true, tarefaRejeitada: false, tarefaConcluida: true, resgatesSolicitado: false, resgateConfirmado: true, resgateCancelado: true };
+      const stored = {
+        tarefasPendentes: false,
+        tarefaAprovada: true,
+        tarefaRejeitada: false,
+        tarefaConcluida: true,
+        resgatesSolicitado: false,
+        resgateConfirmado: true,
+        resgateCancelado: true,
+      };
       getUserMock.mockRejectedValue(new Error('network'));
       deviceStorageGetMock.mockResolvedValue(JSON.stringify(stored));
       await expect(getNotificationPrefs()).resolves.toEqual(stored);
@@ -167,18 +204,31 @@ describe('notifications', () => {
 
   describe('setNotificationPrefs', () => {
     it('writes to server then caches locally', async () => {
-      const prefs = { tarefasPendentes: false, tarefaAprovada: true, tarefaRejeitada: false, tarefaConcluida: true, resgatesSolicitado: false, resgateConfirmado: true, resgateCancelado: true };
+      const prefs = {
+        tarefasPendentes: false,
+        tarefaAprovada: true,
+        tarefaRejeitada: false,
+        tarefaConcluida: true,
+        resgatesSolicitado: false,
+        resgateConfirmado: true,
+        resgateCancelado: true,
+      };
       getUserMock.mockResolvedValue({ data: { user: { id: 'user-1' } } });
       updateMock.mockResolvedValue({ data: null, error: null });
       await setNotificationPrefs(prefs);
       expect(updateMock).toHaveBeenCalledWith('id', 'user-1');
-      expect(deviceStorageSetMock).toHaveBeenCalledWith('notification_prefs', JSON.stringify(prefs));
+      expect(deviceStorageSetMock).toHaveBeenCalledWith(
+        'notification_prefs',
+        JSON.stringify(prefs),
+      );
     });
 
     it('throws when user is not authenticated', async () => {
       const prefs = DEFAULT_NOTIFICATION_PREFS;
       getUserMock.mockResolvedValue({ data: { user: null } });
-      await expect(setNotificationPrefs(prefs)).rejects.toThrow('Usu\u00e1rio n\u00e3o autenticado.');
+      await expect(setNotificationPrefs(prefs)).rejects.toThrow(
+        'Usu\u00e1rio n\u00e3o autenticado.',
+      );
       expect(deviceStorageSetMock).not.toHaveBeenCalled();
     });
 
@@ -190,8 +240,6 @@ describe('notifications', () => {
       expect(deviceStorageSetMock).not.toHaveBeenCalled();
     });
   });
-
-
 });
 
 /**
@@ -229,10 +277,7 @@ describe('savePushToken', () => {
 
     await savePushToken('ExponentPushToken[xyz]');
 
-    expect(deviceStorageSetMock).toHaveBeenCalledWith(
-      'device_id',
-      expect.any(String),
-    );
+    expect(deviceStorageSetMock).toHaveBeenCalledWith('device_id', expect.any(String));
     const savedId = deviceStorageSetMock.mock.calls[0][1] as string;
     expect(rpcMock).toHaveBeenCalledWith('upsert_push_token', {
       p_token: 'ExponentPushToken[xyz]',
@@ -305,5 +350,3 @@ describe('Property 3: Preference round trip (server-first)', () => {
     );
   });
 });
-
-

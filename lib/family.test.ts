@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getFamily } from './family';
+
 const supabaseMock = vi.hoisted(() => ({
   from: vi.fn(),
 }));
@@ -7,8 +9,6 @@ const supabaseMock = vi.hoisted(() => ({
 vi.mock('./supabase', () => ({
   supabase: supabaseMock,
 }));
-
-import { getFamily } from './family';
 
 function createSingleQuery(result: { data?: unknown; error?: { message: string } | null }) {
   return {

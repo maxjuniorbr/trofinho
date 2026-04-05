@@ -19,12 +19,16 @@ export const useTasksLiveSync = (familiaId: string | undefined) => {
     // Task-level changes are sufficient to trigger cache invalidation.
     const channel = supabase
       .channel(`tasks-live-sync-${Date.now()}-${Math.random().toString(36).slice(2)}`) // NOSONAR — not security-sensitive, just channel uniqueness
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'tarefas',
-        filter: `familia_id=eq.${familiaId}`,
-      }, invalidateTasks)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tarefas',
+          filter: `familia_id=eq.${familiaId}`,
+        },
+        invalidateTasks,
+      )
       .subscribe();
 
     return () => {

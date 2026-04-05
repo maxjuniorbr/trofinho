@@ -1,6 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
 import * as fc from 'fast-check';
 
+import { extractErrorMessage } from './api-error';
+import {
+  inferImageExtension,
+  inferImageContentType,
+  resizeImage,
+  readImageAsArrayBuffer,
+} from './image-utils';
+import { ImageManipulator } from 'expo-image-manipulator';
+
 vi.mock('expo-file-system', () => ({
   File: vi.fn(),
 }));
@@ -9,10 +18,6 @@ vi.mock('expo-image-manipulator', () => ({
   ImageManipulator: { manipulate: vi.fn() },
   SaveFormat: { JPEG: 'jpeg' },
 }));
-
-import { extractErrorMessage } from './api-error';
-import { inferImageExtension, inferImageContentType, resizeImage, readImageAsArrayBuffer } from './image-utils';
-import { ImageManipulator } from 'expo-image-manipulator';
 
 describe('resizeImage', () => {
   it('resizes when at least one dimension exceeds maxDimension', async () => {
@@ -152,7 +157,9 @@ describe('extractErrorMessage', () => {
   });
 
   it('retorna mensagem de objeto com propriedade message', () => {
-    expect(extractErrorMessage({ message: 'erro do servidor' }, 'fallback')).toBe('erro do servidor');
+    expect(extractErrorMessage({ message: 'erro do servidor' }, 'fallback')).toBe(
+      'erro do servidor',
+    );
   });
 
   it('retorna fallback para Error com mensagem vazia', () => {
@@ -185,13 +192,14 @@ describe('readImageAsArrayBuffer', () => {
   it('rejects remote files exceeding 10 MB via content-length', async () => {
     const mockResponse = {
       ok: true,
-      headers: { get: (h: string) => h === 'content-length' ? '20000000' : null },
+      headers: { get: (h: string) => (h === 'content-length' ? '20000000' : null) },
       arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
     };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockResponse));
 
-    await expect(readImageAsArrayBuffer('https://example.com/huge.jpg'))
-      .rejects.toThrow('muito grande');
+    await expect(readImageAsArrayBuffer('https://example.com/huge.jpg')).rejects.toThrow(
+      'muito grande',
+    );
 
     vi.unstubAllGlobals();
   });
@@ -205,8 +213,9 @@ describe('readImageAsArrayBuffer', () => {
     };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockResponse));
 
-    await expect(readImageAsArrayBuffer('https://example.com/huge.jpg'))
-      .rejects.toThrow('muito grande');
+    await expect(readImageAsArrayBuffer('https://example.com/huge.jpg')).rejects.toThrow(
+      'muito grande',
+    );
 
     vi.unstubAllGlobals();
   });

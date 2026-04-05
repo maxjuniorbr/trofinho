@@ -1,25 +1,21 @@
-import {
-  StyleSheet,
-  Text,
-  View,
-  Pressable,
-  FlatList,
-  RefreshControl,
-} from 'react-native';
+import { StyleSheet, Text, View, Pressable, FlatList, RefreshControl } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import {
-  Wallet,
-  TrendingUp,
-} from 'lucide-react-native';
+import { Wallet, TrendingUp } from 'lucide-react-native';
 import {
   getTransactionTypeLabel,
   getAppreciationPeriodLabel,
   isCredit,
   type AppreciationPeriod,
 } from '@lib/balances';
-import { useBalance, useTransactions, useApplyPenalty, useConfigureAppreciation, combineQueryStates } from '@/hooks/queries';
+import {
+  useBalance,
+  useTransactions,
+  useApplyPenalty,
+  useConfigureAppreciation,
+  combineQueryStates,
+} from '@/hooks/queries';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
@@ -46,7 +42,10 @@ export default function ChildBalanceAdminScreen() {
   const { isLoading, isFetching, refetchAll } = combineQueryStates(balanceQuery, transactionsQuery);
 
   const balance = balanceQuery.data ?? null;
-  const transactions = useMemo(() => transactionsQuery.data?.pages.flatMap((p) => p.data) ?? [], [transactionsQuery.data]);
+  const transactions = useMemo(
+    () => transactionsQuery.data?.pages.flatMap((p) => p.data) ?? [],
+    [transactionsQuery.data],
+  );
   const { fetchNextPage, hasNextPage, isFetchingNextPage } = transactionsQuery;
 
   const [modalType, setModalType] = useState<ModalType>(null);
@@ -60,32 +59,45 @@ export default function ChildBalanceAdminScreen() {
     await refetchAll();
   }, [refetchAll]);
 
-  const handlePenalty = useCallback(async (amount: number, description: string) => {
-    if (!filho_id) return { error: 'ID do filho não encontrado' };
-    try {
-      const result = await penaltyMutation.mutateAsync({ childId: filho_id, amount, description });
-      setModalType(null);
-      if (result && result.deducted < amount) {
-        return { error: null, warning: `Saldo insuficiente. Apenas ${result.deducted} pts foram debitados.` };
+  const handlePenalty = useCallback(
+    async (amount: number, description: string) => {
+      if (!filho_id) return { error: 'ID do filho não encontrado' };
+      try {
+        const result = await penaltyMutation.mutateAsync({
+          childId: filho_id,
+          amount,
+          description,
+        });
+        setModalType(null);
+        if (result && result.deducted < amount) {
+          return {
+            error: null,
+            warning: `Saldo insuficiente. Apenas ${result.deducted} pts foram debitados.`,
+          };
+        }
+        setSuccessMessage('Penalidade aplicada com sucesso.');
+        return { error: null };
+      } catch (e) {
+        return { error: e instanceof Error ? e.message : 'Erro ao aplicar penalidade.' };
       }
-      setSuccessMessage('Penalidade aplicada com sucesso.');
-      return { error: null };
-    } catch (e) {
-      return { error: e instanceof Error ? e.message : 'Erro ao aplicar penalidade.' };
-    }
-  }, [filho_id, penaltyMutation]);
+    },
+    [filho_id, penaltyMutation],
+  );
 
-  const handleConfigure = useCallback(async (rate: number, period: AppreciationPeriod) => {
-    if (!filho_id) return { error: 'ID do filho não encontrado' };
-    try {
-      await configureMutation.mutateAsync({ childId: filho_id, rate, period });
-      setModalType(null);
-      setSuccessMessage('Valorização configurada com sucesso.');
-      return { error: null };
-    } catch (e) {
-      return { error: e instanceof Error ? e.message : 'Erro ao configurar valorização.' };
-    }
-  }, [filho_id, configureMutation]);
+  const handleConfigure = useCallback(
+    async (rate: number, period: AppreciationPeriod) => {
+      if (!filho_id) return { error: 'ID do filho não encontrado' };
+      try {
+        await configureMutation.mutateAsync({ childId: filho_id, rate, period });
+        setModalType(null);
+        setSuccessMessage('Valorização configurada com sucesso.');
+        return { error: null };
+      } catch (e) {
+        return { error: e instanceof Error ? e.message : 'Erro ao configurar valorização.' };
+      }
+    },
+    [filho_id, configureMutation],
+  );
 
   if (isLoading) {
     return (
@@ -110,16 +122,19 @@ export default function ChildBalanceAdminScreen() {
   return (
     <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader
-        title={nome ?? 'Filho'}
-        onBack={() => router.back()}
-      />
+      <ScreenHeader title={nome ?? 'Filho'} onBack={() => router.back()} />
 
       <FlatList
         data={transactions}
         keyExtractor={(m) => m.id}
         contentContainerStyle={styles.lista}
-        refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching && !isLoading}
+            onRefresh={handleRefresh}
+            tintColor={colors.brand.vivid}
+          />
+        }
         ListHeaderComponent={
           <>
             {visibleSuccess ? (
@@ -153,13 +168,20 @@ export default function ChildBalanceAdminScreen() {
               </View>
               {hasAppreciationConfigured ? (
                 <Text style={styles.boxConfigTexto}>
-                  {balance!.indice_valorizacao}% ao {periodoAtual}{ultimaValorizacaoTexto}{proximaValorizacaoTexto}
+                  {balance!.indice_valorizacao}% ao {periodoAtual}
+                  {ultimaValorizacaoTexto}
+                  {proximaValorizacaoTexto}
                 </Text>
               ) : (
                 <Text style={styles.boxConfigTexto}>Não configurada</Text>
               )}
               <View style={styles.acoesBtns}>
-                <Pressable style={styles.btnAcao} onPress={() => setModalType('valorizacao_config')} accessibilityRole="button" accessibilityLabel="Configurar valorização">
+                <Pressable
+                  style={styles.btnAcao}
+                  onPress={() => setModalType('valorizacao_config')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Configurar valorização"
+                >
                   <Text style={styles.btnAcaoTexto}>Configurar</Text>
                 </Pressable>
               </View>
@@ -181,19 +203,28 @@ export default function ChildBalanceAdminScreen() {
             <TransactionIcon type={item.tipo} style={styles.movIconBox} />
             <View style={styles.movInfo}>
               <Text style={styles.movLabel}>{getTransactionTypeLabel(item.tipo)}</Text>
-              <Text style={styles.movDesc} numberOfLines={1}>{item.descricao}</Text>
+              <Text style={styles.movDesc} numberOfLines={1}>
+                {item.descricao}
+              </Text>
               <Text style={styles.movData}>
                 {new Date(item.created_at).toLocaleDateString('pt-BR', {
-                  day: '2-digit', month: 'short', year: 'numeric',
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
                 })}
               </Text>
             </View>
-            <Text style={[styles.movValor, isCredit(item.tipo) ? styles.creditoTxt : styles.debitoTxt]}>
-              {isCredit(item.tipo) ? '+' : '-'}{item.valor}
+            <Text
+              style={[styles.movValor, isCredit(item.tipo) ? styles.creditoTxt : styles.debitoTxt]}
+            >
+              {isCredit(item.tipo) ? '+' : '-'}
+              {item.valor}
             </Text>
           </View>
         )}
-        onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
+        onEndReached={() => {
+          if (hasNextPage) fetchNextPage();
+        }}
         onEndReachedThreshold={0.5}
         ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
       />
@@ -222,37 +253,114 @@ function makeStyles(colors: ThemeColors) {
     lista: { padding: spacing['5'], paddingBottom: spacing['12'] },
     cardsRow: { flexDirection: 'row', gap: spacing['3'], marginBottom: spacing['4'] },
     saldoCard: {
-      flex: 1, borderRadius: radii.xl, padding: spacing['4'], alignItems: 'center',
+      flex: 1,
+      borderRadius: radii.xl,
+      padding: spacing['4'],
+      alignItems: 'center',
       ...shadows.card,
     },
-    saldoLabelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'], marginBottom: spacing['1'] },
-    saldoLabel: { color: colors.text.inverseMuted, fontSize: typography.size.xs, fontFamily: typography.family.semibold },
-    saldoValor: { color: colors.text.inverse, fontSize: typography.size['4xl'], fontFamily: typography.family.extrabold },
-    saldoPts: { color: colors.text.inverseSubtle, fontSize: typography.size.xs, marginTop: spacing['1'] },
-    boxConfig: {
-      backgroundColor: colors.bg.surface, borderRadius: radii.xl,
-      padding: spacing['4'], marginBottom: spacing['3'], ...shadows.card,
+    saldoLabelRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1'],
+      marginBottom: spacing['1'],
     },
-    boxConfigTituloRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1.5'], marginBottom: spacing['1'] },
-    boxConfigTitulo: { fontSize: typography.size.md, fontFamily: typography.family.bold, color: colors.text.primary },
-    boxConfigTexto: { fontSize: typography.size.sm, color: colors.text.secondary, marginBottom: spacing['3'] },
+    saldoLabel: {
+      color: colors.text.inverseMuted,
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.semibold,
+    },
+    saldoValor: {
+      color: colors.text.inverse,
+      fontSize: typography.size['4xl'],
+      fontFamily: typography.family.extrabold,
+    },
+    saldoPts: {
+      color: colors.text.inverseSubtle,
+      fontSize: typography.size.xs,
+      marginTop: spacing['1'],
+    },
+    boxConfig: {
+      backgroundColor: colors.bg.surface,
+      borderRadius: radii.xl,
+      padding: spacing['4'],
+      marginBottom: spacing['3'],
+      ...shadows.card,
+    },
+    boxConfigTituloRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1.5'],
+      marginBottom: spacing['1'],
+    },
+    boxConfigTitulo: {
+      fontSize: typography.size.md,
+      fontFamily: typography.family.bold,
+      color: colors.text.primary,
+    },
+    boxConfigTexto: {
+      fontSize: typography.size.sm,
+      color: colors.text.secondary,
+      marginBottom: spacing['3'],
+    },
     acoesBtns: { flexDirection: 'row', gap: spacing['2'] },
     btnAcao: {
-      backgroundColor: colors.accent.adminBg, borderRadius: radii.md,
-      paddingVertical: spacing['2'], paddingHorizontal: spacing['3'], minHeight: 44, justifyContent: 'center',
+      backgroundColor: colors.accent.adminBg,
+      borderRadius: radii.md,
+      paddingVertical: spacing['2'],
+      paddingHorizontal: spacing['3'],
+      minHeight: 44,
+      justifyContent: 'center',
     },
-    btnAcaoTexto: { fontSize: typography.size.sm, fontFamily: typography.family.semibold, color: colors.accent.admin },
-    boxConfigAjuda: { color: colors.text.muted, fontSize: typography.size.xs, marginTop: spacing['2'] },
-    secaoTitulo: { fontSize: typography.size.md, fontFamily: typography.family.bold, color: colors.text.primary, marginBottom: spacing['3'] },
-    vazio: { color: colors.text.muted, fontSize: typography.size.sm, textAlign: 'center', marginTop: spacing['2'] },
+    btnAcaoTexto: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.semibold,
+      color: colors.accent.admin,
+    },
+    boxConfigAjuda: {
+      color: colors.text.muted,
+      fontSize: typography.size.xs,
+      marginTop: spacing['2'],
+    },
+    secaoTitulo: {
+      fontSize: typography.size.md,
+      fontFamily: typography.family.bold,
+      color: colors.text.primary,
+      marginBottom: spacing['3'],
+    },
+    vazio: {
+      color: colors.text.muted,
+      fontSize: typography.size.sm,
+      textAlign: 'center',
+      marginTop: spacing['2'],
+    },
     movItem: {
-      flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bg.surface,
-      borderRadius: radii.lg, padding: spacing['3'], marginBottom: spacing['2'],
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.bg.surface,
+      borderRadius: radii.lg,
+      padding: spacing['3'],
+      marginBottom: spacing['2'],
     },
-    movIconBox: { width: 36, height: 36, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center', marginRight: spacing['3'] },
+    movIconBox: {
+      width: 36,
+      height: 36,
+      borderRadius: radii.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing['3'],
+    },
     movInfo: { flex: 1 },
-    movLabel: { fontSize: typography.size.sm, fontFamily: typography.family.semibold, color: colors.text.primary },
-    movDesc: { fontSize: typography.size.xs, color: colors.text.secondary, marginTop: spacing['1'] },
+    movLabel: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.semibold,
+      color: colors.text.primary,
+    },
+    movDesc: {
+      fontSize: typography.size.xs,
+      color: colors.text.secondary,
+      marginTop: spacing['1'],
+    },
     movData: { fontSize: typography.size.xs, color: colors.text.muted, marginTop: spacing['1'] },
     movValor: { fontSize: typography.size.md, fontFamily: typography.family.bold },
     creditoTxt: { color: colors.semantic.success },

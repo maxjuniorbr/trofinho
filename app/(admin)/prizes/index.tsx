@@ -1,10 +1,4 @@
-import {
-  StyleSheet,
-  Text,
-  View,
-  Pressable,
-  RefreshControl,
-} from 'react-native';
+import { StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
@@ -19,10 +13,7 @@ import { InlineMessage } from '@/components/ui/inline-message';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { ListFooter } from '@/components/ui/list-footer';
 import { useTransientMessage } from '@/hooks/use-transient-message';
-import {
-  consumeNavigationFeedback,
-  type NavigationFeedback,
-} from '@lib/navigation-feedback';
+import { consumeNavigationFeedback, type NavigationFeedback } from '@lib/navigation-feedback';
 import { usePrizes } from '@/hooks/queries';
 
 export default function AdminPrizesScreen() {
@@ -30,18 +21,28 @@ export default function AdminPrizesScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const { data, isLoading, isFetching, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = usePrizes();
+  const {
+    data,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = usePrizes();
   const prizes = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
   const [successFeedback, setSuccessFeedback] = useState<NavigationFeedback | null>(null);
-  const visibleSuccessMessage = useTransientMessage(
-    successFeedback?.message ?? null,
-    { resetKey: successFeedback?.id },
-  );
+  const visibleSuccessMessage = useTransientMessage(successFeedback?.message ?? null, {
+    resetKey: successFeedback?.id,
+  });
 
-  useFocusEffect(useCallback(() => {
-    const feedback = consumeNavigationFeedback('admin-prize-list');
-    if (feedback) setSuccessFeedback(feedback);
-  }, []));
+  useFocusEffect(
+    useCallback(() => {
+      const feedback = consumeNavigationFeedback('admin-prize-list');
+      if (feedback) setSuccessFeedback(feedback);
+    }, []),
+  );
 
   const active = prizes.filter((p) => p.ativo);
   const inactive = prizes.filter((p) => !p.ativo);
@@ -49,9 +50,8 @@ export default function AdminPrizesScreen() {
   const shouldShowEmptyState = isLoading || hasError || prizes.length === 0;
   const emptyStateMessage = 'Nenhum prêmio cadastrado.\nToque em "+" para criar o primeiro prêmio.';
   const inactivePlural = inactive.length === 1 ? '' : 's';
-  const inactiveSummary = inactive.length > 0
-    ? ` · ${inactive.length} inativo${inactivePlural}`
-    : '';
+  const inactiveSummary =
+    inactive.length > 0 ? ` · ${inactive.length} inativo${inactivePlural}` : '';
 
   return (
     <SafeScreenFrame bottomInset>
@@ -88,7 +88,13 @@ export default function AdminPrizesScreen() {
           data={prizes}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
-          refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.brand.vivid} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={isFetching && !isLoading}
+              onRefresh={() => refetch()}
+              tintColor={colors.brand.vivid}
+            />
+          }
           ListHeaderComponent={
             <>
               <View style={{ height: spacing['4'] }} />
@@ -99,12 +105,7 @@ export default function AdminPrizesScreen() {
             </>
           }
           renderItem={({ item }) => (
-            <View
-              style={[
-                styles.card,
-                !item.ativo && styles.cardInativo,
-              ]}
-            >
+            <View style={[styles.card, !item.ativo && styles.cardInativo]}>
               <Pressable
                 style={({ pressed }) => [
                   styles.cardMain,
@@ -115,7 +116,9 @@ export default function AdminPrizesScreen() {
                 accessibilityLabel={`${item.nome}, ${item.custo_pontos} pontos${item.ativo ? '' : ', inativo'}`}
               >
                 <View style={styles.cardTopo}>
-                  <Text style={[styles.cardNome, !item.ativo && styles.textoInativo]}>{item.nome}</Text>
+                  <Text style={[styles.cardNome, !item.ativo && styles.textoInativo]}>
+                    {item.nome}
+                  </Text>
                   {!item.ativo && (
                     <View style={styles.badgeInativo}>
                       <Text style={styles.badgeInativoTexto}>inativo</Text>
@@ -123,12 +126,19 @@ export default function AdminPrizesScreen() {
                   )}
                 </View>
                 {item.descricao ? (
-                  <Text style={[styles.cardDescricao, !item.ativo && styles.textoInativo]} numberOfLines={2}>
+                  <Text
+                    style={[styles.cardDescricao, !item.ativo && styles.textoInativo]}
+                    numberOfLines={2}
+                  >
                     {item.descricao}
                   </Text>
                 ) : null}
                 <View style={styles.cardCustoRow}>
-                  <Trophy size={12} color={item.ativo ? colors.accent.admin : colors.text.muted} strokeWidth={2} />
+                  <Trophy
+                    size={12}
+                    color={item.ativo ? colors.accent.admin : colors.text.muted}
+                    strokeWidth={2}
+                  />
                   <Text style={[styles.cardCusto, !item.ativo && styles.textoInativo]}>
                     {item.custo_pontos} pts
                   </Text>
@@ -142,7 +152,9 @@ export default function AdminPrizesScreen() {
               />
             </View>
           )}
-          onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
+          onEndReached={() => {
+            if (hasNextPage) fetchNextPage();
+          }}
           onEndReachedThreshold={0.5}
           ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
         />
@@ -173,17 +185,30 @@ function makeStyles(colors: ThemeColors) {
     cardInativo: { opacity: 0.55 },
     cardMain: { flex: 1, gap: spacing['2'] },
     cardTopo: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
-    cardNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary, flex: 1 },
+    cardNome: {
+      fontSize: typography.size.md,
+      fontFamily: typography.family.semibold,
+      color: colors.text.primary,
+      flex: 1,
+    },
     textoInativo: { color: colors.text.muted },
     cardDescricao: { fontSize: typography.size.sm, color: colors.text.secondary },
     cardCustoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
-    cardCusto: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.accent.admin },
+    cardCusto: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.bold,
+      color: colors.accent.admin,
+    },
     badgeInativo: {
       backgroundColor: colors.bg.muted,
       borderRadius: radii.md,
       paddingHorizontal: spacing['2'],
       paddingVertical: spacing['1'],
     },
-    badgeInativoTexto: { fontSize: typography.size.xs, color: colors.text.muted, fontFamily: typography.family.semibold },
+    badgeInativoTexto: {
+      fontSize: typography.size.xs,
+      color: colors.text.muted,
+      fontFamily: typography.family.semibold,
+    },
   });
 }

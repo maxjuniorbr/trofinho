@@ -25,7 +25,8 @@ export default function NewPrizeScreen() {
     setError(null);
     if (!name.trim()) return setError('Informe o nome do prêmio.');
     const cost = Number.parseInt(costStr, 10);
-    if (Number.isNaN(cost) || cost <= 0) return setError('Custo em pontos deve ser um número maior que zero.');
+    if (Number.isNaN(cost) || cost <= 0)
+      return setError('Custo em pontos deve ser um número maior que zero.');
 
     createPrizeMutation.mutate(
       { nome: name.trim(), descricao: description.trim() || null, custo_pontos: cost },
@@ -48,7 +49,7 @@ export default function NewPrizeScreen() {
       keyboardAvoiding
       contentPadding={spacing['6']}
       contentGap={spacing['5']}
-      footer={(
+      footer={
         <FormFooter message={error} compact includeSafeBottom={false}>
           <Button
             label="Criar prêmio"
@@ -58,7 +59,7 @@ export default function NewPrizeScreen() {
             accessibilityLabel="Criar prêmio"
           />
         </FormFooter>
-      )}
+      }
     >
       <StatusBar style={colors.statusBar} />
       <PrizeFormFields

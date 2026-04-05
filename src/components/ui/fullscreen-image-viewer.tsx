@@ -30,12 +30,7 @@ export function FullscreenImageViewer({ visible, imageUrl, onClose }: Fullscreen
         >
           <X size={24} color="#FFFFFF" strokeWidth={2} />
         </Pressable>
-        <Image
-          source={imageUrl}
-          style={styles.image}
-          contentFit="contain"
-          transition={200}
-        />
+        <Image source={imageUrl} style={styles.image} contentFit="contain" transition={200} />
       </View>
     </Modal>
   );

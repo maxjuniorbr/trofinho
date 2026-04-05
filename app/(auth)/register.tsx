@@ -1,8 +1,4 @@
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-} from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useMemo } from 'react';
 import { signUp } from '@lib/auth';
@@ -44,19 +40,26 @@ export default function RegisterScreen() {
 
   const handleSignUp = async () => {
     const validationError = validate();
-    if (validationError) { setError(validationError); return; }
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
 
     setError('');
     setLoading(true);
     const { error: signUpError } = await signUp(email.trim(), password);
 
-    if (signUpError) { setLoading(false); setError(localizeSupabaseError(signUpError.message)); return; }
+    if (signUpError) {
+      setLoading(false);
+      setError(localizeSupabaseError(signUpError.message));
+      return;
+    }
 
     // Pass the name to onboarding for pre-filling. The auth state handler
     // would also redirect to onboarding, but without the name param, so we
     // navigate explicitly here. Keep loading state until the redirect lands.
     router.replace({ pathname: '/(auth)/onboarding', params: { name: name.trim() } });
-  }
+  };
 
   return (
     <AuthShell
@@ -71,7 +74,10 @@ export default function RegisterScreen() {
         focused={focusedField === 'name'}
         placeholder="Seu nome"
         value={name}
-        onChangeText={(value) => { setName(value); setError(''); }}
+        onChangeText={(value) => {
+          setName(value);
+          setError('');
+        }}
         onFocus={() => setFocusedField('name')}
         onBlur={() => setFocusedField(null)}
         autoCapitalize="words"
@@ -84,7 +90,10 @@ export default function RegisterScreen() {
         focused={focusedField === 'email'}
         placeholder="seu@email.com"
         value={email}
-        onChangeText={(value) => { setEmail(value); setError(''); }}
+        onChangeText={(value) => {
+          setEmail(value);
+          setError('');
+        }}
         onFocus={() => setFocusedField('email')}
         onBlur={() => setFocusedField(null)}
         keyboardType="email-address"
@@ -100,7 +109,10 @@ export default function RegisterScreen() {
         focused={focusedField === 'password'}
         placeholder="Mínimo 6 caracteres"
         value={password}
-        onChangeText={(value) => { setPassword(value); setError(''); }}
+        onChangeText={(value) => {
+          setPassword(value);
+          setError('');
+        }}
         onFocus={() => setFocusedField('password')}
         onBlur={() => setFocusedField(null)}
         secureTextEntry
@@ -114,7 +126,10 @@ export default function RegisterScreen() {
         focused={focusedField === 'confirmPassword'}
         placeholder="Repita a senha"
         value={confirmPassword}
-        onChangeText={(value) => { setConfirmPassword(value); setError(''); }}
+        onChangeText={(value) => {
+          setConfirmPassword(value);
+          setError('');
+        }}
         onFocus={() => setFocusedField('confirmPassword')}
         onBlur={() => setFocusedField(null)}
         secureTextEntry

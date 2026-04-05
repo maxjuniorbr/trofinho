@@ -49,7 +49,10 @@ export type PaginatedPage<T> = { data: T[]; hasMore: boolean };
  * The lib/ function must accept (page, pageSize) and return { data, hasMore, error }.
  */
 export function paginatedQueryFnAdapter<T>(
-  fn: (page: number, pageSize: number) => Promise<{ data: T[]; hasMore: boolean; error: string | null }>,
+  fn: (
+    page: number,
+    pageSize: number,
+  ) => Promise<{ data: T[]; hasMore: boolean; error: string | null }>,
   pageSize: number,
 ): (ctx: { pageParam: number }) => Promise<PaginatedPage<T>> {
   return async ({ pageParam }) => {

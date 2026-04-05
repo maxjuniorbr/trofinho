@@ -1,10 +1,8 @@
-import { localizeRpcError } from './api-error';
+import { localizeRpcError , extractErrorMessage } from './api-error';
 import { toDateString } from './utils';
-import { extractErrorMessage } from './api-error';
 import { dispatchPushNotification } from './push';
 import { prepareImageUpload } from './storage';
 import { supabase } from './supabase';
-import type { Child } from './children';
 
 export type TaskFrequencia = 'diaria' | 'unica';
 
@@ -21,11 +19,7 @@ export type Task = {
   ativo: boolean;
 };
 
-export type AssignmentStatus =
-  | 'pendente'
-  | 'aguardando_validacao'
-  | 'aprovada'
-  | 'rejeitada';
+export type AssignmentStatus = 'pendente' | 'aguardando_validacao' | 'aprovada' | 'rejeitada';
 
 export type Assignment = {
   id: string;
@@ -62,9 +56,13 @@ function assignmentPriority(atribuicoes: { status: AssignmentStatus }[]): number
 
 export function sortAdminTasks(tasks: TaskListItem[], sort: AdminTaskSort): TaskListItem[] {
   if (sort === 'newest_first') {
-    return tasks.slice().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return tasks
+      .slice()
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }
-  return tasks.slice().sort((a, b) => assignmentPriority(a.atribuicoes) - assignmentPriority(b.atribuicoes));
+  return tasks
+    .slice()
+    .sort((a, b) => assignmentPriority(a.atribuicoes) - assignmentPriority(b.atribuicoes));
 }
 
 const ASSIGNMENT_STATUS_PRIORITY: Record<AssignmentStatus, number> = {
@@ -76,7 +74,8 @@ const ASSIGNMENT_STATUS_PRIORITY: Record<AssignmentStatus, number> = {
 
 function sortAssignments(assignments: AssignmentWithChild[]): AssignmentWithChild[] {
   return assignments.slice().sort((a, b) => {
-    const priorityDiff = ASSIGNMENT_STATUS_PRIORITY[a.status] - ASSIGNMENT_STATUS_PRIORITY[b.status];
+    const priorityDiff =
+      ASSIGNMENT_STATUS_PRIORITY[a.status] - ASSIGNMENT_STATUS_PRIORITY[b.status];
     if (priorityDiff !== 0) return priorityDiff;
 
     // Within the same status group, most recent first.
@@ -208,7 +207,7 @@ export async function listAdminTasks(
 }
 
 export async function getTaskWithAssignments(
-  taskId: string
+  taskId: string,
 ): Promise<{ data: TaskDetail | null; error: string | null }> {
   const { data, error } = await supabase
     .from('tarefas')
@@ -233,7 +232,7 @@ export async function approveAssignment(
   });
 
   if (error) return { error: localizeRpcError(error.message) };
-  
+
   if (opts.userId) {
     dispatchPushNotification('tarefa_aprovada', opts.familiaId, {
       userId: opts.userId,
@@ -241,9 +240,11 @@ export async function approveAssignment(
       entityId: assignmentId,
     });
   } else {
-    console.warn(`[push] Not dispatching 'tarefa_aprovada' for '${opts.taskTitle}': Missing required recipient (userId).`);
+    console.warn(
+      `[push] Not dispatching 'tarefa_aprovada' for '${opts.taskTitle}': Missing required recipient (userId).`,
+    );
   }
-  
+
   return { error: null };
 }
 
@@ -266,7 +267,9 @@ export async function rejectAssignment(
       entityId: assignmentId,
     });
   } else {
-    console.warn(`[push] Not dispatching 'tarefa_rejeitada' for '${opts.taskTitle}': Missing required recipient (userId).`);
+    console.warn(
+      `[push] Not dispatching 'tarefa_rejeitada' for '${opts.taskTitle}': Missing required recipient (userId).`,
+    );
   }
 
   return { error: null };
@@ -297,8 +300,7 @@ export async function listChildAssignments(
 }> {
   const today = toDateString(new Date());
   const sevenDaysAgo = toDateString(new Date(Date.now() - 7 * 86_400_000));
-  const visibleAssignmentsFilter =
-    `competencia.is.null,competencia.eq.${today},and(competencia.gte.${sevenDaysAgo},status.in.(aprovada,rejeitada))`;
+  const visibleAssignmentsFilter = `competencia.is.null,competencia.eq.${today},and(competencia.gte.${sevenDaysAgo},status.in.(aprovada,rejeitada))`;
 
   const from = page * pageSize;
   const to = from + pageSize;
@@ -318,7 +320,7 @@ export async function listChildAssignments(
 }
 
 export async function getChildAssignment(
-  assignmentId: string
+  assignmentId: string,
 ): Promise<{ data: ChildAssignment | null; error: string | null }> {
   const { data, error } = await supabase
     .from('atribuicoes')
@@ -380,9 +382,9 @@ export function getAssignmentCancellationState(
   }
 
   if (
-    task.frequencia === 'diaria'
-    && assignment.competencia !== null
-    && assignment.competencia < toDateString(referenceDate)
+    task.frequencia === 'diaria' &&
+    assignment.competencia !== null &&
+    assignment.competencia < toDateString(referenceDate)
   ) {
     return {
       canCancel: false,
@@ -410,7 +412,8 @@ export function getAssignmentCompletionState(
   if (task.ativo === false) {
     return {
       canComplete: false,
-      reason: 'Esta tarefa foi desativada pelo responsável e não pode mais ser enviada para validação.',
+      reason:
+        'Esta tarefa foi desativada pelo responsável e não pode mais ser enviada para validação.',
     };
   }
 
@@ -437,13 +440,14 @@ export function getTaskEditState(
       canEdit: true,
       canEditPoints: true,
       errorMessage: null,
-      infoMessage: 'Se você alterar os pontos, o novo valor será usado apenas nas próximas atribuições diárias.',
+      infoMessage:
+        'Se você alterar os pontos, o novo valor será usado apenas nas próximas atribuições diárias.',
     };
   }
 
-  const hasCompletedAssignment = task.atribuicoes.some((assignment) =>
-    assignment.status === 'aguardando_validacao' ||
-    assignment.status === 'aprovada',
+  const hasCompletedAssignment = task.atribuicoes.some(
+    (assignment) =>
+      assignment.status === 'aguardando_validacao' || assignment.status === 'aprovada',
   );
 
   if (hasCompletedAssignment) {
@@ -459,13 +463,12 @@ export function getTaskEditState(
     canEdit: true,
     canEditPoints: false,
     errorMessage: null,
-    infoMessage: 'Os pontos desta tarefa única já foram definidos na atribuição criada e não podem ser alterados.',
+    infoMessage:
+      'Os pontos desta tarefa única já foram definidos na atribuição criada e não podem ser alterados.',
   };
 }
 
-export function getAssignmentPoints(
-  assignment: Pick<Assignment, 'pontos_snapshot'>,
-): number {
+export function getAssignmentPoints(assignment: Pick<Assignment, 'pontos_snapshot'>): number {
   return assignment.pontos_snapshot;
 }
 
@@ -477,7 +480,7 @@ export async function deactivateTask(taskId: string): Promise<{
     p_tarefa_id: taskId,
   });
   if (error) return { data: null, error: localizeRpcError(error.message) };
-  return { data: { pendingValidationCount: data as number ?? 0 }, error: null };
+  return { data: { pendingValidationCount: (data as number) ?? 0 }, error: null };
 }
 
 export async function reactivateTask(taskId: string): Promise<{
@@ -496,8 +499,8 @@ export function buildTaskDeactivateMessage(
 ): string {
   const parts: string[] = [];
 
-  const pendingCount = assignments.filter(a => a.status === 'pendente').length;
-  const awaitingCount = assignments.filter(a => a.status === 'aguardando_validacao').length;
+  const pendingCount = assignments.filter((a) => a.status === 'pendente').length;
+  const awaitingCount = assignments.filter((a) => a.status === 'aguardando_validacao').length;
 
   if (pendingCount > 0) {
     parts.push(
@@ -519,13 +522,11 @@ export function buildTaskDeactivateMessage(
     );
   }
 
-  return parts.length > 0
-    ? parts.join('\n')
-    : 'Esta tarefa será desativada.';
+  return parts.length > 0 ? parts.join('\n') : 'Esta tarefa será desativada.';
 }
 
 async function uploadEvidence(
-  imageUri: string
+  imageUri: string,
 ): Promise<{ url: string | null; error: string | null }> {
   try {
     const {
@@ -538,16 +539,8 @@ async function uploadEvidence(
 
     const [{ data: profile, error: profileError }, { data: child, error: childError }] =
       await Promise.all([
-        supabase
-          .from('usuarios')
-          .select('familia_id')
-          .eq('id', user.id)
-          .single(),
-        supabase
-          .from('filhos')
-          .select('id')
-          .eq('usuario_id', user.id)
-          .single(),
+        supabase.from('usuarios').select('familia_id').eq('id', user.id).single(),
+        supabase.from('filhos').select('id').eq('usuario_id', user.id).single(),
       ]);
 
     if (profileError || !profile?.familia_id) {
@@ -562,12 +555,10 @@ async function uploadEvidence(
     const fileName = `evidencia_${createEvidenceSuffix()}.${extension}`;
     const filePath = `${profile.familia_id}/${child.id}/${fileName}`;
 
-    const { data, error } = await supabase.storage
-      .from('evidencias')
-      .upload(filePath, buffer, {
-        contentType,
-        upsert: false,
-      });
+    const { data, error } = await supabase.storage.from('evidencias').upload(filePath, buffer, {
+      contentType,
+      upsert: false,
+    });
 
     if (error) return { url: null, error: 'Erro ao fazer upload da imagem.' };
     return { url: data.path, error: null };
@@ -586,23 +577,17 @@ function createEvidenceSuffix(): string {
 const EVIDENCE_URL_TTL_SECONDS = 60 * 60;
 
 async function signTaskEvidence(task: TaskDetail): Promise<TaskDetail> {
-  const assignments = await Promise.all(
-    task.atribuicoes.map((a) => signEvidence(a))
-  );
+  const assignments = await Promise.all(task.atribuicoes.map((a) => signEvidence(a)));
 
   return { ...task, atribuicoes: assignments };
 }
 
-async function signEvidence<T extends { evidencia_url: string | null }>(
-  item: T
-): Promise<T> {
+async function signEvidence<T extends { evidencia_url: string | null }>(item: T): Promise<T> {
   const signedUrl = await resolveEvidenceUrl(item.evidencia_url);
   return { ...item, evidencia_url: signedUrl };
 }
 
-async function resolveEvidenceUrl(
-  evidence: string | null
-): Promise<string | null> {
+async function resolveEvidenceUrl(evidence: string | null): Promise<string | null> {
   if (!evidence) return null;
 
   const path = normalizeEvidencePath(evidence);

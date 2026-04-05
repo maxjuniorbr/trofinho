@@ -21,30 +21,21 @@ describe('queryFnAdapter', () => {
 
     it('throws Error with the error message when error is a non-null string', async () => {
       await fc.assert(
-        fc.asyncProperty(
-          fc.string({ minLength: 1 }),
-          async (errorMsg) => {
-            const adapter = queryFnAdapter(() =>
-              Promise.resolve({ data: null, error: errorMsg }),
-            );
-            await expect(adapter()).rejects.toThrow(errorMsg);
-          },
-        ),
+        fc.asyncProperty(fc.string({ minLength: 1 }), async (errorMsg) => {
+          const adapter = queryFnAdapter(() => Promise.resolve({ data: null, error: errorMsg }));
+          await expect(adapter()).rejects.toThrow(errorMsg);
+        }),
         { numRuns: 100 },
       );
     });
 
     it('throws "Registro não encontrado." when error is null and data is null', async () => {
-      const adapter = queryFnAdapter(() =>
-        Promise.resolve({ data: null, error: null }),
-      );
+      const adapter = queryFnAdapter(() => Promise.resolve({ data: null, error: null }));
       await expect(adapter()).rejects.toThrow('Registro não encontrado.');
     });
 
     it('throws "Registro não encontrado." when error is null and data is undefined', async () => {
-      const adapter = queryFnAdapter(() =>
-        Promise.resolve({ data: undefined, error: null }),
-      );
+      const adapter = queryFnAdapter(() => Promise.resolve({ data: undefined, error: null }));
       await expect(adapter()).rejects.toThrow('Registro não encontrado.');
     });
 
@@ -54,9 +45,7 @@ describe('queryFnAdapter', () => {
           fc.string({ minLength: 1 }),
           fc.anything().filter((v) => v != null),
           async (errorMsg, data) => {
-            const adapter = queryFnAdapter(() =>
-              Promise.resolve({ data, error: errorMsg }),
-            );
+            const adapter = queryFnAdapter(() => Promise.resolve({ data, error: errorMsg }));
             await expect(adapter()).rejects.toThrow(errorMsg);
           },
         ),
@@ -91,15 +80,10 @@ describe('mutationFnAdapter', () => {
 
   it('throws Error with the error message when error is a non-null string', async () => {
     await fc.assert(
-      fc.asyncProperty(
-        fc.string({ minLength: 1 }),
-        async (errorMsg) => {
-          const adapter = mutationFnAdapter(() =>
-            Promise.resolve({ error: errorMsg }),
-          );
-          await expect(adapter()).rejects.toThrow(errorMsg);
-        },
-      ),
+      fc.asyncProperty(fc.string({ minLength: 1 }), async (errorMsg) => {
+        const adapter = mutationFnAdapter(() => Promise.resolve({ error: errorMsg }));
+        await expect(adapter()).rejects.toThrow(errorMsg);
+      }),
       { numRuns: 100 },
     );
   });

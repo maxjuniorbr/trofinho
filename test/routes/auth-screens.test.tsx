@@ -3,6 +3,10 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { Pressable, Text, TextInput } from 'react-native';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import LoginScreen from '../../app/(auth)/login';
+import OnboardingScreen from '../../app/(auth)/onboarding';
+import RegisterScreen from '../../app/(auth)/register';
+
 const routerMock = vi.hoisted(() => ({
   back: vi.fn(),
   push: vi.fn(),
@@ -26,10 +30,6 @@ vi.mock('expo-router', () => ({
 }));
 
 vi.mock('@lib/auth', () => authMocks);
-
-import LoginScreen from '../../app/(auth)/login';
-import OnboardingScreen from '../../app/(auth)/onboarding';
-import RegisterScreen from '../../app/(auth)/register';
 
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
@@ -66,7 +66,8 @@ function blurInput(renderer: ReactTestRenderer, index: number) {
 }
 
 function pressButton(renderer: ReactTestRenderer, label: string) {
-  const button = renderer.root.findAllByType(Pressable)
+  const button = renderer.root
+    .findAllByType(Pressable)
     .find((node) => node.props.accessibilityLabel === label);
 
   if (!button) {
@@ -79,13 +80,15 @@ function pressButton(renderer: ReactTestRenderer, label: string) {
 }
 
 function screenText(renderer: ReactTestRenderer) {
-  return renderer.root.findAllByType(Text)
+  return renderer.root
+    .findAllByType(Text)
     .map((node) => String(node.props.children))
     .join(' ');
 }
 
 function getButton(renderer: ReactTestRenderer, label: string) {
-  const button = renderer.root.findAllByType(Pressable)
+  const button = renderer.root
+    .findAllByType(Pressable)
     .find((node) => node.props.accessibilityLabel === label);
 
   if (!button) {
@@ -138,8 +141,7 @@ describe('auth screens', () => {
   });
 
   it('shows inline error when login fails', async () => {
-    authMocks.signIn
-      .mockResolvedValueOnce({ error: { message: 'E-mail ou senha incorretos.' } });
+    authMocks.signIn.mockResolvedValueOnce({ error: { message: 'E-mail ou senha incorretos.' } });
 
     const renderer = render(<LoginScreen />);
     changeInput(renderer, 0, 'max@example.com');

@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as fc from 'fast-check';
 import { queryKeys, STALE_TIMES } from '../query-keys';
 
+import * as familyLib from '../../../../lib/family';
+import * as rq from '@tanstack/react-query';
+
 const mockInvalidateQueries = vi.fn();
 
 vi.mock('@tanstack/react-query', () => {
@@ -29,12 +32,12 @@ vi.mock('../../../../lib/family', () => ({
   getFamily: vi.fn().mockResolvedValue({ nome: 'Test' }),
 }));
 
-import * as familyLib from '../../../../lib/family';
-import * as rq from '@tanstack/react-query';
-
 type CapturedStore = { options: Record<string, unknown>[] };
 const getCapturedQuery = () => (rq as unknown as { _capturedQuery: CapturedStore })._capturedQuery;
-const lastQueryOpts = () => { const o = getCapturedQuery().options; return o.at(-1)!; };
+const lastQueryOpts = () => {
+  const o = getCapturedQuery().options;
+  return o.at(-1)!;
+};
 
 beforeEach(() => {
   getCapturedQuery().options = [];

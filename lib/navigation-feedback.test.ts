@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  setNavigationFeedback,
-  consumeNavigationFeedback,
-} from './navigation-feedback';
+import { setNavigationFeedback, consumeNavigationFeedback } from './navigation-feedback';
 
 describe('navigation-feedback', () => {
   describe('setNavigationFeedback', () => {

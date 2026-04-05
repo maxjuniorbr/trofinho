@@ -56,9 +56,11 @@ export function AvatarSection({ name, avatarUri, onAvatarChange }: AvatarSection
       >
         <Avatar name={name} size={80} imageUri={avatarUri} />
         <View style={[styles.cameraBtn, { backgroundColor: colors.accent.adminDim }]}>
-          {uploading
-            ? <ActivityIndicator size="small" color={colors.text.inverse} />
-            : <Camera size={12} color={colors.text.inverse} strokeWidth={2.5} />}
+          {uploading ? (
+            <ActivityIndicator size="small" color={colors.text.inverse} />
+          ) : (
+            <Camera size={12} color={colors.text.inverse} strokeWidth={2.5} />
+          )}
         </View>
       </Pressable>
 
@@ -72,9 +74,14 @@ const styles = StyleSheet.create({
   section: { alignItems: 'center', paddingVertical: spacing['4'] },
   wrapper: { position: 'relative', marginBottom: spacing['3'] },
   cameraBtn: {
-    position: 'absolute', bottom: 0, right: 0,
-    width: 26, height: 26, borderRadius: radii.full,
-    alignItems: 'center', justifyContent: 'center',
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 26,
+    height: 26,
+    borderRadius: radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   name: { fontFamily: typography.family.bold, fontSize: typography.size.xl, textAlign: 'center' },
 });

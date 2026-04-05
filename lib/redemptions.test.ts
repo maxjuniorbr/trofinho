@@ -1,6 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 
+import {
+  listRedemptions,
+  confirmRedemption,
+  cancelRedemption,
+  listChildRedemptions,
+  requestRedemption,
+  countPendingRedemptions,
+} from './redemptions';
+
 const dispatchPushNotificationMock = vi.hoisted(() => vi.fn());
 
 const supabaseMock = vi.hoisted(() => ({
@@ -15,15 +24,6 @@ vi.mock('./supabase', () => ({
 vi.mock('./push', () => ({
   dispatchPushNotification: dispatchPushNotificationMock,
 }));
-
-import {
-  listRedemptions,
-  confirmRedemption,
-  cancelRedemption,
-  listChildRedemptions,
-  requestRedemption,
-  countPendingRedemptions,
-} from './redemptions';
 
 const mockSelectChain = (data: unknown, error: unknown = null) => {
   const chain: Record<string, ReturnType<typeof vi.fn>> = {};
@@ -94,11 +94,10 @@ describe('confirmRedemption', () => {
 
     expect(result.error).toBeNull();
     expect(supabaseMock.rpc).toHaveBeenCalledWith('confirmar_resgate', { p_resgate_id: 'r-1' });
-    expect(dispatchPushNotificationMock).toHaveBeenCalledWith(
-      'resgate_confirmado',
-      'fam-1',
-      { userId: 'user-1', prizeName: 'Bicicleta' },
-    );
+    expect(dispatchPushNotificationMock).toHaveBeenCalledWith('resgate_confirmado', 'fam-1', {
+      userId: 'user-1',
+      prizeName: 'Bicicleta',
+    });
   });
 
   it('does not dispatch push when userId is null', async () => {
@@ -139,11 +138,10 @@ describe('cancelRedemption', () => {
 
     expect(result.error).toBeNull();
     expect(supabaseMock.rpc).toHaveBeenCalledWith('cancelar_resgate', { p_resgate_id: 'r-1' });
-    expect(dispatchPushNotificationMock).toHaveBeenCalledWith(
-      'resgate_cancelado',
-      'fam-1',
-      { userId: 'user-1', prizeName: 'Bicicleta' },
-    );
+    expect(dispatchPushNotificationMock).toHaveBeenCalledWith('resgate_cancelado', 'fam-1', {
+      userId: 'user-1',
+      prizeName: 'Bicicleta',
+    });
   });
 
   it('does not dispatch push when opts is undefined', async () => {
@@ -195,11 +193,10 @@ describe('requestRedemption', () => {
     expect(result.data).toBe('redemption-id');
     expect(result.error).toBeNull();
     expect(supabaseMock.rpc).toHaveBeenCalledWith('solicitar_resgate', { p_premio_id: 'prize-1' });
-    expect(dispatchPushNotificationMock).toHaveBeenCalledWith(
-      'resgate_solicitado',
-      'fam-1',
-      { childName: 'Lia', prizeName: 'Bicicleta' },
-    );
+    expect(dispatchPushNotificationMock).toHaveBeenCalledWith('resgate_solicitado', 'fam-1', {
+      childName: 'Lia',
+      prizeName: 'Bicicleta',
+    });
   });
 
   it('does not dispatch push when opts is undefined', async () => {

@@ -15,7 +15,10 @@ export function getAssignmentStatusLabel(status: AssignmentStatus): string {
   }
 }
 
-export function getAssignmentStatusColor(status: AssignmentStatus, colors: Pick<ThemeColors, 'semantic'>): string {
+export function getAssignmentStatusColor(
+  status: AssignmentStatus,
+  colors: Pick<ThemeColors, 'semantic'>,
+): string {
   const map: Record<AssignmentStatus, string> = {
     pendente: colors.semantic.warning,
     aguardando_validacao: colors.semantic.info,
@@ -36,7 +39,10 @@ export function getRedemptionStatusLabel(status: RedemptionStatus): string {
   return map[status];
 }
 
-export function getRedemptionStatusColor(status: RedemptionStatus, colors: Pick<ThemeColors, 'semantic'>): string {
+export function getRedemptionStatusColor(
+  status: RedemptionStatus,
+  colors: Pick<ThemeColors, 'semantic'>,
+): string {
   const map: Record<RedemptionStatus, string> = {
     pendente: colors.semantic.warning,
     confirmado: colors.semantic.success,

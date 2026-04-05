@@ -1,6 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as fc from 'fast-check';
 
+import {
+  approveAssignment,
+  cancelAssignmentSubmission,
+  buildTaskDeactivateMessage,
+  completeAssignment,
+  countPendingValidations,
+  createTask,
+  deactivateTask,
+  getAssignmentCancellationState,
+  getAssignmentCompletionState,
+  getAssignmentPoints,
+  getTaskEditState,
+  getChildAssignment,
+  getTaskWithAssignments,
+  listAdminTasks,
+  listChildAssignments,
+  reactivateTask,
+  rejectAssignment,
+  renewDailyTasks,
+  sortAdminTasks,
+  updateTask,
+} from './tasks';
+import type { AssignmentWithChild, TaskDetail, TaskListItem } from './tasks';
+import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
+
 const resizeImageMock = vi.hoisted(() => vi.fn((uri: string) => Promise.resolve(uri)));
 
 const fileArrayBufferMock = vi.hoisted(() => vi.fn());
@@ -16,8 +41,6 @@ vi.mock('./image-utils', async (importOriginal) => {
   const original = await importOriginal<typeof import('./image-utils')>();
   return { ...original, resizeImage: resizeImageMock };
 });
-
-
 
 const storageBucketMock = vi.hoisted(() => ({
   createSignedUrl: vi.fn(),
@@ -47,7 +70,6 @@ vi.mock('expo-file-system', () => ({
   },
 }));
 
-
 vi.mock('./supabase', () => ({
   supabase: supabaseMock,
 }));
@@ -55,31 +77,6 @@ vi.mock('./supabase', () => ({
 vi.mock('./push', () => ({
   dispatchPushNotification: dispatchPushNotificationMock,
 }));
-
-import {
-  approveAssignment,
-  cancelAssignmentSubmission,
-  buildTaskDeactivateMessage,
-  completeAssignment,
-  countPendingValidations,
-  createTask,
-  deactivateTask,
-  getAssignmentCancellationState,
-  getAssignmentCompletionState,
-  getAssignmentPoints,
-  getTaskEditState,
-  getChildAssignment,
-  getTaskWithAssignments,
-  listAdminTasks,
-  listChildAssignments,
-  reactivateTask,
-  rejectAssignment,
-  renewDailyTasks,
-  sortAdminTasks,
-  updateTask,
-} from './tasks';
-import type { AssignmentWithChild, TaskDetail, TaskListItem } from './tasks';
-import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
 
 type QueryResult = {
   count?: number | null;
@@ -108,17 +105,6 @@ function createOrderQuery(result: QueryResult, orderCallsBeforeResolve = 0) {
   return query;
 }
 
-/** Order query that resolves directly from .order() — no .limit() chain */
-function createSimpleOrderQuery(result: QueryResult) {
-  const query = {
-    eq: vi.fn().mockReturnThis(),
-    or: vi.fn().mockReturnThis(),
-    order: vi.fn().mockResolvedValue(result),
-    select: vi.fn().mockReturnThis(),
-  };
-  return query;
-}
-
 function createSingleQuery(result: QueryResult) {
   return {
     eq: vi.fn().mockReturnThis(),
@@ -128,24 +114,7 @@ function createSingleQuery(result: QueryResult) {
   };
 }
 
-function createUpdateQuery(result: QueryResult, eqCallsBeforeResolve = 1) {
-  const query = {
-    eq: vi.fn(),
-    update: vi.fn().mockReturnThis(),
-  };
-
-  for (let index = 0; index < eqCallsBeforeResolve - 1; index += 1) {
-    query.eq.mockImplementationOnce(() => query);
-  }
-
-  query.eq.mockResolvedValueOnce(result);
-
-  return query;
-}
-
-function createAssignmentWithChild(
-  overrides: Partial<AssignmentWithChild>,
-): AssignmentWithChild {
+function createAssignmentWithChild(overrides: Partial<AssignmentWithChild>): AssignmentWithChild {
   return {
     id: 'assignment-1',
     tarefa_id: 'task-1',
@@ -206,10 +175,7 @@ describe('tasks', () => {
     });
 
     it('places pendente before fully completed in action_first mode', () => {
-      const tasks = [
-        makeTask('1', ['aprovada']),
-        makeTask('2', ['pendente']),
-      ];
+      const tasks = [makeTask('1', ['aprovada']), makeTask('2', ['pendente'])];
       const result = sortAdminTasks(tasks, 'action_first');
       expect(result.map((t) => t.id)).toEqual(['2', '1']);
     });
@@ -236,19 +202,13 @@ describe('tasks', () => {
     });
 
     it('sorts by created_at descending in newest_first mode', () => {
-      const tasks = [
-        makeTask('1', ['pendente']),
-        makeTask('2', ['aguardando_validacao']),
-      ];
+      const tasks = [makeTask('1', ['pendente']), makeTask('2', ['aguardando_validacao'])];
       const result = sortAdminTasks(tasks, 'newest_first');
       expect(result.map((t) => t.id)).toEqual(['2', '1']);
     });
 
     it('does not mutate the input array', () => {
-      const tasks = [
-        makeTask('1', ['aprovada']),
-        makeTask('2', ['aguardando_validacao']),
-      ];
+      const tasks = [makeTask('1', ['aprovada']), makeTask('2', ['aguardando_validacao'])];
       const original = [...tasks];
       sortAdminTasks(tasks, 'action_first');
       expect(tasks).toEqual(original);
@@ -272,8 +232,9 @@ describe('tasks', () => {
   });
 
   it('lists admin tasks', async () => {
-    supabaseMock.from
-      .mockReturnValueOnce(createOrderQuery({ data: [{ id: 'task-1' }], error: null }));
+    supabaseMock.from.mockReturnValueOnce(
+      createOrderQuery({ data: [{ id: 'task-1' }], error: null }),
+    );
 
     await expect(listAdminTasks()).resolves.toEqual({
       data: [{ id: 'task-1' }],
@@ -283,8 +244,9 @@ describe('tasks', () => {
   });
 
   it('surfaces list errors for admin tasks', async () => {
-    supabaseMock.from
-      .mockReturnValueOnce(createOrderQuery({ data: null, error: { message: 'tasks failed' } }));
+    supabaseMock.from.mockReturnValueOnce(
+      createOrderQuery({ data: null, error: { message: 'tasks failed' } }),
+    );
 
     await expect(listAdminTasks()).resolves.toEqual({
       data: [],
@@ -308,7 +270,10 @@ describe('tasks', () => {
       eq: vi.fn().mockResolvedValue({ count: null, error: { message: 'count failed' } }),
     });
 
-    await expect(countPendingValidations()).resolves.toEqual({ data: 0, error: 'Algo deu errado. Tente novamente.' });
+    await expect(countPendingValidations()).resolves.toEqual({
+      data: 0,
+      error: 'Algo deu errado. Tente novamente.',
+    });
   });
 
   it('creates tasks, approves assignments, and renews daily tasks', async () => {
@@ -317,16 +282,20 @@ describe('tasks', () => {
       .mockResolvedValueOnce({ error: { message: 'approve failed' } })
       .mockResolvedValueOnce({ error: null });
 
-    await expect(createTask({
-      titulo: 'Arrumar a cama',
-      descricao: null,
-      pontos: 10,
-      frequencia: 'diaria',
-      exige_evidencia: false,
-      filhoIds: ['child-1'],
-    })).resolves.toEqual({ error: null });
+    await expect(
+      createTask({
+        titulo: 'Arrumar a cama',
+        descricao: null,
+        pontos: 10,
+        frequencia: 'diaria',
+        exige_evidencia: false,
+        filhoIds: ['child-1'],
+      }),
+    ).resolves.toEqual({ error: null });
 
-    await expect(approveAssignment('assignment-1', { familiaId: 'f1', userId: 'u1', taskTitle: 'T' })).resolves.toEqual({
+    await expect(
+      approveAssignment('assignment-1', { familiaId: 'f1', userId: 'u1', taskTitle: 'T' }),
+    ).resolves.toEqual({
       error: 'Algo deu errado. Tente novamente.',
     });
 
@@ -338,137 +307,168 @@ describe('tasks', () => {
       .mockResolvedValueOnce({ error: null })
       .mockResolvedValueOnce({ error: { message: 'edit failed' } });
 
-    await expect(updateTask('task-1', {
-      titulo: 'Nova tarefa',
-      descricao: 'Detalhes',
-      pontos: 20,
-      exige_evidencia: true,
-    })).resolves.toEqual({ error: null });
+    await expect(
+      updateTask('task-1', {
+        titulo: 'Nova tarefa',
+        descricao: 'Detalhes',
+        pontos: 20,
+        exige_evidencia: true,
+      }),
+    ).resolves.toEqual({ error: null });
 
-    await expect(updateTask('task-1', {
-      titulo: 'Nova tarefa',
-      descricao: 'Detalhes',
-      pontos: 20,
-      exige_evidencia: false,
-    })).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
+    await expect(
+      updateTask('task-1', {
+        titulo: 'Nova tarefa',
+        descricao: 'Detalhes',
+        pontos: 20,
+        exige_evidencia: false,
+      }),
+    ).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
 
-    expect(getTaskEditState({
-      frequencia: 'diaria',
-      ativo: true,
-      atribuicoes: [createAssignmentWithChild({
-        status: 'aprovada',
-        concluida_em: '2026-03-21T12:00:00Z',
-      })],
-    })).toEqual({
+    expect(
+      getTaskEditState({
+        frequencia: 'diaria',
+        ativo: true,
+        atribuicoes: [
+          createAssignmentWithChild({
+            status: 'aprovada',
+            concluida_em: '2026-03-21T12:00:00Z',
+          }),
+        ],
+      }),
+    ).toEqual({
       canEdit: true,
       canEditPoints: true,
       errorMessage: null,
-      infoMessage: 'Se você alterar os pontos, o novo valor será usado apenas nas próximas atribuições diárias.',
+      infoMessage:
+        'Se você alterar os pontos, o novo valor será usado apenas nas próximas atribuições diárias.',
     });
 
-    expect(getTaskEditState({
-      frequencia: 'unica',
-      ativo: true,
-      atribuicoes: [createAssignmentWithChild({
-        status: 'pendente',
-        concluida_em: null,
-      })],
-    })).toEqual({
+    expect(
+      getTaskEditState({
+        frequencia: 'unica',
+        ativo: true,
+        atribuicoes: [
+          createAssignmentWithChild({
+            status: 'pendente',
+            concluida_em: null,
+          }),
+        ],
+      }),
+    ).toEqual({
       canEdit: true,
       canEditPoints: false,
       errorMessage: null,
-      infoMessage: 'Os pontos desta tarefa única já foram definidos na atribuição criada e não podem ser alterados.',
+      infoMessage:
+        'Os pontos desta tarefa única já foram definidos na atribuição criada e não podem ser alterados.',
     });
 
-    expect(getTaskEditState({
-      frequencia: 'unica',
-      ativo: true,
-      atribuicoes: [createAssignmentWithChild({
-        status: 'aprovada',
-        concluida_em: '2026-03-21T12:00:00Z',
-      })],
-    })).toEqual({
+    expect(
+      getTaskEditState({
+        frequencia: 'unica',
+        ativo: true,
+        atribuicoes: [
+          createAssignmentWithChild({
+            status: 'aprovada',
+            concluida_em: '2026-03-21T12:00:00Z',
+          }),
+        ],
+      }),
+    ).toEqual({
       canEdit: false,
       canEditPoints: false,
       errorMessage: 'Esta tarefa já foi concluída e não pode ser editada.',
       infoMessage: null,
     });
 
-    expect(getAssignmentPoints({
-      pontos_snapshot: 15,
-    })).toBe(15);
+    expect(
+      getAssignmentPoints({
+        pontos_snapshot: 15,
+      }),
+    ).toBe(15);
   });
 
   it('exposes cancellation-state rules for inactive tasks and old daily assignments', () => {
     const referenceDate = new Date('2026-03-21T10:00:00-03:00');
 
-    expect(getAssignmentCancellationState(
-      {
-        status: 'aguardando_validacao',
-        competencia: null,
-      },
-      {
-        ativo: false,
-        frequencia: 'unica',
-      },
-      referenceDate,
-    )).toEqual({
+    expect(
+      getAssignmentCancellationState(
+        {
+          status: 'aguardando_validacao',
+          competencia: null,
+        },
+        {
+          ativo: false,
+          frequencia: 'unica',
+        },
+        referenceDate,
+      ),
+    ).toEqual({
       canCancel: false,
       reason: 'Esta tarefa está desativada e não permite cancelar o envio.',
     });
 
-    expect(getAssignmentCancellationState(
-      {
-        status: 'aguardando_validacao',
-        competencia: '2026-03-20',
-      },
-      {
-        ativo: true,
-        frequencia: 'diaria',
-      },
-      referenceDate,
-    )).toEqual({
+    expect(
+      getAssignmentCancellationState(
+        {
+          status: 'aguardando_validacao',
+          competencia: '2026-03-20',
+        },
+        {
+          ativo: true,
+          frequencia: 'diaria',
+        },
+        referenceDate,
+      ),
+    ).toEqual({
       canCancel: false,
       reason: 'Não é possível cancelar o envio de uma tarefa diária de data anterior.',
     });
 
-    expect(getAssignmentCancellationState(
-      {
-        status: 'aguardando_validacao',
-        competencia: '2026-03-21',
-      },
-      {
-        ativo: true,
-        frequencia: 'diaria',
-      },
-      referenceDate,
-    )).toEqual({
+    expect(
+      getAssignmentCancellationState(
+        {
+          status: 'aguardando_validacao',
+          competencia: '2026-03-21',
+        },
+        {
+          ativo: true,
+          frequencia: 'diaria',
+        },
+        referenceDate,
+      ),
+    ).toEqual({
       canCancel: true,
       reason: null,
     });
   });
 
   it('blocks completion when the task is inactive', () => {
-    expect(getAssignmentCompletionState(
-      {
-        status: 'pendente',
-      },
-      {
-        ativo: false,
-      },
-    )).toEqual({
+    expect(
+      getAssignmentCompletionState(
+        {
+          status: 'pendente',
+        },
+        {
+          ativo: false,
+        },
+      ),
+    ).toEqual({
       canComplete: false,
-      reason: 'Esta tarefa foi desativada pelo responsável e não pode mais ser enviada para validação.',
+      reason:
+        'Esta tarefa foi desativada pelo responsável e não pode mais ser enviada para validação.',
     });
 
-    expect(getAssignmentCompletionState(
-      {
-        status: 'aguardando_validacao',
-      },
-      {
-        ativo: true,
-      },
-    )).toEqual({
+    expect(
+      getAssignmentCompletionState(
+        {
+          status: 'aguardando_validacao',
+        },
+        {
+          ativo: true,
+        },
+      ),
+    ).toEqual({
       canComplete: false,
       reason: null,
     });
@@ -483,12 +483,14 @@ describe('tasks', () => {
             { id: 'a-1', evidencia_url: 'family/child/evidence-one.jpg', filhos: { nome: 'Lia' } },
             {
               id: 'a-2',
-              evidencia_url: 'https://example.com/storage/v1/object/public/evidencias/family/child/file%20two.jpg?x=1',
+              evidencia_url:
+                'https://example.com/storage/v1/object/public/evidencias/family/child/file%20two.jpg?x=1',
               filhos: { nome: 'Leo' },
             },
             {
               id: 'a-3',
-              evidencia_url: 'https://cdn.example.com/evidencias/family/child/file-three.jpg?token=1',
+              evidencia_url:
+                'https://cdn.example.com/evidencias/family/child/file-three.jpg?token=1',
               filhos: { nome: 'Luna' },
             },
             {
@@ -500,29 +502,32 @@ describe('tasks', () => {
           ],
         },
         error: null,
-      })
+      }),
     );
     storageBucketMock.createSignedUrl
       .mockResolvedValueOnce({ data: { signedUrl: 'https://signed.example.com/one' }, error: null })
       .mockResolvedValueOnce({ data: { signedUrl: 'https://signed.example.com/two' }, error: null })
-      .mockResolvedValueOnce({ data: { signedUrl: 'https://signed.example.com/three' }, error: null });
+      .mockResolvedValueOnce({
+        data: { signedUrl: 'https://signed.example.com/three' },
+        error: null,
+      });
 
     const result = await getTaskWithAssignments('task-1');
 
     expect(storageBucketMock.createSignedUrl).toHaveBeenNthCalledWith(
       1,
       'family/child/evidence-one.jpg',
-      3600
+      3600,
     );
     expect(storageBucketMock.createSignedUrl).toHaveBeenNthCalledWith(
       2,
       'family/child/file two.jpg',
-      3600
+      3600,
     );
     expect(storageBucketMock.createSignedUrl).toHaveBeenNthCalledWith(
       3,
       'family/child/file-three.jpg',
-      3600
+      3600,
     );
     expect(result).toEqual({
       data: {
@@ -530,8 +535,16 @@ describe('tasks', () => {
         atribuicoes: [
           { id: 'a-1', evidencia_url: 'https://signed.example.com/one', filhos: { nome: 'Lia' } },
           { id: 'a-2', evidencia_url: 'https://signed.example.com/two', filhos: { nome: 'Leo' } },
-          { id: 'a-3', evidencia_url: 'https://signed.example.com/three', filhos: { nome: 'Luna' } },
-          { id: 'a-4', evidencia_url: 'https://external.example.com/preview.jpg', filhos: { nome: 'Bia' } },
+          {
+            id: 'a-3',
+            evidencia_url: 'https://signed.example.com/three',
+            filhos: { nome: 'Luna' },
+          },
+          {
+            id: 'a-4',
+            evidencia_url: 'https://external.example.com/preview.jpg',
+            filhos: { nome: 'Bia' },
+          },
           { id: 'a-5', evidencia_url: null, filhos: { nome: 'Caio' } },
         ],
       },
@@ -544,7 +557,7 @@ describe('tasks', () => {
       createSingleQuery({
         data: null,
         error: { message: 'task not found' },
-      })
+      }),
     );
 
     await expect(getTaskWithAssignments('missing')).resolves.toEqual({
@@ -557,15 +570,25 @@ describe('tasks', () => {
   it('rejects assignments via RPC', async () => {
     supabaseMock.rpc
       .mockResolvedValueOnce({ error: null })
-      .mockResolvedValueOnce({ error: { message: 'Atribuição não encontrada ou não está aguardando validação' } });
+      .mockResolvedValueOnce({
+        error: { message: 'Atribuição não encontrada ou não está aguardando validação' },
+      });
 
-    await expect(rejectAssignment('assignment-1', 'Refazer', { familiaId: 'f1', userId: 'u1', taskTitle: 'T' })).resolves.toEqual({ error: null });
+    await expect(
+      rejectAssignment('assignment-1', 'Refazer', {
+        familiaId: 'f1',
+        userId: 'u1',
+        taskTitle: 'T',
+      }),
+    ).resolves.toEqual({ error: null });
     expect(supabaseMock.rpc).toHaveBeenCalledWith('rejeitar_atribuicao', {
       p_atribuicao_id: 'assignment-1',
       p_nota_rejeicao: 'Refazer',
     });
 
-    await expect(rejectAssignment('assignment-2', 'Errado', { familiaId: 'f1', userId: 'u1', taskTitle: 'T' })).resolves.toEqual({
+    await expect(
+      rejectAssignment('assignment-2', 'Errado', { familiaId: 'f1', userId: 'u1', taskTitle: 'T' }),
+    ).resolves.toEqual({
       error: 'Registro não encontrado.',
     });
   });
@@ -581,10 +604,16 @@ describe('tasks', () => {
 
   it('localizes cancellation errors for invalid status, inactive task, old daily task and invalid ownership', async () => {
     supabaseMock.rpc
-      .mockResolvedValueOnce({ error: { message: 'Esta atribuição não está aguardando validação' } })
+      .mockResolvedValueOnce({
+        error: { message: 'Esta atribuição não está aguardando validação' },
+      })
       .mockResolvedValueOnce({ error: { message: 'Esta tarefa está desativada' } })
-      .mockResolvedValueOnce({ error: { message: 'Não é possível cancelar envio de tarefa diária de data anterior' } })
-      .mockResolvedValueOnce({ error: { message: 'Apenas filhos podem cancelar o próprio envio' } });
+      .mockResolvedValueOnce({
+        error: { message: 'Não é possível cancelar envio de tarefa diária de data anterior' },
+      })
+      .mockResolvedValueOnce({
+        error: { message: 'Apenas filhos podem cancelar o próprio envio' },
+      });
 
     await expect(cancelAssignmentSubmission('assignment-1')).resolves.toEqual({
       error: 'Esta ação não pode ser realizada no momento.',
@@ -624,7 +653,7 @@ describe('tasks', () => {
     });
 
     expect(query.or).toHaveBeenCalledWith(
-      'competencia.is.null,competencia.eq.2026-03-15,and(competencia.gte.2026-03-08,status.in.(aprovada,rejeitada))'
+      'competencia.is.null,competencia.eq.2026-03-15,and(competencia.gte.2026-03-08,status.in.(aprovada,rejeitada))',
     );
 
     vi.useRealTimers();
@@ -653,10 +682,11 @@ describe('tasks', () => {
         createSingleQuery({
           data: {
             id: 'assignment-1',
-            evidencia_url: 'https://example.com/object/sign/evidencias/family/child/proof.jpg?token=1',
+            evidencia_url:
+              'https://example.com/object/sign/evidencias/family/child/proof.jpg?token=1',
           },
           error: null,
-        })
+        }),
       )
       .mockReturnValueOnce(
         createSingleQuery({
@@ -665,10 +695,13 @@ describe('tasks', () => {
             evidencia_url: 'family/child/proof-two.jpg',
           },
           error: null,
-        })
+        }),
       );
     storageBucketMock.createSignedUrl
-      .mockResolvedValueOnce({ data: { signedUrl: 'https://signed.example.com/proof' }, error: null })
+      .mockResolvedValueOnce({
+        data: { signedUrl: 'https://signed.example.com/proof' },
+        error: null,
+      })
       .mockResolvedValueOnce({ data: null, error: { message: 'cannot sign' } });
 
     await expect(getChildAssignment('assignment-1')).resolves.toEqual({
@@ -691,7 +724,9 @@ describe('tasks', () => {
   it('completes an assignment without evidence via RPC', async () => {
     supabaseMock.rpc.mockResolvedValueOnce({ error: null });
 
-    await expect(completeAssignment('assignment-1', null, { familiaId: 'f1', childName: 'C', taskTitle: 'T' })).resolves.toEqual({ error: null });
+    await expect(
+      completeAssignment('assignment-1', null, { familiaId: 'f1', childName: 'C', taskTitle: 'T' }),
+    ).resolves.toEqual({ error: null });
     expect(supabaseMock.rpc).toHaveBeenCalledWith('concluir_atribuicao', {
       p_atribuicao_id: 'assignment-1',
       p_evidencia_url: undefined,
@@ -741,13 +776,17 @@ describe('tasks', () => {
     });
     supabaseMock.rpc.mockResolvedValueOnce({ error: null });
 
-    const result = await completeAssignment('assignment-1', `/test/${fileName}`, { familiaId: 'f1', childName: 'C', taskTitle: 'T' });
+    const result = await completeAssignment('assignment-1', `/test/${fileName}`, {
+      familiaId: 'f1',
+      childName: 'C',
+      taskTitle: 'T',
+    });
 
     expect(fileConstructorMock).toHaveBeenCalledWith(`/test/${fileName}`);
     expect(storageBucketMock.upload).toHaveBeenCalledWith(
       expect.stringMatching(/^family-1\/child-1\/evidencia_/),
       expect.any(ArrayBuffer),
-      { contentType, upsert: false }
+      { contentType, upsert: false },
     );
     expect(supabaseMock.rpc).toHaveBeenCalledWith('concluir_atribuicao', {
       p_atribuicao_id: 'assignment-1',
@@ -769,7 +808,13 @@ describe('tasks', () => {
       error: { message: 'upload failed' },
     });
 
-    await expect(completeAssignment('assignment-1', '/test/photo.jpg', { familiaId: 'f1', childName: 'C', taskTitle: 'T' })).resolves.toEqual({
+    await expect(
+      completeAssignment('assignment-1', '/test/photo.jpg', {
+        familiaId: 'f1',
+        childName: 'C',
+        taskTitle: 'T',
+      }),
+    ).resolves.toEqual({
       error: 'Erro ao fazer upload da imagem.',
     });
   });
@@ -780,7 +825,13 @@ describe('tasks', () => {
       .mockResolvedValueOnce({ data: { user: { id: 'user-1' } } })
       .mockResolvedValueOnce({ data: { user: { id: 'user-1' } } });
 
-    await expect(completeAssignment('assignment-1', '/test/photo.jpg', { familiaId: 'f1', childName: 'C', taskTitle: 'T' })).resolves.toEqual({
+    await expect(
+      completeAssignment('assignment-1', '/test/photo.jpg', {
+        familiaId: 'f1',
+        childName: 'C',
+        taskTitle: 'T',
+      }),
+    ).resolves.toEqual({
       error: 'Usuário não autenticado',
     });
 
@@ -788,7 +839,13 @@ describe('tasks', () => {
       .mockReturnValueOnce(createSingleQuery({ data: null, error: { message: 'profile failed' } }))
       .mockReturnValueOnce(createSingleQuery({ data: { id: 'child-1' }, error: null }));
 
-    await expect(completeAssignment('assignment-1', '/test/photo.jpg', { familiaId: 'f1', childName: 'C', taskTitle: 'T' })).resolves.toEqual({
+    await expect(
+      completeAssignment('assignment-1', '/test/photo.jpg', {
+        familiaId: 'f1',
+        childName: 'C',
+        taskTitle: 'T',
+      }),
+    ).resolves.toEqual({
       error: 'Perfil não encontrado',
     });
 
@@ -796,7 +853,13 @@ describe('tasks', () => {
       .mockReturnValueOnce(createSingleQuery({ data: { familia_id: 'family-1' }, error: null }))
       .mockReturnValueOnce(createSingleQuery({ data: null, error: { message: 'child failed' } }));
 
-    await expect(completeAssignment('assignment-1', '/test/photo.jpg', { familiaId: 'f1', childName: 'C', taskTitle: 'T' })).resolves.toEqual({
+    await expect(
+      completeAssignment('assignment-1', '/test/photo.jpg', {
+        familiaId: 'f1',
+        childName: 'C',
+        taskTitle: 'T',
+      }),
+    ).resolves.toEqual({
       error: 'Filho não encontrado',
     });
   });
@@ -820,12 +883,17 @@ describe('tasks', () => {
     });
     supabaseMock.rpc.mockResolvedValueOnce({ error: null });
 
-    await expect(completeAssignment('assignment-1', '/test/photo.jpg', { familiaId: 'f1', childName: 'C', taskTitle: 'T' })).resolves.toEqual({ error: null });
-    expect(storageBucketMock.upload).toHaveBeenCalledWith(
-      expect.any(String),
-      arrayBuffer,
-      { contentType: 'image/jpeg', upsert: false }
-    );
+    await expect(
+      completeAssignment('assignment-1', '/test/photo.jpg', {
+        familiaId: 'f1',
+        childName: 'C',
+        taskTitle: 'T',
+      }),
+    ).resolves.toEqual({ error: null });
+    expect(storageBucketMock.upload).toHaveBeenCalledWith(expect.any(String), arrayBuffer, {
+      contentType: 'image/jpeg',
+      upsert: false,
+    });
   });
 
   it('returns fallback messages when image reading throws or fetch responds badly', async () => {
@@ -846,11 +914,23 @@ describe('tasks', () => {
       })
       .mockRejectedValueOnce(new Error('network blew up'));
 
-    await expect(completeAssignment('assignment-1', '/test/photo.jpg', { familiaId: 'f1', childName: 'C', taskTitle: 'T' })).resolves.toEqual({
+    await expect(
+      completeAssignment('assignment-1', '/test/photo.jpg', {
+        familiaId: 'f1',
+        childName: 'C',
+        taskTitle: 'T',
+      }),
+    ).resolves.toEqual({
       error: 'Não foi possível ler a imagem selecionada',
     });
 
-    await expect(completeAssignment('assignment-1', '/test/photo.jpg', { familiaId: 'f1', childName: 'C', taskTitle: 'T' })).resolves.toEqual({
+    await expect(
+      completeAssignment('assignment-1', '/test/photo.jpg', {
+        familiaId: 'f1',
+        childName: 'C',
+        taskTitle: 'T',
+      }),
+    ).resolves.toEqual({
       error: 'network blew up',
     });
   });
@@ -866,7 +946,13 @@ describe('tasks', () => {
     fileArrayBufferMock.mockResolvedValue(new ArrayBuffer(8));
     storageBucketMock.upload.mockRejectedValueOnce({ message: 'structured error' });
 
-    await expect(completeAssignment('assignment-1', '/test/photo.jpg', { familiaId: 'f1', childName: 'C', taskTitle: 'T' })).resolves.toEqual({
+    await expect(
+      completeAssignment('assignment-1', '/test/photo.jpg', {
+        familiaId: 'f1',
+        childName: 'C',
+        taskTitle: 'T',
+      }),
+    ).resolves.toEqual({
       error: 'structured error',
     });
 
@@ -877,7 +963,7 @@ describe('tasks', () => {
           evidencia_url: 'not a valid url:://broken',
         },
         error: null,
-      })
+      }),
     );
 
     await expect(getChildAssignment('assignment-3')).resolves.toEqual({
@@ -900,11 +986,11 @@ describe('tasks', () => {
         taskTitle: 'Arrumar a cama',
       });
 
-      expect(dispatchPushNotificationMock).toHaveBeenCalledWith(
-        'tarefa_aprovada',
-        'family-1',
-        { userId: 'child-user-1', taskTitle: 'Arrumar a cama', entityId: 'assignment-1' },
-      );
+      expect(dispatchPushNotificationMock).toHaveBeenCalledWith('tarefa_aprovada', 'family-1', {
+        userId: 'child-user-1',
+        taskTitle: 'Arrumar a cama',
+        entityId: 'assignment-1',
+      });
     });
 
     it('rejectAssignment dispatches tarefa_rejeitada with correct payload when opts provided', async () => {
@@ -916,11 +1002,11 @@ describe('tasks', () => {
         taskTitle: 'Lavar louça',
       });
 
-      expect(dispatchPushNotificationMock).toHaveBeenCalledWith(
-        'tarefa_rejeitada',
-        'family-1',
-        { userId: 'child-user-1', taskTitle: 'Lavar louça', entityId: 'assignment-1' },
-      );
+      expect(dispatchPushNotificationMock).toHaveBeenCalledWith('tarefa_rejeitada', 'family-1', {
+        userId: 'child-user-1',
+        taskTitle: 'Lavar louça',
+        entityId: 'assignment-1',
+      });
     });
 
     it('completeAssignment dispatches tarefa_concluida with correct payload when opts provided', async () => {
@@ -932,11 +1018,10 @@ describe('tasks', () => {
         taskTitle: 'Estudar',
       });
 
-      expect(dispatchPushNotificationMock).toHaveBeenCalledWith(
-        'tarefa_concluida',
-        'family-1',
-        { childName: 'Lia', taskTitle: 'Estudar' },
-      );
+      expect(dispatchPushNotificationMock).toHaveBeenCalledWith('tarefa_concluida', 'family-1', {
+        childName: 'Lia',
+        taskTitle: 'Estudar',
+      });
     });
 
     it('approveAssignment always dispatches because opts is now required', async () => {
@@ -994,7 +1079,9 @@ describe('tasks', () => {
             data: { user: { id: 'user-1' } },
           });
           supabaseMock.from
-            .mockReturnValueOnce(createSingleQuery({ data: { familia_id: familiaId }, error: null }))
+            .mockReturnValueOnce(
+              createSingleQuery({ data: { familia_id: familiaId }, error: null }),
+            )
             .mockReturnValueOnce(createSingleQuery({ data: { id: filhoId }, error: null }));
           storageBucketMock.upload.mockResolvedValue({
             data: { path: `${familiaId}/${filhoId}/evidencia_test.${ext}` },
@@ -1002,7 +1089,11 @@ describe('tasks', () => {
           });
           supabaseMock.rpc.mockResolvedValueOnce({ error: null });
 
-          await completeAssignment('assignment-1', `/test/photo.${ext}`, { familiaId: 'f1', childName: 'C', taskTitle: 'T' });
+          await completeAssignment('assignment-1', `/test/photo.${ext}`, {
+            familiaId: 'f1',
+            childName: 'C',
+            taskTitle: 'T',
+          });
 
           const uploadPath: string = storageBucketMock.upload.mock.calls[0][0];
           const expectedPrefix = `${familiaId}/${filhoId}/evidencia_`;
@@ -1070,11 +1161,13 @@ describe('tasks', () => {
 
   describe('getTaskEditState — ativo check', () => {
     it('returns canEdit: false when ativo = false', () => {
-      expect(getTaskEditState({
-        frequencia: 'diaria',
-        ativo: false,
-        atribuicoes: [createAssignmentWithChild({ status: 'pendente' })],
-      })).toEqual({
+      expect(
+        getTaskEditState({
+          frequencia: 'diaria',
+          ativo: false,
+          atribuicoes: [createAssignmentWithChild({ status: 'pendente' })],
+        }),
+      ).toEqual({
         canEdit: false,
         canEditPoints: false,
         errorMessage: 'Esta tarefa está desativada e não pode ser editada.',
@@ -1121,8 +1214,10 @@ describe('tasks', () => {
           (task, assignments) => {
             const message = buildTaskDeactivateMessage(task, assignments);
 
-            const pendingCount = assignments.filter(a => a.status === 'pendente').length;
-            const awaitingCount = assignments.filter(a => a.status === 'aguardando_validacao').length;
+            const pendingCount = assignments.filter((a) => a.status === 'pendente').length;
+            const awaitingCount = assignments.filter(
+              (a) => a.status === 'aguardando_validacao',
+            ).length;
 
             if (pendingCount > 0) {
               expect(message).toContain(String(pendingCount));
@@ -1167,7 +1262,9 @@ describe('tasks', () => {
             ativo: fc.constant(false as const),
           }),
           (task) => {
-            const result = getTaskEditState(task as Pick<TaskDetail, 'atribuicoes' | 'frequencia' | 'ativo'>);
+            const result = getTaskEditState(
+              task as Pick<TaskDetail, 'atribuicoes' | 'frequencia' | 'ativo'>,
+            );
             expect(result.canEdit).toBe(false);
           },
         ),

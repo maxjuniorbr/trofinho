@@ -14,15 +14,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  Wallet,
-  TrendingUp,
-} from 'lucide-react-native';
-import {
-  getAppreciationPeriodLabel,
-  getTransactionTypeLabel,
-  isCredit,
-} from '@lib/balances';
+import { Wallet, TrendingUp } from 'lucide-react-native';
+import { getAppreciationPeriodLabel, getTransactionTypeLabel, isCredit } from '@lib/balances';
 import { getMyChildId } from '@lib/children';
 import {
   useBalance,
@@ -60,7 +53,10 @@ export default function ChildBalanceScreen() {
   const balance = balanceQuery.data ?? null;
 
   const transactionsQuery = useTransactions(childId ?? '');
-  const transactions = useMemo(() => transactionsQuery.data?.pages.flatMap((p) => p.data) ?? [], [transactionsQuery.data]);
+  const transactions = useMemo(
+    () => transactionsQuery.data?.pages.flatMap((p) => p.data) ?? [],
+    [transactionsQuery.data],
+  );
   const { fetchNextPage, hasNextPage, isFetchingNextPage } = transactionsQuery;
 
   const { isLoading, error, refetchAll } = combineQueryStates(balanceQuery, transactionsQuery);
@@ -88,14 +84,22 @@ export default function ChildBalanceScreen() {
   const handleTransfer = async () => {
     setModalError(null);
     const v = Number.parseInt(amountStr, 10);
-    if (!amountStr || Number.isNaN(v) || v <= 0) { setModalError('Informe um valor válido.'); return; }
-    if (!balance || v > balance.saldo_livre) { setModalError('Saldo livre insuficiente.'); return; }
+    if (!amountStr || Number.isNaN(v) || v <= 0) {
+      setModalError('Informe um valor válido.');
+      return;
+    }
+    if (!balance || v > balance.saldo_livre) {
+      setModalError('Saldo livre insuficiente.');
+      return;
+    }
     if (!childId) return;
     try {
       await transferMutation.mutateAsync({ childId, amount: v });
       setModalVisible(false);
       setAmountStr('');
-      setTransferSuccess(`${v} ponto${v === 1 ? '' : 's'} guardado${v === 1 ? '' : 's'} no cofrinho.`);
+      setTransferSuccess(
+        `${v} ponto${v === 1 ? '' : 's'} guardado${v === 1 ? '' : 's'} no cofrinho.`,
+      );
     } catch (e) {
       setModalError(e instanceof Error ? e.message : 'Não foi possível transferir.');
     }
@@ -116,7 +120,9 @@ export default function ChildBalanceScreen() {
 
   const freeBalance = balance?.saldo_livre ?? 0;
   const piggyBank = balance?.cofrinho ?? 0;
-  const appreciationPeriod = balance ? getAppreciationPeriodLabel(balance.periodo_valorizacao) : null;
+  const appreciationPeriod = balance
+    ? getAppreciationPeriodLabel(balance.periodo_valorizacao)
+    : null;
   const hasTransactions = transactions.length > 0;
   const lastAppreciationText = balance?.data_ultima_valorizacao
     ? ` · última em ${new Date(balance.data_ultima_valorizacao).toLocaleDateString('pt-BR')}`
@@ -128,13 +134,24 @@ export default function ChildBalanceScreen() {
   return (
     <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader title="Meu Saldo" onBack={() => router.back()} backLabel="Início" role="filho" />
+      <ScreenHeader
+        title="Meu Saldo"
+        onBack={() => router.back()}
+        backLabel="Início"
+        role="filho"
+      />
 
       <FlashList
         data={transactions}
         keyExtractor={(m) => m.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.brand.vivid}
+          />
+        }
         ListHeaderComponent={
           <>
             <View style={{ height: spacing['5'] }} />
@@ -144,14 +161,22 @@ export default function ChildBalanceScreen() {
               </View>
             ) : null}
             <View style={styles.cardsRow}>
-              <View style={[styles.balanceCard, { backgroundColor: colors.bg.elevated }, shadows.goldGlow]}>
+              <View
+                style={[
+                  styles.balanceCard,
+                  { backgroundColor: colors.bg.elevated },
+                  shadows.goldGlow,
+                ]}
+              >
                 <View style={styles.balanceLabelRow}>
                   <Wallet size={14} color={colors.text.secondary} strokeWidth={2} />
                   <Text style={styles.balanceLabel}>Saldo livre</Text>
                 </View>
                 <PointsDisplay value={freeBalance} label="pontos" variant="gold" size="lg" />
               </View>
-              <View style={[styles.balanceCard, { backgroundColor: colors.bg.elevated }, shadows.card]}>
+              <View
+                style={[styles.balanceCard, { backgroundColor: colors.bg.elevated }, shadows.card]}
+              >
                 <View style={styles.balanceLabelRow}>
                   <Wallet size={14} color={colors.text.secondary} strokeWidth={2} />
                   <Text style={styles.balanceLabel}>Cofrinho</Text>
@@ -178,7 +203,11 @@ export default function ChildBalanceScreen() {
 
             <Pressable
               style={[styles.transferBtn, freeBalance === 0 && styles.disabledBtn]}
-              onPress={() => { setModalVisible(true); setAmountStr(''); setModalError(null); }}
+              onPress={() => {
+                setModalVisible(true);
+                setAmountStr('');
+                setModalError(null);
+              }}
               disabled={freeBalance === 0}
               accessibilityRole="button"
               accessibilityLabel="Guardar pontos no cofrinho"
@@ -187,7 +216,9 @@ export default function ChildBalanceScreen() {
             </Pressable>
 
             <Text style={styles.sectionTitle}>Histórico</Text>
-            {hasTransactions ? null : <Text style={styles.emptyText}>Nenhuma movimentação ainda.</Text>}
+            {hasTransactions ? null : (
+              <Text style={styles.emptyText}>Nenhuma movimentação ainda.</Text>
+            )}
           </>
         }
         renderItem={({ item }) => (
@@ -195,30 +226,42 @@ export default function ChildBalanceScreen() {
             <TransactionIcon type={item.tipo} style={styles.txnIconBox} />
             <View style={styles.txnInfo}>
               <Text style={styles.txnLabel}>{getTransactionTypeLabel(item.tipo)}</Text>
-              <Text style={styles.txnDesc} numberOfLines={1}>{item.descricao}</Text>
+              <Text style={styles.txnDesc} numberOfLines={1}>
+                {item.descricao}
+              </Text>
               <Text style={styles.txnDate}>
-                {new Date(item.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                {new Date(item.created_at).toLocaleDateString('pt-BR', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                })}
               </Text>
             </View>
             <Text style={[styles.txnAmount, isCredit(item.tipo) ? styles.credit : styles.debit]}>
-              {isCredit(item.tipo) ? '+' : '-'}{item.valor}
+              {isCredit(item.tipo) ? '+' : '-'}
+              {item.valor}
             </Text>
           </View>
         )}
-        onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
+        onEndReached={() => {
+          if (hasNextPage) fetchNextPage();
+        }}
         onEndReachedThreshold={0.5}
         ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
       />
 
       <Modal visible={modalVisible} transparent animationType="slide">
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior="padding"
-        >
-          <View style={[styles.modalBox, { paddingBottom: getSafeBottomPadding(insets, spacing['12']) }]}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
+          <View
+            style={[
+              styles.modalBox,
+              { paddingBottom: getSafeBottomPadding(insets, spacing['12']) },
+            ]}
+          >
             <Text style={styles.modalTitle}>Guardar no cofrinho</Text>
             <Text style={styles.modalSub}>
-              Saldo livre disponível: <Text style={{ fontFamily: typography.family.bold }}>{freeBalance}</Text> pts
+              Saldo livre disponível:{' '}
+              <Text style={{ fontFamily: typography.family.bold }}>{freeBalance}</Text> pts
             </Text>
             <TextInput
               style={styles.modalInput}
@@ -232,7 +275,12 @@ export default function ChildBalanceScreen() {
             />
             {modalError ? <InlineMessage message={modalError} variant="error" /> : null}
             <View style={styles.modalBtns}>
-              <Pressable style={styles.cancelBtn} onPress={() => setModalVisible(false)} accessibilityRole="button" accessibilityLabel="Cancelar transferência">
+              <Pressable
+                style={styles.cancelBtn}
+                onPress={() => setModalVisible(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Cancelar transferência"
+              >
                 <Text style={styles.cancelBtnText}>Cancelar</Text>
               </Pressable>
               <Pressable
@@ -242,9 +290,11 @@ export default function ChildBalanceScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Confirmar transferência para cofrinho"
               >
-                {transferMutation.isPending
-                  ? <ActivityIndicator color={colors.text.inverse} />
-                  : <Text style={styles.confirmBtnText}>Guardar</Text>}
+                {transferMutation.isPending ? (
+                  <ActivityIndicator color={colors.text.inverse} />
+                ) : (
+                  <Text style={styles.confirmBtnText}>Guardar</Text>
+                )}
               </Pressable>
             </View>
           </View>
@@ -267,11 +317,24 @@ function makeStyles(colors: ThemeColors) {
       gap: spacing['1'],
     },
     balanceLabelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
-    balanceLabel: { color: colors.text.secondary, fontSize: typography.size.xs, fontFamily: typography.family.semibold },
-    appreciationBox: { backgroundColor: colors.semantic.successBg, borderRadius: radii.lg, padding: spacing['2'], marginBottom: spacing['3'] },
+    balanceLabel: {
+      color: colors.text.secondary,
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.semibold,
+    },
+    appreciationBox: {
+      backgroundColor: colors.semantic.successBg,
+      borderRadius: radii.lg,
+      padding: spacing['2'],
+      marginBottom: spacing['3'],
+    },
     appreciationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     appreciationText: { color: colors.semantic.success, fontSize: typography.size.xs, flex: 1 },
-    appreciationHint: { color: colors.text.secondary, fontSize: typography.size.xs, marginTop: spacing['1.5'] },
+    appreciationHint: {
+      color: colors.text.secondary,
+      fontSize: typography.size.xs,
+      marginTop: spacing['1.5'],
+    },
     transferBtn: {
       backgroundColor: colors.accent.filho,
       borderRadius: radii.xl,
@@ -281,9 +344,23 @@ function makeStyles(colors: ThemeColors) {
       minHeight: 48,
     },
     disabledBtn: { opacity: 0.4 },
-    transferBtnText: { color: colors.text.inverse, fontFamily: typography.family.bold, fontSize: typography.size.md },
-    sectionTitle: { fontSize: typography.size.md, fontFamily: typography.family.bold, color: colors.text.primary, marginBottom: spacing['3'] },
-    emptyText: { color: colors.text.muted, fontSize: typography.size.sm, textAlign: 'center', marginTop: spacing['2'] },
+    transferBtnText: {
+      color: colors.text.inverse,
+      fontFamily: typography.family.bold,
+      fontSize: typography.size.md,
+    },
+    sectionTitle: {
+      fontSize: typography.size.md,
+      fontFamily: typography.family.bold,
+      color: colors.text.primary,
+      marginBottom: spacing['3'],
+    },
+    emptyText: {
+      color: colors.text.muted,
+      fontSize: typography.size.sm,
+      textAlign: 'center',
+      marginTop: spacing['2'],
+    },
     txnItem: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -294,15 +371,34 @@ function makeStyles(colors: ThemeColors) {
       marginBottom: spacing['2'],
       ...shadows.card,
     },
-    txnIconBox: { width: 36, height: 36, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center', marginRight: spacing['3'] },
+    txnIconBox: {
+      width: 36,
+      height: 36,
+      borderRadius: radii.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing['3'],
+    },
     txnInfo: { flex: 1 },
-    txnLabel: { fontSize: typography.size.sm, fontFamily: typography.family.semibold, color: colors.text.primary },
-    txnDesc: { fontSize: typography.size.xs, color: colors.text.secondary, marginTop: spacing['1'] },
+    txnLabel: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.semibold,
+      color: colors.text.primary,
+    },
+    txnDesc: {
+      fontSize: typography.size.xs,
+      color: colors.text.secondary,
+      marginTop: spacing['1'],
+    },
     txnDate: { fontSize: typography.size.xs, color: colors.text.muted, marginTop: spacing['1'] },
     txnAmount: { fontSize: typography.size.md, fontFamily: typography.family.bold },
     credit: { color: colors.semantic.success },
     debit: { color: colors.semantic.error },
-    modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.overlay.scrimSoft },
+    modalOverlay: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: colors.overlay.scrimSoft,
+    },
     modalBox: {
       backgroundColor: colors.bg.surface,
       borderTopLeftRadius: radii.xl,
@@ -311,7 +407,11 @@ function makeStyles(colors: ThemeColors) {
       paddingBottom: spacing['12'],
       gap: spacing['4'],
     },
-    modalTitle: { fontSize: typography.size.lg, fontFamily: typography.family.bold, color: colors.text.primary },
+    modalTitle: {
+      fontSize: typography.size.lg,
+      fontFamily: typography.family.bold,
+      color: colors.text.primary,
+    },
     modalSub: { fontSize: typography.size.sm, color: colors.text.secondary },
     modalInput: {
       borderWidth: 1,
@@ -343,6 +443,10 @@ function makeStyles(colors: ThemeColors) {
       alignItems: 'center',
       minHeight: 48,
     },
-    confirmBtnText: { color: colors.text.inverse, fontFamily: typography.family.bold, fontSize: typography.size.md },
+    confirmBtnText: {
+      color: colors.text.inverse,
+      fontFamily: typography.family.bold,
+      fontSize: typography.size.md,
+    },
   });
 }

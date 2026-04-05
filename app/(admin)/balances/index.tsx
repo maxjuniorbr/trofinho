@@ -34,28 +34,58 @@ export default function BalancesAdminScreen() {
           data={balances}
           keyExtractor={(s) => s.filho_id}
           contentContainerStyle={styles.lista}
-          refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
-          ListEmptyComponent={<EmptyState empty emptyMessage={'Nenhum saldo ainda.\nAprove tarefas para creditar pontos.'} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={isFetching && !isLoading}
+              onRefresh={handleRefresh}
+              tintColor={colors.brand.vivid}
+            />
+          }
+          ListEmptyComponent={
+            <EmptyState
+              empty
+              emptyMessage={'Nenhum saldo ainda.\nAprove tarefas para creditar pontos.'}
+            />
+          }
           renderItem={({ item }) => (
             <Pressable
               style={({ pressed }) => {
                 const isInactive = item.filhos.ativo === false;
-                const opacity = isInactive ? 0.5 : (pressed ? 0.9 : 1);
-                return [styles.card, shadows.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle, opacity }];
+                const opacity = isInactive ? 0.5 : pressed ? 0.9 : 1;
+                return [
+                  styles.card,
+                  shadows.card,
+                  {
+                    backgroundColor: colors.bg.surface,
+                    borderColor: colors.border.subtle,
+                    opacity,
+                  },
+                ];
               }}
-              onPress={() => router.push({ pathname: '/(admin)/balances/[filho_id]', params: { filho_id: item.filho_id, nome: item.filhos.nome } })}
+              onPress={() =>
+                router.push({
+                  pathname: '/(admin)/balances/[filho_id]',
+                  params: { filho_id: item.filho_id, nome: item.filhos.nome },
+                })
+              }
             >
               <Avatar name={item.filhos.nome} size={44} />
               <View style={styles.info}>
-                <Text style={[styles.nome, { color: colors.text.primary }]}>{item.filhos.nome}</Text>
+                <Text style={[styles.nome, { color: colors.text.primary }]}>
+                  {item.filhos.nome}
+                </Text>
                 {item.filhos.ativo === false && (
-                  <Text style={[styles.inactiveBadge, { color: colors.semantic.warningText }]}>Desativado</Text>
+                  <Text style={[styles.inactiveBadge, { color: colors.semantic.warningText }]}>
+                    Desativado
+                  </Text>
                 )}
                 <Text style={[styles.detalhe, { color: colors.text.secondary }]}>
                   {item.saldo_livre} livre · {item.cofrinho} cofrinho
                 </Text>
                 {item.indice_valorizacao > 0 && (
-                  <Text style={[styles.detalhe, { color: colors.text.muted }]}>{item.indice_valorizacao}%/{item.periodo_valorizacao}</Text>
+                  <Text style={[styles.detalhe, { color: colors.text.muted }]}>
+                    {item.indice_valorizacao}%/{item.periodo_valorizacao}
+                  </Text>
                 )}
               </View>
               <ChevronRight size={20} color={colors.text.muted} strokeWidth={2} />
@@ -71,10 +101,21 @@ function makeStyles() {
   return StyleSheet.create({
     container: { flex: 1 },
     lista: { padding: spacing['5'], paddingBottom: spacing['12'] },
-    card: { flexDirection: 'row', alignItems: 'center', borderRadius: radii.xl, borderWidth: 1, padding: spacing['4'], marginBottom: spacing['3'] },
+    card: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: radii.xl,
+      borderWidth: 1,
+      padding: spacing['4'],
+      marginBottom: spacing['3'],
+    },
     info: { flex: 1, marginLeft: spacing['3'] },
     nome: { fontSize: typography.size.md, fontFamily: typography.family.bold },
-    inactiveBadge: { fontSize: typography.size.xs, fontFamily: typography.family.semibold, marginTop: spacing['0.5'] },
+    inactiveBadge: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.semibold,
+      marginTop: spacing['0.5'],
+    },
     detalhe: { fontSize: typography.size.sm, marginTop: spacing['1'] },
   });
 }

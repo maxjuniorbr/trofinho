@@ -2,6 +2,8 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import AdminPrizeDetailScreen from '../../app/(admin)/prizes/[id]';
+
 // --- Hoisted mocks ---
 
 const alertMock = vi.hoisted(() => ({
@@ -138,13 +140,11 @@ vi.mock('@/components/ui/sticky-footer-screen', () => ({
 }));
 
 vi.mock('@/components/ui/button', () => ({
-  Button: (props: Record<string, unknown>) =>
-    React.createElement('Button', props),
+  Button: (props: Record<string, unknown>) => React.createElement('Button', props),
 }));
 
 vi.mock('@/components/ui/empty-state', () => ({
-  EmptyState: (props: Record<string, unknown>) =>
-    React.createElement('EmptyState', props),
+  EmptyState: (props: Record<string, unknown>) => React.createElement('EmptyState', props),
 }));
 
 vi.mock('@/components/ui/form-footer', () => ({
@@ -153,13 +153,11 @@ vi.mock('@/components/ui/form-footer', () => ({
 }));
 
 vi.mock('@/components/ui/inline-message', () => ({
-  InlineMessage: (props: Record<string, unknown>) =>
-    React.createElement('InlineMessage', props),
+  InlineMessage: (props: Record<string, unknown>) => React.createElement('InlineMessage', props),
 }));
 
 vi.mock('@/components/ui/screen-header', () => ({
-  ScreenHeader: (props: Record<string, unknown>) =>
-    React.createElement('ScreenHeader', props),
+  ScreenHeader: (props: Record<string, unknown>) => React.createElement('ScreenHeader', props),
 }));
 
 vi.mock('@/components/prizes/prize-form-fields', () => ({
@@ -168,11 +166,8 @@ vi.mock('@/components/prizes/prize-form-fields', () => ({
 }));
 
 vi.mock('lucide-react-native', () => ({
-  ImagePlus: (props: Record<string, unknown>) =>
-    React.createElement('ImagePlus', props),
+  ImagePlus: (props: Record<string, unknown>) => React.createElement('ImagePlus', props),
 }));
-
-import AdminPrizeDetailScreen from '../../app/(admin)/prizes/[id]';
 
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
@@ -184,9 +179,7 @@ function render(element: React.ReactElement) {
 
 function findSwitch(renderer: ReactTestRenderer) {
   return renderer.root.findAll(
-    (node) =>
-      node.props.accessibilityLabel ===
-      'Alternar disponibilidade do prêmio',
+    (node) => node.props.accessibilityLabel === 'Alternar disponibilidade do prêmio',
   )[0];
 }
 
@@ -244,9 +237,11 @@ describe('Prize detail — deactivation confirmation (Q28)', () => {
 
   // **Validates: Requirements 1.2**
   it('sets isActive to false when confirming deactivation', () => {
-    deactivatePrizeMock.mutate.mockImplementation((_id: string, opts: { onSuccess?: (result: { warning: string | null }) => void }) => {
-      opts.onSuccess?.({ warning: null });
-    });
+    deactivatePrizeMock.mutate.mockImplementation(
+      (_id: string, opts: { onSuccess?: (result: { warning: string | null }) => void }) => {
+        opts.onSuccess?.({ warning: null });
+      },
+    );
 
     const renderer = render(<AdminPrizeDetailScreen />);
     const switchEl = findSwitch(renderer);
@@ -255,10 +250,10 @@ describe('Prize detail — deactivation confirmation (Q28)', () => {
       switchEl.props.onValueChange(false);
     });
 
-    const buttons = alertMock.alert.mock.calls[0][2] as Array<{
+    const buttons = alertMock.alert.mock.calls[0][2] as {
       text: string;
       onPress?: () => void;
-    }>;
+    }[];
     const desativarButton = buttons.find((b) => b.text === 'Desativar');
 
     act(() => {
@@ -287,9 +282,11 @@ describe('Prize detail — deactivation confirmation (Q28)', () => {
   it('sets isActive to true without showing alert when toggling ON', () => {
     prizeDetailMock.data = { ...activePrize, ativo: false };
 
-    reactivatePrizeMock.mutate.mockImplementation((_id: string, opts: { onSuccess?: () => void }) => {
-      opts.onSuccess?.();
-    });
+    reactivatePrizeMock.mutate.mockImplementation(
+      (_id: string, opts: { onSuccess?: () => void }) => {
+        opts.onSuccess?.();
+      },
+    );
 
     const renderer = render(<AdminPrizeDetailScreen />);
     const switchEl = findSwitch(renderer);

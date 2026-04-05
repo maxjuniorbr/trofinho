@@ -1,12 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
-import {
-  Animated,
-  KeyboardAvoidingView,
-  ScrollView,
-  StyleSheet,
-  Text,
-} from 'react-native';
+import { Animated, KeyboardAvoidingView, ScrollView, StyleSheet, Text } from 'react-native';
 import { Image } from 'expo-image';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
@@ -76,9 +70,7 @@ export function AuthShell({
         contentContainerStyle={[
           styles.container,
           {
-            paddingTop: headerTitle
-              ? styles.container.paddingTop
-              : spacing['4'],
+            paddingTop: headerTitle ? styles.container.paddingTop : spacing['4'],
             paddingBottom: spacing['10'],
           },
         ]}
@@ -88,7 +80,10 @@ export function AuthShell({
         <StatusBar style={colors.statusBar} />
 
         <Animated.View
-          style={[styles.mascotWrapper, { transform: [{ scale: mascotScale }, { rotate: mascotRotateDeg }] }]}
+          style={[
+            styles.mascotWrapper,
+            { transform: [{ scale: mascotScale }, { rotate: mascotRotateDeg }] },
+          ]}
         >
           <Image
             source={mascotImage}
@@ -99,12 +94,13 @@ export function AuthShell({
         </Animated.View>
 
         <Animated.View
-          style={[styles.headline, { opacity: contentOpacity, transform: [{ translateY: contentY }] }]}
+          style={[
+            styles.headline,
+            { opacity: contentOpacity, transform: [{ translateY: contentY }] },
+          ]}
         >
           <Text style={[styles.title, { color: colors.text.primary }]}>{title}</Text>
-          <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-            {subtitle}
-          </Text>
+          <Text style={[styles.subtitle, { color: colors.text.secondary }]}>{subtitle}</Text>
         </Animated.View>
 
         <Animated.View

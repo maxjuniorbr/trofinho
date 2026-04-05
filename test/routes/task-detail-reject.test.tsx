@@ -4,6 +4,8 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 
+import TaskDetailAdminScreen from '../../app/(admin)/tasks/[id]';
+
 // --- Hoisted mocks ---
 
 const alertMock = vi.hoisted(() => ({
@@ -102,20 +104,17 @@ vi.mock('@/hooks/queries', () => ({
 }));
 
 vi.mock('@/components/ui/screen-header', () => ({
-  ScreenHeader: (props: Record<string, unknown>) =>
-    React.createElement('ScreenHeader', props),
+  ScreenHeader: (props: Record<string, unknown>) => React.createElement('ScreenHeader', props),
   HeaderIconButton: (props: Record<string, unknown>) =>
     React.createElement('HeaderIconButton', props),
 }));
 
 vi.mock('@/components/ui/empty-state', () => ({
-  EmptyState: (props: Record<string, unknown>) =>
-    React.createElement('EmptyState', props),
+  EmptyState: (props: Record<string, unknown>) => React.createElement('EmptyState', props),
 }));
 
 vi.mock('@/components/ui/inline-message', () => ({
-  InlineMessage: (props: Record<string, unknown>) =>
-    React.createElement('InlineMessage', props),
+  InlineMessage: (props: Record<string, unknown>) => React.createElement('InlineMessage', props),
 }));
 
 vi.mock('@lib/safe-area', () => ({
@@ -127,11 +126,8 @@ vi.mock('@/hooks/use-transient-message', () => ({
 }));
 
 vi.mock('@/components/ui/button', () => ({
-  Button: (props: Record<string, unknown>) =>
-    React.createElement('Button', props),
+  Button: (props: Record<string, unknown>) => React.createElement('Button', props),
 }));
-
-import TaskDetailAdminScreen from '../../app/(admin)/tasks/[id]';
 
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
@@ -250,11 +246,11 @@ describe('TaskDetailAdminScreen — rejection confirmation dialog (Property 8)',
           });
 
           expect(alertMock.alert).toHaveBeenCalledTimes(1);
-          const buttons = alertMock.alert.mock.calls[0][2] as Array<{
+          const buttons = alertMock.alert.mock.calls[0][2] as {
             text: string;
             style: string;
             onPress?: () => void;
-          }>;
+          }[];
 
           if (userConfirms) {
             const destructiveBtn = buttons.find((b) => b.style === 'destructive');

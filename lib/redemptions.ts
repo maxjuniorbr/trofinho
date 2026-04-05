@@ -64,7 +64,9 @@ export async function confirmRedemption(
       prizeName: opts.prizeName,
     });
   } else {
-    console.warn(`[push] Not dispatching 'resgate_confirmado' for '${opts.prizeName}': Missing required recipient (userId).`);
+    console.warn(
+      `[push] Not dispatching 'resgate_confirmado' for '${opts.prizeName}': Missing required recipient (userId).`,
+    );
   }
 
   return { error: null };
@@ -87,7 +89,9 @@ export async function cancelRedemption(
         prizeName: opts.prizeName,
       });
     } else {
-      console.warn(`[push] Not dispatching 'resgate_cancelado' for '${opts.prizeName}': Missing required recipient (userId).`);
+      console.warn(
+        `[push] Not dispatching 'resgate_cancelado' for '${opts.prizeName}': Missing required recipient (userId).`,
+      );
     }
   }
 
@@ -137,7 +141,9 @@ export async function requestRedemption(
       prizeName: opts.prizeName,
     });
   } else {
-    console.warn("[push] Not dispatching 'resgate_solicitado': Missing profile context (familiaId).");
+    console.warn(
+      "[push] Not dispatching 'resgate_solicitado': Missing profile context (familiaId).",
+    );
   }
   // RPC solicitar_resgate returns the redemption ID as text
   return { data: data, error: null };

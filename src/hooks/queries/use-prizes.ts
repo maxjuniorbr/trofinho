@@ -11,7 +11,12 @@ import {
   type UpdatePrizeInput,
 } from '../../../lib/prizes';
 import { countPendingRedemptions } from '../../../lib/redemptions';
-import { queryFnAdapter, mutationFnAdapter, paginatedQueryFnAdapter, type PaginatedPage } from './query-fn-adapter';
+import {
+  queryFnAdapter,
+  mutationFnAdapter,
+  paginatedQueryFnAdapter,
+  type PaginatedPage,
+} from './query-fn-adapter';
 import { queryKeys, STALE_TIMES, PAGE_SIZES } from './query-keys';
 
 export const usePrizes = () =>
@@ -19,8 +24,11 @@ export const usePrizes = () =>
     queryKey: queryKeys.prizes.lists(),
     queryFn: paginatedQueryFnAdapter(listPrizes, PAGE_SIZES.prizes),
     initialPageParam: 0,
-    getNextPageParam: (lastPage: PaginatedPage<unknown>, _allPages: unknown[], lastPageParam: number) =>
-      lastPage.hasMore ? lastPageParam + 1 : undefined,
+    getNextPageParam: (
+      lastPage: PaginatedPage<unknown>,
+      _allPages: unknown[],
+      lastPageParam: number,
+    ) => (lastPage.hasMore ? lastPageParam + 1 : undefined),
     staleTime: STALE_TIMES.prizes,
   });
 
@@ -49,8 +57,7 @@ export const usePendingRedemptionCount = () =>
 export const useCreatePrize = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: PrizeInput) =>
-      mutationFnAdapter(() => createPrize(input))(),
+    mutationFn: (input: PrizeInput) => mutationFnAdapter(() => createPrize(input))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.prizes.all });
     },
@@ -91,8 +98,7 @@ export const useDeactivatePrize = () => {
 export const useReactivatePrize = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) =>
-      mutationFnAdapter(() => reactivatePrize(id))(),
+    mutationFn: (id: string) => mutationFnAdapter(() => reactivatePrize(id))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.prizes.all });
     },

@@ -31,8 +31,8 @@ export async function dispatchPushNotification(
 
       console.warn(
         `[push] Falha ao enviar evento '${event}':\n` +
-        `       Causa: ${errorCategory}\n` +
-        `       Detalhe: ${error.message ?? error}`
+          `       Causa: ${errorCategory}\n` +
+          `       Detalhe: ${error.message ?? error}`,
       );
 
       Sentry.captureException(error, {
@@ -46,11 +46,13 @@ export async function dispatchPushNotification(
       console.log(`[push] Evento '${event}' processado:`, data);
     }
   } catch (err) {
-    console.warn(`[push] Exceção inesperada no evento '${event}':`, err instanceof Error ? err.message : err);
+    console.warn(
+      `[push] Exceção inesperada no evento '${event}':`,
+      err instanceof Error ? err.message : err,
+    );
     Sentry.captureException(err, {
       tags: { subsystem: 'push', event, errorCategory: 'Exception' },
       extra: { familiaId, payload },
     });
   }
 }
-

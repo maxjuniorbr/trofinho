@@ -44,7 +44,7 @@ function createTempClient() {
 export async function registerChild(
   name: string,
   email: string,
-  tempPassword: string
+  tempPassword: string,
 ): Promise<{ error: string | null }> {
   const tempClient = createTempClient();
 
@@ -82,15 +82,11 @@ export async function listChildren(onlyActive = false): Promise<{
   data: Child[];
   error: string | null;
 }> {
-  let query = supabase
-    .from('filhos')
-    .select('id, nome, usuario_id, avatar_url, ativo');
+  let query = supabase.from('filhos').select('id, nome, usuario_id, avatar_url, ativo');
 
   if (onlyActive) query = query.eq('ativo', true);
 
-  const { data, error } = await query
-    .order('nome')
-    .returns<Child[]>();
+  const { data, error } = await query.order('nome').returns<Child[]>();
 
   if (error) return { data: [], error: localizeRpcError(error.message) };
   return { data: data ?? [], error: null };
@@ -104,12 +100,14 @@ export async function getChild(
   });
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
-  const child: AdminChildProfile | null = Array.isArray(data) ? data[0] ?? null : null;
+  const child: AdminChildProfile | null = Array.isArray(data) ? (data[0] ?? null) : null;
   return { data: child, error: null };
 }
 
 export async function getMyChildId(): Promise<string | null> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return null;
 
   const { data } = await supabase
@@ -125,7 +123,8 @@ function translateSignUpError(msg: string): string {
   if (msg.includes('User already registered')) return 'Este e-mail já possui uma conta.';
   if (msg.includes('Password should be at least')) return 'A senha deve ter ao menos 6 caracteres.';
   if (msg.includes('Unable to validate email')) return 'E-mail inválido.';
-  if (msg.includes('email rate limit')) return 'Limite de e-mails atingido. Aguarde alguns minutos.';
+  if (msg.includes('email rate limit'))
+    return 'Limite de e-mails atingido. Aguarde alguns minutos.';
   return 'Não foi possível cadastrar o filho. Tente novamente.';
 }
 

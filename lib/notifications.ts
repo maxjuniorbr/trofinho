@@ -2,10 +2,7 @@ import { Platform } from 'react-native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Crypto from 'expo-crypto';
 import * as Device from 'expo-device';
-import type {
-  NotificationPermissionsStatus,
-  NotificationTriggerInput,
-} from 'expo-notifications';
+import type { NotificationPermissionsStatus, NotificationTriggerInput } from 'expo-notifications';
 import { deviceStorage } from './device-storage';
 import { supabase } from './supabase';
 
@@ -93,17 +90,22 @@ function normalizeNotificationPrefs(rawPreferences: string | null): Notification
     const parsed = JSON.parse(rawPreferences) as unknown;
     if (!isRecord(parsed)) return DEFAULT_NOTIFICATION_PREFS;
 
-    const asBoolean = (v: unknown): boolean | undefined =>
-      typeof v === 'boolean' ? v : undefined;
+    const asBoolean = (v: unknown): boolean | undefined => (typeof v === 'boolean' ? v : undefined);
 
     return {
-      tarefasPendentes: asBoolean(parsed.tarefasPendentes) ?? DEFAULT_NOTIFICATION_PREFS.tarefasPendentes,
+      tarefasPendentes:
+        asBoolean(parsed.tarefasPendentes) ?? DEFAULT_NOTIFICATION_PREFS.tarefasPendentes,
       tarefaAprovada: asBoolean(parsed.tarefaAprovada) ?? DEFAULT_NOTIFICATION_PREFS.tarefaAprovada,
-      tarefaRejeitada: asBoolean(parsed.tarefaRejeitada) ?? DEFAULT_NOTIFICATION_PREFS.tarefaRejeitada,
-      tarefaConcluida: asBoolean(parsed.tarefaConcluida) ?? DEFAULT_NOTIFICATION_PREFS.tarefaConcluida,
-      resgatesSolicitado: asBoolean(parsed.resgatesSolicitado) ?? DEFAULT_NOTIFICATION_PREFS.resgatesSolicitado,
-      resgateConfirmado: asBoolean(parsed.resgateConfirmado) ?? DEFAULT_NOTIFICATION_PREFS.resgateConfirmado,
-      resgateCancelado: asBoolean(parsed.resgateCancelado) ?? DEFAULT_NOTIFICATION_PREFS.resgateCancelado,
+      tarefaRejeitada:
+        asBoolean(parsed.tarefaRejeitada) ?? DEFAULT_NOTIFICATION_PREFS.tarefaRejeitada,
+      tarefaConcluida:
+        asBoolean(parsed.tarefaConcluida) ?? DEFAULT_NOTIFICATION_PREFS.tarefaConcluida,
+      resgatesSolicitado:
+        asBoolean(parsed.resgatesSolicitado) ?? DEFAULT_NOTIFICATION_PREFS.resgatesSolicitado,
+      resgateConfirmado:
+        asBoolean(parsed.resgateConfirmado) ?? DEFAULT_NOTIFICATION_PREFS.resgateConfirmado,
+      resgateCancelado:
+        asBoolean(parsed.resgateCancelado) ?? DEFAULT_NOTIFICATION_PREFS.resgateCancelado,
     };
   } catch {
     return DEFAULT_NOTIFICATION_PREFS;
@@ -129,18 +131,18 @@ function hasGrantedNotificationPermission(
   if (Platform.OS === 'ios') {
     const iosStatus = status.ios?.status;
 
-    return iosStatus === Notifications.IosAuthorizationStatus.AUTHORIZED
-      || iosStatus === Notifications.IosAuthorizationStatus.PROVISIONAL
-      || iosStatus === Notifications.IosAuthorizationStatus.EPHEMERAL;
+    return (
+      iosStatus === Notifications.IosAuthorizationStatus.AUTHORIZED ||
+      iosStatus === Notifications.IosAuthorizationStatus.PROVISIONAL ||
+      iosStatus === Notifications.IosAuthorizationStatus.EPHEMERAL
+    );
   }
 
   return status.granted || status.status === 'granted';
 }
 
 function getExpoProjectId(): string {
-  const projectId =
-    Constants.expoConfig?.extra?.eas?.projectId
-    ?? Constants.easConfig?.projectId;
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
 
   if (!projectId) {
     throw new Error('Project ID do Expo não encontrado para notificações.');
@@ -157,9 +159,7 @@ function getImmediateTrigger(): NotificationTriggerInput {
   return null;
 }
 
-function withDefaultChannel(
-  trigger: NotificationTriggerInput,
-): NotificationTriggerInput {
+function withDefaultChannel(trigger: NotificationTriggerInput): NotificationTriggerInput {
   if (Platform.OS !== 'android' || trigger === null || !isRecord(trigger)) {
     return trigger;
   }
@@ -196,7 +196,6 @@ async function scheduleNotification(
     trigger: withDefaultChannel(trigger),
   });
 }
-
 
 export async function registerForPushNotifications(): Promise<string | null> {
   if (isExpoGo()) {
@@ -274,13 +273,9 @@ export async function savePushToken(token: string): Promise<void> {
   }
 }
 
-export async function sendLocalNotification(
-  title: string,
-  body: string,
-): Promise<void> {
+export async function sendLocalNotification(title: string, body: string): Promise<void> {
   await scheduleNotification(title, body, getImmediateTrigger());
 }
-
 
 export async function scheduleLocalNotification(
   title: string,
@@ -292,7 +287,9 @@ export async function scheduleLocalNotification(
 
 export async function getNotificationPrefs(): Promise<NotificationPrefs> {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (user) {
       const { data, error } = await supabase
         .from('usuarios')
@@ -302,10 +299,7 @@ export async function getNotificationPrefs(): Promise<NotificationPrefs> {
 
       if (!error && data?.notif_prefs) {
         const serverPrefs = data.notif_prefs as NotificationPrefs;
-        await deviceStorage.setItem(
-          NOTIFICATION_PREFERENCES_KEY,
-          JSON.stringify(serverPrefs),
-        );
+        await deviceStorage.setItem(NOTIFICATION_PREFERENCES_KEY, JSON.stringify(serverPrefs));
         return serverPrefs;
       }
     }
@@ -317,10 +311,10 @@ export async function getNotificationPrefs(): Promise<NotificationPrefs> {
   return normalizeNotificationPrefs(rawPreferences);
 }
 
-export async function setNotificationPrefs(
-  preferences: NotificationPrefs,
-): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
+export async function setNotificationPrefs(preferences: NotificationPrefs): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) throw new Error('Usuário não autenticado.');
 
   const { error } = await supabase
@@ -330,10 +324,7 @@ export async function setNotificationPrefs(
 
   if (error) throw error;
 
-  await deviceStorage.setItem(
-    NOTIFICATION_PREFERENCES_KEY,
-    JSON.stringify(preferences),
-  );
+  await deviceStorage.setItem(NOTIFICATION_PREFERENCES_KEY, JSON.stringify(preferences));
 }
 
 export async function isNotificationPermissionDenied(): Promise<boolean> {
@@ -372,9 +363,8 @@ export function getNotificationRoute(data: unknown): NotificationNavTarget | nul
     case '/(admin)/redemptions':
     case '/(child)/redemptions':
     case '/(child)/tasks': {
-      const entityId = typeof data.entityId === 'string' && data.entityId
-        ? data.entityId
-        : undefined;
+      const entityId =
+        typeof data.entityId === 'string' && data.entityId ? data.entityId : undefined;
       return { route: data.route, entityId };
     }
     default:
@@ -399,9 +389,7 @@ export async function subscribeToNotificationNavigation(
 
   const lastNotificationResponse = Notifications.getLastNotificationResponse();
   if (lastNotificationResponse?.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
-    redirectFromNotificationData(
-      lastNotificationResponse.notification.request.content.data,
-    );
+    redirectFromNotificationData(lastNotificationResponse.notification.request.content.data);
     Notifications.clearLastNotificationResponse();
   }
 
