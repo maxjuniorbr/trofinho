@@ -1,8 +1,4 @@
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-} from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useMemo } from 'react';
 import { signIn } from '@lib/auth';
@@ -39,17 +35,23 @@ export default function LoginScreen() {
 
   const handleSignIn = async () => {
     const validationError = validate();
-    if (validationError) { setError(validationError); return; }
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
 
     setError('');
     setLoading(true);
     const { error: signInError } = await signIn(email.trim(), password);
 
-    if (signInError) { setLoading(false); setError(signInError.message); }
+    if (signInError) {
+      setLoading(false);
+      setError(signInError.message);
+    }
 
     // Navigation is handled by the root layout auth state handler.
     // Keep the button in loading state until the redirect happens.
-  }
+  };
 
   return (
     <AuthShell
@@ -62,7 +64,10 @@ export default function LoginScreen() {
         focused={focusedField === 'email'}
         placeholder="seu@email.com"
         value={email}
-        onChangeText={(value) => { setEmail(value); setError(''); }}
+        onChangeText={(value) => {
+          setEmail(value);
+          setError('');
+        }}
         onFocus={() => setFocusedField('email')}
         onBlur={() => setFocusedField(null)}
         keyboardType="email-address"
@@ -78,7 +83,10 @@ export default function LoginScreen() {
         focused={focusedField === 'password'}
         placeholder="••••••"
         value={password}
-        onChangeText={(value) => { setPassword(value); setError(''); }}
+        onChangeText={(value) => {
+          setPassword(value);
+          setError('');
+        }}
         onFocus={() => setFocusedField('password')}
         onBlur={() => setFocusedField(null)}
         secureTextEntry

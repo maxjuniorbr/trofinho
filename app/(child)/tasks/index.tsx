@@ -1,20 +1,10 @@
-import {
-  StyleSheet,
-  Text,
-  View,
-  Pressable,
-  RefreshControl,
-} from 'react-native';
+import { StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { RefreshCw } from 'lucide-react-native';
-import {
-  getAssignmentPoints,
-  type ChildAssignment,
-  type AssignmentStatus,
-} from '@lib/tasks';
+import { getAssignmentPoints, type ChildAssignment, type AssignmentStatus } from '@lib/tasks';
 import { formatDate } from '@lib/utils';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
 import { useChildAssignments } from '@/hooks/queries';
@@ -81,14 +71,17 @@ export default function ChildTasksScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useChildAssignments();
+  const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useChildAssignments();
   const assignments = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
   const [filter, setFilter] = useState<Filter>('pendente');
   const [refreshing, setRefreshing] = useState(false);
 
-  useFocusEffect(useCallback(() => {
-    refetch();
-  }, [refetch]));
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch]),
+  );
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -102,7 +95,11 @@ export default function ChildTasksScreen() {
   };
 
   const filtered = useMemo(
-    () => sortChildAssignments(assignments.filter((a) => belongsToFilter(a.status, filter)), filter),
+    () =>
+      sortChildAssignments(
+        assignments.filter((a) => belongsToFilter(a.status, filter)),
+        filter,
+      ),
     [assignments, filter],
   );
 
@@ -117,14 +114,14 @@ export default function ChildTasksScreen() {
   return (
     <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader title="Minhas Tarefas" onBack={() => router.back()} backLabel="Início" role="filho" />
-
-      <SegmentedBar
-        options={FILTERS}
-        value={filter}
-        onChange={setFilter}
+      <ScreenHeader
+        title="Minhas Tarefas"
+        onBack={() => router.back()}
+        backLabel="Início"
         role="filho"
       />
+
+      <SegmentedBar options={FILTERS} value={filter} onChange={setFilter} role="filho" />
 
       {shouldShowEmptyState ? (
         <EmptyState
@@ -139,7 +136,13 @@ export default function ChildTasksScreen() {
           data={filtered}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={colors.brand.vivid}
+            />
+          }
           ListHeaderComponent={<View style={{ height: spacing['4'] }} />}
           renderItem={({ item }) => {
             const dateLine = getAssignmentDateLine(item, filter);
@@ -148,7 +151,11 @@ export default function ChildTasksScreen() {
             return (
               <Pressable
                 style={[styles.card, isInactive && styles.inactiveCard]}
-                onPress={isUnavailable ? undefined : () => router.push(`/(child)/tasks/${item.id}` as never)}
+                onPress={
+                  isUnavailable
+                    ? undefined
+                    : () => router.push(`/(child)/tasks/${item.id}` as never)
+                }
                 disabled={isUnavailable}
                 accessibilityRole="button"
                 accessibilityLabel={
@@ -158,7 +165,9 @@ export default function ChildTasksScreen() {
                 }
               >
                 <View style={styles.cardTop}>
-                  <Text style={styles.cardTitle} numberOfLines={2}>{item.tarefas.titulo}</Text>
+                  <Text style={styles.cardTitle} numberOfLines={2}>
+                    {item.tarefas.titulo}
+                  </Text>
                   <View style={styles.pointsTag}>
                     <Text style={styles.pointsText}>{getAssignmentPoints(item)} pts</Text>
                   </View>
@@ -177,11 +186,24 @@ export default function ChildTasksScreen() {
                   </Text>
                 </View>
                 {dateLine ? (
-                  <Text style={styles.cardDeadline}>{dateLine.label}{dateLine.value}</Text>
+                  <Text style={styles.cardDeadline}>
+                    {dateLine.label}
+                    {dateLine.value}
+                  </Text>
                 ) : null}
                 {filter === 'historico' ? (
-                  <View style={[styles.statusTag, { backgroundColor: getAssignmentStatusColor(item.status, colors) + '20' }]}>
-                    <Text style={[styles.statusText, { color: getAssignmentStatusColor(item.status, colors) }]}>
+                  <View
+                    style={[
+                      styles.statusTag,
+                      { backgroundColor: getAssignmentStatusColor(item.status, colors) + '20' },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.statusText,
+                        { color: getAssignmentStatusColor(item.status, colors) },
+                      ]}
+                    >
                       {getAssignmentStatusLabel(item.status)}
                     </Text>
                   </View>
@@ -189,7 +211,9 @@ export default function ChildTasksScreen() {
               </Pressable>
             );
           }}
-          onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
+          onEndReached={() => {
+            if (hasNextPage) fetchNextPage();
+          }}
           onEndReachedThreshold={0.5}
           ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
         />
@@ -209,10 +233,30 @@ function makeStyles(colors: ThemeColors) {
       ...shadows.card,
     },
     inactiveCard: { opacity: 0.72 },
-    cardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: spacing['2'] },
-    cardTitle: { flex: 1, fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary, marginRight: spacing['2'] },
-    pointsTag: { backgroundColor: colors.accent.filhoBg, borderRadius: radii.sm, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'] },
-    pointsText: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.accent.filho },
+    cardTop: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      marginBottom: spacing['2'],
+    },
+    cardTitle: {
+      flex: 1,
+      fontSize: typography.size.md,
+      fontFamily: typography.family.semibold,
+      color: colors.text.primary,
+      marginRight: spacing['2'],
+    },
+    pointsTag: {
+      backgroundColor: colors.accent.filhoBg,
+      borderRadius: radii.sm,
+      paddingVertical: spacing['1'],
+      paddingHorizontal: spacing['2'],
+    },
+    pointsText: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.bold,
+      color: colors.accent.filho,
+    },
     inactiveTag: {
       alignSelf: 'flex-start',
       backgroundColor: colors.semantic.warningBg,
@@ -226,9 +270,23 @@ function makeStyles(colors: ThemeColors) {
       fontFamily: typography.family.semibold,
       color: colors.semantic.warningText,
     },
-    freqRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'], marginBottom: spacing['1'] },
-    cardDeadline: { fontSize: typography.size.xs, color: colors.text.muted, marginBottom: spacing['2'] },
-    statusTag: { borderRadius: radii.sm, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'], alignSelf: 'flex-start' },
+    freqRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1'],
+      marginBottom: spacing['1'],
+    },
+    cardDeadline: {
+      fontSize: typography.size.xs,
+      color: colors.text.muted,
+      marginBottom: spacing['2'],
+    },
+    statusTag: {
+      borderRadius: radii.sm,
+      paddingVertical: spacing['1'],
+      paddingHorizontal: spacing['2'],
+      alignSelf: 'flex-start',
+    },
     statusText: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
   });
 }

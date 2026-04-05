@@ -30,7 +30,7 @@ describe('prize form fields', () => {
         onDescriptionChange={onDescriptionChange}
         onCostChange={onCostChange}
         autoFocusName
-      />
+      />,
     );
 
     const texts = renderer.root.findAllByType(Text);
@@ -64,13 +64,13 @@ describe('prize form fields', () => {
         onNameChange={vi.fn()}
         onDescriptionChange={vi.fn()}
         onCostChange={vi.fn()}
-      />
+      />,
     );
 
     const inputs = renderer.root.findAllByType(TextInput);
 
-    expect(inputs[0].props.maxLength).toBe(100);   // name
-    expect(inputs[1].props.maxLength).toBe(500);   // description
-    expect(inputs[2].props.maxLength).toBe(7);     // cost
+    expect(inputs[0].props.maxLength).toBe(100); // name
+    expect(inputs[1].props.maxLength).toBe(500); // description
+    expect(inputs[2].props.maxLength).toBe(7); // cost
   });
 });

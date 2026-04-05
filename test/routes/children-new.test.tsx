@@ -5,6 +5,8 @@ import { TextInput } from 'react-native';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as fc from 'fast-check';
 
+import NewChildScreen from '../../app/(admin)/children/new';
+
 // --- Hoisted mocks ---
 
 const clipboardMock = vi.hoisted(() => ({
@@ -15,9 +17,7 @@ const routerMock = vi.hoisted(() => ({
   back: vi.fn(),
 }));
 
-const registerChildMock = vi.hoisted(() =>
-  vi.fn().mockResolvedValue({ error: null }),
-);
+const registerChildMock = vi.hoisted(() => vi.fn().mockResolvedValue({ error: null }));
 
 vi.mock('expo-clipboard', () => clipboardMock);
 
@@ -53,11 +53,10 @@ vi.mock('@/components/ui/form-footer', () => ({
 }));
 
 vi.mock('@/components/ui/sticky-footer-screen', () => ({
-  StickyFooterScreen: (props: Record<string, unknown> & { children?: React.ReactNode; footer?: React.ReactNode }) =>
-    React.createElement('StickyFooterScreen', null, props.children, props.footer),
+  StickyFooterScreen: (
+    props: Record<string, unknown> & { children?: React.ReactNode; footer?: React.ReactNode },
+  ) => React.createElement('StickyFooterScreen', null, props.children, props.footer),
 }));
-
-import NewChildScreen from '../../app/(admin)/children/new';
 
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
@@ -75,9 +74,7 @@ function changeInput(renderer: ReactTestRenderer, index: number, value: string) 
 }
 
 function findByA11yLabel(renderer: ReactTestRenderer, label: string) {
-  return renderer.root.findAll(
-    (node) => node.props.accessibilityLabel === label,
-  )[0];
+  return renderer.root.findAll((node) => node.props.accessibilityLabel === label)[0];
 }
 
 describe('NewChildScreen — Clipboard round-trip property', () => {
@@ -110,10 +107,7 @@ describe('NewChildScreen — Clipboard round-trip property', () => {
         });
 
         // Now on success screen — press "Copiar senha"
-        const copyButton = findByA11yLabel(
-          renderer,
-          'Copiar senha para área de transferência',
-        );
+        const copyButton = findByA11yLabel(renderer, 'Copiar senha para área de transferência');
         expect(copyButton).toBeDefined();
 
         await act(async () => {

@@ -20,7 +20,10 @@ export default function AdminChildrenScreen() {
 
   const childrenQuery = useChildrenList();
   const balancesQuery = useAdminBalances();
-  const { isLoading, isFetching, error, refetchAll } = combineQueryStates(childrenQuery, balancesQuery);
+  const { isLoading, isFetching, error, refetchAll } = combineQueryStates(
+    childrenQuery,
+    balancesQuery,
+  );
 
   const children = childrenQuery.data ?? [];
   const balancesMap = useMemo(() => {
@@ -48,20 +51,42 @@ export default function AdminChildrenScreen() {
         }
       />
 
-      {(isLoading || error || children.length === 0) ? (
-        <EmptyState loading={isLoading} error={error?.message} empty={children.length === 0} emptyMessage={'Nenhum filho cadastrado.\nToque em "+" para cadastrar o primeiro filho.'} onRetry={handleRefresh} />
+      {isLoading || error || children.length === 0 ? (
+        <EmptyState
+          loading={isLoading}
+          error={error?.message}
+          empty={children.length === 0}
+          emptyMessage={'Nenhum filho cadastrado.\nToque em "+" para cadastrar o primeiro filho.'}
+          onRetry={handleRefresh}
+        />
       ) : (
         <FlashList
           data={children}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
-          refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={isFetching && !isLoading}
+              onRefresh={handleRefresh}
+              tintColor={colors.brand.vivid}
+            />
+          }
           ListHeaderComponent={<View style={{ height: spacing['4'] }} />}
           ListFooterComponent={<View style={{ height: spacing['12'] }} />}
           renderItem={({ item }) => {
             const balance = balancesMap.get(item.id);
             return (
-              <View style={[styles.card, shadows.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle, opacity: item.ativo === false ? 0.5 : 1 }]}>
+              <View
+                style={[
+                  styles.card,
+                  shadows.card,
+                  {
+                    backgroundColor: colors.bg.surface,
+                    borderColor: colors.border.subtle,
+                    opacity: item.ativo === false ? 0.5 : 1,
+                  },
+                ]}
+              >
                 <Pressable
                   style={styles.cardMain}
                   onPress={() => router.push(`/(admin)/children/${item.id}` as never)}
@@ -70,11 +95,24 @@ export default function AdminChildrenScreen() {
                 >
                   <Avatar name={item.nome} size={44} imageUri={item.avatar_url} />
                   <View style={styles.cardInfo}>
-                    <Text style={[styles.cardNome, { color: colors.text.primary }]}>{item.nome}</Text>
+                    <Text style={[styles.cardNome, { color: colors.text.primary }]}>
+                      {item.nome}
+                    </Text>
                     {item.ativo === false && (
-                      <Text style={[styles.inactiveBadge, { color: colors.semantic.warningText }]}>Desativado</Text>
+                      <Text style={[styles.inactiveBadge, { color: colors.semantic.warningText }]}>
+                        Desativado
+                      </Text>
                     )}
-                    <Text style={[styles.cardStatus, { color: item.usuario_id ? colors.semantic.success : colors.semantic.warning }]}>
+                    <Text
+                      style={[
+                        styles.cardStatus,
+                        {
+                          color: item.usuario_id
+                            ? colors.semantic.success
+                            : colors.semantic.warning,
+                        },
+                      ]}
+                    >
                       {item.usuario_id ? 'Conta vinculada' : 'Sem conta'}
                     </Text>
                     {balance ? (
@@ -115,7 +153,11 @@ function makeStyles() {
     cardMain: { flex: 1, flexDirection: 'row', alignItems: 'center' },
     cardInfo: { flex: 1, marginLeft: spacing['3'] },
     cardNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
-    inactiveBadge: { fontSize: typography.size.xs, fontFamily: typography.family.semibold, marginTop: spacing['0.5'] },
+    inactiveBadge: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.semibold,
+      marginTop: spacing['0.5'],
+    },
     cardStatus: { fontSize: typography.size.xs, marginTop: spacing['1'] },
     cardSaldo: { fontSize: typography.size.xs, marginTop: spacing['1'] },
   });

@@ -30,11 +30,14 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   useEffect(() => {
     let isMounted = true;
 
-    deviceStorage.getItem(STORE_KEY).then((stored) => {
-      if (isMounted && isColorScheme(stored)) {
-        setCurrentScheme(stored);
-      }
-    }).catch(() => undefined);
+    deviceStorage
+      .getItem(STORE_KEY)
+      .then((stored) => {
+        if (isMounted && isColorScheme(stored)) {
+          setCurrentScheme(stored);
+        }
+      })
+      .catch(() => undefined);
 
     return () => {
       isMounted = false;

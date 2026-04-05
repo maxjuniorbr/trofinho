@@ -1,11 +1,4 @@
-import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Switch, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
@@ -23,7 +16,12 @@ import { PrizeFormFields } from '@/components/prizes/prize-form-fields';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, spacing, typography } from '@/constants/theme';
-import { usePrizeDetail, useUpdatePrize, useDeactivatePrize, useReactivatePrize } from '@/hooks/queries';
+import {
+  usePrizeDetail,
+  useUpdatePrize,
+  useDeactivatePrize,
+  useReactivatePrize,
+} from '@/hooks/queries';
 
 export default function AdminPrizeDetailScreen() {
   const router = useRouter();
@@ -168,7 +166,9 @@ export default function AdminPrizeDetailScreen() {
   if (imagePreview) {
     if (imageState === 'error') {
       mediaPreviewContent = (
-        <View style={[styles.mediaWrapper, styles.mediaFallback, { backgroundColor: colors.bg.muted }]}>
+        <View
+          style={[styles.mediaWrapper, styles.mediaFallback, { backgroundColor: colors.bg.muted }]}
+        >
           <Text style={[styles.mediaFallbackText, { color: colors.text.muted }]}>
             Não foi possível carregar a imagem
           </Text>
@@ -204,7 +204,7 @@ export default function AdminPrizeDetailScreen() {
       keyboardAvoiding
       contentPadding={spacing['6']}
       contentGap={spacing['5']}
-      footer={(
+      footer={
         <FormFooter message={formError} compact includeSafeBottom={false}>
           <Button
             label="Salvar alterações"
@@ -213,7 +213,7 @@ export default function AdminPrizeDetailScreen() {
             accessibilityLabel="Salvar alterações do prêmio"
           />
         </FormFooter>
-      )}
+      }
     >
       <StatusBar style={colors.statusBar} />
       {isActive ? null : (
@@ -223,12 +223,7 @@ export default function AdminPrizeDetailScreen() {
         />
       )}
 
-      {pendingWarning ? (
-        <InlineMessage
-          message={pendingWarning}
-          variant="warning"
-        />
-      ) : null}
+      {pendingWarning ? <InlineMessage message={pendingWarning} variant="warning" /> : null}
 
       <View style={styles.mediaCard}>
         {mediaPreviewContent}

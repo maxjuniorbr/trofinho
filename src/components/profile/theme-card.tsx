@@ -5,9 +5,9 @@ import { radii, spacing, typography } from '@/constants/theme';
 
 type ColorScheme = 'light' | 'dark' | 'system';
 
-const THEME_OPTIONS: ReadonlyArray<{ value: ColorScheme; label: string; Icon: typeof Sun }> = [
-  { value: 'light',  label: 'Claro',   Icon: Sun },
-  { value: 'dark',   label: 'Escuro',  Icon: Moon },
+const THEME_OPTIONS: readonly { value: ColorScheme; label: string; Icon: typeof Sun }[] = [
+  { value: 'light', label: 'Claro', Icon: Sun },
+  { value: 'dark', label: 'Escuro', Icon: Moon },
   { value: 'system', label: 'Sistema', Icon: Smartphone },
 ];
 
@@ -15,7 +15,12 @@ export function ThemeCard() {
   const { colors, scheme, setScheme } = useTheme();
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+      ]}
+    >
       <Text style={[styles.title, { color: colors.text.primary }]}>Aparência</Text>
       <View style={styles.row}>
         {THEME_OPTIONS.map(({ value, label, Icon }) => {
@@ -35,8 +40,17 @@ export function ThemeCard() {
               accessibilityLabel={`Tema ${label}`}
               accessibilityState={{ selected: isActive }}
             >
-              <Icon size={16} color={isActive ? colors.text.inverse : colors.text.secondary} strokeWidth={2} />
-              <Text style={[styles.optionLabel, { color: isActive ? colors.text.inverse : colors.text.secondary }]}>
+              <Icon
+                size={16}
+                color={isActive ? colors.text.inverse : colors.text.secondary}
+                strokeWidth={2}
+              />
+              <Text
+                style={[
+                  styles.optionLabel,
+                  { color: isActive ? colors.text.inverse : colors.text.secondary },
+                ]}
+              >
                 {label}
               </Text>
             </Pressable>
@@ -49,11 +63,21 @@ export function ThemeCard() {
 
 const styles = StyleSheet.create({
   card: { borderRadius: radii.lg, borderWidth: 1, padding: spacing['4'], gap: spacing['1'] },
-  title: { fontFamily: typography.family.bold, fontSize: typography.size.md, marginBottom: spacing['2'] },
+  title: {
+    fontFamily: typography.family.bold,
+    fontSize: typography.size.md,
+    marginBottom: spacing['2'],
+  },
   row: { flexDirection: 'row', gap: spacing['2'] },
   option: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: spacing['2'], paddingVertical: spacing['3'], borderRadius: radii.md, borderWidth: 1,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing['2'],
+    paddingVertical: spacing['3'],
+    borderRadius: radii.md,
+    borderWidth: 1,
   },
   optionLabel: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
 });

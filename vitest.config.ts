@@ -16,7 +16,7 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     setupFiles: ['./test/setup.ts'],
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vitest types omit `all` from coverage
+     
     coverage: {
       all: true,
       provider: 'v8',

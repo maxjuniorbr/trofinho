@@ -3,6 +3,9 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { queryKeys } from '../query-keys';
 
+import { supabase } from '@lib/supabase';
+import { useTasksLiveSync } from '../use-tasks-live-sync';
+
 const invalidateQueriesMock = vi.hoisted(() => vi.fn());
 const removeChannelMock = vi.hoisted(() => vi.fn());
 const onMock = vi.hoisted(() => vi.fn());
@@ -24,9 +27,6 @@ vi.mock('@lib/supabase', () => ({
     removeChannel: removeChannelMock,
   },
 }));
-
-import { supabase } from '@lib/supabase';
-import { useTasksLiveSync } from '../use-tasks-live-sync';
 
 const TEST_FAMILIA_ID = 'familia-123';
 
@@ -58,7 +58,12 @@ describe('useTasksLiveSync', () => {
     expect(onMock).toHaveBeenNthCalledWith(
       1,
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'tarefas', filter: `familia_id=eq.${TEST_FAMILIA_ID}` },
+      {
+        event: '*',
+        schema: 'public',
+        table: 'tarefas',
+        filter: `familia_id=eq.${TEST_FAMILIA_ID}`,
+      },
       expect.any(Function),
     );
     expect(subscribeMock).toHaveBeenCalledTimes(1);

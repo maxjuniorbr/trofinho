@@ -72,11 +72,13 @@ export default function ChildPrizesScreen() {
     try {
       await redeemMutation.mutateAsync({
         prizeId: prize.id,
-        opts: profile?.familia_id ? {
-          familiaId: profile.familia_id,
-          childName: profile.nome ?? '',
-          prizeName: prize.nome,
-        } : undefined,
+        opts: profile?.familia_id
+          ? {
+              familiaId: profile.familia_id,
+              childName: profile.nome ?? '',
+              prizeName: prize.nome,
+            }
+          : undefined,
       });
       setSuccess(`Resgate de "${prize.nome}" solicitado! Aguarde a confirmação.`);
     } catch (e) {
@@ -89,7 +91,12 @@ export default function ChildPrizesScreen() {
   return (
     <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader title="Meus Prêmios" onBack={() => router.back()} backLabel="Início" role="filho" />
+      <ScreenHeader
+        title="Meus Prêmios"
+        onBack={() => router.back()}
+        backLabel="Início"
+        role="filho"
+      />
 
       {shouldShowEmptyState ? (
         <EmptyState
@@ -104,7 +111,13 @@ export default function ChildPrizesScreen() {
           data={prizes}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={colors.brand.vivid}
+            />
+          }
           numColumns={2}
           columnWrapperStyle={{ gap: spacing['3'] }}
           ListHeaderComponent={
@@ -148,9 +161,21 @@ function makeStyles(colors: ThemeColors) {
       marginBottom: spacing['1'],
       gap: spacing['1'],
     },
-    balanceLabel: { fontSize: typography.size.xs, color: colors.text.onBrandMuted, fontFamily: typography.family.semibold },
-    balanceValue: { fontSize: typography.size['3xl'], fontFamily: typography.family.black, color: colors.text.onBrand },
-    balancePts: { fontSize: typography.size.xs, color: colors.text.onBrandMuted, fontFamily: typography.family.medium },
+    balanceLabel: {
+      fontSize: typography.size.xs,
+      color: colors.text.onBrandMuted,
+      fontFamily: typography.family.semibold,
+    },
+    balanceValue: {
+      fontSize: typography.size['3xl'],
+      fontFamily: typography.family.black,
+      color: colors.text.onBrand,
+    },
+    balancePts: {
+      fontSize: typography.size.xs,
+      color: colors.text.onBrandMuted,
+      fontFamily: typography.family.medium,
+    },
   });
 }
 
@@ -176,7 +201,7 @@ function PrizeCard({ item, freeBalance, redeeming, onRedeem }: PrizeCardProps) {
     });
     animation.start();
     return () => animation.stop();
-  }, [progress]);
+  }, [progress, progressAnim]);
 
   return (
     <View style={[cardStyles.card, shadows.card, { backgroundColor: colors.bg.surface }]}>
@@ -207,11 +232,18 @@ function PrizeCard({ item, freeBalance, redeeming, onRedeem }: PrizeCardProps) {
         />
       </View>
 
-      <View style={[cardStyles.statusRow, { backgroundColor: hasBalance ? colors.semantic.successBg : colors.bg.muted }]}>
+      <View
+        style={[
+          cardStyles.statusRow,
+          { backgroundColor: hasBalance ? colors.semantic.successBg : colors.bg.muted },
+        ]}
+      >
         {hasBalance ? (
           <View style={cardStyles.statusInner}>
             <CheckCircle2 size={12} color={colors.semantic.success} strokeWidth={2} />
-            <Text style={[cardStyles.statusText, { color: colors.semantic.success }]}>Disponível!</Text>
+            <Text style={[cardStyles.statusText, { color: colors.semantic.success }]}>
+              Disponível!
+            </Text>
           </View>
         ) : (
           <Text style={[cardStyles.statusText, { color: colors.text.muted }]}>
@@ -230,7 +262,9 @@ function PrizeCard({ item, freeBalance, redeeming, onRedeem }: PrizeCardProps) {
         onPress={() => onRedeem(item)}
         disabled={!hasBalance || redeeming !== null}
         accessibilityRole="button"
-        accessibilityLabel={hasBalance ? `Resgatar ${item.nome}` : `Saldo insuficiente para ${item.nome}`}
+        accessibilityLabel={
+          hasBalance ? `Resgatar ${item.nome}` : `Saldo insuficiente para ${item.nome}`
+        }
         accessibilityState={{ disabled: !hasBalance || redeeming !== null }}
       >
         {isRedeeming ? (

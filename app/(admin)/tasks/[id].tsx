@@ -14,15 +14,17 @@ import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RefreshCw, Camera, Pencil } from 'lucide-react-native';
-import {
-  getTaskEditState,
-  buildTaskDeactivateMessage,
-  type AssignmentWithChild,
-} from '@lib/tasks';
+import { getTaskEditState, buildTaskDeactivateMessage, type AssignmentWithChild } from '@lib/tasks';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
 import { consumeNavigationFeedback } from '@lib/navigation-feedback';
 import { formatDate, toDateString } from '@lib/utils';
-import { useTaskDetail, useApproveAssignment, useRejectAssignment, useDeactivateTask, useReactivateTask } from '@/hooks/queries';
+import {
+  useTaskDetail,
+  useApproveAssignment,
+  useRejectAssignment,
+  useDeactivateTask,
+  useReactivateTask,
+} from '@/hooks/queries';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
@@ -114,13 +116,24 @@ function AssignmentCard({
         </View>
       </View>
       {dateLine ? (
-        <Text style={styles.dataLinha}>{dateLine.label}{dateLine.date}</Text>
+        <Text style={styles.dataLinha}>
+          {dateLine.label}
+          {dateLine.date}
+        </Text>
       ) : null}
 
-      {evidenceUrl && (
-        imageState === 'error' ? (
-          <View style={[styles.evidenciaImgWrapper, styles.evidenciaFallback, { backgroundColor: colors.bg.muted }]}>
-            <Text style={[styles.evidenciaFallbackText, { color: colors.text.muted }]}>Não foi possível carregar a imagem</Text>
+      {evidenceUrl &&
+        (imageState === 'error' ? (
+          <View
+            style={[
+              styles.evidenciaImgWrapper,
+              styles.evidenciaFallback,
+              { backgroundColor: colors.bg.muted },
+            ]}
+          >
+            <Text style={[styles.evidenciaFallbackText, { color: colors.text.muted }]}>
+              Não foi possível carregar a imagem
+            </Text>
           </View>
         ) : (
           <Pressable
@@ -144,8 +157,7 @@ function AssignmentCard({
               </View>
             )}
           </Pressable>
-        )
-      )}
+        ))}
 
       {assignment.nota_rejeicao ? (
         <View style={styles.notaRejeicaoBox}>
@@ -175,7 +187,11 @@ function AssignmentCard({
                   <Text style={styles.botaoCancelarTexto}>Cancelar</Text>
                 </Pressable>
                 <Pressable
-                  style={[styles.botaoAcao, styles.botaoRejeitar, processing && styles.botaoDesabilitado]}
+                  style={[
+                    styles.botaoAcao,
+                    styles.botaoRejeitar,
+                    processing && styles.botaoDesabilitado,
+                  ]}
                   onPress={() => {
                     Alert.alert(
                       'Rejeitar tarefa?',
@@ -188,29 +204,41 @@ function AssignmentCard({
                   }}
                   disabled={processing}
                 >
-                  {processing
-                    ? <ActivityIndicator color={colors.text.inverse} size="small" />
-                    : <Text style={styles.botaoRejeitarTexto}>Confirmar rejeição</Text>}
+                  {processing ? (
+                    <ActivityIndicator color={colors.text.inverse} size="small" />
+                  ) : (
+                    <Text style={styles.botaoRejeitarTexto}>Confirmar rejeição</Text>
+                  )}
                 </Pressable>
               </View>
             </>
           ) : (
             <View style={styles.botoesValidar}>
               <Pressable
-                style={[styles.botaoAcao, styles.botaoRejeitar, processing && styles.botaoDesabilitado]}
+                style={[
+                  styles.botaoAcao,
+                  styles.botaoRejeitar,
+                  processing && styles.botaoDesabilitado,
+                ]}
                 onPress={onStartReject}
                 disabled={processing}
               >
                 <Text style={styles.botaoRejeitarTexto}>Rejeitar</Text>
               </Pressable>
               <Pressable
-                style={[styles.botaoAcao, styles.botaoAprovar, processing && styles.botaoDesabilitado]}
+                style={[
+                  styles.botaoAcao,
+                  styles.botaoAprovar,
+                  processing && styles.botaoDesabilitado,
+                ]}
                 onPress={onApprove}
                 disabled={processing}
               >
-                {processing
-                    ? <ActivityIndicator color={colors.text.inverse} size="small" />
-                  : <Text style={styles.botaoAprovarTexto}>Aprovar ✓</Text>}
+                {processing ? (
+                  <ActivityIndicator color={colors.text.inverse} size="small" />
+                ) : (
+                  <Text style={styles.botaoAprovarTexto}>Aprovar ✓</Text>
+                )}
               </Pressable>
             </View>
           )}
@@ -255,57 +283,69 @@ export default function TaskDetailAdminScreen() {
   const getError = useCallback((assignmentId: string) => errors[assignmentId] ?? '', [errors]);
   const getImgState = useCallback((assignmentId: string) => imgStates[assignmentId], [imgStates]);
 
-  const handleApprove = useCallback((assignment: AssignmentWithChild) => {
-    setActions((prev) => ({ ...prev, [assignment.id]: 'processing' }));
-    setErrors((prev) => ({ ...prev, [assignment.id]: '' }));
+  const handleApprove = useCallback(
+    (assignment: AssignmentWithChild) => {
+      setActions((prev) => ({ ...prev, [assignment.id]: 'processing' }));
+      setErrors((prev) => ({ ...prev, [assignment.id]: '' }));
 
-    approveMutation.mutate({
-      assignmentId: assignment.id,
-      opts: {
-        familiaId: task!.familia_id,
-        userId: assignment.filhos.usuario_id,
-        taskTitle: task!.titulo,
-      },
-    }, {
-      onSuccess: () => {
-        setActions((prev) => ({ ...prev, [assignment.id]: null }));
-      },
-      onError: (err) => {
-        setErrors((prev) => ({ ...prev, [assignment.id]: err.message }));
-        setActions((prev) => ({ ...prev, [assignment.id]: null }));
-      },
-    });
-  }, [approveMutation, task]);
+      approveMutation.mutate(
+        {
+          assignmentId: assignment.id,
+          opts: {
+            familiaId: task!.familia_id,
+            userId: assignment.filhos.usuario_id,
+            taskTitle: task!.titulo,
+          },
+        },
+        {
+          onSuccess: () => {
+            setActions((prev) => ({ ...prev, [assignment.id]: null }));
+          },
+          onError: (err) => {
+            setErrors((prev) => ({ ...prev, [assignment.id]: err.message }));
+            setActions((prev) => ({ ...prev, [assignment.id]: null }));
+          },
+        },
+      );
+    },
+    [approveMutation, task],
+  );
 
-  const handleReject = useCallback((assignment: AssignmentWithChild) => {
-    const note = notes[assignment.id] ?? '';
-    if (!note.trim()) {
-      setErrors((prev) => ({ ...prev, [assignment.id]: 'Informe o motivo da rejeição.' }));
-      return;
-    }
+  const handleReject = useCallback(
+    (assignment: AssignmentWithChild) => {
+      const note = notes[assignment.id] ?? '';
+      if (!note.trim()) {
+        setErrors((prev) => ({ ...prev, [assignment.id]: 'Informe o motivo da rejeição.' }));
+        return;
+      }
 
-    setActions((prev) => ({ ...prev, [assignment.id]: 'processing' }));
-    setErrors((prev) => ({ ...prev, [assignment.id]: '' }));
+      setActions((prev) => ({ ...prev, [assignment.id]: 'processing' }));
+      setErrors((prev) => ({ ...prev, [assignment.id]: '' }));
 
-    rejectMutation.mutate({
-      assignmentId: assignment.id,
-      note: note.trim(),
-      opts: {
-        familiaId: task!.familia_id,
-        userId: assignment.filhos.usuario_id,
-        taskTitle: task!.titulo,
-      },
-    }, {
-      onSuccess: () => {
-        setActions((prev) => ({ ...prev, [assignment.id]: null }));
-        setNotes((prev) => ({ ...prev, [assignment.id]: '' }));
-      },
-      onError: (err) => {
-        setErrors((prev) => ({ ...prev, [assignment.id]: err.message }));
-        setActions((prev) => ({ ...prev, [assignment.id]: null }));
-      },
-    });
-  }, [notes, rejectMutation, task]);
+      rejectMutation.mutate(
+        {
+          assignmentId: assignment.id,
+          note: note.trim(),
+          opts: {
+            familiaId: task!.familia_id,
+            userId: assignment.filhos.usuario_id,
+            taskTitle: task!.titulo,
+          },
+        },
+        {
+          onSuccess: () => {
+            setActions((prev) => ({ ...prev, [assignment.id]: null }));
+            setNotes((prev) => ({ ...prev, [assignment.id]: '' }));
+          },
+          onError: (err) => {
+            setErrors((prev) => ({ ...prev, [assignment.id]: err.message }));
+            setActions((prev) => ({ ...prev, [assignment.id]: null }));
+          },
+        },
+      );
+    },
+    [notes, rejectMutation, task],
+  );
 
   const executeDeactivate = useCallback(() => {
     if (!task) return;
@@ -381,7 +421,10 @@ export default function TaskDetailAdminScreen() {
         <StatusBar style={colors.statusBar} />
         <ScreenHeader title="Detalhes" onBack={() => router.back()} />
         <View style={styles.center}>
-          <EmptyState error={error?.message ?? 'Tarefa não encontrada.'} onRetry={() => refetch()} />
+          <EmptyState
+            error={error?.message ?? 'Tarefa não encontrada.'}
+            onRetry={() => refetch()}
+          />
         </View>
       </View>
     );
@@ -396,13 +439,15 @@ export default function TaskDetailAdminScreen() {
         title="Detalhes"
         onBack={() => router.back()}
         backLabel="Tarefas"
-        rightAction={editState.canEdit ? (
-          <HeaderIconButton
-            icon={Pencil}
-            onPress={() => router.push(`/(admin)/tasks/${task.id}/edit` as never)}
-            accessibilityLabel="Editar tarefa"
-          />
-        ) : undefined}
+        rightAction={
+          editState.canEdit ? (
+            <HeaderIconButton
+              icon={Pencil}
+              onPress={() => router.push(`/(admin)/tasks/${task.id}/edit` as never)}
+              accessibilityLabel="Editar tarefa"
+            />
+          ) : undefined
+        }
       />
 
       <ScrollView
@@ -445,16 +490,12 @@ export default function TaskDetailAdminScreen() {
               <Text style={styles.pontosTexto}>{task.pontos} pts</Text>
             </View>
           </View>
-          {task.descricao ? (
-            <Text style={styles.descricao}>{task.descricao}</Text>
-          ) : null}
+          {task.descricao ? <Text style={styles.descricao}>{task.descricao}</Text> : null}
           <View style={styles.metaRow}>
             {task.frequencia === 'diaria' ? (
               <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
             ) : null}
-            <Text style={styles.meta}>
-              {task.frequencia === 'diaria' ? 'Diária' : 'Única'}
-            </Text>
+            <Text style={styles.meta}>{task.frequencia === 'diaria' ? 'Diária' : 'Única'}</Text>
           </View>
           {task.exige_evidencia && (
             <View style={styles.tagEvidencia}>
@@ -483,10 +524,14 @@ export default function TaskDetailAdminScreen() {
               styles={styles}
               onApprove={() => handleApprove(assignment)}
               onReject={() => handleReject(assignment)}
-              onStartReject={() => setActions((prev) => ({ ...prev, [assignment.id]: 'rejecting' }))}
+              onStartReject={() =>
+                setActions((prev) => ({ ...prev, [assignment.id]: 'rejecting' }))
+              }
               onCancelReject={() => setActions((prev) => ({ ...prev, [assignment.id]: null }))}
               onNoteChange={(value) => setNotes((prev) => ({ ...prev, [assignment.id]: value }))}
-              onImageStateChange={(state) => setImgStates((prev) => ({ ...prev, [assignment.id]: state }))}
+              onImageStateChange={(state) =>
+                setImgStates((prev) => ({ ...prev, [assignment.id]: state }))
+              }
               onImagePress={(url) => setFullscreenImageUrl(url)}
             />
           ))
@@ -545,10 +590,30 @@ function makeStyles(colors: ThemeColors) {
       justifyContent: 'space-between',
       marginBottom: spacing['2'],
     },
-    cardTitulo: { flex: 1, fontSize: typography.size.lg, fontFamily: typography.family.bold, color: colors.text.primary, marginRight: spacing['2'] },
-    pontosTag: { backgroundColor: colors.accent.adminBg, borderRadius: radii.md, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'] },
-    pontosTexto: { fontSize: typography.size.sm, fontFamily: typography.family.bold, color: colors.accent.admin },
-    descricao: { fontSize: typography.size.sm, color: colors.text.secondary, marginBottom: spacing['2'], lineHeight: 20 },
+    cardTitulo: {
+      flex: 1,
+      fontSize: typography.size.lg,
+      fontFamily: typography.family.bold,
+      color: colors.text.primary,
+      marginRight: spacing['2'],
+    },
+    pontosTag: {
+      backgroundColor: colors.accent.adminBg,
+      borderRadius: radii.md,
+      paddingVertical: spacing['1'],
+      paddingHorizontal: spacing['2'],
+    },
+    pontosTexto: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.bold,
+      color: colors.accent.admin,
+    },
+    descricao: {
+      fontSize: typography.size.sm,
+      color: colors.text.secondary,
+      marginBottom: spacing['2'],
+      lineHeight: 20,
+    },
     metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     meta: { fontSize: typography.size.xs, color: colors.text.muted },
     tagEvidencia: {
@@ -560,7 +625,11 @@ function makeStyles(colors: ThemeColors) {
       marginTop: spacing['2'],
     },
     tagEvidenciaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
-    tagEvidenciaTexto: { fontSize: typography.size.xs, color: colors.semantic.warningText, fontFamily: typography.family.semibold },
+    tagEvidenciaTexto: {
+      fontSize: typography.size.xs,
+      color: colors.semantic.warningText,
+      fontFamily: typography.family.semibold,
+    },
     secaoTitulo: {
       fontSize: typography.size.xs,
       fontFamily: typography.family.bold,
@@ -577,23 +646,60 @@ function makeStyles(colors: ThemeColors) {
       marginBottom: spacing['3'],
       ...shadows.card,
     },
-    atribTopo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing['2'] },
-    filhoNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold, color: colors.text.primary },
-    statusTag: { borderRadius: radii.sm, paddingVertical: spacing['1'], paddingHorizontal: spacing['2'] },
+    atribTopo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing['2'],
+    },
+    filhoNome: {
+      fontSize: typography.size.md,
+      fontFamily: typography.family.semibold,
+      color: colors.text.primary,
+    },
+    statusTag: {
+      borderRadius: radii.sm,
+      paddingVertical: spacing['1'],
+      paddingHorizontal: spacing['2'],
+    },
     statusTexto: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
-    dataLinha: { fontSize: typography.size.xs, color: colors.text.muted, marginBottom: spacing['2'] },
-    evidenciaImgWrapper: { width: '100%', height: 200, borderRadius: radii.lg, overflow: 'hidden', marginBottom: spacing['2'] },
+    dataLinha: {
+      fontSize: typography.size.xs,
+      color: colors.text.muted,
+      marginBottom: spacing['2'],
+    },
+    evidenciaImgWrapper: {
+      width: '100%',
+      height: 200,
+      borderRadius: radii.lg,
+      overflow: 'hidden',
+      marginBottom: spacing['2'],
+    },
     evidenciaImg: { width: '100%', height: 200 },
-    evidenciaLoading: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg.muted },
+    evidenciaLoading: {
+      ...StyleSheet.absoluteFillObject,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.bg.muted,
+    },
     evidenciaFallback: { alignItems: 'center', justifyContent: 'center' },
-    evidenciaFallbackText: { fontSize: typography.size.sm, fontFamily: typography.family.medium, textAlign: 'center' },
+    evidenciaFallbackText: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.medium,
+      textAlign: 'center',
+    },
     notaRejeicaoBox: {
       backgroundColor: colors.semantic.errorBg,
       borderRadius: radii.md,
       padding: spacing['3'],
       marginBottom: spacing['2'],
     },
-    notaRejeicaoLabel: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.semantic.error, marginBottom: spacing['1'] },
+    notaRejeicaoLabel: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.bold,
+      color: colors.semantic.error,
+      marginBottom: spacing['1'],
+    },
     notaRejeicaoTexto: { fontSize: typography.size.sm, color: colors.text.primary },
     acoesBox: { marginTop: spacing['2'] },
     inputNota: {
@@ -610,13 +716,32 @@ function makeStyles(colors: ThemeColors) {
     },
     botoesRejeitar: { flexDirection: 'row', gap: spacing['2'] },
     botoesValidar: { flexDirection: 'row', gap: spacing['2'] },
-    botaoAcao: { flex: 1, borderRadius: radii.md, paddingVertical: spacing['2'], alignItems: 'center', minHeight: 44, justifyContent: 'center' },
+    botaoAcao: {
+      flex: 1,
+      borderRadius: radii.md,
+      paddingVertical: spacing['2'],
+      alignItems: 'center',
+      minHeight: 44,
+      justifyContent: 'center',
+    },
     botaoCancelar: { borderWidth: 1, borderColor: colors.border.default },
-    botaoCancelarTexto: { color: colors.text.secondary, fontFamily: typography.family.semibold, fontSize: typography.size.sm },
+    botaoCancelarTexto: {
+      color: colors.text.secondary,
+      fontFamily: typography.family.semibold,
+      fontSize: typography.size.sm,
+    },
     botaoRejeitar: { backgroundColor: colors.semantic.error },
-    botaoRejeitarTexto: { color: colors.text.inverse, fontFamily: typography.family.bold, fontSize: typography.size.sm },
+    botaoRejeitarTexto: {
+      color: colors.text.inverse,
+      fontFamily: typography.family.bold,
+      fontSize: typography.size.sm,
+    },
     botaoAprovar: { backgroundColor: colors.semantic.success },
-    botaoAprovarTexto: { color: colors.text.inverse, fontFamily: typography.family.bold, fontSize: typography.size.sm },
+    botaoAprovarTexto: {
+      color: colors.text.inverse,
+      fontFamily: typography.family.bold,
+      fontSize: typography.size.sm,
+    },
     botaoDesabilitado: { opacity: 0.5 },
     erroAtribWrapper: { marginTop: spacing['2'] },
   });

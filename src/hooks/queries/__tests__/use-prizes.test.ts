@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { queryKeys, STALE_TIMES } from '../query-keys';
 
+import * as prizesLib from '../../../../lib/prizes';
+import * as rq from '@tanstack/react-query';
+
 const mockInvalidateQueries = vi.fn();
 
 vi.mock('@tanstack/react-query', () => {
@@ -14,7 +17,14 @@ vi.mock('@tanstack/react-query', () => {
     }),
     useInfiniteQuery: vi.fn((opts: Record<string, unknown>) => {
       capturedQuery.options.push(opts);
-      return { data: undefined, isLoading: false, error: null, fetchNextPage: vi.fn(), hasNextPage: false, isFetchingNextPage: false };
+      return {
+        data: undefined,
+        isLoading: false,
+        error: null,
+        fetchNextPage: vi.fn(),
+        hasNextPage: false,
+        isFetchingNextPage: false,
+      };
     }),
     useMutation: vi.fn((opts: Record<string, unknown>) => {
       capturedMutation.options.push(opts);
@@ -42,14 +52,18 @@ vi.mock('../../../../lib/redemptions', () => ({
   countPendingRedemptions: vi.fn().mockResolvedValue({ data: 0, error: null }),
 }));
 
-import * as prizesLib from '../../../../lib/prizes';
-import * as rq from '@tanstack/react-query';
-
 type CapturedStore = { options: Record<string, unknown>[] };
 const getCapturedQuery = () => (rq as unknown as { _capturedQuery: CapturedStore })._capturedQuery;
-const getCapturedMutation = () => (rq as unknown as { _capturedMutation: CapturedStore })._capturedMutation;
-const lastQueryOpts = () => { const o = getCapturedQuery().options; return o.at(-1)!; };
-const lastMutationOpts = () => { const o = getCapturedMutation().options; return o.at(-1)!; };
+const getCapturedMutation = () =>
+  (rq as unknown as { _capturedMutation: CapturedStore })._capturedMutation;
+const lastQueryOpts = () => {
+  const o = getCapturedQuery().options;
+  return o.at(-1)!;
+};
+const lastMutationOpts = () => {
+  const o = getCapturedMutation().options;
+  return o.at(-1)!;
+};
 
 beforeEach(() => {
   getCapturedQuery().options = [];

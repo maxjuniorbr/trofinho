@@ -53,12 +53,10 @@ export async function uploadImageToPublicBucket({
     const { buffer, contentType, extension } = await prepareImageUpload(imageUri, imageOptions);
     const path = `${pathWithoutExtension}.${extension}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from(bucket)
-      .upload(path, buffer, {
-        contentType,
-        upsert,
-      });
+    const { error: uploadError } = await supabase.storage.from(bucket).upload(path, buffer, {
+      contentType,
+      upsert,
+    });
 
     if (uploadError) {
       return {

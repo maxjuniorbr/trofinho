@@ -5,6 +5,8 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 
+import { PenaltyModal } from './penalty-modal';
+
 // --- Hoisted mocks ---
 
 const alertMock = vi.hoisted(() => ({
@@ -41,8 +43,6 @@ vi.mock('@/components/ui/form-footer', () => ({
   FormFooter: ({ children }: { children: React.ReactNode }) =>
     React.createElement('FormFooter', null, children),
 }));
-
-import { PenaltyModal } from './penalty-modal';
 
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
@@ -164,11 +164,11 @@ describe('PenaltyModal — confirmation dialog property tests', () => {
           });
 
           expect(alertMock.alert).toHaveBeenCalledTimes(1);
-          const buttons = alertMock.alert.mock.calls[0][2] as Array<{
+          const buttons = alertMock.alert.mock.calls[0][2] as {
             text: string;
             style: string;
             onPress?: () => void;
-          }>;
+          }[];
 
           if (userConfirms) {
             const confirmBtn = buttons.find((b) => b.style === 'destructive');

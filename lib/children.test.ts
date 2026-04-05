@@ -1,5 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import * as fc from 'fast-check';
+import {
+  buildChildDeactivateMessage,
+  deactivateChild,
+  getChild,
+  getMyChildId,
+  listChildren,
+  reactivateChild,
+  registerChild,
+} from './children';
+
 const tempSignUpMock = vi.hoisted(() => vi.fn());
 const createClientMock = vi.hoisted(() => vi.fn());
 const supabaseMock = vi.hoisted(() => ({
@@ -17,9 +28,6 @@ vi.mock('@supabase/supabase-js', () => ({
 vi.mock('./supabase', () => ({
   supabase: supabaseMock,
 }));
-
-import * as fc from 'fast-check';
-import { buildChildDeactivateMessage, deactivateChild, getChild, getMyChildId, listChildren, reactivateChild, registerChild } from './children';
 
 function createOrderQuery(result: { data?: unknown; error?: { message: string } | null }) {
   return {
@@ -105,7 +113,10 @@ describe('children', () => {
     ['Usuário já está vinculado a um filho', 'Esta conta já está vinculada a um perfil de filho.'],
     ['Apenas admins podem cadastrar filhos', 'Somente administradores podem cadastrar filhos.'],
     ['Usuário não autenticado', 'Sua sessão expirou. Faça login novamente.'],
-    ['qualquer outra coisa', 'Não foi possível vincular a conta à família. Verifique o cadastro antes de tentar novamente.'],
+    [
+      'qualquer outra coisa',
+      'Não foi possível vincular a conta à família. Verifique o cadastro antes de tentar novamente.',
+    ],
   ])('cleans orphan auth users and translates rpc failure "%s"', async (message, expected) => {
     tempSignUpMock.mockResolvedValue({
       data: { user: { id: 'child-user-1' } },
@@ -126,7 +137,9 @@ describe('children', () => {
 
   it('lists children and surfaces database errors', async () => {
     supabaseMock.from
-      .mockReturnValueOnce(createOrderQuery({ data: [{ id: 'child-1', nome: 'Lia' }], error: null }))
+      .mockReturnValueOnce(
+        createOrderQuery({ data: [{ id: 'child-1', nome: 'Lia' }], error: null }),
+      )
       .mockReturnValueOnce(createOrderQuery({ data: null, error: { message: 'broken query' } }));
 
     await expect(listChildren()).resolves.toEqual({
@@ -142,13 +155,15 @@ describe('children', () => {
 
   it('fetches a child profile for admin view', async () => {
     supabaseMock.rpc.mockResolvedValueOnce({
-      data: [{
-        id: 'child-1',
-        nome: 'Lia',
-        usuario_id: 'user-1',
-        avatar_url: null,
-        email: 'lia@example.com',
-      }],
+      data: [
+        {
+          id: 'child-1',
+          nome: 'Lia',
+          usuario_id: 'user-1',
+          avatar_url: null,
+          email: 'lia@example.com',
+        },
+      ],
       error: null,
     });
 
@@ -185,7 +200,7 @@ describe('children', () => {
       createMaybeSingleQuery({
         data: { id: 'child-1' },
         error: null,
-      })
+      }),
     );
 
     await expect(getMyChildId()).resolves.toBe('child-1');
@@ -199,7 +214,7 @@ describe('children', () => {
       createMaybeSingleQuery({
         data: null,
         error: null,
-      })
+      }),
     );
 
     await expect(getMyChildId()).resolves.toBeNull();
@@ -241,14 +256,18 @@ describe('children', () => {
     it('returns localized error when pending redemptions block deactivation', async () => {
       supabaseMock.rpc.mockResolvedValue({
         data: null,
-        error: { message: 'Não é possível desativar um filho com resgates pendentes. Confirme ou cancele os resgates antes de desativar.' },
+        error: {
+          message:
+            'Não é possível desativar um filho com resgates pendentes. Confirme ou cancele os resgates antes de desativar.',
+        },
       });
 
       const result = await deactivateChild('child-with-redemptions');
 
       expect(result).toEqual({
         data: null,
-        error: 'Não é possível desativar com resgates pendentes. Confirme ou cancele os resgates primeiro.',
+        error:
+          'Não é possível desativar com resgates pendentes. Confirme ou cancele os resgates primeiro.',
       });
     });
   });
@@ -286,7 +305,10 @@ describe('children', () => {
         fc.asyncProperty(fc.uuid(), async (childId) => {
           supabaseMock.rpc.mockResolvedValue({
             data: null,
-            error: { message: 'Não é possível desativar um filho com resgates pendentes. Confirme ou cancele os resgates antes de desativar.' },
+            error: {
+              message:
+                'Não é possível desativar um filho com resgates pendentes. Confirme ou cancele os resgates antes de desativar.',
+            },
           });
           const result = await deactivateChild(childId);
           expect(result.data).toBeNull();

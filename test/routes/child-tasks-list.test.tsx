@@ -2,6 +2,8 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import ChildTasksScreen from '../../app/(child)/tasks/index';
+
 const routerMock = vi.hoisted(() => ({
   back: vi.fn(),
   push: vi.fn(),
@@ -12,7 +14,9 @@ const focusEffectMock = vi.hoisted(() => ({
 }));
 
 const childAssignmentsMock = vi.hoisted(() => ({
-  data: { pages: [{ data: [] as unknown[], hasMore: false }], pageParams: [0] } as { pages: { data: unknown[]; hasMore: boolean }[]; pageParams: number[] } | undefined,
+  data: { pages: [{ data: [] as unknown[], hasMore: false }], pageParams: [0] } as
+    | { pages: { data: unknown[]; hasMore: boolean }[]; pageParams: number[] }
+    | undefined,
   isLoading: false,
   error: null as Error | null,
   refetch: vi.fn(),
@@ -49,11 +53,14 @@ vi.mock('@shopify/flash-list', () => ({
   }: {
     data: unknown[];
     renderItem: (params: { item: unknown }) => React.ReactNode;
-  }) => React.createElement(
-    'FlashList',
-    props,
-    data.map((item, index) => React.createElement(React.Fragment, { key: `mock-${index}` }, renderItem({ item }))),
-  ),
+  }) =>
+    React.createElement(
+      'FlashList',
+      props,
+      data.map((item, index) =>
+        React.createElement(React.Fragment, { key: `mock-${index}` }, renderItem({ item })),
+      ),
+    ),
 }));
 
 vi.mock('expo-status-bar', () => ({
@@ -108,34 +115,25 @@ vi.mock('@/context/theme-context', () => ({
 }));
 
 vi.mock('@/components/ui/screen-header', () => ({
-  ScreenHeader: (props: Record<string, unknown>) =>
-    React.createElement('ScreenHeader', props),
+  ScreenHeader: (props: Record<string, unknown>) => React.createElement('ScreenHeader', props),
 }));
 
 vi.mock('@/components/ui/empty-state', () => ({
-  EmptyState: (props: Record<string, unknown>) =>
-    React.createElement('EmptyState', props),
+  EmptyState: (props: Record<string, unknown>) => React.createElement('EmptyState', props),
 }));
 
 vi.mock('@/components/ui/safe-screen-frame', () => ({
-  SafeScreenFrame: ({
-    children,
-  }: {
-    children?: React.ReactNode;
-  }) => React.createElement('SafeScreenFrame', null, children),
+  SafeScreenFrame: ({ children }: { children?: React.ReactNode }) =>
+    React.createElement('SafeScreenFrame', null, children),
 }));
 
 vi.mock('@/components/ui/segmented-bar', () => ({
-  SegmentedBar: (props: Record<string, unknown>) =>
-    React.createElement('SegmentedBar', props),
+  SegmentedBar: (props: Record<string, unknown>) => React.createElement('SegmentedBar', props),
 }));
 
 vi.mock('@/components/ui/list-footer', () => ({
-  ListFooter: (props: Record<string, unknown>) =>
-    React.createElement('ListFooter', props),
+  ListFooter: (props: Record<string, unknown>) => React.createElement('ListFooter', props),
 }));
-
-import ChildTasksScreen from '../../app/(child)/tasks/index';
 
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
@@ -167,7 +165,10 @@ describe('ChildTasksScreen', () => {
     routerMock.back.mockReset();
     routerMock.push.mockReset();
     focusEffectMock.callback = null;
-    childAssignmentsMock.data = { pages: [{ data: [makeAssignment()], hasMore: false }], pageParams: [0] };
+    childAssignmentsMock.data = {
+      pages: [{ data: [makeAssignment()], hasMore: false }],
+      pageParams: [0],
+    };
     childAssignmentsMock.isLoading = false;
     childAssignmentsMock.error = null;
     childAssignmentsMock.refetch.mockReset();
@@ -186,15 +187,23 @@ describe('ChildTasksScreen', () => {
   });
 
   it('renders inactive pending tasks as unavailable', () => {
-    childAssignmentsMock.data = { pages: [{ data: [
-      makeAssignment({
-        tarefas: {
-          titulo: 'Arrumar a cama',
-          frequencia: 'unica',
-          ativo: false,
+    childAssignmentsMock.data = {
+      pages: [
+        {
+          data: [
+            makeAssignment({
+              tarefas: {
+                titulo: 'Arrumar a cama',
+                frequencia: 'unica',
+                ativo: false,
+              },
+            }),
+          ],
+          hasMore: false,
         },
-      }),
-    ], hasMore: false }], pageParams: [0] };
+      ],
+      pageParams: [0],
+    };
 
     const renderer = render(<ChildTasksScreen />);
 
@@ -203,8 +212,9 @@ describe('ChildTasksScreen', () => {
     });
 
     expect(
-      renderer.root.findAll((node) =>
-        (node.type as string) === 'Text' && node.props.children === 'Desativada'),
+      renderer.root.findAll(
+        (node) => (node.type as string) === 'Text' && node.props.children === 'Desativada',
+      ),
     ).toHaveLength(1);
     expect(pressables[0].props.disabled).toBe(true);
     expect(pressables[0].props.accessibilityLabel).toBe('Tarefa Arrumar a cama desativada');

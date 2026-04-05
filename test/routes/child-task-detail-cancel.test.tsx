@@ -2,6 +2,8 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import ChildTaskDetailScreen from '../../app/(child)/tasks/[id]';
+
 const alertMock = vi.hoisted(() => ({
   alert: vi.fn(),
 }));
@@ -86,10 +88,7 @@ vi.mock('expo-router', () => ({
 
 vi.mock('@lib/tasks', () => ({
   getAssignmentPoints: (assignment: { pontos_snapshot: number }) => assignment.pontos_snapshot,
-  getAssignmentCompletionState: (
-    assignment: { status: string },
-    task: { ativo: boolean },
-  ) => {
+  getAssignmentCompletionState: (assignment: { status: string }, task: { ativo: boolean }) => {
     if (assignment.status !== 'pendente') {
       return { canComplete: false, reason: null };
     }
@@ -97,7 +96,8 @@ vi.mock('@lib/tasks', () => ({
     if (!task.ativo) {
       return {
         canComplete: false,
-        reason: 'Esta tarefa foi desativada pelo responsável e não pode mais ser enviada para validação.',
+        reason:
+          'Esta tarefa foi desativada pelo responsável e não pode mais ser enviada para validação.',
       };
     }
 
@@ -168,13 +168,11 @@ vi.mock('@/hooks/queries', () => ({
 }));
 
 vi.mock('@/components/ui/screen-header', () => ({
-  ScreenHeader: (props: Record<string, unknown>) =>
-    React.createElement('ScreenHeader', props),
+  ScreenHeader: (props: Record<string, unknown>) => React.createElement('ScreenHeader', props),
 }));
 
 vi.mock('@/components/ui/empty-state', () => ({
-  EmptyState: (props: Record<string, unknown>) =>
-    React.createElement('EmptyState', props),
+  EmptyState: (props: Record<string, unknown>) => React.createElement('EmptyState', props),
 }));
 
 vi.mock('@/components/ui/sticky-footer-screen', () => ({
@@ -188,16 +186,12 @@ vi.mock('@/components/ui/sticky-footer-screen', () => ({
 }));
 
 vi.mock('@/components/ui/button', () => ({
-  Button: (props: Record<string, unknown>) =>
-    React.createElement('Button', props),
+  Button: (props: Record<string, unknown>) => React.createElement('Button', props),
 }));
 
 vi.mock('@/components/ui/inline-message', () => ({
-  InlineMessage: (props: Record<string, unknown>) =>
-    React.createElement('InlineMessage', props),
+  InlineMessage: (props: Record<string, unknown>) => React.createElement('InlineMessage', props),
 }));
-
-import ChildTaskDetailScreen from '../../app/(child)/tasks/[id]';
 
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
@@ -282,9 +276,11 @@ describe('ChildTaskDetailScreen — cancel assignment submission', () => {
   });
 
   it('asks for confirmation and only cancels after confirming, then shows success feedback', async () => {
-    cancelMutationMock.mutate.mockImplementation((_variables, options?: { onSuccess?: () => void }) => {
-      options?.onSuccess?.();
-    });
+    cancelMutationMock.mutate.mockImplementation(
+      (_variables, options?: { onSuccess?: () => void }) => {
+        options?.onSuccess?.();
+      },
+    );
 
     const renderer = render(<ChildTaskDetailScreen />);
     const cancelButtons = findButtonsByLabel(renderer, 'Cancelar envio');
@@ -298,11 +294,11 @@ describe('ChildTaskDetailScreen — cancel assignment submission', () => {
     expect(alertMock.alert).toHaveBeenCalledTimes(1);
     expect(cancelMutationMock.mutate).not.toHaveBeenCalled();
 
-    const alertButtons = alertMock.alert.mock.calls[0][2] as Array<{
+    const alertButtons = alertMock.alert.mock.calls[0][2] as {
       text: string;
       style?: string;
       onPress?: () => void;
-    }>;
+    }[];
     const destructiveButton = alertButtons.find((button) => button.style === 'destructive');
 
     expect(destructiveButton).toBeDefined();
@@ -323,7 +319,9 @@ describe('ChildTaskDetailScreen — cancel assignment submission', () => {
       return (node.type as string) === 'InlineMessage';
     });
 
-    expect(inlineMessages.some((node) => node.props.message === 'Envio cancelado com sucesso.')).toBe(true);
+    expect(
+      inlineMessages.some((node) => node.props.message === 'Envio cancelado com sucesso.'),
+    ).toBe(true);
   });
 
   it('revalidates before completing and blocks the submit CTA when the task is deactivated', async () => {
@@ -368,8 +366,11 @@ describe('ChildTaskDetailScreen — cancel assignment submission', () => {
     });
 
     expect(
-      inlineMessages.some((node) =>
-        node.props.message === 'Esta tarefa foi desativada pelo responsável e não pode mais ser enviada para validação.'),
+      inlineMessages.some(
+        (node) =>
+          node.props.message ===
+          'Esta tarefa foi desativada pelo responsável e não pode mais ser enviada para validação.',
+      ),
     ).toBe(true);
   });
 
@@ -399,8 +400,11 @@ describe('ChildTaskDetailScreen — cancel assignment submission', () => {
     });
 
     expect(
-      inlineMessages.some((node) =>
-        node.props.message === 'Não é possível cancelar o envio de uma tarefa diária de data anterior.'),
+      inlineMessages.some(
+        (node) =>
+          node.props.message ===
+          'Não é possível cancelar o envio de uma tarefa diária de data anterior.',
+      ),
     ).toBe(true);
   });
 });

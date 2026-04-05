@@ -27,7 +27,9 @@ export default function AdminChildDetailScreen() {
   const reactivateMutation = useReactivateChild();
 
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
-  const [feedbackVariant, setFeedbackVariant] = useState<'success' | 'warning' | 'error'>('success');
+  const [feedbackVariant, setFeedbackVariant] = useState<'success' | 'warning' | 'error'>(
+    'success',
+  );
   const [feedbackKey, setFeedbackKey] = useState(0);
   const visibleFeedback = useTransientMessage(feedbackMessage, { resetKey: feedbackKey });
 
@@ -122,7 +124,12 @@ export default function AdminChildDetailScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.identityCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.default }]}>
+        <View
+          style={[
+            styles.identityCard,
+            { backgroundColor: colors.bg.surface, borderColor: colors.border.default },
+          ]}
+        >
           <Avatar name={child.nome} size={88} imageUri={child.avatar_url} />
         </View>
 

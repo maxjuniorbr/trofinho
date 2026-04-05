@@ -15,14 +15,10 @@ describe('Button — loadingLabel property', () => {
         let renderer!: ReturnType<typeof create>;
 
         act(() => {
-          renderer = create(
-            <Button label="Regular label" loading loadingLabel={loadingLabel} />,
-          );
+          renderer = create(<Button label="Regular label" loading loadingLabel={loadingLabel} />);
         });
 
-        const texts = renderer.root
-          .findAllByType(Text)
-          .map((node) => node.props.children);
+        const texts = renderer.root.findAllByType(Text).map((node) => node.props.children);
 
         expect(texts).toContain(loadingLabel);
         expect(texts).not.toContain('Regular label');

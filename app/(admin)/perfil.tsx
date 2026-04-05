@@ -16,17 +16,18 @@ import { AvatarSection } from '@/components/profile/avatar-section';
 import { PersonalDataCard } from '@/components/profile/personal-data-card';
 import { PasswordCard } from '@/components/profile/password-card';
 import { ThemeCard } from '@/components/profile/theme-card';
-import {
-  NotificationCard,
-} from '@/components/profile/notification-card';
+import { NotificationCard } from '@/components/profile/notification-card';
 import { useTheme } from '@/context/theme-context';
 import { spacing } from '@/constants/theme';
 import { signOut } from '@lib/auth';
+import { setNotificationPrefs, type NotificationPrefs } from '@lib/notifications';
 import {
-  setNotificationPrefs,
-  type NotificationPrefs,
-} from '@lib/notifications';
-import { useProfile, useCurrentAuthUser, useNotificationPrefs, useDeleteAccount, combineQueryStates } from '@/hooks/queries';
+  useProfile,
+  useCurrentAuthUser,
+  useNotificationPrefs,
+  useDeleteAccount,
+  combineQueryStates,
+} from '@/hooks/queries';
 import { Button } from '@/components/ui/button';
 
 export default function ProfileScreen() {
@@ -45,8 +46,12 @@ export default function ProfileScreen() {
 
   const [localAvatarUri, setLocalAvatarUri] = useState<string | null>(null);
   const [localName, setLocalName] = useState<string | null>(null);
-  const [notificationPreferences, setNotificationPreferences] = useState<NotificationPrefs | null>(null);
-  const [notificationPreferencesError, setNotificationPreferencesError] = useState<string | null>(null);
+  const [notificationPreferences, setNotificationPreferences] = useState<NotificationPrefs | null>(
+    null,
+  );
+  const [notificationPreferencesError, setNotificationPreferencesError] = useState<string | null>(
+    null,
+  );
   const [savingNotificationPreferences, setSavingNotificationPreferences] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const deleteAccountMutation = useDeleteAccount();
@@ -58,7 +63,12 @@ export default function ProfileScreen() {
 
   const handleSignOut = async () => {
     setLoggingOut(true);
-    try { await signOut(); } catch (e) { console.error(e); setLoggingOut(false); }
+    try {
+      await signOut();
+    } catch (e) {
+      console.error(e);
+      setLoggingOut(false);
+    }
   };
 
   const handleDeleteAccount = () => {

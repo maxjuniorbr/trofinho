@@ -1,7 +1,4 @@
-export type NavigationFeedbackKey =
-  | 'admin-task-list'
-  | 'admin-task-detail'
-  | 'admin-prize-list';
+export type NavigationFeedbackKey = 'admin-task-list' | 'admin-task-detail' | 'admin-prize-list';
 
 export type NavigationFeedback = Readonly<{
   id: number;
@@ -11,10 +8,7 @@ export type NavigationFeedback = Readonly<{
 const feedbackStore = new Map<NavigationFeedbackKey, NavigationFeedback>();
 let nextFeedbackId = 0;
 
-export function setNavigationFeedback(
-  key: NavigationFeedbackKey,
-  message: string,
-): void {
+export function setNavigationFeedback(key: NavigationFeedbackKey, message: string): void {
   nextFeedbackId += 1;
   feedbackStore.set(key, {
     id: nextFeedbackId,
@@ -22,9 +16,7 @@ export function setNavigationFeedback(
   });
 }
 
-export function consumeNavigationFeedback(
-  key: NavigationFeedbackKey,
-): NavigationFeedback | null {
+export function consumeNavigationFeedback(key: NavigationFeedbackKey): NavigationFeedback | null {
   const feedback = feedbackStore.get(key) ?? null;
 
   if (feedback) {

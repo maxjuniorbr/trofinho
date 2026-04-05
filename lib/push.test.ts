@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 
+import { dispatchPushNotification } from './push';
+
 const invokeMock = vi.hoisted(() => vi.fn());
 const captureExceptionMock = vi.hoisted(() => vi.fn());
 
@@ -15,8 +17,6 @@ vi.mock('./supabase', () => ({
 vi.mock('@sentry/react-native', () => ({
   captureException: captureExceptionMock,
 }));
-
-import { dispatchPushNotification } from './push';
 
 describe('dispatchPushNotification', () => {
   beforeEach(() => {
@@ -46,7 +46,10 @@ describe('dispatchPushNotification', () => {
 
     const familiaIdArb = fc.uuid();
 
-    const payloadArb = fc.dictionary(fc.string({ minLength: 1, maxLength: 20 }), fc.string({ maxLength: 50 }));
+    const payloadArb = fc.dictionary(
+      fc.string({ minLength: 1, maxLength: 20 }),
+      fc.string({ maxLength: 50 }),
+    );
 
     const errorArb = fc.oneof(
       fc.string().map((msg) => new Error(msg)),
@@ -58,11 +61,19 @@ describe('dispatchPushNotification', () => {
     it('never throws regardless of error type (catch path)', async () => {
       vi.spyOn(console, 'warn').mockImplementation(() => undefined);
       await fc.assert(
-        fc.asyncProperty(eventArb, familiaIdArb, payloadArb, errorArb, async (event, familiaId, payload, error) => {
-          invokeMock.mockRejectedValueOnce(error);
-          // Must not throw — resolves to undefined
-          await expect(dispatchPushNotification(event, familiaId, payload)).resolves.toBeUndefined();
-        }),
+        fc.asyncProperty(
+          eventArb,
+          familiaIdArb,
+          payloadArb,
+          errorArb,
+          async (event, familiaId, payload, error) => {
+            invokeMock.mockRejectedValueOnce(error);
+            // Must not throw — resolves to undefined
+            await expect(
+              dispatchPushNotification(event, familiaId, payload),
+            ).resolves.toBeUndefined();
+          },
+        ),
         { numRuns: 100 },
       );
     });
@@ -72,12 +83,18 @@ describe('dispatchPushNotification', () => {
       const thrownError = new Error('network blew up');
       invokeMock.mockRejectedValueOnce(thrownError);
 
-      await dispatchPushNotification('tarefa_aprovada', 'family-1', { userId: 'u1', taskTitle: 'T' });
+      await dispatchPushNotification('tarefa_aprovada', 'family-1', {
+        userId: 'u1',
+        taskTitle: 'T',
+      });
 
       expect(captureExceptionMock).toHaveBeenCalledOnce();
-      expect(captureExceptionMock).toHaveBeenCalledWith(thrownError, expect.objectContaining({
-        tags: expect.objectContaining({ subsystem: 'push', event: 'tarefa_aprovada' }),
-      }));
+      expect(captureExceptionMock).toHaveBeenCalledWith(
+        thrownError,
+        expect.objectContaining({
+          tags: expect.objectContaining({ subsystem: 'push', event: 'tarefa_aprovada' }),
+        }),
+      );
     });
 
     it('never throws when invoke returns FunctionsHttpError', async () => {
@@ -97,7 +114,10 @@ describe('dispatchPushNotification', () => {
       const fnError = Object.assign(new Error('Edge fn error'), { name: 'FunctionsHttpError' });
       invokeMock.mockResolvedValueOnce({ data: null, error: fnError });
 
-      await dispatchPushNotification('resgate_solicitado', 'family-1', { childName: 'C', prizeName: 'P' });
+      await dispatchPushNotification('resgate_solicitado', 'family-1', {
+        childName: 'C',
+        prizeName: 'P',
+      });
 
       expect(consoleWarnSpy).toHaveBeenCalledOnce();
       expect(consoleWarnSpy.mock.calls[0][0]).toContain('resgate_solicitado');
@@ -109,7 +129,10 @@ describe('dispatchPushNotification', () => {
     invokeMock.mockResolvedValueOnce({ data: { sent: 1, failed: 0, cleaned: 0 }, error: null });
 
     await expect(
-      dispatchPushNotification('tarefa_aprovada', 'family-123', { userId: 'u1', taskTitle: 'Lavar louça' }),
+      dispatchPushNotification('tarefa_aprovada', 'family-123', {
+        userId: 'u1',
+        taskTitle: 'Lavar louça',
+      }),
     ).resolves.toBeUndefined();
 
     expect(invokeMock).toHaveBeenCalledWith('send-push-notification', {

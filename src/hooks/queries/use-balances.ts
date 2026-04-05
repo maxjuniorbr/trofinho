@@ -9,7 +9,13 @@ import {
   syncAutomaticAppreciation,
   type AppreciationPeriod,
 } from '../../../lib/balances';
-import { queryFnAdapter, nullableQueryFnAdapter, mutationFnAdapter, paginatedQueryFnAdapter, type PaginatedPage } from './query-fn-adapter';
+import {
+  queryFnAdapter,
+  nullableQueryFnAdapter,
+  mutationFnAdapter,
+  paginatedQueryFnAdapter,
+  type PaginatedPage,
+} from './query-fn-adapter';
 import { queryKeys, STALE_TIMES, PAGE_SIZES } from './query-keys';
 
 export const useBalance = (childId?: string) =>
@@ -34,8 +40,11 @@ export const useTransactions = (childId: string) =>
       PAGE_SIZES.transactions,
     ),
     initialPageParam: 0,
-    getNextPageParam: (lastPage: PaginatedPage<unknown>, _allPages: unknown[], lastPageParam: number) =>
-      lastPage.hasMore ? lastPageParam + 1 : undefined,
+    getNextPageParam: (
+      lastPage: PaginatedPage<unknown>,
+      _allPages: unknown[],
+      lastPageParam: number,
+    ) => (lastPage.hasMore ? lastPageParam + 1 : undefined),
     staleTime: STALE_TIMES.balances,
     enabled: !!childId,
   });

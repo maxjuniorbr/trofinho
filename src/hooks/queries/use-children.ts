@@ -37,8 +37,7 @@ export const useDeactivateChild = () => {
 export const useReactivateChild = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (childId: string) =>
-      mutationFnAdapter(() => reactivateChild(childId))(),
+    mutationFn: (childId: string) => mutationFnAdapter(() => reactivateChild(childId))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.children.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });

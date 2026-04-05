@@ -19,7 +19,10 @@ type PenaltyModalProps = Readonly<{
   visible: boolean;
   childName: string;
   onClose: () => void;
-  onApply: (amount: number, description: string) => Promise<{ error: string | null; warning?: string | null }>;
+  onApply: (
+    amount: number,
+    description: string,
+  ) => Promise<{ error: string | null; warning?: string | null }>;
 }>;
 
 export function PenaltyModal({ visible, childName, onClose, onApply }: PenaltyModalProps) {
@@ -43,8 +46,14 @@ export function PenaltyModal({ visible, childName, onClose, onApply }: PenaltyMo
     setError(null);
     setWarning(null);
     const v = Number.parseInt(amount, 10);
-    if (!amount || Number.isNaN(v) || v <= 0) { setError('Informe um valor válido.'); return; }
-    if (!description.trim()) { setError('Informe a descrição.'); return; }
+    if (!amount || Number.isNaN(v) || v <= 0) {
+      setError('Informe um valor válido.');
+      return;
+    }
+    if (!description.trim()) {
+      setError('Informe a descrição.');
+      return;
+    }
 
     Alert.alert(
       'Aplicar penalidade?',
@@ -59,24 +68,42 @@ export function PenaltyModal({ visible, childName, onClose, onApply }: PenaltyMo
             const result = await onApply(v, description.trim());
             setSaving(false);
 
-            if (result.error) { setError(result.error); return; }
-            if (result.warning) { setWarning(result.warning); return; }
+            if (result.error) {
+              setError(result.error);
+              return;
+            }
+            if (result.warning) {
+              setWarning(result.warning);
+              return;
+            }
             handleClose();
           },
         },
       ],
     );
-  }
+  };
 
   return (
     <Modal visible={visible} transparent animationType="slide">
-      <KeyboardAvoidingView style={[styles.overlay, { backgroundColor: colors.overlay.scrim }]} behavior="padding">
+      <KeyboardAvoidingView
+        style={[styles.overlay, { backgroundColor: colors.overlay.scrim }]}
+        behavior="padding"
+      >
         <View style={[styles.box, { backgroundColor: colors.bg.surface }]}>
-          <Text style={[styles.title, { color: colors.text.primary }]}>Penalização — {childName}</Text>
+          <Text style={[styles.title, { color: colors.text.primary }]}>
+            Penalização — {childName}
+          </Text>
 
           <Text style={[styles.label, { color: colors.text.secondary }]}>Valor (pontos) *</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.bg.canvas, borderColor: colors.border.default, color: colors.text.primary }]}
+            style={[
+              styles.input,
+              {
+                backgroundColor: colors.bg.canvas,
+                borderColor: colors.border.default,
+                color: colors.text.primary,
+              },
+            ]}
             value={amount}
             onChangeText={setAmount}
             placeholder="Ex: 10"
@@ -87,7 +114,15 @@ export function PenaltyModal({ visible, childName, onClose, onApply }: PenaltyMo
 
           <Text style={[styles.label, { color: colors.text.secondary }]}>Motivo *</Text>
           <TextInput
-            style={[styles.input, styles.inputMultiline, { backgroundColor: colors.bg.canvas, borderColor: colors.border.default, color: colors.text.primary }]}
+            style={[
+              styles.input,
+              styles.inputMultiline,
+              {
+                backgroundColor: colors.bg.canvas,
+                borderColor: colors.border.default,
+                color: colors.text.primary,
+              },
+            ]}
             value={description}
             onChangeText={setDescription}
             placeholder="Descreva o motivo…"
@@ -97,17 +132,31 @@ export function PenaltyModal({ visible, childName, onClose, onApply }: PenaltyMo
           />
           <FormFooter message={error ?? warning} variant={warning ? 'warning' : 'error'} compact>
             <View style={styles.buttons}>
-              <Pressable style={[styles.btn, styles.btnCancel, { borderColor: colors.border.default }]} onPress={handleClose}>
-                <Text style={[styles.btnCancelText, { color: colors.text.secondary }]}>Cancelar</Text>
+              <Pressable
+                style={[styles.btn, styles.btnCancel, { borderColor: colors.border.default }]}
+                onPress={handleClose}
+              >
+                <Text style={[styles.btnCancelText, { color: colors.text.secondary }]}>
+                  Cancelar
+                </Text>
               </Pressable>
               <Pressable
-                style={[styles.btn, styles.btnConfirm, { backgroundColor: colors.semantic.error }, saving && styles.btnDisabled]}
+                style={[
+                  styles.btn,
+                  styles.btnConfirm,
+                  { backgroundColor: colors.semantic.error },
+                  saving && styles.btnDisabled,
+                ]}
                 onPress={handleApply}
                 disabled={saving}
               >
-                {saving
-                  ? <ActivityIndicator color={colors.text.inverse} />
-                  : <Text style={[styles.btnConfirmText, { color: colors.text.inverse }]}>Penalizar</Text>}
+                {saving ? (
+                  <ActivityIndicator color={colors.text.inverse} />
+                ) : (
+                  <Text style={[styles.btnConfirmText, { color: colors.text.inverse }]}>
+                    Penalizar
+                  </Text>
+                )}
               </Pressable>
             </View>
           </FormFooter>
@@ -127,7 +176,9 @@ export function PenaltyButton({ onPress }: Readonly<{ onPress: () => void }>) {
     >
       <View style={styles.triggerInner}>
         <AlertTriangle size={14} color={colors.semantic.error} strokeWidth={2} />
-        <Text style={[styles.triggerText, { color: colors.semantic.error }]}>Aplicar penalização</Text>
+        <Text style={[styles.triggerText, { color: colors.semantic.error }]}>
+          Aplicar penalização
+        </Text>
       </View>
     </Pressable>
   );
@@ -136,27 +187,43 @@ export function PenaltyButton({ onPress }: Readonly<{ onPress: () => void }>) {
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
   box: {
-    borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl,
-    padding: spacing['6'], paddingBottom: spacing['12'], gap: spacing['3'],
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
+    padding: spacing['6'],
+    paddingBottom: spacing['12'],
+    gap: spacing['3'],
   },
   title: { fontSize: typography.size.lg, fontFamily: typography.family.bold },
   label: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
   input: {
-    borderRadius: radii.md, borderWidth: 1,
-    paddingHorizontal: spacing['3'], paddingVertical: spacing['3'],
-    fontSize: typography.size.md, minHeight: 48,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    paddingHorizontal: spacing['3'],
+    paddingVertical: spacing['3'],
+    fontSize: typography.size.md,
+    minHeight: 48,
   },
   inputMultiline: { height: 80, textAlignVertical: 'top' },
   buttons: { flexDirection: 'row', gap: spacing['3'] },
-  btn: { flex: 1, borderRadius: radii.lg, paddingVertical: spacing['3'], alignItems: 'center', minHeight: 48 },
+  btn: {
+    flex: 1,
+    borderRadius: radii.lg,
+    paddingVertical: spacing['3'],
+    alignItems: 'center',
+    minHeight: 48,
+  },
   btnCancel: { borderWidth: 1 },
   btnCancelText: { fontFamily: typography.family.semibold },
   btnConfirm: {},
   btnConfirmText: { fontFamily: typography.family.bold, fontSize: typography.size.md },
   btnDisabled: { opacity: 0.5 },
   triggerBtn: {
-    borderRadius: radii.lg, paddingVertical: spacing['3'],
-    alignItems: 'center', marginBottom: spacing['5'], minHeight: 44, justifyContent: 'center',
+    borderRadius: radii.lg,
+    paddingVertical: spacing['3'],
+    alignItems: 'center',
+    marginBottom: spacing['5'],
+    minHeight: 44,
+    justifyContent: 'center',
   },
   triggerInner: { flexDirection: 'row', alignItems: 'center', gap: spacing['1.5'] },
   triggerText: { fontFamily: typography.family.bold, fontSize: typography.size.sm },

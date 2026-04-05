@@ -32,7 +32,14 @@ import {
   combineQueryStates,
 } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
-import { radii, shadows, spacing, typography, withAlpha, type ThemeColors } from '@/constants/theme';
+import {
+  radii,
+  shadows,
+  spacing,
+  typography,
+  withAlpha,
+  type ThemeColors,
+} from '@/constants/theme';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { NotificationPermissionBanner } from '@/components/ui/notification-permission-banner';
@@ -43,18 +50,30 @@ import type { LucideIcon } from 'lucide-react-native';
 
 const CHILDREN_PREVIEW_LIMIT = 3;
 
-const QUICK_ACTIONS: ReadonlyArray<{
+const QUICK_ACTIONS: readonly {
   icon: LucideIcon;
   label: string;
   rota: string;
   badgeKey: 'tasks' | 'redemptions' | 'none';
   accent: 'neutral' | 'gold';
-}> = [
-  { icon: ClipboardList, label: 'Tarefas',  rota: '/(admin)/tasks',       badgeKey: 'tasks',       accent: 'neutral' },
-  { icon: Users,         label: 'Filhos',   rota: '/(admin)/children',    badgeKey: 'none',        accent: 'neutral' },
-  { icon: Wallet,        label: 'Saldos',   rota: '/(admin)/balances',    badgeKey: 'none',        accent: 'gold'    },
-  { icon: Gift,          label: 'Prêmios',  rota: '/(admin)/prizes',      badgeKey: 'none',        accent: 'neutral' },
-  { icon: ShoppingBag,   label: 'Resgates', rota: '/(admin)/redemptions', badgeKey: 'redemptions', accent: 'neutral' },
+}[] = [
+  {
+    icon: ClipboardList,
+    label: 'Tarefas',
+    rota: '/(admin)/tasks',
+    badgeKey: 'tasks',
+    accent: 'neutral',
+  },
+  { icon: Users, label: 'Filhos', rota: '/(admin)/children', badgeKey: 'none', accent: 'neutral' },
+  { icon: Wallet, label: 'Saldos', rota: '/(admin)/balances', badgeKey: 'none', accent: 'gold' },
+  { icon: Gift, label: 'Prêmios', rota: '/(admin)/prizes', badgeKey: 'none', accent: 'neutral' },
+  {
+    icon: ShoppingBag,
+    label: 'Resgates',
+    rota: '/(admin)/redemptions',
+    badgeKey: 'redemptions',
+    accent: 'neutral',
+  },
 ];
 
 type MetricTone = 'neutral' | 'gold' | 'danger';
@@ -109,10 +128,9 @@ export default function AdminHomeScreen() {
   const children = childrenQuery.data ?? [];
 
   const balancesQuery = useAdminBalances();
-  const balancesData = balancesQuery.data ?? [];
   const balancesMap = useMemo(
-    () => new Map(balancesData.map((s) => [s.filho_id, s])),
-    [balancesData],
+    () => new Map((balancesQuery.data ?? []).map((s) => [s.filho_id, s])),
+    [balancesQuery.data],
   );
 
   const pendingValidationQuery = usePendingValidationCount();
@@ -174,7 +192,10 @@ export default function AdminHomeScreen() {
     console.error(error);
   }
 
-  const totalPoints = Array.from(balancesMap.values()).reduce((acc, s) => acc + s.saldo_livre + s.cofrinho, 0);
+  const totalPoints = Array.from(balancesMap.values()).reduce(
+    (acc, s) => acc + s.saldo_livre + s.cofrinho,
+    0,
+  );
   const metricCards: MetricCard[] = [
     {
       key: 'children',
@@ -212,196 +233,224 @@ export default function AdminHomeScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
-
-      {error ? (
-        <View style={{ paddingHorizontal: spacing['4'], paddingTop: spacing['4'] }}>
-          <InlineMessage message="Não foi possível carregar todos os dados. Puxe para atualizar." variant="warning" />
-        </View>
-      ) : null}
-
-      <View style={styles.hero}>
-        <View style={styles.heroText}>
-          <Text style={[styles.heroSub, { color: colors.text.secondary }]}>{getGreeting()} 👋</Text>
-          <Text style={[styles.heroTitle, { color: colors.text.primary }]}>
-            Olá, {profile?.nome ?? 'Admin'}
-          </Text>
-          {family ? (
-            <View style={[styles.familyPill, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
-              <Text style={[styles.heroFamily, { color: colors.accent.admin }]}>Família {family.nome}</Text>
-            </View>
-          ) : null}
-        </View>
-        <Pressable
-          onPress={() => router.push('/(admin)/perfil')}
-          accessibilityRole="button"
-          accessibilityLabel="Abrir perfil"
-        >
-          <View style={styles.avatarWrapper}>
-            <Avatar name={profile?.nome ?? 'A'} size={52} imageUri={avatarUri} />
-            <View style={[styles.editBadge, { backgroundColor: colors.accent.adminDim }]}>
-              <Pencil size={10} color={colors.text.inverse} strokeWidth={2.5} />
-            </View>
+        {error ? (
+          <View style={{ paddingHorizontal: spacing['4'], paddingTop: spacing['4'] }}>
+            <InlineMessage
+              message="Não foi possível carregar todos os dados. Puxe para atualizar."
+              variant="warning"
+            />
           </View>
-        </Pressable>
-      </View>
+        ) : null}
 
-      {showNotificationBanner ? <NotificationPermissionBanner /> : null}
-
-      <View style={styles.statsRow}>
-        {metricCards.map((card) => {
-          const metricAppearance = getMetricAppearance(card.tone, colors);
-
-          return (
-            <View
-              key={card.key}
-              style={[
-                styles.statCard,
-                {
-                  backgroundColor: metricAppearance.backgroundColor,
-                  borderColor: metricAppearance.borderColor,
-                },
-              ]}
-            >
-              <Text style={[styles.statValue, { color: metricAppearance.valueColor }]}>
-                {card.value}
-              </Text>
-              <Text style={[styles.statLabel, { color: metricAppearance.labelColor }]}>
-                {card.label}
-              </Text>
-            </View>
-          );
-        })}
-      </View>
-
-      {children.length > 0 ? (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Seus filhos</Text>
-            {children.length > CHILDREN_PREVIEW_LIMIT ? (
-              <Pressable
-                style={[styles.seeAllBtn, { backgroundColor: colors.accent.adminBg }]}
-                onPress={() => router.push('/(admin)/children')}
-                accessibilityRole="button"
-                accessibilityLabel="Ver todos os filhos"
-                hitSlop={8}
+        <View style={styles.hero}>
+          <View style={styles.heroText}>
+            <Text style={[styles.heroSub, { color: colors.text.secondary }]}>
+              {getGreeting()} 👋
+            </Text>
+            <Text style={[styles.heroTitle, { color: colors.text.primary }]}>
+              Olá, {profile?.nome ?? 'Admin'}
+            </Text>
+            {family ? (
+              <View
+                style={[
+                  styles.familyPill,
+                  { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+                ]}
               >
-                <Text style={[styles.seeAllBtnText, { color: colors.accent.admin }]}>Ver todos</Text>
-                <ChevronRight size={14} color={colors.accent.admin} strokeWidth={2} />
-              </Pressable>
+                <Text style={[styles.heroFamily, { color: colors.accent.admin }]}>
+                  Família {family.nome}
+                </Text>
+              </View>
             ) : null}
           </View>
-          <View style={styles.childrenList}>
-            {children.slice(0, CHILDREN_PREVIEW_LIMIT).map((item) => {
-              const saldo = balancesMap.get(item.id);
-              const pts = saldo ? saldo.saldo_livre + saldo.cofrinho : 0;
+          <Pressable
+            onPress={() => router.push('/(admin)/perfil')}
+            accessibilityRole="button"
+            accessibilityLabel="Abrir perfil"
+          >
+            <View style={styles.avatarWrapper}>
+              <Avatar name={profile?.nome ?? 'A'} size={52} imageUri={avatarUri} />
+              <View style={[styles.editBadge, { backgroundColor: colors.accent.adminDim }]}>
+                <Pencil size={10} color={colors.text.inverse} strokeWidth={2.5} />
+              </View>
+            </View>
+          </Pressable>
+        </View>
+
+        {showNotificationBanner ? <NotificationPermissionBanner /> : null}
+
+        <View style={styles.statsRow}>
+          {metricCards.map((card) => {
+            const metricAppearance = getMetricAppearance(card.tone, colors);
+
+            return (
+              <View
+                key={card.key}
+                style={[
+                  styles.statCard,
+                  {
+                    backgroundColor: metricAppearance.backgroundColor,
+                    borderColor: metricAppearance.borderColor,
+                  },
+                ]}
+              >
+                <Text style={[styles.statValue, { color: metricAppearance.valueColor }]}>
+                  {card.value}
+                </Text>
+                <Text style={[styles.statLabel, { color: metricAppearance.labelColor }]}>
+                  {card.label}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+
+        {children.length > 0 ? (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Seus filhos</Text>
+              {children.length > CHILDREN_PREVIEW_LIMIT ? (
+                <Pressable
+                  style={[styles.seeAllBtn, { backgroundColor: colors.accent.adminBg }]}
+                  onPress={() => router.push('/(admin)/children')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Ver todos os filhos"
+                  hitSlop={8}
+                >
+                  <Text style={[styles.seeAllBtnText, { color: colors.accent.admin }]}>
+                    Ver todos
+                  </Text>
+                  <ChevronRight size={14} color={colors.accent.admin} strokeWidth={2} />
+                </Pressable>
+              ) : null}
+            </View>
+            <View style={styles.childrenList}>
+              {children.slice(0, CHILDREN_PREVIEW_LIMIT).map((item) => {
+                const saldo = balancesMap.get(item.id);
+                const pts = saldo ? saldo.saldo_livre + saldo.cofrinho : 0;
+                return (
+                  <Pressable
+                    key={item.id}
+                    style={({ pressed }) => [
+                      styles.childCard,
+                      { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+                      shadows.card,
+                      pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
+                    ]}
+                    onPress={() => router.push(`/(admin)/children/${item.id}` as never)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${item.nome}, ver nome e e-mail`}
+                  >
+                    <Avatar name={item.nome} size={48} />
+                    <View style={styles.childBody}>
+                      <Text
+                        style={[styles.childName, { color: colors.text.primary }]}
+                        numberOfLines={1}
+                      >
+                        {item.nome}
+                      </Text>
+                      <Text style={[styles.childPoints, { color: colors.brand.vivid }]}>
+                        {pts.toLocaleString('pt-BR')} pts
+                      </Text>
+                    </View>
+                    <ChevronRight size={18} color={colors.text.secondary} strokeWidth={1.75} />
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
+
+        {pendingValidationCount > 0 ? (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Pendentes</Text>
+                <View style={[styles.countBadge, { backgroundColor: colors.semantic.error }]}>
+                  <Text style={[styles.countBadgeText, { color: colors.text.inverse }]}>
+                    {pendingValidationCount}
+                  </Text>
+                </View>
+              </View>
+              <Pressable
+                onPress={() => router.push('/(admin)/tasks')}
+                accessibilityRole="button"
+                hitSlop={12}
+              >
+                <Text style={[styles.sectionLink, { color: colors.accent.admin }]}>Ver todas</Text>
+              </Pressable>
+            </View>
+            <Pressable
+              style={[
+                styles.navCard,
+                {
+                  backgroundColor: colors.bg.surface,
+                  borderColor: withAlpha(colors.semantic.error, 0.25),
+                },
+                shadows.card,
+              ]}
+              onPress={() => router.push('/(admin)/tasks')}
+              accessibilityRole="button"
+              accessibilityLabel={`${pendingValidationCount} tarefas aguardando validação`}
+            >
+              <View style={styles.navCardLead}>
+                <View style={[styles.navIconBox, { backgroundColor: colors.semantic.errorBg }]}>
+                  <ClipboardList size={20} color={colors.semantic.error} strokeWidth={1.75} />
+                </View>
+                <View style={styles.navCardBody}>
+                  <Text style={[styles.navCardTitle, { color: colors.text.primary }]}>Tarefas</Text>
+                  <Text style={[styles.navCardSub, { color: colors.text.secondary }]}>
+                    {pendingValidationCount}{' '}
+                    {pendingValidationCount === 1 ? 'tarefa aguardando' : 'tarefas aguardando'}{' '}
+                    validação
+                  </Text>
+                </View>
+              </View>
+              <Badge label="Validar" variant="error" />
+            </Pressable>
+          </View>
+        ) : null}
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Ações rápidas</Text>
+          <View style={styles.quickGrid}>
+            {QUICK_ACTIONS.map(({ icon: Icon, label, rota, badgeKey, accent }) => {
+              let badge = 0;
+              if (badgeKey === 'tasks') {
+                badge = pendingValidationCount;
+              } else if (badgeKey === 'redemptions') {
+                badge = pendingRedemptionCount;
+              }
+              const iconColor = accent === 'gold' ? colors.brand.vivid : colors.accent.admin;
               return (
                 <Pressable
-                  key={item.id}
+                  key={rota}
                   style={({ pressed }) => [
-                    styles.childCard,
+                    styles.quickCard,
                     { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
                     shadows.card,
-                    pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
+                    pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
                   ]}
-                  onPress={() => router.push(`/(admin)/children/${item.id}` as never)}
+                  onPress={() => router.push(rota as never)}
                   accessibilityRole="button"
-                  accessibilityLabel={`${item.nome}, ver nome e e-mail`}
+                  accessibilityLabel={label}
                 >
-                  <Avatar name={item.nome} size={48} />
-                  <View style={styles.childBody}>
-                    <Text style={[styles.childName, { color: colors.text.primary }]} numberOfLines={1}>
-                      {item.nome}
-                    </Text>
-                    <Text style={[styles.childPoints, { color: colors.brand.vivid }]}>
-                      {pts.toLocaleString('pt-BR')} pts
-                    </Text>
+                  <View style={[styles.quickIconBox, { backgroundColor: colors.bg.elevated }]}>
+                    <Icon size={22} color={iconColor} strokeWidth={1.5} />
                   </View>
-                  <ChevronRight size={18} color={colors.text.secondary} strokeWidth={1.75} />
+                  <Text style={[styles.quickLabel, { color: colors.text.primary }]}>{label}</Text>
+                  {badge > 0 ? (
+                    <View style={[styles.quickBadge, { backgroundColor: colors.semantic.error }]}>
+                      <Text style={[styles.quickBadgeText, { color: colors.text.inverse }]}>
+                        {badge}
+                      </Text>
+                    </View>
+                  ) : null}
                 </Pressable>
               );
             })}
           </View>
         </View>
-      ) : null}
-
-      {pendingValidationCount > 0 ? (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleRow}>
-              <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Pendentes</Text>
-              <View style={[styles.countBadge, { backgroundColor: colors.semantic.error }]}>
-                <Text style={[styles.countBadgeText, { color: colors.text.inverse }]}>{pendingValidationCount}</Text>
-              </View>
-            </View>
-            <Pressable
-              onPress={() => router.push('/(admin)/tasks')}
-              accessibilityRole="button"
-              hitSlop={12}
-            >
-              <Text style={[styles.sectionLink, { color: colors.accent.admin }]}>Ver todas</Text>
-            </Pressable>
-          </View>
-          <Pressable
-            style={[styles.navCard, { backgroundColor: colors.bg.surface, borderColor: withAlpha(colors.semantic.error, 0.25) }, shadows.card]}
-            onPress={() => router.push('/(admin)/tasks')}
-            accessibilityRole="button"
-            accessibilityLabel={`${pendingValidationCount} tarefas aguardando validação`}
-          >
-            <View style={styles.navCardLead}>
-              <View style={[styles.navIconBox, { backgroundColor: colors.semantic.errorBg }]}>
-                <ClipboardList size={20} color={colors.semantic.error} strokeWidth={1.75} />
-              </View>
-              <View style={styles.navCardBody}>
-                <Text style={[styles.navCardTitle, { color: colors.text.primary }]}>Tarefas</Text>
-                <Text style={[styles.navCardSub, { color: colors.text.secondary }]}>
-                  {pendingValidationCount} {pendingValidationCount === 1 ? 'tarefa aguardando' : 'tarefas aguardando'} validação
-                </Text>
-              </View>
-            </View>
-            <Badge label="Validar" variant="error" />
-          </Pressable>
-        </View>
-      ) : null}
-
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Ações rápidas</Text>
-        <View style={styles.quickGrid}>
-          {QUICK_ACTIONS.map(({ icon: Icon, label, rota, badgeKey, accent }) => {
-            let badge = 0;
-            if (badgeKey === 'tasks') {
-              badge = pendingValidationCount;
-            } else if (badgeKey === 'redemptions') {
-              badge = pendingRedemptionCount;
-            }
-            const iconColor = accent === 'gold' ? colors.brand.vivid : colors.accent.admin;
-            return (
-              <Pressable
-                key={rota}
-                style={({ pressed }) => [
-                  styles.quickCard,
-                  { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-                  shadows.card,
-                  pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
-                ]}
-                onPress={() => router.push(rota as never)}
-                accessibilityRole="button"
-                accessibilityLabel={label}
-              >
-                <View style={[styles.quickIconBox, { backgroundColor: colors.bg.elevated }]}>
-                  <Icon size={22} color={iconColor} strokeWidth={1.5} />
-                </View>
-                <Text style={[styles.quickLabel, { color: colors.text.primary }]}>{label}</Text>
-                {badge > 0 ? (
-                  <View style={[styles.quickBadge, { backgroundColor: colors.semantic.error }]}>
-                    <Text style={[styles.quickBadgeText, { color: colors.text.inverse }]}>{badge}</Text>
-                  </View>
-                ) : null}
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-
       </ScrollView>
     </SafeScreenFrame>
   );
@@ -409,21 +458,36 @@ export default function AdminHomeScreen() {
 
 function makeStyles() {
   return StyleSheet.create({
-    loading:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    container:     { flexGrow: 1, paddingHorizontal: spacing.screen },
+    loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    container: { flexGrow: 1, paddingHorizontal: spacing.screen },
 
-    hero:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing['6'] },
-    heroText:      { flex: 1, paddingRight: spacing['4'] },
+    hero: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing['6'],
+    },
+    heroText: { flex: 1, paddingRight: spacing['4'] },
 
     avatarWrapper: { position: 'relative' },
-    editBadge:     {
-      position: 'absolute', bottom: 0, right: 0,
-      width: 20, height: 20, borderRadius: radii.full,
-      alignItems: 'center', justifyContent: 'center',
+    editBadge: {
+      position: 'absolute',
+      bottom: 0,
+      right: 0,
+      width: 20,
+      height: 20,
+      borderRadius: radii.full,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    heroSub:       { fontFamily: typography.family.bold, fontSize: typography.size.sm },
-    heroTitle:     { fontFamily: typography.family.black, fontSize: typography.size['2xl'], marginTop: spacing['1'], lineHeight: typography.lineHeight['3xl'] },
-    familyPill:    {
+    heroSub: { fontFamily: typography.family.bold, fontSize: typography.size.sm },
+    heroTitle: {
+      fontFamily: typography.family.black,
+      fontSize: typography.size['2xl'],
+      marginTop: spacing['1'],
+      lineHeight: typography.lineHeight['3xl'],
+    },
+    familyPill: {
       marginTop: spacing['2'],
       alignSelf: 'flex-start',
       borderRadius: radii.full,
@@ -431,10 +495,10 @@ function makeStyles() {
       paddingHorizontal: spacing['3'],
       paddingVertical: spacing['1.5'],
     },
-    heroFamily:    { fontFamily: typography.family.semibold, fontSize: typography.size.sm },
+    heroFamily: { fontFamily: typography.family.semibold, fontSize: typography.size.sm },
 
-    statsRow:      { flexDirection: 'row', gap: spacing['3'], marginBottom: spacing['6'] },
-    statCard:      {
+    statsRow: { flexDirection: 'row', gap: spacing['3'], marginBottom: spacing['6'] },
+    statCard: {
       flex: 1,
       minHeight: 112,
       borderRadius: radii.inner,
@@ -446,72 +510,114 @@ function makeStyles() {
       gap: spacing['1'],
       borderCurve: 'continuous',
     },
-    statValue:     {
+    statValue: {
       fontFamily: typography.family.black,
       fontSize: typography.size['2xl'],
       lineHeight: typography.lineHeight['2xl'],
       fontVariant: ['tabular-nums'],
       textAlign: 'center',
     },
-    statLabel:     {
+    statLabel: {
       fontFamily: typography.family.semibold,
       fontSize: typography.size.xs,
       lineHeight: typography.lineHeight.xs,
       textAlign: 'center',
     },
 
-    section:       { marginBottom: spacing['6'], gap: spacing['3'] },
+    section: { marginBottom: spacing['6'], gap: spacing['3'] },
     sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
-    sectionTitle:  { fontFamily: typography.family.bold, fontSize: typography.size.md },
-    sectionLink:   { fontFamily: typography.family.bold, fontSize: typography.size.sm },
-    seeAllBtn:     {
-      flexDirection: 'row', alignItems: 'center', gap: spacing['1'],
-      borderRadius: radii.md, paddingVertical: spacing['1.5'], paddingHorizontal: spacing['3'],
+    sectionTitle: { fontFamily: typography.family.bold, fontSize: typography.size.md },
+    sectionLink: { fontFamily: typography.family.bold, fontSize: typography.size.sm },
+    seeAllBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1'],
+      borderRadius: radii.md,
+      paddingVertical: spacing['1.5'],
+      paddingHorizontal: spacing['3'],
     },
     seeAllBtnText: { fontFamily: typography.family.bold, fontSize: typography.size.sm },
-    countBadge:    { width: 24, height: 24, borderRadius: radii.full, alignItems: 'center', justifyContent: 'center' },
-    countBadgeText:{ fontFamily: typography.family.black, fontSize: typography.size.xs },
-
-    childrenList:  { gap: spacing['3'] },
-    childCard:     {
-      flexDirection: 'row', alignItems: 'center', gap: spacing['3'],
-      borderRadius: radii.inner, borderWidth: 1, padding: spacing['4'],
+    countBadge: {
+      width: 24,
+      height: 24,
+      borderRadius: radii.full,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    childBody:     { flex: 1, gap: spacing['1'] },
-    childName:     { fontFamily: typography.family.bold, fontSize: typography.size.sm },
-    childPoints:   { fontFamily: typography.family.black, fontSize: typography.size.sm },
+    countBadgeText: { fontFamily: typography.family.black, fontSize: typography.size.xs },
 
-    navCard:       {
+    childrenList: { gap: spacing['3'] },
+    childCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['3'],
+      borderRadius: radii.inner,
+      borderWidth: 1,
+      padding: spacing['4'],
+    },
+    childBody: { flex: 1, gap: spacing['1'] },
+    childName: { fontFamily: typography.family.bold, fontSize: typography.size.sm },
+    childPoints: { fontFamily: typography.family.black, fontSize: typography.size.sm },
+
+    navCard: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: spacing['3'],
-      borderRadius: radii.outer, borderWidth: 1, padding: spacing['4'],
+      borderRadius: radii.outer,
+      borderWidth: 1,
+      padding: spacing['4'],
     },
-    navCardLead:   { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing['3'] },
-    navIconBox:    {
+    navCardLead: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing['3'] },
+    navIconBox: {
       width: 44,
       height: 44,
       borderRadius: radii.md,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
     },
-    navCardBody:   { flex: 1 },
-    navCardTitle:  { fontFamily: typography.family.bold, fontSize: typography.size.md },
-    navCardSub:    { fontFamily: typography.family.medium, fontSize: typography.size.xs, marginTop: spacing['1'] },
+    navCardBody: { flex: 1 },
+    navCardTitle: { fontFamily: typography.family.bold, fontSize: typography.size.md },
+    navCardSub: {
+      fontFamily: typography.family.medium,
+      fontSize: typography.size.xs,
+      marginTop: spacing['1'],
+    },
 
-    quickGrid:     { flexDirection: 'row', flexWrap: 'wrap', gap: spacing['3'] },
-    quickCard:     {
+    quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing['3'] },
+    quickCard: {
       width: '30%',
       flexGrow: 1,
-      borderRadius: radii.inner, borderWidth: 1,
-      paddingVertical: spacing['4'], alignItems: 'center', gap: spacing['1'],
+      borderRadius: radii.inner,
+      borderWidth: 1,
+      paddingVertical: spacing['4'],
+      alignItems: 'center',
+      gap: spacing['1'],
     },
-    quickIconBox:  { width: 44, height: 44, borderRadius: radii.md, alignItems: 'center' as const, justifyContent: 'center' as const },
-    quickLabel:    { fontFamily: typography.family.bold, fontSize: typography.size.xs, textAlign: 'center' },
-    quickBadge:    { position: 'absolute', top: spacing['2'], right: spacing['2'], minWidth: 20, height: 20, borderRadius: radii.full, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing['1'] },
-    quickBadgeText:{ fontFamily: typography.family.black, fontSize: typography.size.xxs },
-
+    quickIconBox: {
+      width: 44,
+      height: 44,
+      borderRadius: radii.md,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    quickLabel: {
+      fontFamily: typography.family.bold,
+      fontSize: typography.size.xs,
+      textAlign: 'center',
+    },
+    quickBadge: {
+      position: 'absolute',
+      top: spacing['2'],
+      right: spacing['2'],
+      minWidth: 20,
+      height: 20,
+      borderRadius: radii.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: spacing['1'],
+    },
+    quickBadgeText: { fontFamily: typography.family.black, fontSize: typography.size.xxs },
   });
 }

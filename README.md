@@ -4,25 +4,25 @@ Aplicativo mobile de educação financeira familiar. Um adulto administra a fam�
 
 ## Stack
 
-| Camada | Tecnologia |
-| --- | --- |
-| App mobile | React Native 0.83, Expo SDK 55, Expo Router v6 |
-| Linguagem | TypeScript em `strict` |
-| Estado/Cache | React Query (TanStack Query v5) |
-| Backend | Supabase (Auth, Postgres, Storage, Edge Functions, Realtime, RLS) |
-| Push Notifications | Expo Push API + Firebase Cloud Messaging (FCM V1) |
-| Testes | Vitest |
+| Camada             | Tecnologia                                                        |
+| ------------------ | ----------------------------------------------------------------- |
+| App mobile         | React Native 0.83, Expo SDK 55, Expo Router v6                    |
+| Linguagem          | TypeScript em `strict`                                            |
+| Estado/Cache       | React Query (TanStack Query v5)                                   |
+| Backend            | Supabase (Auth, Postgres, Storage, Edge Functions, Realtime, RLS) |
+| Push Notifications | Expo Push API + Firebase Cloud Messaging (FCM V1)                 |
+| Testes             | Vitest                                                            |
 
 ## Ferramentas e serviços
 
-| Ferramenta | Papel no projeto |
-| --- | --- |
-| Supabase | Banco Postgres, autenticação, storage e RLS |
-| Sentry | Monitoramento de erros e performance em produção |
-| SonarCloud | Qualidade de codigo: cobertura, divida tecnica e inspecao estatica |
-| EAS Build | Builds Android via Expo Application Services |
-| Firebase (FCM V1) | Transporte de push notifications Android via Expo Push API |
-| Notion | Roadmap e planejamento |
+| Ferramenta        | Papel no projeto                                                   |
+| ----------------- | ------------------------------------------------------------------ |
+| Supabase          | Banco Postgres, autenticação, storage e RLS                        |
+| Sentry            | Monitoramento de erros e performance em produção                   |
+| SonarCloud        | Qualidade de codigo: cobertura, divida tecnica e inspecao estatica |
+| EAS Build         | Builds Android via Expo Application Services                       |
+| Firebase (FCM V1) | Transporte de push notifications Android via Expo Push API         |
+| Notion            | Roadmap e planejamento                                             |
 
 ## Instalacao
 
@@ -78,6 +78,7 @@ npm run build
 ## Testes
 
 ```bash
+npm run lint
 npm run typecheck
 npm test
 ```

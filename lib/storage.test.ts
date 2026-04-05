@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as fc from 'fast-check';
 
+import { prepareImageUpload, uploadImageToPublicBucket } from './storage';
+
 const resizeImageMock = vi.hoisted(() => vi.fn((uri: string) => Promise.resolve(uri)));
 const readImageAsArrayBufferMock = vi.hoisted(() => vi.fn());
 const inferImageExtensionMock = vi.hoisted(() => vi.fn());
@@ -32,8 +34,6 @@ const supabaseMock = vi.hoisted(() => ({
 vi.mock('./supabase', () => ({
   supabase: supabaseMock,
 }));
-
-import { prepareImageUpload, uploadImageToPublicBucket } from './storage';
 
 describe('storage', () => {
   beforeEach(() => {
@@ -70,7 +70,10 @@ describe('storage', () => {
 
       await prepareImageUpload('file:///photo.png', { maxDimension: 512, compress: 0.5 });
 
-      expect(resizeImageMock).toHaveBeenCalledWith('file:///photo.png', { maxDimension: 512, compress: 0.5 });
+      expect(resizeImageMock).toHaveBeenCalledWith('file:///photo.png', {
+        maxDimension: 512,
+        compress: 0.5,
+      });
     });
   });
 
@@ -97,14 +100,15 @@ describe('storage', () => {
       });
 
       expect(supabaseMock.storage.from).toHaveBeenCalledWith('premios');
-      expect(storageBucketMock.upload).toHaveBeenCalledWith(
-        'img/capa.jpg',
-        buffer,
-        { contentType: 'image/jpeg', upsert: true },
-      );
+      expect(storageBucketMock.upload).toHaveBeenCalledWith('img/capa.jpg', buffer, {
+        contentType: 'image/jpeg',
+        upsert: true,
+      });
       expect(result.error).toBeNull();
       expect(result.path).toBe('img/capa.jpg');
-      expect(result.publicUrl).toMatch(/^https:\/\/cdn\.example\.com\/bucket\/img\/capa\.jpg\?t=\d+$/);
+      expect(result.publicUrl).toMatch(
+        /^https:\/\/cdn\.example\.com\/bucket\/img\/capa\.jpg\?t=\d+$/,
+      );
     });
 
     it('respects upsert: false', async () => {

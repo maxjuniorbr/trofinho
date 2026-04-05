@@ -1,6 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 
+import {
+  createFamily,
+  getCurrentAuthUser,
+  getProfile,
+  signIn,
+  signOut,
+  signUp,
+  updateUserAvatar,
+  updateUserName,
+  updateUserPassword,
+} from './auth';
+
 const resizeImageMock = vi.hoisted(() => vi.fn((uri: string) => Promise.resolve(uri)));
 
 const fileArrayBufferMock = vi.hoisted(() => vi.fn());
@@ -29,7 +41,10 @@ const supabaseMock = vi.hoisted(() => {
     });
   };
 
-  const rpcFn: ReturnType<typeof vi.fn> & { _createResult: typeof createRpcResult } = Object.assign(vi.fn(), { _createResult: createRpcResult });
+  const rpcFn: ReturnType<typeof vi.fn> & { _createResult: typeof createRpcResult } = Object.assign(
+    vi.fn(),
+    { _createResult: createRpcResult },
+  );
 
   return {
     auth: {
@@ -73,30 +88,10 @@ vi.mock('./device-storage', () => ({
   deviceStorage: deviceStorageMock,
 }));
 
-import {
-  createFamily,
-  getCurrentAuthUser,
-  getProfile,
-  signIn,
-  signOut,
-  signUp,
-  updateUserAvatar,
-  updateUserName,
-  updateUserPassword,
-} from './auth';
-
 type QueryResult = {
   data?: unknown;
   error?: { message: string } | null;
 };
-
-function createMaybeSingleQuery(result: QueryResult) {
-  return {
-    eq: vi.fn().mockReturnThis(),
-    maybeSingle: vi.fn().mockResolvedValue(result),
-    select: vi.fn().mockReturnThis(),
-  };
-}
 
 function createUpdateQuery(result: QueryResult) {
   return {
@@ -134,7 +129,13 @@ describe('auth', () => {
   describe('getCurrentAuthUser', () => {
     it('returns email and avatarUrl when authenticated', async () => {
       supabaseMock.auth.getUser.mockResolvedValue({
-        data: { user: { id: 'u1', email: 'max@test.com', user_metadata: { avatar_url: 'https://avatar' } } },
+        data: {
+          user: {
+            id: 'u1',
+            email: 'max@test.com',
+            user_metadata: { avatar_url: 'https://avatar' },
+          },
+        },
         error: null,
       });
 
@@ -173,10 +174,18 @@ describe('auth', () => {
 
   it('signs in and returns the profile with avatar metadata', async () => {
     supabaseMock.auth.signInWithPassword.mockResolvedValue({ error: null });
-    supabaseMock.rpc.mockReturnValue(supabaseMock.rpc._createResult({
-      data: { id: 'user-1', familia_id: 'family-1', papel: 'admin', nome: 'Max', avatarUrl: 'https://avatar' },
-      error: null,
-    }));
+    supabaseMock.rpc.mockReturnValue(
+      supabaseMock.rpc._createResult({
+        data: {
+          id: 'user-1',
+          familia_id: 'family-1',
+          papel: 'admin',
+          nome: 'Max',
+          avatarUrl: 'https://avatar',
+        },
+        error: null,
+      }),
+    );
 
     const result = await signIn('max@example.com', mockPassword);
 
@@ -255,7 +264,9 @@ describe('auth', () => {
 
   it('returns null profile when the rpc fails or returns no data', async () => {
     supabaseMock.rpc
-      .mockReturnValueOnce(supabaseMock.rpc._createResult({ data: null, error: { message: 'rpc error' } }))
+      .mockReturnValueOnce(
+        supabaseMock.rpc._createResult({ data: null, error: { message: 'rpc error' } }),
+      )
       .mockReturnValueOnce(supabaseMock.rpc._createResult({ data: null, error: null }));
 
     await expect(getProfile()).resolves.toBeNull();
@@ -263,16 +274,18 @@ describe('auth', () => {
   });
 
   it('returns the child avatar from the rpc result', async () => {
-    supabaseMock.rpc.mockReturnValue(supabaseMock.rpc._createResult({
-      data: {
-        id: 'child-1',
-        familia_id: 'family-1',
-        papel: 'filho',
-        nome: 'Lia',
-        avatarUrl: 'https://cdn.example.com/child-avatar.jpg',
-      },
-      error: null,
-    }));
+    supabaseMock.rpc.mockReturnValue(
+      supabaseMock.rpc._createResult({
+        data: {
+          id: 'child-1',
+          familia_id: 'family-1',
+          papel: 'filho',
+          nome: 'Lia',
+          avatarUrl: 'https://cdn.example.com/child-avatar.jpg',
+        },
+        error: null,
+      }),
+    );
 
     await expect(getProfile()).resolves.toEqual({
       id: 'child-1',
@@ -286,9 +299,21 @@ describe('auth', () => {
   it('creates a family and translates rpc failures', async () => {
     supabaseMock.rpc
       .mockReturnValueOnce(supabaseMock.rpc._createResult({ data: 'family-1', error: null }))
-      .mockReturnValueOnce(supabaseMock.rpc._createResult({ data: null, error: { message: 'usuário já pertence a uma família' } }))
-      .mockReturnValueOnce(supabaseMock.rpc._createResult({ data: null, error: { message: 'usuário não autenticado' } }))
-      .mockReturnValueOnce(supabaseMock.rpc._createResult({ data: null, error: { message: 'unexpected db error' } }));
+      .mockReturnValueOnce(
+        supabaseMock.rpc._createResult({
+          data: null,
+          error: { message: 'usuário já pertence a uma família' },
+        }),
+      )
+      .mockReturnValueOnce(
+        supabaseMock.rpc._createResult({
+          data: null,
+          error: { message: 'usuário não autenticado' },
+        }),
+      )
+      .mockReturnValueOnce(
+        supabaseMock.rpc._createResult({ data: null, error: { message: 'unexpected db error' } }),
+      );
 
     await expect(createFamily('Silva', 'Max')).resolves.toEqual({
       familiaId: 'family-1',
@@ -320,9 +345,7 @@ describe('auth', () => {
     const updateErrorQuery = createUpdateQuery({ error: { message: 'cannot update' } });
     const updateSuccessQuery = createUpdateQuery({ error: null });
 
-    supabaseMock.from
-      .mockReturnValueOnce(updateErrorQuery)
-      .mockReturnValueOnce(updateSuccessQuery);
+    supabaseMock.from.mockReturnValueOnce(updateErrorQuery).mockReturnValueOnce(updateSuccessQuery);
 
     await expect(updateUserName('Novo Nome')).resolves.toEqual({
       error: { message: 'Sessão expirada. Faça login novamente.' },
@@ -372,7 +395,7 @@ describe('auth', () => {
     expect(storageBucketMock.upload).toHaveBeenCalledWith(
       'user-1/avatar.png',
       expect.any(ArrayBuffer),
-      { contentType: 'image/png', upsert: true }
+      { contentType: 'image/png', upsert: true },
     );
     expect(supabaseMock.auth.updateUser).toHaveBeenCalledWith({
       data: { avatar_url: 'https://cdn.example.com/user-1/avatar.png?t=1234' },
@@ -404,11 +427,10 @@ describe('auth', () => {
 
     const result = await updateUserAvatar('https://images.example.com/photo.webp');
 
-    expect(storageBucketMock.upload).toHaveBeenCalledWith(
-      'user-2/avatar.webp',
-      arrayBuffer,
-      { contentType: 'image/webp', upsert: true }
-    );
+    expect(storageBucketMock.upload).toHaveBeenCalledWith('user-2/avatar.webp', arrayBuffer, {
+      contentType: 'image/webp',
+      upsert: true,
+    });
     expect(result).toEqual({
       url: 'https://cdn.example.com/user-2/avatar.webp?t=5678',
       error: { message: 'Algo deu errado. Tente novamente.' },
@@ -479,7 +501,7 @@ describe('auth', () => {
           expect(result.error).not.toBeNull();
           expect(result.error!.message).toBe('Senha atual incorreta.');
         }),
-        { numRuns: 100 }
+        { numRuns: 100 },
       );
     });
   });
@@ -524,9 +546,9 @@ describe('auth', () => {
               password: newPassword,
             });
             expect(result).toEqual({ error: null });
-          }
+          },
         ),
-        { numRuns: 100 }
+        { numRuns: 100 },
       );
     });
   });

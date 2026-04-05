@@ -30,10 +30,7 @@ export default function EditTaskScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
 
-  const editState = useMemo(
-    () => (task ? getTaskEditState(task) : null),
-    [task],
-  );
+  const editState = useMemo(() => (task ? getTaskEditState(task) : null), [task]);
 
   // Populate form fields when task data first loads
   useEffect(() => {
@@ -84,26 +81,29 @@ export default function EditTaskScreen() {
       return;
     }
 
-    updateTaskMutation.mutate({
-      taskId: task.id,
-      input: {
-        titulo: title.trim(),
-        descricao: description.trim() || null,
-        pontos: editState.canEditPoints ? parsedPoints : task.pontos,
-        exige_evidencia: task.exige_evidencia,
+    updateTaskMutation.mutate(
+      {
+        taskId: task.id,
+        input: {
+          titulo: title.trim(),
+          descricao: description.trim() || null,
+          pontos: editState.canEditPoints ? parsedPoints : task.pontos,
+          exige_evidencia: task.exige_evidencia,
+        },
       },
-    }, {
-      onSuccess: () => {
-        setNavigationFeedback('admin-task-detail', 'Tarefa atualizada com sucesso.');
-        router.dismissTo({
-          pathname: '/(admin)/tasks/[id]',
-          params: { id: task.id },
-        });
+      {
+        onSuccess: () => {
+          setNavigationFeedback('admin-task-detail', 'Tarefa atualizada com sucesso.');
+          router.dismissTo({
+            pathname: '/(admin)/tasks/[id]',
+            params: { id: task.id },
+          });
+        },
+        onError: (err) => {
+          setFormError(err.message);
+        },
       },
-      onError: (err) => {
-        setFormError(err.message);
-      },
-    });
+    );
   };
 
   if (isLoading) {
@@ -121,7 +121,10 @@ export default function EditTaskScreen() {
         <StatusBar style={colors.statusBar} />
         <ScreenHeader title="Editar Tarefa" onBack={() => router.back()} backLabel="Detalhes" />
         <View style={styles.center}>
-          <EmptyState error={error?.message ?? 'Tarefa não encontrada.'} onRetry={() => refetch()} />
+          <EmptyState
+            error={error?.message ?? 'Tarefa não encontrada.'}
+            onRetry={() => refetch()}
+          />
         </View>
       </View>
     );
@@ -144,7 +147,7 @@ export default function EditTaskScreen() {
       keyboardAvoiding
       contentPadding={spacing['6']}
       contentGap={spacing['5']}
-      footer={(
+      footer={
         <FormFooter message={formError} compact includeSafeBottom={false}>
           <Button
             label="Salvar alterações"
@@ -154,17 +157,25 @@ export default function EditTaskScreen() {
             accessibilityLabel="Salvar alterações da tarefa"
           />
         </FormFooter>
-      )}
+      }
     >
       <StatusBar style={colors.statusBar} />
       {editState.infoMessage ? (
         <InlineMessage message={editState.infoMessage} variant="info" />
       ) : null}
 
-      <View style={[styles.assignedChildrenCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.default }]}>
-        <Text style={[styles.assignedChildrenTitle, { color: colors.text.primary }]}>Campos bloqueados neste marco</Text>
+      <View
+        style={[
+          styles.assignedChildrenCard,
+          { backgroundColor: colors.bg.surface, borderColor: colors.border.default },
+        ]}
+      >
+        <Text style={[styles.assignedChildrenTitle, { color: colors.text.primary }]}>
+          Campos bloqueados neste marco
+        </Text>
         <Text style={[styles.assignedChildrenText, { color: colors.text.secondary }]}>
-          Filhos atribuídos e frequência permanecem fixos para preservar o histórico e o escopo da tarefa.
+          Filhos atribuídos e frequência permanecem fixos para preservar o histórico e o escopo da
+          tarefa.
         </Text>
       </View>
 

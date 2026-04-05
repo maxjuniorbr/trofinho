@@ -1,23 +1,9 @@
-import {
-  Alert,
-  StyleSheet,
-  Text,
-  View,
-  Pressable,
-  RefreshControl,
-  Modal,
-} from 'react-native';
+import { Alert, StyleSheet, Text, View, Pressable, RefreshControl, Modal } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo } from 'react';
 import { useRouter } from 'expo-router';
-import {
-  Clock,
-  Trophy,
-  User,
-  CheckCircle2,
-  XCircle,
-} from 'lucide-react-native';
+import { Clock, Trophy, User, CheckCircle2, XCircle } from 'lucide-react-native';
 import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@lib/status';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
@@ -28,7 +14,12 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { ListFooter } from '@/components/ui/list-footer';
 import { formatDate } from '@lib/utils';
-import { useAdminRedemptions, useConfirmRedemption, useCancelRedemption, useProfile } from '@/hooks/queries';
+import {
+  useAdminRedemptions,
+  useConfirmRedemption,
+  useCancelRedemption,
+  useProfile,
+} from '@/hooks/queries';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 
 type ConfirmModalState = {
@@ -56,7 +47,16 @@ export default function AdminRedemptionsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const { data, isLoading, isFetching, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useAdminRedemptions();
+  const {
+    data,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useAdminRedemptions();
   const redemptions = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
   const { data: profile } = useProfile();
   const confirmMutation = useConfirmRedemption();
@@ -70,45 +70,91 @@ export default function AdminRedemptionsScreen() {
   const hasError = Boolean(error);
   const shouldShowEmptyState = isLoading || hasError || redemptions.length === 0;
 
-  const handleConfirm = (redemptionId: string, childName: string, childUserId: string | null, prizeName: string) => {
+  const handleConfirm = (
+    redemptionId: string,
+    childName: string,
+    childUserId: string | null,
+    prizeName: string,
+  ) => {
     setActionError(null);
     setActionSuccess(null);
-    setModal({ visible: true, type: 'confirm', redemptionId, childName, childUserId, prizeName, points: 0 });
+    setModal({
+      visible: true,
+      type: 'confirm',
+      redemptionId,
+      childName,
+      childUserId,
+      prizeName,
+      points: 0,
+    });
   };
 
-  const handleCancel = (redemptionId: string, childName: string, prizeName: string, points: number) => {
+  const handleCancel = (
+    redemptionId: string,
+    childName: string,
+    prizeName: string,
+    points: number,
+  ) => {
     setActionError(null);
     setActionSuccess(null);
-    setModal({ visible: true, type: 'cancel', redemptionId, childName, childUserId: null, prizeName, points });
+    setModal({
+      visible: true,
+      type: 'cancel',
+      redemptionId,
+      childName,
+      childUserId: null,
+      prizeName,
+      points,
+    });
   };
 
   const executeModalAction = (redemptionId: string, type: 'confirm' | 'cancel') => {
     setProcessingId(redemptionId);
 
     if (type === 'confirm') {
-      confirmMutation.mutate({
-        redemptionId,
-        opts: {
-          familiaId: profile!.familia_id,
-          userId: modal.childUserId,
-          prizeName: modal.prizeName,
+      confirmMutation.mutate(
+        {
+          redemptionId,
+          opts: {
+            familiaId: profile!.familia_id,
+            userId: modal.childUserId,
+            prizeName: modal.prizeName,
+          },
         },
-      }, {
-        onSuccess: () => { setProcessingId(null); setActionSuccess('Resgate confirmado com sucesso.'); },
-        onError: (err) => { setProcessingId(null); setActionError(err.message); },
-      });
+        {
+          onSuccess: () => {
+            setProcessingId(null);
+            setActionSuccess('Resgate confirmado com sucesso.');
+          },
+          onError: (err) => {
+            setProcessingId(null);
+            setActionError(err.message);
+          },
+        },
+      );
     } else {
-      cancelMutation.mutate({
-        redemptionId,
-        opts: modal.childUserId ? {
-          familiaId: profile!.familia_id,
-          userId: modal.childUserId,
-          prizeName: modal.prizeName,
-        } : undefined,
-      }, {
-        onSuccess: () => { setProcessingId(null); setActionSuccess('Resgate cancelado. Pontos estornados.'); },
-        onError: (err) => { setProcessingId(null); setActionError(err.message); },
-      });
+      cancelMutation.mutate(
+        {
+          redemptionId,
+          opts: modal.childUserId
+            ? {
+                familiaId: profile!.familia_id,
+                userId: modal.childUserId,
+                prizeName: modal.prizeName,
+              }
+            : undefined,
+        },
+        {
+          onSuccess: () => {
+            setProcessingId(null);
+            setActionSuccess('Resgate cancelado. Pontos estornados.');
+          },
+          onError: (err) => {
+            setProcessingId(null);
+            setActionError(err.message);
+          },
+        },
+      );
     }
   };
 
@@ -117,18 +163,14 @@ export default function AdminRedemptionsScreen() {
     setModal(MODAL_INITIAL);
 
     if (type === 'cancel') {
-      Alert.alert(
-        'Cancelar resgate?',
-        `Os ${points} pts debitados serão estornados.`,
-        [
-          { text: 'Voltar', style: 'cancel' },
-          {
-            text: 'Cancelar resgate',
-            style: 'destructive',
-            onPress: () => executeModalAction(redemptionId, type),
-          },
-        ],
-      );
+      Alert.alert('Cancelar resgate?', `Os ${points} pts debitados serão estornados.`, [
+        { text: 'Voltar', style: 'cancel' },
+        {
+          text: 'Cancelar resgate',
+          style: 'destructive',
+          onPress: () => executeModalAction(redemptionId, type),
+        },
+      ]);
       return;
     }
 
@@ -155,7 +197,13 @@ export default function AdminRedemptionsScreen() {
           data={redemptions}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
-          refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.brand.vivid} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={isFetching && !isLoading}
+              onRefresh={() => refetch()}
+              tintColor={colors.brand.vivid}
+            />
+          }
           ListHeaderComponent={
             <>
               <View style={{ height: spacing['4'] }} />
@@ -187,15 +235,27 @@ export default function AdminRedemptionsScreen() {
                 <View style={[styles.card, isPending && styles.cardPendente]}>
                   <View style={styles.cardTopo}>
                     <View style={{ flex: 1, gap: spacing['1'] }}>
-                    <Text style={[styles.premioNome, { color: colors.text.primary }]}>{item.premios.nome}</Text>
+                      <Text style={[styles.premioNome, { color: colors.text.primary }]}>
+                        {item.premios.nome}
+                      </Text>
                       <View style={styles.cardFilhoRow}>
                         <User size={12} color={colors.text.secondary} strokeWidth={2} />
                         <Text style={styles.cardFilho}>{item.filhos.nome}</Text>
                       </View>
                     </View>
                     <View>
-                      <View style={[styles.statusBadge, { backgroundColor: getRedemptionStatusColor(item.status, colors) + '22' }]}>
-                        <Text style={[styles.statusTexto, { color: getRedemptionStatusColor(item.status, colors) }]}>
+                      <View
+                        style={[
+                          styles.statusBadge,
+                          { backgroundColor: getRedemptionStatusColor(item.status, colors) + '22' },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.statusTexto,
+                            { color: getRedemptionStatusColor(item.status, colors) },
+                          ]}
+                        >
                           {getRedemptionStatusLabel(item.status)}
                         </Text>
                       </View>
@@ -211,11 +271,24 @@ export default function AdminRedemptionsScreen() {
                   {isPending ? (
                     <View style={styles.acoesRow}>
                       <Pressable
-                        style={({ pressed }) => [styles.botaoConfirmar, isProcessing && styles.botaoDesabilitado, pressed && !isProcessing && { opacity: 0.85 }]}
-                        onPress={() => handleConfirm(item.id, item.filhos.nome, item.filhos.usuario_id, item.premios.nome)}
+                        style={({ pressed }) => [
+                          styles.botaoConfirmar,
+                          isProcessing && styles.botaoDesabilitado,
+                          pressed && !isProcessing && { opacity: 0.85 },
+                        ]}
+                        onPress={() =>
+                          handleConfirm(
+                            item.id,
+                            item.filhos.nome,
+                            item.filhos.usuario_id,
+                            item.premios.nome,
+                          )
+                        }
                         disabled={isProcessing}
                       >
-                        {isProcessing ? <Text style={styles.botaoConfirmarTexto}>…</Text> : (
+                        {isProcessing ? (
+                          <Text style={styles.botaoConfirmarTexto}>…</Text>
+                        ) : (
                           <View style={styles.botaoInner}>
                             <CheckCircle2 size={14} color={colors.text.inverse} strokeWidth={2} />
                             <Text style={styles.botaoConfirmarTexto}>Confirmar</Text>
@@ -223,11 +296,24 @@ export default function AdminRedemptionsScreen() {
                         )}
                       </Pressable>
                       <Pressable
-                        style={({ pressed }) => [styles.botaoCancelar, isProcessing && styles.botaoDesabilitado, pressed && !isProcessing && { opacity: 0.85 }]}
-                        onPress={() => handleCancel(item.id, item.filhos.nome, item.premios.nome, item.pontos_debitados)}
+                        style={({ pressed }) => [
+                          styles.botaoCancelar,
+                          isProcessing && styles.botaoDesabilitado,
+                          pressed && !isProcessing && { opacity: 0.85 },
+                        ]}
+                        onPress={() =>
+                          handleCancel(
+                            item.id,
+                            item.filhos.nome,
+                            item.premios.nome,
+                            item.pontos_debitados,
+                          )
+                        }
                         disabled={isProcessing}
                       >
-                        {isProcessing ? <Text style={styles.botaoCancelarTexto}>…</Text> : (
+                        {isProcessing ? (
+                          <Text style={styles.botaoCancelarTexto}>…</Text>
+                        ) : (
                           <View style={styles.botaoInner}>
                             <XCircle size={14} color={colors.semantic.error} strokeWidth={2} />
                             <Text style={styles.botaoCancelarTexto}>Cancelar</Text>
@@ -240,7 +326,9 @@ export default function AdminRedemptionsScreen() {
               </>
             );
           }}
-          onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
+          onEndReached={() => {
+            if (hasNextPage) fetchNextPage();
+          }}
           onEndReachedThreshold={0.5}
           ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
         />
@@ -258,16 +346,16 @@ export default function AdminRedemptionsScreen() {
                 : `Cancelar o resgate de "${modal.prizeName}" de ${modal.childName}? Os ${modal.points} pts serão estornados.`}
             </Text>
             <View style={styles.modalBtns}>
-              <Pressable
-                style={styles.modalCancelBtn}
-                onPress={() => setModal(MODAL_INITIAL)}
-              >
+              <Pressable style={styles.modalCancelBtn} onPress={() => setModal(MODAL_INITIAL)}>
                 <Text style={styles.modalCancelBtnText}>Voltar</Text>
               </Pressable>
               <Pressable
                 style={[
                   styles.modalConfirmBtn,
-                  { backgroundColor: modal.type === 'confirm' ? colors.semantic.success : colors.semantic.error },
+                  {
+                    backgroundColor:
+                      modal.type === 'confirm' ? colors.semantic.success : colors.semantic.error,
+                  },
                 ]}
                 onPress={handleModalConfirm}
               >
@@ -289,7 +377,13 @@ function makeStyles(colors: ThemeColors) {
     lista: { paddingHorizontal: spacing['4'] },
     secaoHeader: { paddingVertical: spacing['2'] },
     secaoTituloRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
-    secaoTitulo: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.text.muted, textTransform: 'uppercase', letterSpacing: 0.5 },
+    secaoTitulo: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.bold,
+      color: colors.text.muted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
     card: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,
@@ -305,20 +399,68 @@ function makeStyles(colors: ThemeColors) {
     cardFilhoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     cardFilho: { fontSize: typography.size.xs, color: colors.text.secondary },
     alertaIcone: { fontSize: typography.size['2xl'], marginBottom: spacing['2'] },
-    statusBadge: { borderRadius: radii.md, borderCurve: 'continuous', paddingHorizontal: spacing['2'], paddingVertical: spacing['1'], alignSelf: 'flex-end' },
+    statusBadge: {
+      borderRadius: radii.md,
+      borderCurve: 'continuous',
+      paddingHorizontal: spacing['2'],
+      paddingVertical: spacing['1'],
+      alignSelf: 'flex-end',
+    },
     statusTexto: { fontSize: typography.size.xs, fontFamily: typography.family.bold },
-    cardData: { fontSize: typography.size.xs, color: colors.text.muted, textAlign: 'right', marginTop: spacing['1'] },
+    cardData: {
+      fontSize: typography.size.xs,
+      color: colors.text.muted,
+      textAlign: 'right',
+      marginTop: spacing['1'],
+    },
     cardPontosRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
-    cardPontos: { fontSize: typography.size.xs, fontFamily: typography.family.bold, color: colors.accent.admin },
+    cardPontos: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.bold,
+      color: colors.accent.admin,
+    },
     dataSolicitacao: { fontSize: typography.size.xs, color: colors.text.muted },
     acoesRow: { flexDirection: 'row', gap: spacing['2'], marginTop: spacing['1'] },
     botaoInner: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
-    botaoConfirmar: { flex: 1, backgroundColor: colors.semantic.success, borderRadius: radii.lg, borderCurve: 'continuous', paddingVertical: spacing['2'], alignItems: 'center', justifyContent: 'center', minHeight: 44 },
-    botaoConfirmarTexto: { color: colors.text.inverse, fontFamily: typography.family.bold, fontSize: typography.size.sm },
-    botaoCancelar: { flex: 1, borderRadius: radii.lg, borderCurve: 'continuous', borderWidth: 1.5, borderColor: colors.semantic.error, paddingVertical: spacing['2'], alignItems: 'center', justifyContent: 'center', minHeight: 44 },
-    botaoCancelarTexto: { color: colors.semantic.error, fontFamily: typography.family.bold, fontSize: typography.size.sm },
+    botaoConfirmar: {
+      flex: 1,
+      backgroundColor: colors.semantic.success,
+      borderRadius: radii.lg,
+      borderCurve: 'continuous',
+      paddingVertical: spacing['2'],
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 44,
+    },
+    botaoConfirmarTexto: {
+      color: colors.text.inverse,
+      fontFamily: typography.family.bold,
+      fontSize: typography.size.sm,
+    },
+    botaoCancelar: {
+      flex: 1,
+      borderRadius: radii.lg,
+      borderCurve: 'continuous',
+      borderWidth: 1.5,
+      borderColor: colors.semantic.error,
+      paddingVertical: spacing['2'],
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 44,
+    },
+    botaoCancelarTexto: {
+      color: colors.semantic.error,
+      fontFamily: typography.family.bold,
+      fontSize: typography.size.sm,
+    },
     botaoDesabilitado: { opacity: 0.5 },
-    modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.overlay.scrimSoft, padding: spacing['6'] },
+    modalOverlay: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.overlay.scrimSoft,
+      padding: spacing['6'],
+    },
     modalBox: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,
@@ -326,8 +468,16 @@ function makeStyles(colors: ThemeColors) {
       width: '100%',
       gap: spacing['4'],
     },
-    modalTitle: { fontSize: typography.size.lg, fontFamily: typography.family.bold, color: colors.text.primary },
-    modalMessage: { fontSize: typography.size.sm, color: colors.text.secondary, lineHeight: typography.lineHeight.md },
+    modalTitle: {
+      fontSize: typography.size.lg,
+      fontFamily: typography.family.bold,
+      color: colors.text.primary,
+    },
+    modalMessage: {
+      fontSize: typography.size.sm,
+      color: colors.text.secondary,
+      lineHeight: typography.lineHeight.md,
+    },
     modalBtns: { flexDirection: 'row', gap: spacing['3'] },
     modalCancelBtn: {
       flex: 1,
@@ -338,7 +488,11 @@ function makeStyles(colors: ThemeColors) {
       alignItems: 'center',
       minHeight: 48,
     },
-    modalCancelBtnText: { color: colors.text.secondary, fontFamily: typography.family.semibold, fontSize: typography.size.sm },
+    modalCancelBtnText: {
+      color: colors.text.secondary,
+      fontFamily: typography.family.semibold,
+      fontSize: typography.size.sm,
+    },
     modalConfirmBtn: {
       flex: 1,
       borderRadius: radii.xl,
@@ -346,6 +500,10 @@ function makeStyles(colors: ThemeColors) {
       alignItems: 'center',
       minHeight: 48,
     },
-    modalConfirmBtnText: { color: colors.text.inverse, fontFamily: typography.family.bold, fontSize: typography.size.sm },
+    modalConfirmBtnText: {
+      color: colors.text.inverse,
+      fontFamily: typography.family.bold,
+      fontSize: typography.size.sm,
+    },
   });
 }

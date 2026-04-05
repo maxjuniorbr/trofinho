@@ -17,7 +17,12 @@ import {
   type NewTaskInput,
   type UpdateTaskInput,
 } from '../../../lib/tasks';
-import { queryFnAdapter, mutationFnAdapter, paginatedQueryFnAdapter, type PaginatedPage } from './query-fn-adapter';
+import {
+  queryFnAdapter,
+  mutationFnAdapter,
+  paginatedQueryFnAdapter,
+  type PaginatedPage,
+} from './query-fn-adapter';
 import { queryKeys, STALE_TIMES, PAGE_SIZES } from './query-keys';
 
 export const useAdminTasks = () =>
@@ -25,8 +30,11 @@ export const useAdminTasks = () =>
     queryKey: queryKeys.tasks.lists(),
     queryFn: paginatedQueryFnAdapter(listAdminTasks, PAGE_SIZES.tasks),
     initialPageParam: 0,
-    getNextPageParam: (lastPage: PaginatedPage<unknown>, _allPages: unknown[], lastPageParam: number) =>
-      lastPage.hasMore ? lastPageParam + 1 : undefined,
+    getNextPageParam: (
+      lastPage: PaginatedPage<unknown>,
+      _allPages: unknown[],
+      lastPageParam: number,
+    ) => (lastPage.hasMore ? lastPageParam + 1 : undefined),
     staleTime: STALE_TIMES.tasks,
   });
 
@@ -48,8 +56,11 @@ export const useChildAssignments = () =>
       return { data: result.data, hasMore: result.hasMore };
     },
     initialPageParam: 0,
-    getNextPageParam: (lastPage: PaginatedPage<unknown>, _allPages: unknown[], lastPageParam: number) =>
-      lastPage.hasMore ? lastPageParam + 1 : undefined,
+    getNextPageParam: (
+      lastPage: PaginatedPage<unknown>,
+      _allPages: unknown[],
+      lastPageParam: number,
+    ) => (lastPage.hasMore ? lastPageParam + 1 : undefined),
     staleTime: STALE_TIMES.tasks,
   });
 
@@ -68,11 +79,13 @@ export const usePendingValidationCount = () =>
     staleTime: STALE_TIMES.tasks,
   });
 
-
 export const useCreateTask = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ input, opts }: {
+    mutationFn: ({
+      input,
+      opts,
+    }: {
       input: NewTaskInput;
       opts?: { familiaId: string; filhoIds: string[] };
     }) => mutationFnAdapter(() => createTask(input, opts))(),
@@ -96,11 +109,13 @@ export const useUpdateTask = () => {
 export const useApproveAssignment = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ assignmentId, opts }: {
+    mutationFn: ({
+      assignmentId,
+      opts,
+    }: {
       assignmentId: string;
       opts: { familiaId: string; userId?: string | null; taskTitle: string };
-    }) =>
-      mutationFnAdapter(() => approveAssignment(assignmentId, opts))(),
+    }) => mutationFnAdapter(() => approveAssignment(assignmentId, opts))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });
@@ -111,12 +126,15 @@ export const useApproveAssignment = () => {
 export const useRejectAssignment = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ assignmentId, note, opts }: {
+    mutationFn: ({
+      assignmentId,
+      note,
+      opts,
+    }: {
       assignmentId: string;
       note: string;
       opts: { familiaId: string; userId?: string | null; taskTitle: string };
-    }) =>
-      mutationFnAdapter(() => rejectAssignment(assignmentId, note, opts))(),
+    }) => mutationFnAdapter(() => rejectAssignment(assignmentId, note, opts))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
     },
@@ -139,12 +157,15 @@ export const useCancelAssignmentSubmission = () => {
 export const useCompleteAssignment = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ assignmentId, imageUri, opts }: {
+    mutationFn: ({
+      assignmentId,
+      imageUri,
+      opts,
+    }: {
       assignmentId: string;
       imageUri: string | null;
       opts: { familiaId: string; childName: string; taskTitle: string; taskId?: string };
-    }) =>
-      mutationFnAdapter(() => completeAssignment(assignmentId, imageUri, opts))(),
+    }) => mutationFnAdapter(() => completeAssignment(assignmentId, imageUri, opts))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
     },
@@ -168,8 +189,7 @@ export const useDeactivateTask = () => {
 export const useReactivateTask = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (taskId: string) =>
-      mutationFnAdapter(() => reactivateTask(taskId))(),
+    mutationFn: (taskId: string) => mutationFnAdapter(() => reactivateTask(taskId))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
     },

@@ -132,9 +132,12 @@ describe('createAuthStateHandler', () => {
     let resolveFirst: ((profile: UserProfile | null) => void) | undefined;
 
     getProfile
-      .mockImplementationOnce(() => new Promise((resolve) => {
-        resolveFirst = resolve;
-      }))
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve;
+          }),
+      )
       .mockResolvedValueOnce({
         id: 'user-2',
         familia_id: 'family-1',

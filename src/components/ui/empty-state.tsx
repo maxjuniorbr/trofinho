@@ -50,7 +50,9 @@ export function EmptyState({
             accessibilityRole="button"
             accessibilityLabel="Tentar novamente"
           >
-            <Text style={[styles.retryLabel, { color: colors.text.primary }]}>Tentar novamente</Text>
+            <Text style={[styles.retryLabel, { color: colors.text.primary }]}>
+              Tentar novamente
+            </Text>
           </Pressable>
         ) : null}
       </View>

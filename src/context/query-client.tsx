@@ -22,11 +22,7 @@ export function QueryProvider({ children }: Props) {
     return () => subscription.remove();
   }, []);
 
-  return (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
-  );
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }
 
 export { queryClient };

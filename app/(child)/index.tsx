@@ -13,12 +13,7 @@ import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'expo-router';
-import {
-  ClipboardList,
-  Gift,
-  ShoppingBag,
-  Wallet,
-} from 'lucide-react-native';
+import { ClipboardList, Gift, ShoppingBag, Wallet } from 'lucide-react-native';
 import { signOut } from '@lib/auth';
 import { getGreeting } from '@lib/utils';
 import { isNotificationPermissionDenied } from '@lib/notifications';
@@ -40,17 +35,16 @@ import { mascotImage, celebratingImage } from '@/constants/assets';
 
 import type { LucideIcon } from 'lucide-react-native';
 
-const CHILD_QUICK_ACTIONS: ReadonlyArray<{ icon: LucideIcon; label: string; rota: string }> = [
-  { icon: Gift,        label: 'Prêmios',  rota: '/(child)/prizes'      },
+const CHILD_QUICK_ACTIONS: readonly { icon: LucideIcon; label: string; rota: string }[] = [
+  { icon: Gift, label: 'Prêmios', rota: '/(child)/prizes' },
   { icon: ShoppingBag, label: 'Resgates', rota: '/(child)/redemptions' },
-  { icon: Wallet,      label: 'Saldo',    rota: '/(child)/balance'     },
+  { icon: Wallet, label: 'Saldo', rota: '/(child)/balance' },
 ];
 
-
 export default function FilhoHomeScreen() {
-  const router  = useRouter();
+  const router = useRouter();
   const { colors } = useTheme();
-  const styles  = useMemo(() => makeStyles(), []);
+  const styles = useMemo(() => makeStyles(), []);
 
   const profileQuery = useProfile();
   const profile = profileQuery.data ?? null;
@@ -59,7 +53,10 @@ export default function FilhoHomeScreen() {
   const family = familyQuery.data ?? null;
 
   const assignmentsQuery = useChildAssignments();
-  const assignments = useMemo(() => assignmentsQuery.data?.pages.flatMap((p) => p.data) ?? [], [assignmentsQuery.data]);
+  const assignments = useMemo(
+    () => assignmentsQuery.data?.pages.flatMap((p) => p.data) ?? [],
+    [assignmentsQuery.data],
+  );
 
   const balanceQuery = useBalance();
   const balanceData = balanceQuery.data ?? null;
@@ -121,7 +118,10 @@ export default function FilhoHomeScreen() {
       {
         text: 'Sair',
         style: 'destructive',
-        onPress: async () => { setLoggingOut(true); await signOut(); },
+        onPress: async () => {
+          setLoggingOut(true);
+          await signOut();
+        },
       },
     ]);
   };
@@ -155,120 +155,127 @@ export default function FilhoHomeScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
-
-      {error ? (
-        <View style={{ paddingHorizontal: spacing['4'], paddingTop: spacing['4'] }}>
-          <InlineMessage message="Não foi possível carregar todos os dados. Puxe para atualizar." variant="warning" />
-        </View>
-      ) : null}
-
-      <View style={styles.hero}>
-        <Text style={[styles.heroSub, { color: colors.text.secondary }]}>{getGreeting()} 🏆</Text>
-        <Text style={[styles.heroTitle, { color: colors.text.primary }]}>
-          Olá, {profile?.nome ?? 'Campeão'}!
-        </Text>
-        {family ? (
-          <Text style={[styles.heroFamily, { color: colors.accent.filho }]}>Família {family.nome}</Text>
+        {error ? (
+          <View style={{ paddingHorizontal: spacing['4'], paddingTop: spacing['4'] }}>
+            <InlineMessage
+              message="Não foi possível carregar todos os dados. Puxe para atualizar."
+              variant="warning"
+            />
+          </View>
         ) : null}
-      </View>
 
-      {showNotificationBanner ? <NotificationPermissionBanner /> : null}
-
-      <View style={styles.mascotContainer}>
-        <Image
-          source={hasPending ? mascotImage : celebratingImage}
-          style={styles.mascotImage}
-          contentFit="contain"
-          accessibilityLabel={hasPending ? 'Trofinho animado' : 'Trofinho celebrando'}
-        />
-        <Text style={[styles.mascotCaption, { color: colors.text.secondary }]}>
-          {hasPending ? 'Vamos conquistar o dia?' : 'Troféu conquistado! 🎉'}
-        </Text>
-      </View>
-
-      <View style={styles.balanceGrid}>
-        <View
-          style={[
-            styles.balanceCard,
-            { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-            shadows.goldGlow,
-          ]}
-          accessibilityLabel={`Saldo livre: ${freeBalance} pontos`}
-        >
-          <Text style={[styles.balanceLabel, { color: colors.text.secondary }]}>Livre</Text>
-          <PointsDisplay value={freeBalance} label="pontos" variant="gold" size="lg" />
-        </View>
-        <View
-          style={[
-            styles.balanceCard,
-            { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-            shadows.card,
-          ]}
-          accessibilityLabel={`Cofrinho: ${piggyBank} pontos`}
-        >
-          <Text style={[styles.balanceLabel, { color: colors.text.secondary }]}>Cofrinho</Text>
-          <PointsDisplay value={piggyBank} label="pontos" variant="amber" size="lg" />
-        </View>
-      </View>
-
-      <View style={{ width: '100%' }}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.tarefasCard,
-            {
-              backgroundColor: colors.bg.surface,
-              borderColor: hasPending ? withAlpha(colors.semantic.error, 0.31) : colors.border.subtle,
-            },
-            shadows.card,
-            pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
-          ]}
-          onPress={() => router.push('/(child)/tasks')}
-          accessibilityRole="button"
-          accessibilityLabel={hasPending ? `${pendingCount} tarefas pendentes` : 'Minhas Tarefas'}
-        >
-          <View style={[styles.tarefasIconBox, { backgroundColor: colors.accent.filhoBg }]}>
-            <ClipboardList size={22} color={colors.accent.filho} strokeWidth={1.5} />
-          </View>
-          <View style={styles.tarefasBody}>
-            <Text style={[styles.tarefasTitle, { color: colors.text.primary }]}>Minhas tarefas</Text>
-            <Text style={[styles.tarefasSub, { color: colors.text.secondary }]}>
-              {hasPending
-                ? `${pendingCount} ${pendingTaskLabel}`
-                : 'Tudo em dia!'}
+        <View style={styles.hero}>
+          <Text style={[styles.heroSub, { color: colors.text.secondary }]}>{getGreeting()} 🏆</Text>
+          <Text style={[styles.heroTitle, { color: colors.text.primary }]}>
+            Olá, {profile?.nome ?? 'Campeão'}!
+          </Text>
+          {family ? (
+            <Text style={[styles.heroFamily, { color: colors.accent.filho }]}>
+              Família {family.nome}
             </Text>
-          </View>
-          {hasPending ? (
-            <View style={[styles.pendenteBadge, { backgroundColor: colors.semantic.error }]}>
-              <Text style={[styles.pendenteBadgeText, { color: colors.text.inverse }]}>{pendingCount}</Text>
-            </View>
           ) : null}
-        </Pressable>
-      </View>
+        </View>
 
-      <View style={styles.quickGrid}>
-        {CHILD_QUICK_ACTIONS.map(({ icon: Icon, label, rota }) => (
-          <Pressable
-            key={rota}
-            style={({ pressed }) => [
-              styles.quickCard,
+        {showNotificationBanner ? <NotificationPermissionBanner /> : null}
+
+        <View style={styles.mascotContainer}>
+          <Image
+            source={hasPending ? mascotImage : celebratingImage}
+            style={styles.mascotImage}
+            contentFit="contain"
+            accessibilityLabel={hasPending ? 'Trofinho animado' : 'Trofinho celebrando'}
+          />
+          <Text style={[styles.mascotCaption, { color: colors.text.secondary }]}>
+            {hasPending ? 'Vamos conquistar o dia?' : 'Troféu conquistado! 🎉'}
+          </Text>
+        </View>
+
+        <View style={styles.balanceGrid}>
+          <View
+            style={[
+              styles.balanceCard,
+              { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+              shadows.goldGlow,
+            ]}
+            accessibilityLabel={`Saldo livre: ${freeBalance} pontos`}
+          >
+            <Text style={[styles.balanceLabel, { color: colors.text.secondary }]}>Livre</Text>
+            <PointsDisplay value={freeBalance} label="pontos" variant="gold" size="lg" />
+          </View>
+          <View
+            style={[
+              styles.balanceCard,
               { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
               shadows.card,
-              pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
             ]}
-            onPress={() => router.push(rota as never)}
-            accessibilityRole="button"
-            accessibilityLabel={label}
+            accessibilityLabel={`Cofrinho: ${piggyBank} pontos`}
           >
-            <View style={[styles.quickIconBox, { backgroundColor: colors.accent.filhoBg }]}>
-              <Icon size={22} color={colors.accent.filho} strokeWidth={1.5} />
+            <Text style={[styles.balanceLabel, { color: colors.text.secondary }]}>Cofrinho</Text>
+            <PointsDisplay value={piggyBank} label="pontos" variant="amber" size="lg" />
+          </View>
+        </View>
+
+        <View style={{ width: '100%' }}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.tarefasCard,
+              {
+                backgroundColor: colors.bg.surface,
+                borderColor: hasPending
+                  ? withAlpha(colors.semantic.error, 0.31)
+                  : colors.border.subtle,
+              },
+              shadows.card,
+              pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+            ]}
+            onPress={() => router.push('/(child)/tasks')}
+            accessibilityRole="button"
+            accessibilityLabel={hasPending ? `${pendingCount} tarefas pendentes` : 'Minhas Tarefas'}
+          >
+            <View style={[styles.tarefasIconBox, { backgroundColor: colors.accent.filhoBg }]}>
+              <ClipboardList size={22} color={colors.accent.filho} strokeWidth={1.5} />
             </View>
-            <Text style={[styles.quickLabel, { color: colors.text.primary }]}>{label}</Text>
+            <View style={styles.tarefasBody}>
+              <Text style={[styles.tarefasTitle, { color: colors.text.primary }]}>
+                Minhas tarefas
+              </Text>
+              <Text style={[styles.tarefasSub, { color: colors.text.secondary }]}>
+                {hasPending ? `${pendingCount} ${pendingTaskLabel}` : 'Tudo em dia!'}
+              </Text>
+            </View>
+            {hasPending ? (
+              <View style={[styles.pendenteBadge, { backgroundColor: colors.semantic.error }]}>
+                <Text style={[styles.pendenteBadgeText, { color: colors.text.inverse }]}>
+                  {pendingCount}
+                </Text>
+              </View>
+            ) : null}
           </Pressable>
-        ))}
-      </View>
+        </View>
 
-      <LogoutButton onPress={handleSignOut} loading={loggingOut} />
+        <View style={styles.quickGrid}>
+          {CHILD_QUICK_ACTIONS.map(({ icon: Icon, label, rota }) => (
+            <Pressable
+              key={rota}
+              style={({ pressed }) => [
+                styles.quickCard,
+                { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+                shadows.card,
+                pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
+              ]}
+              onPress={() => router.push(rota as never)}
+              accessibilityRole="button"
+              accessibilityLabel={label}
+            >
+              <View style={[styles.quickIconBox, { backgroundColor: colors.accent.filhoBg }]}>
+                <Icon size={22} color={colors.accent.filho} strokeWidth={1.5} />
+              </View>
+              <Text style={[styles.quickLabel, { color: colors.text.primary }]}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
 
+        <LogoutButton onPress={handleSignOut} loading={loggingOut} />
       </ScrollView>
     </SafeScreenFrame>
   );
@@ -276,44 +283,112 @@ export default function FilhoHomeScreen() {
 
 function makeStyles() {
   return StyleSheet.create({
-    loading:         { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    container:       { flexGrow: 1, alignItems: 'center', paddingHorizontal: spacing.screen },
+    loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    container: { flexGrow: 1, alignItems: 'center', paddingHorizontal: spacing.screen },
 
-    hero:            { alignItems: 'center', width: '100%', marginBottom: spacing['4'] },
-    heroSub:         { fontFamily: typography.family.bold, fontSize: typography.size.sm },
-    heroTitle:       { fontFamily: typography.family.black, fontSize: typography.size['3xl'], marginTop: spacing['1'], textAlign: 'center' },
-    heroFamily:      { fontFamily: typography.family.semibold, fontSize: typography.size.sm, marginTop: spacing['1'] },
+    hero: { alignItems: 'center', width: '100%', marginBottom: spacing['4'] },
+    heroSub: { fontFamily: typography.family.bold, fontSize: typography.size.sm },
+    heroTitle: {
+      fontFamily: typography.family.black,
+      fontSize: typography.size['3xl'],
+      marginTop: spacing['1'],
+      textAlign: 'center',
+    },
+    heroFamily: {
+      fontFamily: typography.family.semibold,
+      fontSize: typography.size.sm,
+      marginTop: spacing['1'],
+    },
 
     mascotContainer: { alignItems: 'center', marginBottom: spacing['6'] },
-    mascotImage:     { width: 120, height: 120 },
-    mascotCaption:   { fontFamily: typography.family.medium, fontSize: typography.size.sm, marginTop: spacing['2'] },
-
-    balanceGrid:     { flexDirection: 'row', gap: spacing['3'], width: '100%', marginBottom: spacing['4'] },
-    balanceCard:     {
-      flex: 1, borderRadius: radii.outer, borderWidth: 1,
-      padding: spacing['4'], alignItems: 'center', gap: spacing['2'],
+    mascotImage: { width: 120, height: 120 },
+    mascotCaption: {
+      fontFamily: typography.family.medium,
+      fontSize: typography.size.sm,
+      marginTop: spacing['2'],
     },
-    balanceLabel:    { fontFamily: typography.family.bold, fontSize: typography.size.xs, textTransform: 'uppercase', letterSpacing: 0.6 },
 
-    tarefasCard:     {
-      flexDirection: 'row', alignItems: 'center', gap: spacing['3'],
-      borderRadius: radii.outer, borderWidth: 1, padding: spacing['4'],
-      width: '100%', marginBottom: spacing['4'],
+    balanceGrid: {
+      flexDirection: 'row',
+      gap: spacing['3'],
+      width: '100%',
+      marginBottom: spacing['4'],
     },
-    tarefasIconBox:  { width: 44, height: 44, borderRadius: radii.md, alignItems: 'center' as const, justifyContent: 'center' as const },
-    tarefasBody:     { flex: 1 },
-    tarefasTitle:    { fontFamily: typography.family.bold, fontSize: typography.size.md },
-    tarefasSub:      { fontFamily: typography.family.medium, fontSize: typography.size.xs, marginTop: spacing['1'] },
-    pendenteBadge:   { width: 24, height: 24, borderRadius: radii.full, alignItems: 'center', justifyContent: 'center' },
+    balanceCard: {
+      flex: 1,
+      borderRadius: radii.outer,
+      borderWidth: 1,
+      padding: spacing['4'],
+      alignItems: 'center',
+      gap: spacing['2'],
+    },
+    balanceLabel: {
+      fontFamily: typography.family.bold,
+      fontSize: typography.size.xs,
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+    },
+
+    tarefasCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['3'],
+      borderRadius: radii.outer,
+      borderWidth: 1,
+      padding: spacing['4'],
+      width: '100%',
+      marginBottom: spacing['4'],
+    },
+    tarefasIconBox: {
+      width: 44,
+      height: 44,
+      borderRadius: radii.md,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    tarefasBody: { flex: 1 },
+    tarefasTitle: { fontFamily: typography.family.bold, fontSize: typography.size.md },
+    tarefasSub: {
+      fontFamily: typography.family.medium,
+      fontSize: typography.size.xs,
+      marginTop: spacing['1'],
+    },
+    pendenteBadge: {
+      width: 24,
+      height: 24,
+      borderRadius: radii.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     pendenteBadgeText: { fontFamily: typography.family.black, fontSize: typography.size.xs },
 
-    quickGrid:       { flexDirection: 'row', flexWrap: 'wrap', gap: spacing['3'], width: '100%', marginBottom: spacing['6'] },
-    quickCard:       {
-      flex: 1, minWidth: 90,
-      borderRadius: radii.inner, borderWidth: 1,
-      paddingVertical: spacing['4'], alignItems: 'center', gap: spacing['1'],
+    quickGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing['3'],
+      width: '100%',
+      marginBottom: spacing['6'],
     },
-    quickIconBox:    { width: 44, height: 44, borderRadius: radii.md, alignItems: 'center' as const, justifyContent: 'center' as const },
-    quickLabel:      { fontFamily: typography.family.bold, fontSize: typography.size.xs, textAlign: 'center' },
+    quickCard: {
+      flex: 1,
+      minWidth: 90,
+      borderRadius: radii.inner,
+      borderWidth: 1,
+      paddingVertical: spacing['4'],
+      alignItems: 'center',
+      gap: spacing['1'],
+    },
+    quickIconBox: {
+      width: 44,
+      height: 44,
+      borderRadius: radii.md,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    quickLabel: {
+      fontFamily: typography.family.bold,
+      fontSize: typography.size.xs,
+      textAlign: 'center',
+    },
   });
 }

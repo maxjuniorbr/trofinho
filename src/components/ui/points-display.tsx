@@ -12,14 +12,22 @@ interface PointsDisplayProps {
 
 type ReadonlyPointsDisplayProps = Readonly<PointsDisplayProps>;
 
-export function PointsDisplay({ value, label, variant = 'gold', size = 'sm' }: ReadonlyPointsDisplayProps) {
+export function PointsDisplay({
+  value,
+  label,
+  variant = 'gold',
+  size = 'sm',
+}: ReadonlyPointsDisplayProps) {
   const { colors } = useTheme();
 
   const valueColor = () => {
     switch (variant) {
-      case 'gold':  return colors.brand.vivid;
-      case 'amber': return colors.brand.dim;
-      default:      return colors.text.primary;
+      case 'gold':
+        return colors.brand.vivid;
+      case 'amber':
+        return colors.brand.dim;
+      default:
+        return colors.text.primary;
     }
   };
 
@@ -29,12 +37,7 @@ export function PointsDisplay({ value, label, variant = 'gold', size = 'sm' }: R
 
   return (
     <View style={styles.container}>
-      <Text
-        style={[
-          styles.value,
-          { color: valueColor(), fontSize: valueFontSize },
-        ]}
-      >
+      <Text style={[styles.value, { color: valueColor(), fontSize: valueFontSize }]}>
         {formatted}
       </Text>
       <Text style={[styles.label, { color: colors.text.secondary }]}>{label}</Text>

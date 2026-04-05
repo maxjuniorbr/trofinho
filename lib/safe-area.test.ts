@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  getSafeTopPadding,
-  getSafeBottomPadding,
-  getSafeHorizontalPadding,
-} from './safe-area';
+import { getSafeTopPadding, getSafeBottomPadding, getSafeHorizontalPadding } from './safe-area';
 
 describe('getSafeTopPadding', () => {
   it('returns inset top when no base padding', () => {

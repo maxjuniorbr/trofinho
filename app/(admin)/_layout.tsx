@@ -9,7 +9,9 @@ export default function AdminLayout() {
   const { data: profile } = useProfile();
   useTasksLiveSync(profile?.familia_id);
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg.canvas } }}>
+    <Stack
+      screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg.canvas } }}
+    >
       <Stack.Screen name="index" />
       <Stack.Screen name="tasks/index" />
       <Stack.Screen name="tasks/new" />

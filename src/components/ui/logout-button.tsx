@@ -13,7 +13,10 @@ export function LogoutButton({ onPress, loading }: LogoutButtonProps) {
 
   return (
     <Pressable
-      style={[styles.container, { borderColor: withAlpha(colors.semantic.error, 0.375), opacity: loading ? 0.55 : 1 }]}
+      style={[
+        styles.container,
+        { borderColor: withAlpha(colors.semantic.error, 0.375), opacity: loading ? 0.55 : 1 },
+      ]}
       onPress={onPress}
       disabled={loading}
       accessibilityRole="button"

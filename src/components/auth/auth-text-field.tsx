@@ -3,17 +3,13 @@ import { StyleSheet, Text, TextInput, type TextInputProps } from 'react-native';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 
-type AuthTextFieldProps = TextInputProps & Readonly<{
-  label: string;
-  focused: boolean;
-}>;
+type AuthTextFieldProps = TextInputProps &
+  Readonly<{
+    label: string;
+    focused: boolean;
+  }>;
 
-export function AuthTextField({
-  label,
-  focused,
-  style,
-  ...inputProps
-}: AuthTextFieldProps) {
+export function AuthTextField({ label, focused, style, ...inputProps }: AuthTextFieldProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(), []);
 
