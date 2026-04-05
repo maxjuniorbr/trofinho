@@ -210,7 +210,7 @@ export type Database = {
           filho_id: string
           id: string
           referencia_id: string | null
-          tipo: string
+          tipo: Database["public"]["Enums"]["movimentacao_tipo"]
           valor: number
         }
         Insert: {
@@ -219,7 +219,7 @@ export type Database = {
           filho_id: string
           id?: string
           referencia_id?: string | null
-          tipo: string
+          tipo: Database["public"]["Enums"]["movimentacao_tipo"]
           valor: number
         }
         Update: {
@@ -228,7 +228,7 @@ export type Database = {
           filho_id?: string
           id?: string
           referencia_id?: string | null
-          tipo?: string
+          tipo?: Database["public"]["Enums"]["movimentacao_tipo"]
           valor?: number
         }
         Relationships: [
@@ -321,7 +321,7 @@ export type Database = {
           id: string
           pontos_debitados: number
           premio_id: string
-          status: string
+          status: Database["public"]["Enums"]["resgate_status"]
           updated_at: string
         }
         Insert: {
@@ -330,7 +330,7 @@ export type Database = {
           id?: string
           pontos_debitados: number
           premio_id: string
-          status?: string
+          status?: Database["public"]["Enums"]["resgate_status"]
           updated_at?: string
         }
         Update: {
@@ -339,7 +339,7 @@ export type Database = {
           id?: string
           pontos_debitados?: number
           premio_id?: string
-          status?: string
+          status?: Database["public"]["Enums"]["resgate_status"]
           updated_at?: string
         }
         Relationships: [
@@ -464,7 +464,7 @@ export type Database = {
           id: string
           nome: string
           notif_prefs: Json
-          papel: string
+          papel: Database["public"]["Enums"]["usuario_papel"]
         }
         Insert: {
           created_at?: string
@@ -472,7 +472,7 @@ export type Database = {
           id: string
           nome: string
           notif_prefs?: Json
-          papel: string
+          papel: Database["public"]["Enums"]["usuario_papel"]
         }
         Update: {
           created_at?: string
@@ -480,7 +480,7 @@ export type Database = {
           id?: string
           nome?: string
           notif_prefs?: Json
-          papel?: string
+          papel?: Database["public"]["Enums"]["usuario_papel"]
         }
         Relationships: [
           {
@@ -540,30 +540,17 @@ export type Database = {
         Args: { filho_nome: string; filho_user_id: string }
         Returns: string
       }
-      criar_tarefa_com_atribuicoes:
-        | {
-            Args: {
-              p_descricao: string
-              p_exige_evidencia: boolean
-              p_filho_ids?: string[]
-              p_frequencia: Database["public"]["Enums"]["tarefa_frequencia"]
-              p_pontos: number
-              p_titulo: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_descricao: string
-              p_exige_evidencia: boolean
-              p_filho_ids?: string[]
-              p_pontos: number
-              p_timebox_fim: string
-              p_timebox_inicio: string
-              p_titulo: string
-            }
-            Returns: string
-          }
+      criar_tarefa_com_atribuicoes: {
+        Args: {
+          p_descricao: string
+          p_exige_evidencia: boolean
+          p_filho_ids?: string[]
+          p_frequencia: Database["public"]["Enums"]["tarefa_frequencia"]
+          p_pontos: number
+          p_titulo: string
+        }
+        Returns: string
+      }
       cron_sincronizar_valorizacoes: { Args: never; Returns: number }
       desativar_filho: { Args: { p_filho_id: string }; Returns: Json }
       desativar_premio: { Args: { p_premio_id: string }; Returns: number }
@@ -594,6 +581,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      excluir_minha_conta: { Args: never; Returns: undefined }
       garantir_atribuicoes_diarias: { Args: never; Returns: undefined }
       limpar_auth_user_orfao: {
         Args: { p_user_id: string }
@@ -639,12 +627,10 @@ export type Database = {
         Args: { p_filho_id: string; p_valor: number }
         Returns: undefined
       }
-      upsert_push_token:
-        | { Args: { p_token: string }; Returns: undefined }
-        | {
-            Args: { p_device_id?: string; p_token: string }
-            Returns: undefined
-          }
+      upsert_push_token: {
+        Args: { p_device_id?: string; p_token: string }
+        Returns: undefined
+      }
       usuario_autenticado_id: { Args: never; Returns: string }
       usuario_e_admin: { Args: never; Returns: boolean }
       validar_filho_da_familia: {
@@ -667,8 +653,18 @@ export type Database = {
         | "aguardando_validacao"
         | "aprovada"
         | "rejeitada"
+      movimentacao_tipo:
+        | "credito"
+        | "debito"
+        | "transferencia_cofrinho"
+        | "valorizacao"
+        | "penalizacao"
+        | "resgate"
+        | "estorno_resgate"
       periodo_valorizacao: "diario" | "semanal" | "mensal"
+      resgate_status: "pendente" | "confirmado" | "cancelado"
       tarefa_frequencia: "diaria" | "unica"
+      usuario_papel: "admin" | "filho"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -805,8 +801,19 @@ export const Constants = {
         "aprovada",
         "rejeitada",
       ],
+      movimentacao_tipo: [
+        "credito",
+        "debito",
+        "transferencia_cofrinho",
+        "valorizacao",
+        "penalizacao",
+        "resgate",
+        "estorno_resgate",
+      ],
       periodo_valorizacao: ["diario", "semanal", "mensal"],
+      resgate_status: ["pendente", "confirmado", "cancelado"],
       tarefa_frequencia: ["diaria", "unica"],
+      usuario_papel: ["admin", "filho"],
     },
   },
 } as const
