@@ -9,6 +9,9 @@ import {
   resolveTokens,
   validateRequest,
   buildMessage,
+  isEventAllowedForRole,
+  ADMIN_ONLY_EVENTS,
+  FILHO_ONLY_EVENTS,
   type SupabaseClientLike,
   type ExpoTicketResult,
   type ExpoPushMessage,
@@ -46,6 +49,7 @@ function createMockSupabase(overrides?: {
   selectUsuariosResult?: { data: Record<string, unknown>[] | null; error: unknown };
   selectTokensResult?: { data: Record<string, unknown>[] | null; error: unknown };
   callerFamiliaId?: string;
+  callerPapel?: string;
   authGetUserResult?: { data: { user: { id: string } | null }; error: unknown };
 }) {
   const deleteMock = vi.fn().mockReturnValue({
@@ -53,11 +57,14 @@ function createMockSupabase(overrides?: {
   });
 
   const callerFamiliaId = overrides?.callerFamiliaId ?? 'fam-1';
+  const callerPapel = overrides?.callerPapel ?? 'admin';
 
   const authMock = {
-    getUser: vi.fn().mockResolvedValue(
-      overrides?.authGetUserResult ?? { data: { user: { id: 'user-1' } }, error: null },
-    ),
+    getUser: vi
+      .fn()
+      .mockResolvedValue(
+        overrides?.authGetUserResult ?? { data: { user: { id: 'user-1' } }, error: null },
+      ),
   };
 
   const fromMock = vi.fn().mockImplementation((table: string) => {
@@ -65,9 +72,14 @@ function createMockSupabase(overrides?: {
       return {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnThis(),
-          in: vi.fn().mockResolvedValue(
-            overrides?.selectTokensResult ?? { data: [{ token: 'ExponentPushToken[abc]' }], error: null },
-          ),
+          in: vi
+            .fn()
+            .mockResolvedValue(
+              overrides?.selectTokensResult ?? {
+                data: [{ token: 'ExponentPushToken[abc]' }],
+                error: null,
+              },
+            ),
         }),
         delete: deleteMock,
       };
@@ -77,8 +89,11 @@ function createMockSupabase(overrides?: {
     return {
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockImplementation(() => {
-          const secondEqResult = overrides?.selectUsuariosResult ?? { data: [{ id: 'user-1' }], error: null };
-          const firstEqResult = { data: [{ familia_id: callerFamiliaId }], error: null };
+          const secondEqResult = overrides?.selectUsuariosResult ?? {
+            data: [{ id: 'user-1' }],
+            error: null,
+          };
+          const firstEqResult = { data: [{ familia_id: callerFamiliaId, papel: callerPapel }], error: null };
           // Wrap in a real Promise so the object is a proper thenable
           // (avoids S7739: "Do not add then to an object").
           const promise = Promise.resolve(firstEqResult);
@@ -88,7 +103,9 @@ function createMockSupabase(overrides?: {
         }),
         in: vi.fn().mockResolvedValue(
           overrides?.selectUsuariosResult ?? {
-            data: [{ id: 'user-1', notif_prefs: { tarefaConcluida: true, resgatesSolicitado: true } }],
+            data: [
+              { id: 'user-1', notif_prefs: { tarefaConcluida: true, resgatesSolicitado: true } },
+            ],
             error: null,
           },
         ),
@@ -96,7 +113,11 @@ function createMockSupabase(overrides?: {
     };
   });
 
-  return { auth: authMock, from: fromMock, _deleteMock: deleteMock } as unknown as SupabaseClientLike & { _deleteMock: ReturnType<typeof vi.fn> };
+  return {
+    auth: authMock,
+    from: fromMock,
+    _deleteMock: deleteMock,
+  } as unknown as SupabaseClientLike & { _deleteMock: ReturnType<typeof vi.fn> };
 }
 
 // ─── sendToExpoPushApi ───────────────────────────────────────────────────────
@@ -125,9 +146,7 @@ describe('sendToExpoPushApi', () => {
   });
 
   it('throws when the Expo Push API returns a non-OK status', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response('Server Error', { status: 500 }),
-    );
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('Server Error', { status: 500 }));
 
     await expect(sendToExpoPushApi([makeMessage('token')])).rejects.toThrow(
       'Expo Push API returned HTTP 500',
@@ -156,10 +175,7 @@ describe('processTicketResults', () => {
 
   it('deletes tokens with DeviceNotRegistered error', async () => {
     const supabase = createMockSupabase();
-    const tickets: ExpoTicketResult[] = [
-      okTicket(),
-      errorTicket('DeviceNotRegistered'),
-    ];
+    const tickets: ExpoTicketResult[] = [okTicket(), errorTicket('DeviceNotRegistered')];
     const tokens = ['token-ok', 'token-dead'];
 
     const result = await processTicketResults(supabase, tickets, tokens);
@@ -272,10 +288,7 @@ describe('handleRequest — Expo Push API integration', () => {
     const supabase = createMockSupabase();
 
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(
-        JSON.stringify({ data: [okTicket()] }),
-        { status: 200 },
-      ),
+      new Response(JSON.stringify({ data: [okTicket()] }), { status: 200 }),
     );
 
     const req = makeReq({
@@ -285,7 +298,7 @@ describe('handleRequest — Expo Push API integration', () => {
     });
 
     const res = await handleRequest(req, makeDeps(supabase));
-    const json = await res.json() as PushNotificationResponse;
+    const json = (await res.json()) as PushNotificationResponse;
 
     expect(res.status).toBe(200);
     expect(json.sent).toBe(1);
@@ -317,7 +330,7 @@ describe('handleRequest — Expo Push API integration', () => {
     });
 
     const res = await handleRequest(req, makeDeps(supabase));
-    const json = await res.json() as PushNotificationResponse;
+    const json = (await res.json()) as PushNotificationResponse;
 
     expect(res.status).toBe(200);
     expect(json).toEqual({ sent: 1, failed: 1, cleaned: 1 });
@@ -337,7 +350,7 @@ describe('handleRequest — Expo Push API integration', () => {
     });
 
     const res = await handleRequest(req, makeDeps(supabase));
-    const json = await res.json() as PushNotificationResponse;
+    const json = (await res.json()) as PushNotificationResponse;
 
     expect(res.status).toBe(200);
     expect(json).toEqual({ sent: 0, failed: 0, cleaned: 0 });
@@ -357,7 +370,7 @@ describe('handleRequest — Expo Push API integration', () => {
     });
 
     const res = await handleRequest(req, makeDeps(supabase));
-    const json = await res.json() as { error: string };
+    const json = (await res.json()) as { error: string };
 
     expect(res.status).toBe(500);
     expect(json.error).toBe('Internal error');
@@ -375,7 +388,7 @@ describe('handleRequest — Expo Push API integration', () => {
     });
 
     const res = await handleRequest(req, makeDeps(supabase));
-    const json = await res.json() as { error: string };
+    const json = (await res.json()) as { error: string };
 
     expect(res.status).toBe(401);
     expect(json.error).toBe('Unauthorized');
@@ -391,7 +404,39 @@ describe('handleRequest — Expo Push API integration', () => {
     });
 
     const res = await handleRequest(req, makeDeps(supabase));
-    const json = await res.json() as { error: string };
+    const json = (await res.json()) as { error: string };
+
+    expect(res.status).toBe(403);
+    expect(json.error).toBe('Forbidden');
+  });
+
+  it('returns HTTP 403 when filho tries to trigger an admin-only event', async () => {
+    const supabase = createMockSupabase({ callerPapel: 'filho' });
+
+    const req = makeReq({
+      event: 'tarefa_aprovada',
+      familiaId: 'fam-1',
+      payload: { userId: 'user-1', taskTitle: 'Test' },
+    });
+
+    const res = await handleRequest(req, makeDeps(supabase));
+    const json = (await res.json()) as { error: string };
+
+    expect(res.status).toBe(403);
+    expect(json.error).toBe('Forbidden');
+  });
+
+  it('returns HTTP 403 when admin tries to trigger a filho-only event', async () => {
+    const supabase = createMockSupabase({ callerPapel: 'admin' });
+
+    const req = makeReq({
+      event: 'tarefa_concluida',
+      familiaId: 'fam-1',
+      payload: { childName: 'Luna', taskTitle: 'Test' },
+    });
+
+    const res = await handleRequest(req, makeDeps(supabase));
+    const json = (await res.json()) as { error: string };
 
     expect(res.status).toBe(403);
     expect(json.error).toBe('Forbidden');
@@ -404,7 +449,10 @@ describe('handleRequest — error paths', () => {
   const SERVICE_KEY = 'test-service-role-key';
   const FAKE_JWT = 'valid-test-token';
 
-  const makeDeps = (supabase: SupabaseClientLike, overrides?: Partial<HandlerDeps>): HandlerDeps => ({
+  const makeDeps = (
+    supabase: SupabaseClientLike,
+    overrides?: Partial<HandlerDeps>,
+  ): HandlerDeps => ({
     getServiceRoleKey: () => SERVICE_KEY,
     getSupabaseUrl: () => 'https://test.supabase.co',
     createSupabaseClient: () => supabase,
@@ -421,7 +469,10 @@ describe('handleRequest — error paths', () => {
       body: body ? JSON.stringify(body) : undefined,
     }) as unknown as Request;
 
-  const makeReqWithHeaders = (headers: Record<string, string>, body?: Record<string, unknown>): Request =>
+  const makeReqWithHeaders = (
+    headers: Record<string, string>,
+    body?: Record<string, unknown>,
+  ): Request =>
     new Request('https://localhost/send-push-notification', {
       method: 'POST',
       headers,
@@ -435,7 +486,7 @@ describe('handleRequest — error paths', () => {
   it('returns HTTP 405 for non-POST methods', async () => {
     const supabase = createMockSupabase();
     const res = await handleRequest(makeReqWithMethod('GET'), makeDeps(supabase));
-    const json = await res.json() as { error: string };
+    const json = (await res.json()) as { error: string };
 
     expect(res.status).toBe(405);
     expect(json.error).toBe('Method not allowed');
@@ -449,7 +500,7 @@ describe('handleRequest — error paths', () => {
     );
 
     const res = await handleRequest(req, makeDeps(supabase));
-    const json = await res.json() as { error: string };
+    const json = (await res.json()) as { error: string };
 
     expect(res.status).toBe(401);
     expect(json.error).toBe('Unauthorized');
@@ -465,7 +516,7 @@ describe('handleRequest — error paths', () => {
 
     const deps = makeDeps(supabase, { getServiceRoleKey: () => undefined });
     const res = await handleRequest(req, deps);
-    const json = await res.json() as { error: string };
+    const json = (await res.json()) as { error: string };
 
     expect(res.status).toBe(500);
     expect(json.error).toBe('Internal error');
@@ -484,7 +535,7 @@ describe('handleRequest — error paths', () => {
     }) as unknown as Request;
 
     const res = await handleRequest(req, makeDeps(supabase));
-    const json = await res.json() as { error: string };
+    const json = (await res.json()) as { error: string };
 
     expect(res.status).toBe(413);
     expect(json.error).toBe('Payload too large');
@@ -502,7 +553,7 @@ describe('handleRequest — error paths', () => {
     }) as unknown as Request;
 
     const res = await handleRequest(req, makeDeps(supabase));
-    const json = await res.json() as { error: string };
+    const json = (await res.json()) as { error: string };
 
     expect(res.status).toBe(400);
     expect(json.error).toBe('Invalid request body');
@@ -517,7 +568,7 @@ describe('handleRequest — error paths', () => {
     });
 
     const res = await handleRequest(req, makeDeps(supabase));
-    const json = await res.json() as { error: string };
+    const json = (await res.json()) as { error: string };
 
     expect(res.status).toBe(400);
     expect(json.error).toBe('Invalid request body');
@@ -544,7 +595,7 @@ describe('handleRequest — error paths', () => {
     });
 
     const res = await handleRequest(req, makeDeps(supabase));
-    const json = await res.json() as { error: string };
+    const json = (await res.json()) as { error: string };
 
     expect(res.status).toBe(401);
     expect(json.error).toBe('Unauthorized');
@@ -570,7 +621,7 @@ describe('handleRequest — error paths', () => {
     });
 
     const res = await handleRequest(req, makeDeps(supabase));
-    const json = await res.json() as { error: string };
+    const json = (await res.json()) as { error: string };
 
     expect(res.status).toBe(401);
     expect(json.error).toBe('Unauthorized');
@@ -582,12 +633,10 @@ describe('handleRequest — error paths', () => {
 describe('resolveRecipientUserIds — error paths', () => {
   it('returns [] when filhoIds is empty', async () => {
     const supabase = createMockSupabase();
-    const result = await resolveRecipientUserIds(
-      supabase,
-      'tarefa_criada',
-      'fam-1',
-      { filhoIds: [], taskTitle: 'Test' },
-    );
+    const result = await resolveRecipientUserIds(supabase, 'tarefa_criada', 'fam-1', {
+      filhoIds: [],
+      taskTitle: 'Test',
+    });
     expect(result).toEqual([]);
   });
 
@@ -599,12 +648,10 @@ describe('resolveRecipientUserIds — error paths', () => {
       }),
     }) as SupabaseClientLike['from'];
 
-    const result = await resolveRecipientUserIds(
-      supabase,
-      'tarefa_criada',
-      'fam-1',
-      { filhoIds: ['f-1'], taskTitle: 'Test' },
-    );
+    const result = await resolveRecipientUserIds(supabase, 'tarefa_criada', 'fam-1', {
+      filhoIds: ['f-1'],
+      taskTitle: 'Test',
+    });
     expect(result).toEqual([]);
   });
 
@@ -619,23 +666,19 @@ describe('resolveRecipientUserIds — error paths', () => {
       }),
     }) as SupabaseClientLike['from'];
 
-    const result = await resolveRecipientUserIds(
-      supabase,
-      'tarefa_criada',
-      'fam-1',
-      { filhoIds: ['f-1', 'f-2', 'f-3'], taskTitle: 'Test' },
-    );
+    const result = await resolveRecipientUserIds(supabase, 'tarefa_criada', 'fam-1', {
+      filhoIds: ['f-1', 'f-2', 'f-3'],
+      taskTitle: 'Test',
+    });
     expect(result).toEqual(['u-1', 'u-3']);
   });
 
   it('returns [] for child event when userId is missing', async () => {
     const supabase = createMockSupabase();
-    const result = await resolveRecipientUserIds(
-      supabase,
-      'tarefa_aprovada',
-      'fam-1',
-      { userId: '', taskTitle: 'Test' } as EventPayload,
-    );
+    const result = await resolveRecipientUserIds(supabase, 'tarefa_aprovada', 'fam-1', {
+      userId: '',
+      taskTitle: 'Test',
+    } as EventPayload);
     expect(result).toEqual([]);
   });
 
@@ -644,12 +687,10 @@ describe('resolveRecipientUserIds — error paths', () => {
       selectUsuariosResult: { data: null, error: { message: 'DB error' } },
     });
 
-    const result = await resolveRecipientUserIds(
-      supabase,
-      'resgate_solicitado',
-      'fam-1',
-      { childName: 'Ana', prizeName: 'Bici' },
-    );
+    const result = await resolveRecipientUserIds(supabase, 'resgate_solicitado', 'fam-1', {
+      childName: 'Ana',
+      prizeName: 'Bici',
+    });
     expect(result).toEqual([]);
   });
 });
@@ -659,12 +700,10 @@ describe('resolveRecipientUserIds — error paths', () => {
 describe('resolveTokens — error paths', () => {
   it('returns [] when no recipient user IDs are resolved', async () => {
     const supabase = createMockSupabase();
-    const result = await resolveTokens(
-      supabase,
-      'tarefa_criada',
-      'fam-1',
-      { filhoIds: [], taskTitle: 'Test' },
-    );
+    const result = await resolveTokens(supabase, 'tarefa_criada', 'fam-1', {
+      filhoIds: [],
+      taskTitle: 'Test',
+    });
     expect(result).toEqual([]);
   });
 
@@ -695,12 +734,10 @@ describe('resolveTokens — error paths', () => {
       return createMockSupabase().from(table);
     }) as SupabaseClientLike['from'];
 
-    const result = await resolveTokens(
-      supabase,
-      'resgate_solicitado',
-      'fam-1',
-      { childName: 'Ana', prizeName: 'Bici' },
-    );
+    const result = await resolveTokens(supabase, 'resgate_solicitado', 'fam-1', {
+      childName: 'Ana',
+      prizeName: 'Bici',
+    });
     expect(result).toEqual([]);
   });
 
@@ -731,12 +768,10 @@ describe('resolveTokens — error paths', () => {
       return createMockSupabase().from(table);
     }) as SupabaseClientLike['from'];
 
-    const result = await resolveTokens(
-      supabase,
-      'resgate_solicitado',
-      'fam-1',
-      { childName: 'Ana', prizeName: 'Bici' },
-    );
+    const result = await resolveTokens(supabase, 'resgate_solicitado', 'fam-1', {
+      childName: 'Ana',
+      prizeName: 'Bici',
+    });
     expect(result).toEqual([]);
   });
 
@@ -745,12 +780,10 @@ describe('resolveTokens — error paths', () => {
       selectTokensResult: { data: null, error: { message: 'DB error' } },
     });
 
-    const result = await resolveTokens(
-      supabase,
-      'tarefa_aprovada',
-      'fam-1',
-      { userId: 'user-1', taskTitle: 'Test' },
-    );
+    const result = await resolveTokens(supabase, 'tarefa_aprovada', 'fam-1', {
+      userId: 'user-1',
+      taskTitle: 'Test',
+    });
     expect(result).toEqual([]);
   });
 });
@@ -1004,27 +1037,39 @@ describe('Property 4: Request body validation', () => {
   // 1. Valid bodies should always be accepted
   it('accepts any body with a valid event, non-empty familiaId, and payload object', () => {
     fc.assert(
-      fc.property(validEventArb, nonEmptyStringArb, payloadObjectArb, (event, familiaId, payload) => {
-        const result = validateRequest({ event, familiaId, payload });
-        expect(result.valid).toBe(true);
-        if (result.valid) {
-          expect(result.data.event).toBe(event);
-          expect(result.data.familiaId).toBe(familiaId);
-        }
-      }),
+      fc.property(
+        validEventArb,
+        nonEmptyStringArb,
+        payloadObjectArb,
+        (event, familiaId, payload) => {
+          const result = validateRequest({ event, familiaId, payload });
+          expect(result.valid).toBe(true);
+          if (result.valid) {
+            expect(result.data.event).toBe(event);
+            expect(result.data.familiaId).toBe(familiaId);
+          }
+        },
+      ),
       { numRuns: 100 },
     );
   });
 
   // 2. Invalid event strings should always be rejected
   it('rejects any body with an invalid event string', () => {
-    const invalidEventArb = fc.string().filter((s) => !(VALID_EVENTS as readonly string[]).includes(s));
+    const invalidEventArb = fc
+      .string()
+      .filter((s) => !(VALID_EVENTS as readonly string[]).includes(s));
 
     fc.assert(
-      fc.property(invalidEventArb, nonEmptyStringArb, payloadObjectArb, (event, familiaId, payload) => {
-        const result = validateRequest({ event, familiaId, payload });
-        expect(result.valid).toBe(false);
-      }),
+      fc.property(
+        invalidEventArb,
+        nonEmptyStringArb,
+        payloadObjectArb,
+        (event, familiaId, payload) => {
+          const result = validateRequest({ event, familiaId, payload });
+          expect(result.valid).toBe(false);
+        },
+      ),
       { numRuns: 100 },
     );
   });
@@ -1108,10 +1153,7 @@ describe('Property 5: Recipient resolution by event type', () => {
     'resgate_confirmado',
   );
 
-  const adminEventArb = fc.constantFrom<PushEvent>(
-    'resgate_solicitado',
-    'tarefa_concluida',
-  );
+  const adminEventArb = fc.constantFrom<PushEvent>('resgate_solicitado', 'tarefa_concluida');
 
   const uuidArb = fc.uuid();
   const familiaIdArb = fc.uuid();
@@ -1120,7 +1162,12 @@ describe('Property 5: Recipient resolution by event type', () => {
     await fc.assert(
       fc.asyncProperty(childEventArb, uuidArb, familiaIdArb, async (event, userId, familiaId) => {
         const supabase = createMockSupabase();
-        const payload = { userId, taskTitle: 'any-task', prizeName: 'any-prize', childName: 'any-child' };
+        const payload = {
+          userId,
+          taskTitle: 'any-task',
+          prizeName: 'any-prize',
+          childName: 'any-child',
+        };
 
         const result = await resolveRecipientUserIds(supabase, event, familiaId, payload);
 
@@ -1177,51 +1224,59 @@ describe('Property 6: Message template correctness', () => {
   const nonEmptyStrArb = fc.string({ minLength: 1 }).filter((s) => s.trim().length > 0);
 
   // Generator that produces a valid (event, payload) pair with the right shape
-  const eventPayloadArb: fc.Arbitrary<{ event: PushEvent; payload: EventPayload; interpolatedValues: string[] }> =
-    fc.oneof(
-      // tarefa_aprovada: { userId, taskTitle }
-      fc.record({ userId: fc.uuid(), taskTitle: nonEmptyStrArb }).map((p) => ({
-        event: 'tarefa_aprovada' as PushEvent,
-        payload: p as EventPayload,
-        interpolatedValues: [p.taskTitle],
-      })),
-      // tarefa_rejeitada: { userId, taskTitle }
-      fc.record({ userId: fc.uuid(), taskTitle: nonEmptyStrArb }).map((p) => ({
-        event: 'tarefa_rejeitada' as PushEvent,
-        payload: p as EventPayload,
-        interpolatedValues: [p.taskTitle],
-      })),
-      // resgate_confirmado: { userId, prizeName }
-      fc.record({ userId: fc.uuid(), prizeName: nonEmptyStrArb }).map((p) => ({
-        event: 'resgate_confirmado' as PushEvent,
-        payload: p as EventPayload,
-        interpolatedValues: [p.prizeName],
-      })),
-      // resgate_cancelado: { userId, prizeName }
-      fc.record({ userId: fc.uuid(), prizeName: nonEmptyStrArb }).map((p) => ({
-        event: 'resgate_cancelado' as PushEvent,
-        payload: p as EventPayload,
-        interpolatedValues: [p.prizeName],
-      })),
-      // resgate_solicitado: { childName, prizeName }
-      fc.record({ childName: nonEmptyStrArb, prizeName: nonEmptyStrArb }).map((p) => ({
-        event: 'resgate_solicitado' as PushEvent,
-        payload: p as EventPayload,
-        interpolatedValues: [p.childName, p.prizeName],
-      })),
-      // tarefa_criada: { filhoIds, taskTitle }
-      fc.record({ filhoIds: fc.array(fc.uuid(), { minLength: 1, maxLength: 3 }), taskTitle: nonEmptyStrArb }).map((p) => ({
+  const eventPayloadArb: fc.Arbitrary<{
+    event: PushEvent;
+    payload: EventPayload;
+    interpolatedValues: string[];
+  }> = fc.oneof(
+    // tarefa_aprovada: { userId, taskTitle }
+    fc.record({ userId: fc.uuid(), taskTitle: nonEmptyStrArb }).map((p) => ({
+      event: 'tarefa_aprovada' as PushEvent,
+      payload: p as EventPayload,
+      interpolatedValues: [p.taskTitle],
+    })),
+    // tarefa_rejeitada: { userId, taskTitle }
+    fc.record({ userId: fc.uuid(), taskTitle: nonEmptyStrArb }).map((p) => ({
+      event: 'tarefa_rejeitada' as PushEvent,
+      payload: p as EventPayload,
+      interpolatedValues: [p.taskTitle],
+    })),
+    // resgate_confirmado: { userId, prizeName }
+    fc.record({ userId: fc.uuid(), prizeName: nonEmptyStrArb }).map((p) => ({
+      event: 'resgate_confirmado' as PushEvent,
+      payload: p as EventPayload,
+      interpolatedValues: [p.prizeName],
+    })),
+    // resgate_cancelado: { userId, prizeName }
+    fc.record({ userId: fc.uuid(), prizeName: nonEmptyStrArb }).map((p) => ({
+      event: 'resgate_cancelado' as PushEvent,
+      payload: p as EventPayload,
+      interpolatedValues: [p.prizeName],
+    })),
+    // resgate_solicitado: { childName, prizeName }
+    fc.record({ childName: nonEmptyStrArb, prizeName: nonEmptyStrArb }).map((p) => ({
+      event: 'resgate_solicitado' as PushEvent,
+      payload: p as EventPayload,
+      interpolatedValues: [p.childName, p.prizeName],
+    })),
+    // tarefa_criada: { filhoIds, taskTitle }
+    fc
+      .record({
+        filhoIds: fc.array(fc.uuid(), { minLength: 1, maxLength: 3 }),
+        taskTitle: nonEmptyStrArb,
+      })
+      .map((p) => ({
         event: 'tarefa_criada' as PushEvent,
         payload: p as EventPayload,
         interpolatedValues: [p.taskTitle],
       })),
-      // tarefa_concluida: { childName, taskTitle }
-      fc.record({ childName: nonEmptyStrArb, taskTitle: nonEmptyStrArb }).map((p) => ({
-        event: 'tarefa_concluida' as PushEvent,
-        payload: p as EventPayload,
-        interpolatedValues: [p.childName, p.taskTitle],
-      })),
-    );
+    // tarefa_concluida: { childName, taskTitle }
+    fc.record({ childName: nonEmptyStrArb, taskTitle: nonEmptyStrArb }).map((p) => ({
+      event: 'tarefa_concluida' as PushEvent,
+      payload: p as EventPayload,
+      interpolatedValues: [p.childName, p.taskTitle],
+    })),
+  );
 
   it('sound is always "default" for any event and valid payload', () => {
     fc.assert(
@@ -1282,7 +1337,6 @@ describe('Property 6: Message template correctness', () => {
     expect(msg.data.entityId).toBeUndefined();
   });
 });
-
 
 /**
  * Feature: push-notifications, Property 7: Response summary accuracy
@@ -1399,7 +1453,8 @@ describe('Property 9: Token cleanup on DeviceNotRegistered only', () => {
   // Helper: generate tickets + matching tokens of the same length
   const withMatchingTokens = (ticketsArb: fc.Arbitrary<ExpoTicketResult[]>) =>
     ticketsArb.chain((tickets) =>
-      fc.array(fc.uuid(), { minLength: tickets.length, maxLength: tickets.length })
+      fc
+        .array(fc.uuid(), { minLength: tickets.length, maxLength: tickets.length })
         .map((tokens) => ({ tickets, tokens })),
     );
 
@@ -1442,7 +1497,10 @@ describe('Property 9: Token cleanup on DeviceNotRegistered only', () => {
 
   it('mixed tickets → cleaned equals exactly the count of DeviceNotRegistered errors', async () => {
     const mixedArb = withMatchingTokens(
-      fc.array(fc.oneof(okTicketArb, dnrTicketArb, otherErrorTicketArb), { minLength: 1, maxLength: 20 }),
+      fc.array(fc.oneof(okTicketArb, dnrTicketArb, otherErrorTicketArb), {
+        minLength: 1,
+        maxLength: 20,
+      }),
     );
 
     await fc.assert(
@@ -1462,7 +1520,10 @@ describe('Property 9: Token cleanup on DeviceNotRegistered only', () => {
 
   it('only DeviceNotRegistered tokens are passed to the delete call', async () => {
     const mixedArb = withMatchingTokens(
-      fc.array(fc.oneof(okTicketArb, dnrTicketArb, otherErrorTicketArb), { minLength: 1, maxLength: 20 }),
+      fc.array(fc.oneof(okTicketArb, dnrTicketArb, otherErrorTicketArb), {
+        minLength: 1,
+        maxLength: 20,
+      }),
     );
 
     await fc.assert(
@@ -1472,7 +1533,9 @@ describe('Property 9: Token cleanup on DeviceNotRegistered only', () => {
 
         const expectedDeletedTokens = tickets
           .map((t, i) => ({ ticket: t, token: tokens[i] }))
-          .filter((x) => x.ticket.status === 'error' && x.ticket.details?.error === 'DeviceNotRegistered')
+          .filter(
+            (x) => x.ticket.status === 'error' && x.ticket.details?.error === 'DeviceNotRegistered',
+          )
           .map((x) => x.token);
 
         if (expectedDeletedTokens.length === 0) {
@@ -1484,5 +1547,38 @@ describe('Property 9: Token cleanup on DeviceNotRegistered only', () => {
       }),
       { numRuns: 100 },
     );
+  });
+});
+
+// ─── isEventAllowedForRole ─────────────────────────────────────────────────
+
+describe('isEventAllowedForRole', () => {
+  it('allows admin-only events for admin', () => {
+    for (const event of ADMIN_ONLY_EVENTS) {
+      expect(isEventAllowedForRole(event, 'admin')).toBe(true);
+    }
+  });
+
+  it('blocks admin-only events for filho', () => {
+    for (const event of ADMIN_ONLY_EVENTS) {
+      expect(isEventAllowedForRole(event, 'filho')).toBe(false);
+    }
+  });
+
+  it('allows filho-only events for filho', () => {
+    for (const event of FILHO_ONLY_EVENTS) {
+      expect(isEventAllowedForRole(event, 'filho')).toBe(true);
+    }
+  });
+
+  it('blocks filho-only events for admin', () => {
+    for (const event of FILHO_ONLY_EVENTS) {
+      expect(isEventAllowedForRole(event, 'admin')).toBe(false);
+    }
+  });
+
+  it('allows resgate_cancelado for both roles', () => {
+    expect(isEventAllowedForRole('resgate_cancelado', 'admin')).toBe(true);
+    expect(isEventAllowedForRole('resgate_cancelado', 'filho')).toBe(true);
   });
 });
