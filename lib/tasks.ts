@@ -61,7 +61,9 @@ function assignmentPriority(atribuicoes: { status: AssignmentStatus }[]): number
 }
 
 export function sortAdminTasks(tasks: TaskListItem[], sort: AdminTaskSort): TaskListItem[] {
-  if (sort === 'newest_first') return tasks.slice();
+  if (sort === 'newest_first') {
+    return tasks.slice().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
   return tasks.slice().sort((a, b) => assignmentPriority(a.atribuicoes) - assignmentPriority(b.atribuicoes));
 }
 
@@ -131,7 +133,7 @@ export type AssignmentCompletionState = Readonly<{
 
 export async function createTask(
   input: NewTaskInput,
-  opts?: { familiaId: string; taskTitle: string; filhoIds: string[] },
+  opts?: { familiaId: string; filhoIds: string[] },
 ): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('criar_tarefa_com_atribuicoes', {
     p_titulo: input.titulo,
@@ -145,7 +147,7 @@ export async function createTask(
   if (error) return { error: localizeRpcError(error.message) };
   if (opts) {
     dispatchPushNotification('tarefa_criada', opts.familiaId, {
-      taskTitle: opts.taskTitle,
+      taskTitle: input.titulo,
       filhoIds: opts.filhoIds,
     });
   }
@@ -438,8 +440,7 @@ export function getTaskEditState(
 
   const hasCompletedAssignment = task.atribuicoes.some((assignment) =>
     assignment.status === 'aguardando_validacao' ||
-    assignment.status === 'aprovada' ||
-    assignment.concluida_em !== null,
+    assignment.status === 'aprovada',
   );
 
   if (hasCompletedAssignment) {
@@ -496,7 +497,11 @@ export function buildTaskDeactivateMessage(
   const awaitingCount = assignments.filter(a => a.status === 'aguardando_validacao').length;
 
   if (pendingCount > 0) {
-    parts.push(`${pendingCount} atribuição(ões) pendente(s) será(ão) cancelada(s).`);
+    parts.push(
+      pendingCount === 1
+        ? '1 atribuição pendente será cancelada.'
+        : `${pendingCount} atribuições pendentes serão canceladas.`,
+    );
   }
 
   if (task.frequencia === 'diaria') {
@@ -504,7 +509,11 @@ export function buildTaskDeactivateMessage(
   }
 
   if (awaitingCount > 0) {
-    parts.push(`${awaitingCount} atribuição(ões) aguardando validação será(ão) mantida(s).`);
+    parts.push(
+      awaitingCount === 1
+        ? '1 atribuição aguardando validação será mantida.'
+        : `${awaitingCount} atribuições aguardando validação serão mantidas.`,
+    );
   }
 
   return parts.length > 0

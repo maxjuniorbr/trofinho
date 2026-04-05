@@ -67,16 +67,20 @@ export async function readImageAsArrayBuffer(imageUri: string): Promise<ArrayBuf
     }
   }
 
-  const fetchWithTimeout = (): Promise<Response> => {
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error('Tempo esgotado ao carregar imagem')), FETCH_TIMEOUT_MS);
-      fetch(imageUri)
-        .then((res) => { clearTimeout(timer); resolve(res); })
-        .catch((err) => { clearTimeout(timer); reject(err); });
-    });
-  };
-
-  const response = await fetchWithTimeout();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  let response: Response;
+  try {
+    response = await fetch(imageUri, { signal: controller.signal as RequestInit['signal'] });
+  } catch (err) {
+    clearTimeout(timer);
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error('Tempo esgotado ao carregar imagem');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!response.ok) {
     throw new Error('Não foi possível ler a imagem selecionada');

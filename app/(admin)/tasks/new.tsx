@@ -48,6 +48,7 @@ export default function NewTaskScreen() {
     if (!titulo.trim()) return setError('Informe o título da tarefa.');
     const pontosNum = Number.parseInt(pontos, 10);
     if (Number.isNaN(pontosNum) || pontosNum <= 0) return setError('Pontos deve ser um número maior que zero.');
+    if (pontosNum > 99999) return setError('Pontos deve ser no máximo 99.999.');
     if (selected.size === 0) return setError('Selecione pelo menos um filho para atribuir a tarefa.');
 
     const filhoIds = Array.from(selected);
@@ -58,7 +59,6 @@ export default function NewTaskScreen() {
       },
       opts: profile ? {
         familiaId: profile.familia_id,
-        taskTitle: titulo.trim(),
         filhoIds,
       } : undefined,
     }, {

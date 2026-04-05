@@ -63,6 +63,16 @@ vi.mock('./supabase', () => ({
   supabase: supabaseMock,
 }));
 
+const deviceStorageMock = vi.hoisted(() => ({
+  getItem: vi.fn().mockResolvedValue(null),
+  setItem: vi.fn().mockResolvedValue(undefined),
+  removeItem: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('./device-storage', () => ({
+  deviceStorage: deviceStorageMock,
+}));
+
 import {
   createFamily,
   getCurrentAuthUser,
@@ -214,13 +224,14 @@ describe('auth', () => {
     expect(supabaseMock.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
   });
 
-  it('deletes push tokens before signing out', async () => {
+  it('deletes push tokens for current device before signing out', async () => {
     supabaseMock.auth.getUser.mockResolvedValue({
       data: { user: { id: 'user-1' } },
     });
+    deviceStorageMock.getItem.mockResolvedValue('device-abc');
     const deleteQuery = {
       delete: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockResolvedValue({ error: null }),
+      eq: vi.fn().mockReturnThis(),
     };
     supabaseMock.from.mockReturnValue(deleteQuery);
     supabaseMock.auth.signOut.mockResolvedValue({});
@@ -229,6 +240,7 @@ describe('auth', () => {
 
     expect(supabaseMock.from).toHaveBeenCalledWith('push_tokens');
     expect(deleteQuery.eq).toHaveBeenCalledWith('user_id', 'user-1');
+    expect(deleteQuery.eq).toHaveBeenCalledWith('device_id', 'device-abc');
     expect(supabaseMock.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
   });
 

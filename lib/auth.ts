@@ -1,4 +1,5 @@
 import { localizeRpcError, localizeSupabaseError } from './api-error';
+import { deviceStorage } from './device-storage';
 import { uploadImageToPublicBucket } from './storage';
 import { supabase } from './supabase';
 
@@ -59,7 +60,12 @@ export async function signOut(): Promise<void> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      await supabase.from('push_tokens').delete().eq('user_id', user.id);
+      const deviceId = await deviceStorage.getItem('device_id');
+      let query = supabase.from('push_tokens').delete().eq('user_id', user.id);
+      if (deviceId) {
+        query = query.eq('device_id', deviceId);
+      }
+      await query;
     }
   } catch {
     // Best-effort cleanup — do not block sign-out
@@ -74,18 +80,12 @@ export async function getProfile(): Promise<UserProfile | null> {
 
   if (error || !data) return null;
 
-  const profile = data as unknown as {
-    id: string;
-    familia_id: string;
-    papel: 'admin' | 'filho';
-    nome: string;
-    avatarUrl: string | null;
-  };
+  const profile = data as { id: string; familia_id: string; papel: string; nome: string; avatarUrl: string | null };
 
   return {
     id: profile.id,
     familia_id: profile.familia_id,
-    papel: profile.papel,
+    papel: profile.papel as 'admin' | 'filho',
     nome: profile.nome,
     avatarUrl: profile.avatarUrl ?? null,
   };

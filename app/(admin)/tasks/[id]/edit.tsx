@@ -74,6 +74,11 @@ export default function EditTaskScreen() {
       return;
     }
 
+    if (parsedPoints > 99999) {
+      setFormError('Pontos deve ser no máximo 99.999.');
+      return;
+    }
+
     if (!editState.canEdit) {
       setFormError(editState.errorMessage);
       return;
