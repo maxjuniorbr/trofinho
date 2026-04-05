@@ -1,0 +1,7 @@
+node_modules
+.expo
+android
+ios
+src/types/database.types.ts
+supabase/migrations
+supabase/seed.sql
