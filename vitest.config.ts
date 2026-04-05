@@ -44,7 +44,9 @@ export default defineConfig({
         'src/components/ui/notification-permission-banner.tsx',
         'src/components/ui/sticky-footer-screen.tsx',
         'src/components/tasks/**',
-        'src/hooks/**',
+        'src/hooks/use-transient-message.ts',
+        'src/hooks/queries/index.ts',
+        'src/hooks/queries/use-*.ts',
         'app/**/_layout.tsx',
       ],
       thresholds: {
