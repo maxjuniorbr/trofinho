@@ -4,7 +4,8 @@ import * as Sentry from '@sentry/react-native';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
-import { useFonts,
+import {
+  useFonts,
   Nunito_500Medium,
   Nunito_600SemiBold,
   Nunito_700Bold,
@@ -22,6 +23,7 @@ import {
 } from '@lib/notifications';
 import { ThemeProvider, useTheme } from '@/context/theme-context';
 import { QueryProvider, queryClient } from '@/context/query-client';
+import { OfflineBanner } from '@/components/ui/offline-banner';
 
 const navigationIntegration = Sentry.reactNavigationIntegration({
   enableTimeToInitialDisplay: !isRunningInExpoGo(),
@@ -70,9 +72,9 @@ function RootLayout() {
       onSignOut: () => queryClient.clear(),
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      authStateHandler.handleAuthStateChange,
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(authStateHandler.handleAuthStateChange);
 
     return () => {
       authStateHandler.dispose();
@@ -131,7 +133,9 @@ function RootNavigator({
           setPushToken(token);
         }
         if (!token) {
-          console.warn('[push-token] registerForPushNotifications returned null — token not obtained');
+          console.warn(
+            '[push-token] registerForPushNotifications returned null — token not obtained',
+          );
         }
       } catch (error) {
         console.warn('[push-token] Exception during push registration:', error);
@@ -242,18 +246,34 @@ function RootNavigator({
 
   if (!ready || !fontsLoaded) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg.canvas }}>
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: colors.bg.canvas,
+        }}
+      >
         <ActivityIndicator size="large" color={colors.brand.vivid} />
       </View>
     );
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false, animation: 'none', contentStyle: { backgroundColor: colors.bg.canvas } }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(admin)" />
-      <Stack.Screen name="(child)" />
-    </Stack>
+    <View style={{ flex: 1 }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: 'none',
+          contentStyle: { backgroundColor: colors.bg.canvas },
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(admin)" />
+        <Stack.Screen name="(child)" />
+      </Stack>
+      <OfflineBanner />
+    </View>
   );
 }
