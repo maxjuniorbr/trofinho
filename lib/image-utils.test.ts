@@ -10,7 +10,8 @@ vi.mock('expo-image-manipulator', () => ({
   SaveFormat: { JPEG: 'jpeg' },
 }));
 
-import { inferImageExtension, inferImageContentType, extractErrorMessage, resizeImage, readImageAsArrayBuffer } from './image-utils';
+import { extractErrorMessage } from './api-error';
+import { inferImageExtension, inferImageContentType, resizeImage, readImageAsArrayBuffer } from './image-utils';
 import { ImageManipulator } from 'expo-image-manipulator';
 
 describe('resizeImage', () => {

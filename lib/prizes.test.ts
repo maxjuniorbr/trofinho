@@ -27,20 +27,22 @@ vi.mock('./push', () => ({
 }));
 
 import {
-  cancelRedemption,
-  confirmRedemption,
-  countPendingRedemptions,
   createPrize,
   deactivatePrize,
   getPrize,
   listActivePrizes,
-  listChildRedemptions,
   listPrizes,
-  listRedemptions,
   reactivatePrize,
-  requestRedemption,
   updatePrize,
 } from './prizes';
+import {
+  cancelRedemption,
+  confirmRedemption,
+  countPendingRedemptions,
+  listChildRedemptions,
+  listRedemptions,
+  requestRedemption,
+} from './redemptions';
 import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@lib/status';
 
 type QueryResult = {

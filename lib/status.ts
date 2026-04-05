@@ -1,5 +1,5 @@
 import type { ThemeColors } from '@/constants/colors';
-import type { RedemptionStatus } from '@lib/prizes';
+import type { RedemptionStatus } from '@lib/redemptions';
 import type { AssignmentStatus } from '@lib/tasks';
 
 export function getAssignmentStatusLabel(status: AssignmentStatus): string {

@@ -28,7 +28,7 @@ vi.mock('@tanstack/react-query', () => {
   };
 });
 
-vi.mock('../../../../lib/prizes', () => ({
+vi.mock('../../../../lib/redemptions', () => ({
   listRedemptions: vi.fn().mockResolvedValue({ data: [], error: null }),
   listChildRedemptions: vi.fn().mockResolvedValue({ data: [], error: null }),
   confirmRedemption: vi.fn().mockResolvedValue({ error: null }),
@@ -36,7 +36,7 @@ vi.mock('../../../../lib/prizes', () => ({
   requestRedemption: vi.fn().mockResolvedValue({ data: 'ok', error: null }),
 }));
 
-import * as prizesLib from '../../../../lib/prizes';
+import * as redemptionsLib from '../../../../lib/redemptions';
 import * as rq from '@tanstack/react-query';
 
 type CapturedStore = { options: Record<string, unknown>[] };
@@ -61,7 +61,7 @@ describe('use-redemptions query hooks', () => {
       useAdminRedemptions();
       const qf = lastQueryOpts().queryFn as (ctx: { pageParam: number }) => Promise<unknown>;
       await qf({ pageParam: 0 });
-      expect(prizesLib.listRedemptions).toHaveBeenCalled();
+      expect(redemptionsLib.listRedemptions).toHaveBeenCalled();
     });
 
     it('useChildRedemptions queryFn calls listChildRedemptions', async () => {
@@ -69,7 +69,7 @@ describe('use-redemptions query hooks', () => {
       useChildRedemptions();
       const qf = lastQueryOpts().queryFn as (ctx: { pageParam: number }) => Promise<unknown>;
       await qf({ pageParam: 0 });
-      expect(prizesLib.listChildRedemptions).toHaveBeenCalled();
+      expect(redemptionsLib.listChildRedemptions).toHaveBeenCalled();
     });
 
     it('useAdminRedemptions uses correct query key and staleTime', async () => {

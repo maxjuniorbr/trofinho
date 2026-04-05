@@ -1,7 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 import { localizeRpcError } from './api-error';
 import { supabase } from './supabase';
-import type { Child } from './tasks';
+
+export type Child = {
+  id: string;
+  nome: string;
+  usuario_id: string | null;
+  avatar_url?: string | null;
+  ativo: boolean;
+};
 
 export type AdminChildProfile = Child & {
   avatar_url: string | null;

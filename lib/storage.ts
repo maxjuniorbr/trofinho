@@ -1,5 +1,5 @@
+import { extractErrorMessage } from './api-error';
 import {
-  extractErrorMessage,
   inferImageContentType,
   inferImageExtension,
   readImageAsArrayBuffer,
