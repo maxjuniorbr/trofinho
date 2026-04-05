@@ -4,30 +4,38 @@ import { lightColors } from '@/constants/theme';
 
 process.env.EXPO_PUBLIC_SUPABASE_URL ??= 'https://example.supabase.co';
 process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??= 'example-anon-key';
-(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 type Props = Record<string, unknown> & { children?: React.ReactNode };
 
 function createIcon(name: string) {
-  return React.forwardRef((props: Record<string, unknown>, ref: React.ForwardedRef<unknown>) =>
-    React.createElement(name, { ...props, ref }));
+  const Icon = React.forwardRef(function Icon(
+    props: Record<string, unknown>,
+    ref: React.ForwardedRef<unknown>,
+  ) {
+    return React.createElement(name, { ...props, ref });
+  });
+  Icon.displayName = `Icon(${name})`;
+  return Icon;
 }
 
 function createHostComponent(name: string) {
-  return React.forwardRef(function HostComponent(
-    props: Props,
-    ref: React.ForwardedRef<unknown>
-  ) {
+  return React.forwardRef(function HostComponent(props: Props, ref: React.ForwardedRef<unknown>) {
     return React.createElement(name, { ...props, ref }, props.children);
   });
 }
 
 function flattenStyle(style: unknown): Record<string, unknown> {
   if (Array.isArray(style)) {
-    return style.reduce<Record<string, unknown>>((acc, item) => ({
-      ...acc,
-      ...flattenStyle(item),
-    }), {});
+    return style.reduce<Record<string, unknown>>(
+      (acc, item) => ({
+        ...acc,
+        ...flattenStyle(item),
+      }),
+      {},
+    );
   }
 
   if (style && typeof style === 'object') {
@@ -113,25 +121,25 @@ class AnimatedValue {
 }
 
 vi.mock('react-native', () => ({
-    ActivityIndicator: createHostComponent('ActivityIndicator'),
-    Animated: {
-      View: createHostComponent('Animated.View'),
-      Value: AnimatedValue,
-      parallel: vi.fn(() => ({ start: vi.fn() })),
-      spring: vi.fn(() => ({})),
-      timing: vi.fn(() => ({})),
-    },
-    Image: createHostComponent('Image'),
-    KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
-    Pressable: createHostComponent('Pressable'),
-    ScrollView: createHostComponent('ScrollView'),
-    StyleSheet: {
-      create: <T,>(styles: T) => styles,
-      flatten: flattenStyle,
-    },
-    Text: createHostComponent('Text'),
-    TextInput: createHostComponent('TextInput'),
-    View: createHostComponent('View'),
+  ActivityIndicator: createHostComponent('ActivityIndicator'),
+  Animated: {
+    View: createHostComponent('Animated.View'),
+    Value: AnimatedValue,
+    parallel: vi.fn(() => ({ start: vi.fn() })),
+    spring: vi.fn(() => ({ start: vi.fn() })),
+    timing: vi.fn(() => ({ start: vi.fn() })),
+  },
+  Image: createHostComponent('Image'),
+  KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
+  Pressable: createHostComponent('Pressable'),
+  ScrollView: createHostComponent('ScrollView'),
+  StyleSheet: {
+    create: <T>(styles: T) => styles,
+    flatten: flattenStyle,
+  },
+  Text: createHostComponent('Text'),
+  TextInput: createHostComponent('TextInput'),
+  View: createHostComponent('View'),
 }));
 
 vi.mock('expo-status-bar', () => ({
@@ -154,6 +162,12 @@ vi.mock('@/context/theme-context', () => ({
     scheme: 'light',
     setScheme: vi.fn(),
   }),
+}));
+
+vi.mock('@react-native-community/netinfo', () => ({
+  default: {
+    addEventListener: vi.fn(() => vi.fn()),
+  },
 }));
 
 afterEach(() => {
