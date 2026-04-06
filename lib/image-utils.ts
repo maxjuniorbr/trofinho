@@ -42,30 +42,36 @@ export async function resizeImage(uri: string, options: ResizeImageOptions = {})
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
 const FETCH_TIMEOUT_MS = 15_000;
+const SIZE_ERROR = 'Imagem muito grande (máx. 10 MB)';
 
-export async function readImageAsArrayBuffer(imageUri: string): Promise<ArrayBuffer> {
-  const normalizedUri = imageUri.split('?')[0] ?? imageUri;
-
-  if (!normalizedUri.startsWith('http://') && !normalizedUri.startsWith('https://')) {
-    try {
-      const buffer = await new File(normalizedUri).arrayBuffer();
-      if (buffer.byteLength > MAX_IMAGE_BYTES) {
-        throw new Error('Imagem muito grande (máx. 10 MB)');
-      }
-      return buffer;
-    } catch (err) {
-      if (err instanceof Error && err.message.includes('muito grande')) throw err;
-      // If local read fails, fall back to fetch.
-    }
+function assertImageSize(buffer: ArrayBuffer): void {
+  if (buffer.byteLength > MAX_IMAGE_BYTES) {
+    throw new Error(SIZE_ERROR);
   }
+}
 
+function isLocalUri(uri: string): boolean {
+  return !uri.startsWith('http://') && !uri.startsWith('https://');
+}
+
+async function readLocalImage(uri: string): Promise<ArrayBuffer | null> {
+  try {
+    const buffer = await new File(uri).arrayBuffer();
+    assertImageSize(buffer);
+    return buffer;
+  } catch (err) {
+    if (err instanceof Error && err.message === SIZE_ERROR) throw err;
+    return null;
+  }
+}
+
+async function fetchImageWithTimeout(uri: string): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-  let response: Response;
   try {
-    response = await fetch(imageUri, { signal: controller.signal as RequestInit['signal'] });
+    const response = await fetch(uri, { signal: controller.signal as RequestInit['signal'] });
+    return response;
   } catch (err) {
-    clearTimeout(timer);
     if (err instanceof DOMException && err.name === 'AbortError') {
       throw new Error('Tempo esgotado ao carregar imagem');
     }
@@ -73,6 +79,17 @@ export async function readImageAsArrayBuffer(imageUri: string): Promise<ArrayBuf
   } finally {
     clearTimeout(timer);
   }
+}
+
+export async function readImageAsArrayBuffer(imageUri: string): Promise<ArrayBuffer> {
+  const normalizedUri = imageUri.split('?')[0] ?? imageUri;
+
+  if (isLocalUri(normalizedUri)) {
+    const localBuffer = await readLocalImage(normalizedUri);
+    if (localBuffer) return localBuffer;
+  }
+
+  const response = await fetchImageWithTimeout(imageUri);
 
   if (!response.ok) {
     throw new Error('Não foi possível ler a imagem selecionada');
@@ -80,13 +97,11 @@ export async function readImageAsArrayBuffer(imageUri: string): Promise<ArrayBuf
 
   const contentLength = Number(response.headers?.get('content-length') ?? 0);
   if (contentLength > MAX_IMAGE_BYTES) {
-    throw new Error('Imagem muito grande (máx. 10 MB)');
+    throw new Error(SIZE_ERROR);
   }
 
   const buffer = await response.arrayBuffer();
-  if (buffer.byteLength > MAX_IMAGE_BYTES) {
-    throw new Error('Imagem muito grande (máx. 10 MB)');
-  }
+  assertImageSize(buffer);
 
   return buffer;
 }
