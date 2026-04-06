@@ -67,6 +67,91 @@ function getAssignmentDateLine(assignment: ChildAssignment, filter: Filter): Dat
   };
 }
 
+type TaskCardProps = {
+  item: ChildAssignment;
+  filter: Filter;
+  colors: ThemeColors;
+  styles: ReturnType<typeof makeStyles>;
+  router: ReturnType<typeof useRouter>;
+};
+
+function TaskCard({ item, filter, colors, styles, router }: TaskCardProps) {
+  const dateLine = getAssignmentDateLine(item, filter);
+  const isInactive = item.tarefas.ativo === false;
+  const isUnavailable = isInactive && item.status === 'pendente';
+  return (
+    <Pressable
+      style={[styles.card, isInactive && styles.inactiveCard]}
+      onPress={
+        isUnavailable
+          ? () =>
+              Alert.alert(
+                'Tarefa desativada',
+                'Esta tarefa foi desativada pelo responsável e não pode mais ser concluída.',
+              )
+          : () => router.push(`/(child)/tasks/${item.id}` as never)
+      }
+      accessibilityRole="button"
+      accessibilityLabel={
+        isUnavailable
+          ? `Tarefa ${item.tarefas.titulo} desativada`
+          : `Ver detalhes da tarefa ${item.tarefas.titulo}`
+      }
+    >
+      <View style={styles.cardTop}>
+        <Text style={styles.cardTitle} numberOfLines={2}>
+          {item.tarefas.titulo}
+        </Text>
+        <View style={styles.pointsTag}>
+          <Text style={styles.pointsText}>{getAssignmentPoints(item)} pts</Text>
+        </View>
+      </View>
+      {isInactive ? (
+        <View style={styles.inactiveTag}>
+          <Text style={styles.inactiveTagText}>Desativada</Text>
+        </View>
+      ) : null}
+      <View style={styles.freqRow}>
+        {item.tarefas.frequencia === 'diaria' ? (
+          <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
+        ) : null}
+        <Text style={styles.cardDeadline}>
+          {item.tarefas.frequencia === 'diaria' ? 'Diária' : 'Única'}
+        </Text>
+      </View>
+      {dateLine ? (
+        <Text style={styles.cardDeadline}>
+          {dateLine.label}
+          {dateLine.value}
+        </Text>
+      ) : null}
+      {item.tarefas.exige_evidencia && filter === 'pendente' ? (
+        <View style={styles.evidenceHint}>
+          <Camera size={12} color={colors.text.muted} strokeWidth={2} />
+          <Text style={styles.evidenceHintText}>Requer foto</Text>
+        </View>
+      ) : null}
+      {filter === 'historico' ? (
+        <View
+          style={[
+            styles.statusTag,
+            { backgroundColor: getAssignmentStatusColor(item.status, colors) + '20' },
+          ]}
+        >
+          <Text
+            style={[
+              styles.statusText,
+              { color: getAssignmentStatusColor(item.status, colors) },
+            ]}
+          >
+            {getAssignmentStatusLabel(item.status)}
+          </Text>
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
 export default function ChildTasksScreen() {
   const router = useRouter();
   const { colors } = useTheme();
@@ -128,6 +213,42 @@ export default function ChildTasksScreen() {
   const errorMessage = error?.message ?? null;
   const shouldShowEmptyState = loading || Boolean(errorMessage) || filtered.length === 0;
 
+  const renderContent = () => {
+    if (loading) return <ListScreenSkeleton />;
+    if (shouldShowEmptyState)
+      return (
+        <EmptyState
+          error={errorMessage}
+          empty={!errorMessage}
+          emptyMessage={emptyMessage}
+          onRetry={handleRefresh}
+        />
+      );
+    return (
+      <FlashList
+        data={filtered}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.brand.vivid}
+          />
+        }
+        ListHeaderComponent={<View style={{ height: spacing['4'] }} />}
+        renderItem={({ item }) => (
+          <TaskCard item={item} filter={filter} colors={colors} styles={styles} router={router} />
+        )}
+        onEndReached={() => {
+          if (hasNextPage) fetchNextPage();
+        }}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
+      />
+    );
+  };
+
   return (
     <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
@@ -140,111 +261,7 @@ export default function ChildTasksScreen() {
 
       <SegmentedBar options={filtersWithBadge} value={filter} onChange={setFilter} role="filho" />
 
-      {loading ? (
-        <ListScreenSkeleton />
-      ) : shouldShowEmptyState ? (
-        <EmptyState
-          error={errorMessage}
-          empty={!errorMessage}
-          emptyMessage={emptyMessage}
-          onRetry={handleRefresh}
-        />
-      ) : (
-        <FlashList
-          data={filtered}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor={colors.brand.vivid}
-            />
-          }
-          ListHeaderComponent={<View style={{ height: spacing['4'] }} />}
-          renderItem={({ item }) => {
-            const dateLine = getAssignmentDateLine(item, filter);
-            const isInactive = item.tarefas.ativo === false;
-            const isUnavailable = isInactive && item.status === 'pendente';
-            return (
-              <Pressable
-                style={[styles.card, isInactive && styles.inactiveCard]}
-                onPress={
-                  isUnavailable
-                    ? () =>
-                        Alert.alert(
-                          'Tarefa desativada',
-                          'Esta tarefa foi desativada pelo responsável e não pode mais ser concluída.',
-                        )
-                    : () => router.push(`/(child)/tasks/${item.id}` as never)
-                }
-                accessibilityRole="button"
-                accessibilityLabel={
-                  isUnavailable
-                    ? `Tarefa ${item.tarefas.titulo} desativada`
-                    : `Ver detalhes da tarefa ${item.tarefas.titulo}`
-                }
-              >
-                <View style={styles.cardTop}>
-                  <Text style={styles.cardTitle} numberOfLines={2}>
-                    {item.tarefas.titulo}
-                  </Text>
-                  <View style={styles.pointsTag}>
-                    <Text style={styles.pointsText}>{getAssignmentPoints(item)} pts</Text>
-                  </View>
-                </View>
-                {isInactive ? (
-                  <View style={styles.inactiveTag}>
-                    <Text style={styles.inactiveTagText}>Desativada</Text>
-                  </View>
-                ) : null}
-                <View style={styles.freqRow}>
-                  {item.tarefas.frequencia === 'diaria' ? (
-                    <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
-                  ) : null}
-                  <Text style={styles.cardDeadline}>
-                    {item.tarefas.frequencia === 'diaria' ? 'Diária' : 'Única'}
-                  </Text>
-                </View>
-                {dateLine ? (
-                  <Text style={styles.cardDeadline}>
-                    {dateLine.label}
-                    {dateLine.value}
-                  </Text>
-                ) : null}
-                {item.tarefas.exige_evidencia && filter === 'pendente' ? (
-                  <View style={styles.evidenceHint}>
-                    <Camera size={12} color={colors.text.muted} strokeWidth={2} />
-                    <Text style={styles.evidenceHintText}>Requer foto</Text>
-                  </View>
-                ) : null}
-                {filter === 'historico' ? (
-                  <View
-                    style={[
-                      styles.statusTag,
-                      { backgroundColor: getAssignmentStatusColor(item.status, colors) + '20' },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.statusText,
-                        { color: getAssignmentStatusColor(item.status, colors) },
-                      ]}
-                    >
-                      {getAssignmentStatusLabel(item.status)}
-                    </Text>
-                  </View>
-                ) : null}
-              </Pressable>
-            );
-          }}
-          onEndReached={() => {
-            if (hasNextPage) fetchNextPage();
-          }}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
-        />
-      )}
+      {renderContent()}
     </SafeScreenFrame>
   );
 }
