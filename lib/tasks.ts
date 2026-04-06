@@ -14,7 +14,7 @@ export type Task = {
   pontos: number;
   frequencia: TaskFrequencia;
   exige_evidencia: boolean;
-  criado_por: string;
+  criado_por: string | null;
   created_at: string;
   ativo: boolean;
 };
@@ -287,7 +287,10 @@ export async function cancelAssignmentSubmission(
 }
 
 export async function renewDailyTasks(): Promise<void> {
-  await supabase.rpc('garantir_atribuicoes_diarias');
+  const { error } = await supabase.rpc('garantir_atribuicoes_diarias');
+  if (error) {
+    console.warn('[renewDailyTasks] RPC failed:', error.message);
+  }
 }
 
 export async function listChildAssignments(
