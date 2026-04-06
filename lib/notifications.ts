@@ -415,7 +415,7 @@ export async function subscribeToNotificationNavigation(
     } else if (onAction) {
       onAction({
         actionId: actionIdentifier,
-        data: (isRecord(data) ? data : {}) as Record<string, unknown>,
+        data: isRecord(data) ? data : {},
       });
     }
     N.clearLastNotificationResponse();

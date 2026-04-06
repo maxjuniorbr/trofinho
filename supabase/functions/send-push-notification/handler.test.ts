@@ -1638,53 +1638,53 @@ describe('isEventAllowedForRole', () => {
 
 // ─── fetchProgressSuffix ────────────────────────────────────────────────────
 
-describe('fetchProgressSuffix', () => {
-  function createProgressMockSupabase(overrides: {
-    filhos?: { data: Record<string, unknown>[] | null; error: unknown };
-    atribuicoes?: { data: Record<string, unknown>[] | null; error: unknown };
-    saldos?: { data: Record<string, unknown>[] | null; error: unknown };
-  }) {
-    const fromMock = vi.fn().mockImplementation((table: string) => {
-      if (table === 'filhos') {
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue(overrides.filhos ?? { data: null, error: null }),
-            in: vi.fn().mockResolvedValue(overrides.filhos ?? { data: null, error: null }),
-          }),
-        };
-      }
-      if (table === 'atribuicoes') {
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue(overrides.atribuicoes ?? { data: null, error: null }),
-            }),
-            in: vi.fn().mockResolvedValue(overrides.atribuicoes ?? { data: null, error: null }),
-          }),
-        };
-      }
-      if (table === 'saldos') {
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue(overrides.saldos ?? { data: null, error: null }),
-            in: vi.fn().mockResolvedValue(overrides.saldos ?? { data: null, error: null }),
-          }),
-        };
-      }
+function createProgressMockSupabase(overrides: {
+  filhos?: { data: Record<string, unknown>[] | null; error: unknown };
+  atribuicoes?: { data: Record<string, unknown>[] | null; error: unknown };
+  saldos?: { data: Record<string, unknown>[] | null; error: unknown };
+}) {
+  const fromMock = vi.fn().mockImplementation((table: string) => {
+    if (table === 'filhos') {
       return {
         select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ data: null, error: null }),
-          in: vi.fn().mockResolvedValue({ data: null, error: null }),
+          eq: vi.fn().mockResolvedValue(overrides.filhos ?? { data: null, error: null }),
+          in: vi.fn().mockResolvedValue(overrides.filhos ?? { data: null, error: null }),
         }),
       };
-    });
-
+    }
+    if (table === 'atribuicoes') {
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue(overrides.atribuicoes ?? { data: null, error: null }),
+          }),
+          in: vi.fn().mockResolvedValue(overrides.atribuicoes ?? { data: null, error: null }),
+        }),
+      };
+    }
+    if (table === 'saldos') {
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue(overrides.saldos ?? { data: null, error: null }),
+          in: vi.fn().mockResolvedValue(overrides.saldos ?? { data: null, error: null }),
+        }),
+      };
+    }
     return {
-      auth: { getUser: vi.fn() },
-      from: fromMock,
-    } as unknown as SupabaseClientLike;
-  }
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+        in: vi.fn().mockResolvedValue({ data: null, error: null }),
+      }),
+    };
+  });
 
+  return {
+    auth: { getUser: vi.fn() },
+    from: fromMock,
+  } as unknown as SupabaseClientLike;
+}
+
+describe('fetchProgressSuffix', () => {
   it('returns task progress for tarefa_aprovada', async () => {
     const supabase = createProgressMockSupabase({
       filhos: { data: [{ id: 'filho-1' }], error: null },
