@@ -407,7 +407,7 @@ export type Database = {
         Row: {
           ativo: boolean
           created_at: string
-          criado_por: string
+          criado_por: string | null
           descricao: string | null
           exige_evidencia: boolean
           familia_id: string
@@ -419,7 +419,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           created_at?: string
-          criado_por: string
+          criado_por?: string | null
           descricao?: string | null
           exige_evidencia?: boolean
           familia_id: string
@@ -431,7 +431,7 @@ export type Database = {
         Update: {
           ativo?: boolean
           created_at?: string
-          criado_por?: string
+          criado_por?: string | null
           descricao?: string | null
           exige_evidencia?: boolean
           familia_id?: string
