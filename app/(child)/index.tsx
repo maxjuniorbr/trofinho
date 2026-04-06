@@ -88,7 +88,7 @@ export default function FilhoHomeScreen() {
   const hasPending = pendingCount > 0;
   const pendingTaskLabel = pendingCount === 1 ? 'tarefa pendente' : 'tarefas pendentes';
   const celebratingPhrase = useMemo(
-    () => MASCOT_CELEBRATING_PHRASES[Math.floor(Math.random() * MASCOT_CELEBRATING_PHRASES.length)],
+    () => MASCOT_CELEBRATING_PHRASES[Math.floor(Math.random() * MASCOT_CELEBRATING_PHRASES.length)], // NOSONAR — non-security random: picking a display phrase
     [],
   );
 
