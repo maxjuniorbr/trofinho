@@ -65,7 +65,7 @@
     "eslint-import-resolver-typescript": "^3.10.1",
     "fast-check": "^4.6.0",
     "prettier": "^3.8.1",
-    "react-test-renderer": "19.2.0",
+    "react-test-renderer": "19.2.4",
     "skills": "^1.4.8",
     "supabase": "^2.84.10",
     "typescript": "^6.0.2",
