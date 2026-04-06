@@ -342,7 +342,7 @@ const EVENT_CATEGORY_MAP: Partial<Record<PushEvent, string>> = {
 };
 
 function pickRandom<T>(items: T[]): T {
-  return items[Math.floor(Math.random() * items.length)];
+  return items[Math.floor(Math.random() * items.length)]; // NOSONAR — non-security random: picking notification copy
 }
 
 function buildActionData(
