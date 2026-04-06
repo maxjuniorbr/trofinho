@@ -4,7 +4,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { RefreshCw, Camera, Clock, Trophy, CheckCircle2 } from 'lucide-react-native';
+import { RefreshCw, Camera, Clock, Trophy, CheckCircle2, Maximize2 } from 'lucide-react-native';
+import { hapticSuccess } from '@lib/haptics';
 import {
   getAssignmentCancellationState,
   getAssignmentCompletionState,
@@ -36,6 +37,7 @@ type EvidenceSectionProps = Readonly<{
   onImgLoadStart: () => void;
   onImgLoadEnd: () => void;
   onImgError: () => void;
+  onRetryImage: () => void;
   onImagePress: (url: string) => void;
   colors: ThemeColors;
   styles: ReturnType<typeof makeStyles>;
@@ -48,6 +50,7 @@ function EvidenceSection({
   onImgLoadStart,
   onImgLoadEnd,
   onImgError,
+  onRetryImage,
   onImagePress,
   colors,
   styles,
@@ -68,6 +71,16 @@ function EvidenceSection({
           <Text style={[styles.evidenceFallbackText, { color: colors.text.muted }]}>
             Não foi possível carregar a imagem
           </Text>
+          <Pressable
+            style={[styles.retryImageBtn, { borderColor: colors.border.default }]}
+            onPress={onRetryImage}
+            accessibilityRole="button"
+            accessibilityLabel="Tentar carregar imagem novamente"
+          >
+            <Text style={[styles.retryImageText, { color: colors.accent.filho }]}>
+              Tentar de novo
+            </Text>
+          </Pressable>
         </View>
       </View>
     );
@@ -95,7 +108,11 @@ function EvidenceSection({
           <View style={styles.evidenceLoading}>
             <ActivityIndicator size="small" color={colors.accent.filho} />
           </View>
-        ) : null}
+        ) : (
+          <View style={styles.expandIcon}>
+            <Maximize2 size={16} color={colors.text.inverse} strokeWidth={2.5} />
+          </View>
+        )}
       </Pressable>
     </View>
   );
@@ -111,6 +128,7 @@ type StatusFooterProps = Readonly<{
   cancelReason: string | null;
   onComplete: () => void;
   onCancelSubmission: () => void;
+  onBack: () => void;
   colors: ThemeColors;
   styles: ReturnType<typeof makeStyles>;
 }>;
@@ -143,6 +161,7 @@ function StatusFooter({
   cancelReason,
   onComplete,
   onCancelSubmission,
+  onBack,
   colors,
   styles,
 }: StatusFooterProps) {
@@ -214,14 +233,22 @@ function StatusFooter({
 
   if (assignment.status === 'aprovada') {
     return (
-      <View style={styles.approvedBox}>
-        <View style={styles.statusRow}>
-          <Trophy size={14} color={colors.semantic.success} strokeWidth={2} />
-          <Text style={styles.approvedText}>
-            Parabéns! {getAssignmentPoints(assignment)} pontos creditados no seu saldo.
-          </Text>
+      <>
+        <View style={styles.approvedBox}>
+          <View style={styles.statusRow}>
+            <Trophy size={14} color={colors.semantic.success} strokeWidth={2} />
+            <Text style={styles.approvedText}>
+              Parabéns! {getAssignmentPoints(assignment)} pontos creditados no seu saldo 🎉
+            </Text>
+          </View>
         </View>
-      </View>
+        <Button
+          variant="secondary"
+          label="Voltar às tarefas"
+          onPress={onBack}
+          accessibilityLabel="Voltar à lista de tarefas"
+        />
+      </>
     );
   }
 
@@ -316,6 +343,9 @@ export default function ChildTaskDetailScreen() {
           childUserId: profile?.id,
         },
       });
+      hapticSuccess();
+      setFeedbackMessage('Tarefa enviada com sucesso! 🚀');
+      setFeedbackKey((k) => k + 1);
     } catch (error_) {
       setCompletionError(
         error_ instanceof Error ? error_.message : 'Não foi possível concluir a tarefa agora.',
@@ -348,9 +378,9 @@ export default function ChildTaskDetailScreen() {
 
     Alert.alert(
       'Cancelar envio?',
-      'A atividade voltará para pendente e poderá ser ajustada antes de um novo envio.',
+      'A tarefa vai voltar para "Para fazer" e você poderá enviar de novo.',
       [
-        { text: 'Manter envio', style: 'cancel' },
+        { text: 'Manter', style: 'cancel' },
         {
           text: 'Cancelar envio',
           style: 'destructive',
@@ -429,6 +459,7 @@ export default function ChildTaskDetailScreen() {
         cancelReason={cancellationState.reason}
         onComplete={handleComplete}
         onCancelSubmission={handleCancelSubmission}
+        onBack={() => router.back()}
         colors={colors}
         styles={styles}
       />
@@ -503,6 +534,10 @@ export default function ChildTaskDetailScreen() {
             setImgLoading(false);
             setImgError(true);
           }}
+          onRetryImage={() => {
+            setImgError(false);
+            setImgLoading(true);
+          }}
           onImagePress={(url) => setFullscreenImageUrl(url)}
           colors={colors}
           styles={styles}
@@ -510,10 +545,10 @@ export default function ChildTaskDetailScreen() {
 
         {assignment.nota_rejeicao ? (
           <View style={styles.rejectionNoteBox}>
-            <Text style={styles.rejectionNoteLabel}>Motivo da rejeição:</Text>
+            <Text style={styles.rejectionNoteLabel}>No que ajustar:</Text>
             <Text style={styles.rejectionNoteText}>{assignment.nota_rejeicao}</Text>
             <Text style={styles.rejectionNoteHint}>
-              Converse com o responsável para alinhar os próximos passos.
+              Quase lá! Converse com o responsável e tente de novo 💪
             </Text>
           </View>
         ) : null}
@@ -611,11 +646,30 @@ function makeStyles(colors: ThemeColors) {
       justifyContent: 'center',
       backgroundColor: colors.bg.muted,
     },
+    expandIcon: {
+      position: 'absolute',
+      bottom: spacing['2'],
+      right: spacing['2'],
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      borderRadius: radii.sm,
+      padding: spacing['1'],
+    },
     evidenceFallback: { alignItems: 'center', justifyContent: 'center' },
     evidenceFallbackText: {
       fontSize: typography.size.sm,
       fontFamily: typography.family.medium,
       textAlign: 'center',
+    },
+    retryImageBtn: {
+      marginTop: spacing['2'],
+      borderWidth: 1,
+      borderRadius: radii.md,
+      paddingVertical: spacing['2'],
+      paddingHorizontal: spacing['3'],
+    },
+    retryImageText: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.semibold,
     },
     rejectionNoteBox: {
       backgroundColor: colors.semantic.errorBg,

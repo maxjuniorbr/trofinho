@@ -1,5 +1,4 @@
 import {
-  Alert,
   AppState,
   Pressable,
   RefreshControl,
@@ -7,14 +6,12 @@ import {
   StyleSheet,
   Text,
   View,
-  ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'expo-router';
-import { ClipboardList, Gift, ShoppingBag, Wallet } from 'lucide-react-native';
-import { signOut } from '@lib/auth';
+import { ClipboardList, Gift, ShoppingBag, Wallet, UserCircle } from 'lucide-react-native';
 import { getGreeting } from '@lib/utils';
 import { isNotificationPermissionDenied } from '@lib/notifications';
 import {
@@ -27,18 +24,27 @@ import {
 import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing, typography, withAlpha } from '@/constants/theme';
 import { PointsDisplay } from '@/components/ui/points-display';
-import { LogoutButton } from '@/components/ui/logout-button';
 import { NotificationPermissionBanner } from '@/components/ui/notification-permission-banner';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { InlineMessage } from '@/components/ui/inline-message';
+import { HomeScreenSkeleton } from '@/components/ui/skeleton';
 import { mascotImage, celebratingImage } from '@/constants/assets';
 
 import type { LucideIcon } from 'lucide-react-native';
+
+const MASCOT_CELEBRATING_PHRASES = [
+  'Troféu conquistado! 🎉',
+  'Tudo feito, campeão! 🏆',
+  'Dia 100% completo! ⭐',
+  'Você mandou muito bem! 🚀',
+  'Missão cumprida! 💪',
+] as const;
 
 const CHILD_QUICK_ACTIONS: readonly { icon: LucideIcon; label: string; rota: string }[] = [
   { icon: Gift, label: 'Prêmios', rota: '/(child)/prizes' },
   { icon: ShoppingBag, label: 'Resgates', rota: '/(child)/redemptions' },
   { icon: Wallet, label: 'Saldo', rota: '/(child)/balance' },
+  { icon: UserCircle, label: 'Perfil', rota: '/(child)/perfil' },
 ];
 
 export default function FilhoHomeScreen() {
@@ -76,12 +82,15 @@ export default function FilhoHomeScreen() {
   const freeBalance = balanceData?.saldo_livre ?? 0;
   const piggyBank = balanceData?.cofrinho ?? 0;
 
-  const [loggingOut, setLoggingOut] = useState(false);
   const [showNotificationBanner, setShowNotificationBanner] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const hasPending = pendingCount > 0;
   const pendingTaskLabel = pendingCount === 1 ? 'tarefa pendente' : 'tarefas pendentes';
+  const celebratingPhrase = useMemo(
+    () => MASCOT_CELEBRATING_PHRASES[Math.floor(Math.random() * MASCOT_CELEBRATING_PHRASES.length)],
+    [],
+  );
 
   useEffect(() => {
     const check = () => {
@@ -112,26 +121,12 @@ export default function FilhoHomeScreen() {
     }
   };
 
-  const handleSignOut = () => {
-    Alert.alert('Sair do app?', 'Você precisará entrar novamente.', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Sair',
-        style: 'destructive',
-        onPress: async () => {
-          setLoggingOut(true);
-          await signOut();
-        },
-      },
-    ]);
-  };
-
   if (isLoading) {
     return (
-      <View style={[styles.loading, { backgroundColor: colors.bg.canvas }]}>
+      <SafeScreenFrame topInset bottomInset>
         <StatusBar style={colors.statusBar} />
-        <ActivityIndicator size="large" color={colors.accent.filho} />
-      </View>
+        <HomeScreenSkeleton />
+      </SafeScreenFrame>
     );
   }
 
@@ -186,7 +181,7 @@ export default function FilhoHomeScreen() {
             accessibilityLabel={hasPending ? 'Trofinho animado' : 'Trofinho celebrando'}
           />
           <Text style={[styles.mascotCaption, { color: colors.text.secondary }]}>
-            {hasPending ? 'Vamos conquistar o dia?' : 'Troféu conquistado! 🎉'}
+            {hasPending ? 'Vamos conquistar o dia? 💪' : celebratingPhrase}
           </Text>
         </View>
 
@@ -197,9 +192,9 @@ export default function FilhoHomeScreen() {
               { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
               shadows.goldGlow,
             ]}
-            accessibilityLabel={`Saldo livre: ${freeBalance} pontos`}
+            accessibilityLabel={`Saldo disponível: ${freeBalance} pontos`}
           >
-            <Text style={[styles.balanceLabel, { color: colors.text.secondary }]}>Livre</Text>
+            <Text style={[styles.balanceLabel, { color: colors.text.secondary }]}>Disponível</Text>
             <PointsDisplay value={freeBalance} label="pontos" variant="gold" size="lg" />
           </View>
           <View
@@ -215,6 +210,12 @@ export default function FilhoHomeScreen() {
           </View>
         </View>
 
+        {freeBalance === 0 && piggyBank === 0 ? (
+          <Text style={[styles.zeroBalanceHint, { color: colors.text.muted }]}>
+            Complete tarefas para ganhar seus primeiros pontos! ⭐
+          </Text>
+        ) : null}
+
         <View style={{ width: '100%' }}>
           <Pressable
             style={({ pressed }) => [
@@ -222,7 +223,7 @@ export default function FilhoHomeScreen() {
               {
                 backgroundColor: colors.bg.surface,
                 borderColor: hasPending
-                  ? withAlpha(colors.semantic.error, 0.31)
+                  ? withAlpha(colors.semantic.error, 0.5)
                   : colors.border.subtle,
               },
               shadows.card,
@@ -275,7 +276,6 @@ export default function FilhoHomeScreen() {
           ))}
         </View>
 
-        <LogoutButton onPress={handleSignOut} loading={loggingOut} />
       </ScrollView>
     </SafeScreenFrame>
   );
@@ -329,6 +329,13 @@ function makeStyles() {
       letterSpacing: 0.6,
     },
 
+    zeroBalanceHint: {
+      fontFamily: typography.family.medium,
+      fontSize: typography.size.xs,
+      textAlign: 'center',
+      marginBottom: spacing['2'],
+      fontStyle: 'italic',
+    },
     tarefasCard: {
       flexDirection: 'row',
       alignItems: 'center',

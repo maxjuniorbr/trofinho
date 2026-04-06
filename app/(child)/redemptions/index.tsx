@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, RefreshControl, Pressable } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo } from 'react';
@@ -35,7 +35,7 @@ export default function ChildRedemptionsScreen() {
   const errorMessage = error?.message ?? null;
   const hasError = Boolean(errorMessage);
   const shouldShowEmptyState = isLoading || hasError || redemptions.length === 0;
-  const emptyStateMessage = 'Nenhum resgate realizado ainda.\nVá ao catálogo e troque seus pontos!';
+  const emptyStateMessage = 'Nenhum resgate realizado ainda.\nVá ao catálogo e troque seus pontos! 🎁';
 
   const handleRefresh = async () => {
     try {
@@ -56,13 +56,27 @@ export default function ChildRedemptionsScreen() {
       />
 
       {shouldShowEmptyState ? (
-        <EmptyState
-          loading={isLoading}
-          error={errorMessage}
-          empty={!isLoading && !errorMessage}
-          emptyMessage={emptyStateMessage}
-          onRetry={handleRefresh}
-        />
+        <View style={styles.emptyContainer}>
+          <EmptyState
+            loading={isLoading}
+            error={errorMessage}
+            empty={!isLoading && !errorMessage}
+            emptyMessage={emptyStateMessage}
+            onRetry={handleRefresh}
+          />
+          {!isLoading && !errorMessage && redemptions.length === 0 ? (
+            <Pressable
+              style={[styles.emptyActionBtn, { backgroundColor: colors.accent.filho }]}
+              onPress={() => router.push('/(child)/prizes')}
+              accessibilityRole="button"
+              accessibilityLabel="Ver prêmios disponíveis"
+            >
+              <Text style={[styles.emptyActionText, { color: colors.text.inverse }]}>
+                Ver prêmios 🎁
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
       ) : (
         <FlashList
           data={redemptions}
@@ -96,6 +110,9 @@ export default function ChildRedemptionsScreen() {
                   </Text>
                 </View>
               </View>
+              {item.status === 'pendente' ? (
+                <Text style={styles.pendingHint}>Aguardando confirmação do responsável ⏳</Text>
+              ) : null}
               <View style={styles.cardFooter}>
                 <View style={styles.cardPointsRow}>
                   <Trophy size={12} color={colors.accent.filho} strokeWidth={2} />
@@ -119,6 +136,18 @@ export default function ChildRedemptionsScreen() {
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
+    emptyContainer: { flex: 1, alignItems: 'center' },
+    emptyActionBtn: {
+      borderRadius: radii.xl,
+      paddingVertical: spacing['3'],
+      paddingHorizontal: spacing['6'],
+      minHeight: 48,
+      justifyContent: 'center',
+    },
+    emptyActionText: {
+      fontSize: typography.size.md,
+      fontFamily: typography.family.bold,
+    },
     list: { paddingHorizontal: spacing['4'] },
     card: {
       backgroundColor: colors.bg.surface,
@@ -143,6 +172,11 @@ function makeStyles(colors: ThemeColors) {
       paddingVertical: spacing['1'],
     },
     statusText: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
+    pendingHint: {
+      fontSize: typography.size.xs,
+      color: colors.text.muted,
+      fontStyle: 'italic',
+    },
     cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     cardPointsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     cardPoints: {

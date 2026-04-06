@@ -15,6 +15,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Wallet, TrendingUp } from 'lucide-react-native';
+import { hapticSuccess } from '@lib/haptics';
 import { getAppreciationPeriodLabel, getTransactionTypeLabel, isCredit } from '@lib/balances';
 import { getMyChildId } from '@lib/children';
 import {
@@ -89,16 +90,17 @@ export default function ChildBalanceScreen() {
       return;
     }
     if (!balance || v > balance.saldo_livre) {
-      setModalError('Saldo livre insuficiente.');
+      setModalError('Saldo disponível insuficiente.');
       return;
     }
     if (!childId) return;
     try {
       await transferMutation.mutateAsync({ childId, amount: v });
+      hapticSuccess();
       setModalVisible(false);
       setAmountStr('');
       setTransferSuccess(
-        `${v} ponto${v === 1 ? '' : 's'} guardado${v === 1 ? '' : 's'} no cofrinho.`,
+        `${v} ponto${v === 1 ? '' : 's'} guardado${v === 1 ? '' : 's'} no cofrinho! 🐷`,
       );
     } catch (e) {
       setModalError(e instanceof Error ? e.message : 'Não foi possível transferir.');
@@ -124,11 +126,8 @@ export default function ChildBalanceScreen() {
     ? getAppreciationPeriodLabel(balance.periodo_valorizacao)
     : null;
   const hasTransactions = transactions.length > 0;
-  const lastAppreciationText = balance?.data_ultima_valorizacao
-    ? ` · última em ${new Date(balance.data_ultima_valorizacao).toLocaleDateString('pt-BR')}`
-    : '';
   const nextAppreciationText = balance?.proxima_valorizacao_em
-    ? ` · próxima em ${new Date(balance.proxima_valorizacao_em).toLocaleDateString('pt-BR')}`
+    ? ` em ${new Date(balance.proxima_valorizacao_em).toLocaleDateString('pt-BR')}`
     : '';
 
   return (
@@ -170,7 +169,7 @@ export default function ChildBalanceScreen() {
               >
                 <View style={styles.balanceLabelRow}>
                   <Wallet size={14} color={colors.text.secondary} strokeWidth={2} />
-                  <Text style={styles.balanceLabel}>Saldo livre</Text>
+                  <Text style={styles.balanceLabel}>Disponível</Text>
                 </View>
                 <PointsDisplay value={freeBalance} label="pontos" variant="gold" size="lg" />
               </View>
@@ -190,13 +189,12 @@ export default function ChildBalanceScreen() {
                 <View style={styles.appreciationRow}>
                   <TrendingUp size={14} color={colors.semantic.success} strokeWidth={2} />
                   <Text style={styles.appreciationText}>
-                    Seu cofrinho rende {balance!.indice_valorizacao}% ao {appreciationPeriod}
-                    {lastAppreciationText}
-                    {nextAppreciationText}
+                    Seu cofrinho cresce {balance!.indice_valorizacao}% a cada {appreciationPeriod}! 🌱
                   </Text>
                 </View>
                 <Text style={styles.appreciationHint}>
-                  A valorização entra automaticamente no cofrinho quando o período vence.
+                  Os pontos guardados rendem sozinhos com o tempo.
+                  {nextAppreciationText ? `\nPróximo rendimento${nextAppreciationText}.` : ''}
                 </Text>
               </View>
             )}
@@ -217,7 +215,9 @@ export default function ChildBalanceScreen() {
 
             <Text style={styles.sectionTitle}>Histórico</Text>
             {hasTransactions ? null : (
-              <Text style={styles.emptyText}>Nenhuma movimentação ainda.</Text>
+              <Text style={styles.emptyText}>
+                Nenhuma movimentação ainda.{'\n'}Complete tarefas para ganhar pontos! 🏆
+              </Text>
             )}
           </>
         }
@@ -260,14 +260,46 @@ export default function ChildBalanceScreen() {
           >
             <Text style={styles.modalTitle}>Guardar no cofrinho</Text>
             <Text style={styles.modalSub}>
-              Saldo livre disponível:{' '}
+              Saldo disponível:{' '}
               <Text style={{ fontFamily: typography.family.bold }}>{freeBalance}</Text> pts
             </Text>
+            <Text style={styles.modalHint}>
+              Pontos guardados no cofrinho não podem ser retirados 🔒
+            </Text>
+            <View style={styles.quickAmountRow}>
+              {[10, 50, freeBalance].map((v, i) => {
+                const label = i === 2 ? 'Tudo' : `${v}`;
+                const isSelected = amountStr === String(v);
+                return (
+                  <Pressable
+                    key={label}
+                    style={[
+                      styles.quickAmountPill,
+                      {
+                        backgroundColor: isSelected ? colors.accent.filho : colors.bg.muted,
+                      },
+                    ]}
+                    onPress={() => setAmountStr(String(v))}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${label} pontos`}
+                  >
+                    <Text
+                      style={[
+                        styles.quickAmountText,
+                        { color: isSelected ? colors.text.inverse : colors.text.primary },
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
             <TextInput
               style={styles.modalInput}
               value={amountStr}
               onChangeText={setAmountStr}
-              placeholder="Quantos pontos?"
+              placeholder="Ou digite o valor"
               placeholderTextColor={colors.text.muted}
               keyboardType="number-pad"
               maxLength={6}
@@ -413,6 +445,27 @@ function makeStyles(colors: ThemeColors) {
       color: colors.text.primary,
     },
     modalSub: { fontSize: typography.size.sm, color: colors.text.secondary },
+    modalHint: {
+      fontSize: typography.size.xs,
+      color: colors.text.muted,
+      fontStyle: 'italic',
+    },
+    quickAmountRow: {
+      flexDirection: 'row',
+      gap: spacing['2'],
+    },
+    quickAmountPill: {
+      flex: 1,
+      borderRadius: radii.lg,
+      paddingVertical: spacing['2'],
+      alignItems: 'center',
+      minHeight: 40,
+      justifyContent: 'center',
+    },
+    quickAmountText: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.bold,
+    },
     modalInput: {
       borderWidth: 1,
       borderColor: colors.border.default,

@@ -1,9 +1,9 @@
-import { StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native';
+import { Alert, StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { RefreshCw } from 'lucide-react-native';
+import { RefreshCw, Camera } from 'lucide-react-native';
 import { getAssignmentPoints, type ChildAssignment, type AssignmentStatus } from '@lib/tasks';
 import { formatDate } from '@lib/utils';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
@@ -15,14 +15,15 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { ListFooter } from '@/components/ui/list-footer';
+import { ListScreenSkeleton } from '@/components/ui/skeleton';
 import { SegmentedBar, type SegmentOption } from '@/components/ui/segmented-bar';
 
 type Filter = 'pendente' | 'aguardando_validacao' | 'historico';
 
 const FILTERS: SegmentOption<Filter>[] = [
-  { key: 'pendente', label: 'Pendentes' },
-  { key: 'aguardando_validacao', label: 'Em validação' },
-  { key: 'historico', label: 'Histórico' },
+  { key: 'pendente', label: 'Para fazer' },
+  { key: 'aguardando_validacao', label: 'Enviadas' },
+  { key: 'historico', label: 'Finalizadas' },
 ];
 
 function belongsToFilter(status: AssignmentStatus, filter: Filter): boolean {
@@ -94,6 +95,21 @@ export default function ChildTasksScreen() {
     }
   };
 
+  const countByFilter = useMemo(() => {
+    const counts = { pendente: 0, aguardando_validacao: 0, historico: 0 };
+    for (const a of assignments) {
+      if (belongsToFilter(a.status, 'pendente')) counts.pendente++;
+      else if (belongsToFilter(a.status, 'aguardando_validacao')) counts.aguardando_validacao++;
+      else counts.historico++;
+    }
+    return counts;
+  }, [assignments]);
+
+  const filtersWithBadge = useMemo(
+    () => FILTERS.map((f) => ({ ...f, badge: countByFilter[f.key] })),
+    [countByFilter],
+  );
+
   const filtered = useMemo(
     () =>
       sortChildAssignments(
@@ -103,9 +119,10 @@ export default function ChildTasksScreen() {
     [assignments, filter],
   );
 
-  let emptyMessage = 'Nenhuma tarefa concluída ainda.';
-  if (filter === 'pendente') emptyMessage = 'Nenhuma tarefa pendente.';
-  else if (filter === 'aguardando_validacao') emptyMessage = 'Nada aguardando validação.';
+  let emptyMessage = 'Nenhuma tarefa finalizada ainda. Continue assim! 💪';
+  if (filter === 'pendente') emptyMessage = 'Tudo feito por aqui! Você arrasou! 🎉';
+  else if (filter === 'aguardando_validacao')
+    emptyMessage = 'Nada pendente, o responsável vai revisar! 👀';
 
   const loading = isLoading;
   const errorMessage = error?.message ?? null;
@@ -121,13 +138,14 @@ export default function ChildTasksScreen() {
         role="filho"
       />
 
-      <SegmentedBar options={FILTERS} value={filter} onChange={setFilter} role="filho" />
+      <SegmentedBar options={filtersWithBadge} value={filter} onChange={setFilter} role="filho" />
 
-      {shouldShowEmptyState ? (
+      {loading ? (
+        <ListScreenSkeleton />
+      ) : shouldShowEmptyState ? (
         <EmptyState
-          loading={loading}
           error={errorMessage}
-          empty={!loading && !errorMessage}
+          empty={!errorMessage}
           emptyMessage={emptyMessage}
           onRetry={handleRefresh}
         />
@@ -153,10 +171,13 @@ export default function ChildTasksScreen() {
                 style={[styles.card, isInactive && styles.inactiveCard]}
                 onPress={
                   isUnavailable
-                    ? undefined
+                    ? () =>
+                        Alert.alert(
+                          'Tarefa desativada',
+                          'Esta tarefa foi desativada pelo responsável e não pode mais ser concluída.',
+                        )
                     : () => router.push(`/(child)/tasks/${item.id}` as never)
                 }
-                disabled={isUnavailable}
                 accessibilityRole="button"
                 accessibilityLabel={
                   isUnavailable
@@ -190,6 +211,12 @@ export default function ChildTasksScreen() {
                     {dateLine.label}
                     {dateLine.value}
                   </Text>
+                ) : null}
+                {item.tarefas.exige_evidencia && filter === 'pendente' ? (
+                  <View style={styles.evidenceHint}>
+                    <Camera size={12} color={colors.text.muted} strokeWidth={2} />
+                    <Text style={styles.evidenceHintText}>Requer foto</Text>
+                  </View>
                 ) : null}
                 {filter === 'historico' ? (
                   <View
@@ -280,6 +307,16 @@ function makeStyles(colors: ThemeColors) {
       fontSize: typography.size.xs,
       color: colors.text.muted,
       marginBottom: spacing['2'],
+    },
+    evidenceHint: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1'],
+      marginBottom: spacing['2'],
+    },
+    evidenceHintText: {
+      fontSize: typography.size.xs,
+      color: colors.text.muted,
     },
     statusTag: {
       borderRadius: radii.sm,

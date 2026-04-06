@@ -1,16 +1,19 @@
 import {
+  Alert,
   StyleSheet,
   Text,
   View,
   Pressable,
-  FlatList,
   ActivityIndicator,
   Animated,
   RefreshControl,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useRouter } from 'expo-router';
+import { FlashList } from '@shopify/flash-list';
+import { hapticSuccess } from '@lib/haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Trophy, CheckCircle2 } from 'lucide-react-native';
 import type { Prize } from '@lib/prizes';
@@ -52,7 +55,7 @@ export default function ChildPrizesScreen() {
 
   const hasError = Boolean(error);
   const shouldShowEmptyState = isLoading || hasError || prizes.length === 0;
-  const emptyStateMessage = 'Nenhum prêmio disponível no momento.\nPergunte ao responsável!';
+  const emptyStateMessage = 'Nenhum prêmio disponível no momento.\nPergunte ao responsável! 🎯';
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -65,7 +68,21 @@ export default function ChildPrizesScreen() {
     }
   };
 
-  const handleRedeem = async (prize: Prize) => {
+  const handleRedeem = (prize: Prize) => {
+    Alert.alert(
+      'Confirmar resgate',
+      `Trocar ${prize.custo_pontos} pontos por "${prize.nome}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Resgatar',
+          onPress: () => executeRedeem(prize),
+        },
+      ],
+    );
+  };
+
+  const executeRedeem = async (prize: Prize) => {
     setRedemptionError(null);
     setSuccess(null);
     setRedeeming(prize.id);
@@ -81,7 +98,8 @@ export default function ChildPrizesScreen() {
             }
           : undefined,
       });
-      setSuccess(`Resgate de "${prize.nome}" solicitado! Aguarde a confirmação.`);
+      hapticSuccess();
+      setSuccess(`Resgate de "${prize.nome}" solicitado! Aguarde a confirmação 🎉`);
     } catch (e) {
       setRedemptionError(e instanceof Error ? e.message : 'Não foi possível solicitar o resgate.');
     } finally {
@@ -108,7 +126,7 @@ export default function ChildPrizesScreen() {
           onRetry={handleRefresh}
         />
       ) : (
-        <FlatList
+        <FlashList
           data={prizes}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
@@ -120,7 +138,6 @@ export default function ChildPrizesScreen() {
             />
           }
           numColumns={2}
-          columnWrapperStyle={{ gap: spacing['3'] }}
           ListHeaderComponent={
             <>
               <LinearGradient
@@ -153,7 +170,7 @@ export default function ChildPrizesScreen() {
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    list: { padding: spacing['4'], gap: spacing['3'], paddingBottom: spacing['12'] },
+    list: { paddingHorizontal: spacing['3'], paddingTop: spacing['4'], paddingBottom: spacing['12'] },
     balanceBanner: {
       borderRadius: radii.xl,
       borderCurve: 'continuous',
@@ -206,6 +223,18 @@ function PrizeCard({ item, freeBalance, redeeming, onRedeem }: PrizeCardProps) {
 
   return (
     <View style={[cardStyles.card, shadows.card, { backgroundColor: colors.bg.surface }]}>
+      {item.imagem_url ? (
+        <Image
+          source={item.imagem_url}
+          style={cardStyles.prizeImage}
+          contentFit="cover"
+          transition={200}
+        />
+      ) : (
+        <View style={[cardStyles.prizePlaceholder, { backgroundColor: colors.accent.filhoBg }]}>
+          <Trophy size={28} color={colors.accent.filho} strokeWidth={1.5} />
+        </View>
+      )}
       <Text style={[cardStyles.name, { color: colors.text.primary }]} numberOfLines={2}>
         {item.nome}
       </Text>
@@ -272,7 +301,7 @@ function PrizeCard({ item, freeBalance, redeeming, onRedeem }: PrizeCardProps) {
           <ActivityIndicator size="small" color={colors.text.inverse} />
         ) : (
           <Text style={[cardStyles.buttonText, { color: colors.text.inverse }]}>
-            {hasBalance ? 'Resgatar' : 'Sem saldo'}
+            {hasBalance ? 'Resgatar' : `Faltam ${item.custo_pontos - freeBalance} pts`}
           </Text>
         )}
       </Pressable>
@@ -287,6 +316,20 @@ const cardStyles = StyleSheet.create({
     borderCurve: 'continuous',
     padding: spacing['3'],
     gap: spacing['2'],
+    marginHorizontal: spacing['1'],
+    marginBottom: spacing['3'],
+  },
+  prizeImage: {
+    width: '100%',
+    height: 80,
+    borderRadius: radii.lg,
+  },
+  prizePlaceholder: {
+    width: '100%',
+    height: 80,
+    borderRadius: radii.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   name: {
     fontSize: typography.size.sm,
