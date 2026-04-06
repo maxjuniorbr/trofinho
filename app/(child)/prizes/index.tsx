@@ -77,6 +77,7 @@ export default function ChildPrizesScreen() {
               familiaId: profile.familia_id,
               childName: profile.nome ?? '',
               prizeName: prize.nome,
+              childUserId: profile.id,
             }
           : undefined,
       });

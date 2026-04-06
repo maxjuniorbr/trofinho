@@ -9,9 +9,11 @@ import {
   resolveTokens,
   validateRequest,
   buildMessage,
+  fetchProgressSuffix,
   isEventAllowedForRole,
   ADMIN_ONLY_EVENTS,
   FILHO_ONLY_EVENTS,
+  MESSAGE_TEMPLATES,
   type SupabaseClientLike,
   type ExpoTicketResult,
   type ExpoPushMessage,
@@ -1210,15 +1212,16 @@ describe('Property 5: Recipient resolution by event type', () => {
  * and (d) a data.route matching the event's target route.
  */
 describe('Property 6: Message template correctness', () => {
-  const EXPECTED_TEMPLATES: Record<PushEvent, { title: string; route: string }> = {
-    tarefa_aprovada: { title: 'Tarefa aprovada ✅', route: '/(child)/tasks' },
-    tarefa_rejeitada: { title: 'Tarefa rejeitada', route: '/(child)/tasks' },
-    tarefa_criada: { title: 'Nova tarefa 📝', route: '/(child)/tasks' },
-    resgate_confirmado: { title: 'Resgate confirmado 🎉', route: '/(child)/redemptions' },
-    resgate_cancelado: { title: 'Resgate cancelado', route: '/(child)/redemptions' },
-    resgate_solicitado: { title: 'Resgate solicitado', route: '/(admin)/redemptions' },
-    tarefa_concluida: { title: 'Tarefa concluída', route: '/(admin)/tasks' },
-  };
+  const EXPECTED_TITLES: Record<PushEvent, string[]> = Object.fromEntries(
+    Object.entries(MESSAGE_TEMPLATES).map(([event, config]) => [
+      event,
+      config.variants.map((v) => v.title),
+    ]),
+  ) as Record<PushEvent, string[]>;
+
+  const EXPECTED_ROUTES: Record<PushEvent, string> = Object.fromEntries(
+    Object.entries(MESSAGE_TEMPLATES).map(([event, config]) => [event, config.route]),
+  ) as Record<PushEvent, string>;
 
   // Non-empty string generator for interpolated values
   const nonEmptyStrArb = fc.string({ minLength: 1 }).filter((s) => s.trim().length > 0);
@@ -1281,18 +1284,18 @@ describe('Property 6: Message template correctness', () => {
   it('sound is always "default" for any event and valid payload', () => {
     fc.assert(
       fc.property(eventPayloadArb, ({ event, payload }) => {
-        const msg = buildMessage(event, payload);
+        const msg = buildMessage(event, payload, 'fam-test');
         expect(msg.sound).toBe('default');
       }),
       { numRuns: 100 },
     );
   });
 
-  it('title matches the expected template title for any event', () => {
+  it('title is one of the valid variant titles for any event', () => {
     fc.assert(
       fc.property(eventPayloadArb, ({ event, payload }) => {
-        const msg = buildMessage(event, payload);
-        expect(msg.title).toBe(EXPECTED_TEMPLATES[event].title);
+        const msg = buildMessage(event, payload, 'fam-test');
+        expect(EXPECTED_TITLES[event]).toContain(msg.title);
       }),
       { numRuns: 100 },
     );
@@ -1301,7 +1304,7 @@ describe('Property 6: Message template correctness', () => {
   it('body contains all interpolated values from the payload', () => {
     fc.assert(
       fc.property(eventPayloadArb, ({ event, payload, interpolatedValues }) => {
-        const msg = buildMessage(event, payload);
+        const msg = buildMessage(event, payload, 'fam-test');
         for (const value of interpolatedValues) {
           expect(msg.body).toContain(value);
         }
@@ -1313,8 +1316,8 @@ describe('Property 6: Message template correctness', () => {
   it('data.route matches the expected route for any event', () => {
     fc.assert(
       fc.property(eventPayloadArb, ({ event, payload }) => {
-        const msg = buildMessage(event, payload);
-        expect(msg.data.route).toBe(EXPECTED_TEMPLATES[event].route);
+        const msg = buildMessage(event, payload, 'fam-test');
+        expect(msg.data.route).toBe(EXPECTED_ROUTES[event]);
       }),
       { numRuns: 100 },
     );
@@ -1325,7 +1328,7 @@ describe('Property 6: Message template correctness', () => {
       userId: 'u-1',
       taskTitle: 'Clean room',
       entityId: 'assignment-123',
-    });
+    }, 'fam-test');
     expect(msg.data.entityId).toBe('assignment-123');
   });
 
@@ -1333,8 +1336,58 @@ describe('Property 6: Message template correctness', () => {
     const msg = buildMessage('resgate_confirmado', {
       userId: 'u-1',
       prizeName: 'Bike',
-    });
+    }, 'fam-test');
     expect(msg.data.entityId).toBeUndefined();
+  });
+
+  it('categoryId is set for tarefa_concluida', () => {
+    const msg = buildMessage('tarefa_concluida', {
+      childName: 'Luna',
+      taskTitle: 'Clean room',
+    }, 'fam-1');
+    expect(msg.categoryId).toBe('TASK_REVIEW');
+  });
+
+  it('categoryId is set for resgate_solicitado', () => {
+    const msg = buildMessage('resgate_solicitado', {
+      childName: 'Luna',
+      prizeName: 'Bike',
+    }, 'fam-1');
+    expect(msg.categoryId).toBe('REDEMPTION_REVIEW');
+  });
+
+  it('categoryId is omitted for other events', () => {
+    const msg = buildMessage('tarefa_aprovada', {
+      userId: 'u-1',
+      taskTitle: 'Clean room',
+    }, 'fam-1');
+    expect(msg.categoryId).toBeUndefined();
+  });
+
+  it('action data is included for tarefa_concluida', () => {
+    const msg = buildMessage('tarefa_concluida', {
+      childName: 'Luna',
+      taskTitle: 'Arrumar quarto',
+      assignmentId: 'a-1',
+      childUserId: 'u-child',
+    }, 'fam-1');
+    expect(msg.data.assignmentId).toBe('a-1');
+    expect(msg.data.childUserId).toBe('u-child');
+    expect(msg.data.taskTitle).toBe('Arrumar quarto');
+    expect(msg.data.familiaId).toBe('fam-1');
+  });
+
+  it('action data is included for resgate_solicitado', () => {
+    const msg = buildMessage('resgate_solicitado', {
+      childName: 'Luna',
+      prizeName: 'Lego',
+      redemptionId: 'r-1',
+      childUserId: 'u-child',
+    }, 'fam-1');
+    expect(msg.data.redemptionId).toBe('r-1');
+    expect(msg.data.childUserId).toBe('u-child');
+    expect(msg.data.prizeName).toBe('Lego');
+    expect(msg.data.familiaId).toBe('fam-1');
   });
 });
 
@@ -1580,5 +1633,148 @@ describe('isEventAllowedForRole', () => {
   it('allows resgate_cancelado for both roles', () => {
     expect(isEventAllowedForRole('resgate_cancelado', 'admin')).toBe(true);
     expect(isEventAllowedForRole('resgate_cancelado', 'filho')).toBe(true);
+  });
+});
+
+// ─── fetchProgressSuffix ────────────────────────────────────────────────────
+
+describe('fetchProgressSuffix', () => {
+  function createProgressMockSupabase(overrides: {
+    filhos?: { data: Record<string, unknown>[] | null; error: unknown };
+    atribuicoes?: { data: Record<string, unknown>[] | null; error: unknown };
+    saldos?: { data: Record<string, unknown>[] | null; error: unknown };
+  }) {
+    const fromMock = vi.fn().mockImplementation((table: string) => {
+      if (table === 'filhos') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue(overrides.filhos ?? { data: null, error: null }),
+            in: vi.fn().mockResolvedValue(overrides.filhos ?? { data: null, error: null }),
+          }),
+        };
+      }
+      if (table === 'atribuicoes') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue(overrides.atribuicoes ?? { data: null, error: null }),
+            }),
+            in: vi.fn().mockResolvedValue(overrides.atribuicoes ?? { data: null, error: null }),
+          }),
+        };
+      }
+      if (table === 'saldos') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue(overrides.saldos ?? { data: null, error: null }),
+            in: vi.fn().mockResolvedValue(overrides.saldos ?? { data: null, error: null }),
+          }),
+        };
+      }
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+          in: vi.fn().mockResolvedValue({ data: null, error: null }),
+        }),
+      };
+    });
+
+    return {
+      auth: { getUser: vi.fn() },
+      from: fromMock,
+    } as unknown as SupabaseClientLike;
+  }
+
+  it('returns task progress for tarefa_aprovada', async () => {
+    const supabase = createProgressMockSupabase({
+      filhos: { data: [{ id: 'filho-1' }], error: null },
+      atribuicoes: {
+        data: [
+          { status: 'aprovada' },
+          { status: 'aprovada' },
+          { status: 'aguardando_validacao' },
+          { status: 'pendente' },
+          { status: 'pendente' },
+        ],
+        error: null,
+      },
+    });
+
+    const result = await fetchProgressSuffix(supabase, 'tarefa_aprovada', {
+      userId: 'user-1',
+      taskTitle: 'Test',
+    });
+
+    expect(result).toContain('2/5');
+  });
+
+  it('returns task progress for tarefa_concluida', async () => {
+    const supabase = createProgressMockSupabase({
+      filhos: { data: [{ id: 'filho-1' }], error: null },
+      atribuicoes: {
+        data: [{ status: 'aprovada' }, { status: 'aguardando_validacao' }, { status: 'pendente' }],
+        error: null,
+      },
+    });
+
+    const result = await fetchProgressSuffix(supabase, 'tarefa_concluida', {
+      childName: 'Luna',
+      taskTitle: 'Test',
+      childUserId: 'user-1',
+    });
+
+    expect(result).toContain('1/3');
+  });
+
+  it('returns balance for resgate_confirmado', async () => {
+    const supabase = createProgressMockSupabase({
+      filhos: { data: [{ id: 'filho-1' }], error: null },
+      saldos: { data: [{ saldo_livre: 45 }], error: null },
+    });
+
+    const result = await fetchProgressSuffix(supabase, 'resgate_confirmado', {
+      userId: 'user-1',
+      prizeName: 'Lego',
+    });
+
+    expect(result).toContain('45');
+    expect(result).toContain('moedas');
+  });
+
+  it('returns empty string when filho not found', async () => {
+    const supabase = createProgressMockSupabase({
+      filhos: { data: [], error: null },
+    });
+
+    const result = await fetchProgressSuffix(supabase, 'tarefa_aprovada', {
+      userId: 'user-1',
+      taskTitle: 'Test',
+    });
+
+    expect(result).toBe('');
+  });
+
+  it('returns empty string for events without progress', async () => {
+    const supabase = createProgressMockSupabase({});
+
+    const result = await fetchProgressSuffix(supabase, 'tarefa_criada', {
+      filhoIds: ['f1'],
+      taskTitle: 'Test',
+    });
+
+    expect(result).toBe('');
+  });
+
+  it('returns empty string on error (best-effort)', async () => {
+    const supabase = createProgressMockSupabase({
+      filhos: { data: null, error: new Error('DB error') },
+    });
+
+    const result = await fetchProgressSuffix(supabase, 'tarefa_aprovada', {
+      userId: 'user-1',
+      taskTitle: 'Test',
+    });
+
+    expect(result).toBe('');
   });
 });

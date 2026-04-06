@@ -452,6 +452,7 @@ describe('prizes', () => {
       expect(dispatchPushNotificationMock).toHaveBeenCalledWith('resgate_solicitado', 'family-1', {
         childName: 'Lia',
         prizeName: 'Sorvete',
+        redemptionId: 'redemption-1',
       });
     });
 

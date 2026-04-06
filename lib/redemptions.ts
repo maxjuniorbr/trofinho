@@ -125,7 +125,7 @@ export async function listChildRedemptions(
 
 export async function requestRedemption(
   prizeId: string,
-  opts?: { familiaId: string; childName: string; prizeName: string },
+  opts?: { familiaId: string; childName: string; prizeName: string; childUserId?: string },
 ): Promise<{
   data: string | null;
   error: string | null;
@@ -139,6 +139,8 @@ export async function requestRedemption(
     dispatchPushNotification('resgate_solicitado', opts.familiaId, {
       childName: opts.childName,
       prizeName: opts.prizeName,
+      ...(data ? { redemptionId: data } : {}),
+      ...(opts.childUserId ? { childUserId: opts.childUserId } : {}),
     });
   } else {
     console.warn(

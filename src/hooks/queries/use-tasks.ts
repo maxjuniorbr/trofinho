@@ -164,7 +164,13 @@ export const useCompleteAssignment = () => {
     }: {
       assignmentId: string;
       imageUri: string | null;
-      opts: { familiaId: string; childName: string; taskTitle: string; taskId?: string };
+      opts: {
+        familiaId: string;
+        childName: string;
+        taskTitle: string;
+        taskId?: string;
+        childUserId?: string;
+      };
     }) => mutationFnAdapter(() => completeAssignment(assignmentId, imageUri, opts))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
