@@ -47,7 +47,7 @@ export async function listPrizes(
     .order('ativo', { ascending: false })
     .order('nome')
     .range(from, to)
-    .returns<Prize[]>();
+    .overrideTypes<Prize[], { merge: false }>();
 
   if (error) return { data: [], hasMore: false, error: localizeRpcError(error.message) };
   const items = data ?? [];
@@ -187,7 +187,7 @@ export async function listActivePrizes(): Promise<{
     .eq('ativo', true)
     .order('custo_pontos')
     .limit(50)
-    .returns<Prize[]>();
+    .overrideTypes<Prize[], { merge: false }>();
 
   if (error) return { data: [], error: localizeRpcError(error.message) };
   return { data: data ?? [], error: null };

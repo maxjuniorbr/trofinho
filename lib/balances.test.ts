@@ -35,6 +35,7 @@ function createQuery(result: {
     limit: vi.fn().mockReturnThis(),
     range: vi.fn().mockReturnThis(),
     returns: vi.fn().mockReturnThis(),
+    overrideTypes: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue(result),
   };
 }
@@ -91,7 +92,8 @@ describe('balances', () => {
     const listQuery = {
       select: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
-      returns: vi.fn().mockResolvedValue({ data: null, error: { message: 'list failed' } }),
+      returns: vi.fn().mockReturnThis(),
+      overrideTypes: vi.fn().mockResolvedValue({ data: null, error: { message: 'list failed' } }),
     };
 
     supabaseMock.from.mockReturnValueOnce(balanceQuery).mockReturnValueOnce(listQuery);
@@ -112,7 +114,8 @@ describe('balances', () => {
       eq: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
       range: vi.fn().mockReturnThis(),
-      returns: vi.fn().mockResolvedValue({ data: [{ id: 'tx-1' }], error: null }),
+      returns: vi.fn().mockReturnThis(),
+      overrideTypes: vi.fn().mockResolvedValue({ data: [{ id: 'tx-1' }], error: null }),
     };
     supabaseMock.from.mockReturnValue(query);
 
@@ -154,14 +157,16 @@ describe('balances', () => {
   it('returns empty lists and successful penalty results for remaining branches', async () => {
     const emptyBalancesQuery = {
       order: vi.fn().mockReturnThis(),
-      returns: vi.fn().mockResolvedValue({ data: null, error: null }),
+      returns: vi.fn().mockReturnThis(),
+      overrideTypes: vi.fn().mockResolvedValue({ data: null, error: null }),
       select: vi.fn().mockReturnThis(),
     };
     const listErrorQuery = {
       eq: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
       range: vi.fn().mockReturnThis(),
-      returns: vi.fn().mockResolvedValue({ data: null, error: { message: 'list failed' } }),
+      returns: vi.fn().mockReturnThis(),
+      overrideTypes: vi.fn().mockResolvedValue({ data: null, error: { message: 'list failed' } }),
       select: vi.fn().mockReturnThis(),
     };
 

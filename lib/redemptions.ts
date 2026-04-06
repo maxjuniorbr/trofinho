@@ -40,7 +40,7 @@ export async function listRedemptions(
     .select('*, filhos(nome, usuario_id), premios(nome)')
     .order('created_at', { ascending: false })
     .range(from, to)
-    .returns<RedemptionWithChildAndPrize[]>();
+    .overrideTypes<RedemptionWithChildAndPrize[], { merge: false }>();
 
   if (error) return { data: [], hasMore: false, error: localizeRpcError(error.message) };
   const items = data ?? [];
@@ -115,7 +115,7 @@ export async function listChildRedemptions(
     .select('*, premios(nome, custo_pontos)')
     .order('created_at', { ascending: false })
     .range(from, to)
-    .returns<RedemptionWithPrize[]>();
+    .overrideTypes<RedemptionWithPrize[], { merge: false }>();
 
   if (error) return { data: [], hasMore: false, error: localizeRpcError(error.message) };
   const items = data ?? [];

@@ -86,7 +86,7 @@ export async function listChildren(onlyActive = false): Promise<{
 
   if (onlyActive) query = query.eq('ativo', true);
 
-  const { data, error } = await query.order('nome').returns<Child[]>();
+  const { data, error } = await query.order('nome').overrideTypes<Child[], { merge: false }>();
 
   if (error) return { data: [], error: localizeRpcError(error.message) };
   return { data: data ?? [], error: null };

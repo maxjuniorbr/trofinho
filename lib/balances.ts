@@ -90,7 +90,7 @@ export async function listAdminBalances(): Promise<{
     .from('saldos')
     .select('*, filhos(nome, ativo)')
     .order('filhos(nome)')
-    .returns<BalanceWithChild[]>();
+    .overrideTypes<BalanceWithChild[], { merge: false }>();
 
   if (error) return { data: [], error: localizeRpcError(error.message) };
   return { data: data ?? [], error: null };
@@ -110,7 +110,7 @@ export async function listTransactions(
     .eq('filho_id', childId)
     .order('created_at', { ascending: false })
     .range(from, to)
-    .returns<Transaction[]>();
+    .overrideTypes<Transaction[], { merge: false }>();
 
   if (error) return { data: [], hasMore: false, error: localizeRpcError(error.message) };
   const items = data ?? [];
