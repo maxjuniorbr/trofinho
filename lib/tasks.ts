@@ -340,7 +340,13 @@ export async function getChildAssignment(
 export async function completeAssignment(
   assignmentId: string,
   imageUri: string | null,
-  opts: { familiaId: string; childName: string; taskTitle: string; taskId?: string },
+  opts: {
+    familiaId: string;
+    childName: string;
+    taskTitle: string;
+    taskId?: string;
+    childUserId?: string;
+  },
 ): Promise<{ error: string | null }> {
   let evidenceUrl: string | undefined;
 
@@ -361,6 +367,8 @@ export async function completeAssignment(
     childName: opts.childName,
     taskTitle: opts.taskTitle,
     ...(opts.taskId ? { entityId: opts.taskId } : {}),
+    assignmentId,
+    ...(opts.childUserId ? { childUserId: opts.childUserId } : {}),
   });
   return { error: null };
 }

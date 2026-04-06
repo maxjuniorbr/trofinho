@@ -313,6 +313,7 @@ export default function ChildTaskDetailScreen() {
           childName: profile?.nome ?? '',
           taskTitle: latestAssignment.tarefas.titulo,
           taskId: latestAssignment.tarefas.id,
+          childUserId: profile?.id,
         },
       });
     } catch (error_) {

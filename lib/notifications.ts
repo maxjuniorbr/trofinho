@@ -124,6 +124,28 @@ async function ensureNotificationChannel(): Promise<void> {
   });
 }
 
+export async function registerNotificationCategories(): Promise<void> {
+  const Notifications = await getNotificationsModule();
+  if (!Notifications) return;
+
+  await Promise.all([
+    Notifications.setNotificationCategoryAsync('TASK_REVIEW', [
+      {
+        identifier: 'APPROVE_TASK',
+        buttonTitle: 'Aprovar \u2705',
+        options: { opensAppToForeground: false },
+      },
+    ]),
+    Notifications.setNotificationCategoryAsync('REDEMPTION_REVIEW', [
+      {
+        identifier: 'CONFIRM_REDEMPTION',
+        buttonTitle: 'Confirmar \u2705',
+        options: { opensAppToForeground: false },
+      },
+    ]),
+  ]);
+}
+
 function hasGrantedNotificationPermission(
   status: NotificationPermissionsStatus,
   Notifications: NotificationsModule,
@@ -355,6 +377,11 @@ export type NotificationNavTarget = {
   entityId?: string;
 };
 
+export type NotificationActionEvent = {
+  actionId: string;
+  data: Record<string, unknown>;
+};
+
 export function getNotificationRoute(data: unknown): NotificationNavTarget | null {
   if (!isRecord(data)) return null;
 
@@ -374,36 +401,43 @@ export function getNotificationRoute(data: unknown): NotificationNavTarget | nul
 
 export async function subscribeToNotificationNavigation(
   onRoute: (target: NotificationNavTarget) => void,
+  onAction?: (action: NotificationActionEvent) => void,
 ): Promise<() => void> {
-  const Notifications = await getNotificationsModule();
-  if (!Notifications) {
+  const N = await getNotificationsModule();
+  if (!N) {
     return () => undefined;
   }
 
-  function redirectFromNotificationData(data: unknown) {
-    const target = getNotificationRoute(data);
-    if (!target) return;
+  const handleResponse = (actionIdentifier: string, data: unknown) => {
+    if (actionIdentifier === N.DEFAULT_ACTION_IDENTIFIER) {
+      const target = getNotificationRoute(data);
+      if (target) onRoute(target);
+    } else if (onAction) {
+      onAction({
+        actionId: actionIdentifier,
+        data: (isRecord(data) ? data : {}) as Record<string, unknown>,
+      });
+    }
+    N.clearLastNotificationResponse();
+  };
 
-    onRoute(target);
-  }
-
-  const lastNotificationResponse = Notifications.getLastNotificationResponse();
-  if (lastNotificationResponse?.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
-    redirectFromNotificationData(lastNotificationResponse.notification.request.content.data);
-    Notifications.clearLastNotificationResponse();
+  const lastNotificationResponse = N.getLastNotificationResponse();
+  if (lastNotificationResponse) {
+    handleResponse(
+      lastNotificationResponse.actionIdentifier,
+      lastNotificationResponse.notification.request.content.data,
+    );
   }
 
   const receivedSubscription: NotificationSubscription =
-    Notifications.addNotificationReceivedListener(() => undefined);
+    N.addNotificationReceivedListener(() => undefined);
 
   const responseSubscription: NotificationSubscription =
-    Notifications.addNotificationResponseReceivedListener((response) => {
-      if (response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) {
-        return;
-      }
-
-      redirectFromNotificationData(response.notification.request.content.data);
-      Notifications.clearLastNotificationResponse();
+    N.addNotificationResponseReceivedListener((response) => {
+      handleResponse(
+        response.actionIdentifier,
+        response.notification.request.content.data,
+      );
     });
 
   return () => {

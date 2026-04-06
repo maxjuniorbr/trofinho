@@ -196,6 +196,7 @@ describe('requestRedemption', () => {
     expect(dispatchPushNotificationMock).toHaveBeenCalledWith('resgate_solicitado', 'fam-1', {
       childName: 'Lia',
       prizeName: 'Bicicleta',
+      redemptionId: 'redemption-id',
     });
   });
 

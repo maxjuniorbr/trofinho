@@ -1021,6 +1021,7 @@ describe('tasks', () => {
       expect(dispatchPushNotificationMock).toHaveBeenCalledWith('tarefa_concluida', 'family-1', {
         childName: 'Lia',
         taskTitle: 'Estudar',
+        assignmentId: 'assignment-1',
       });
     });
 

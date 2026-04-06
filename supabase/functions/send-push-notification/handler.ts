@@ -15,8 +15,14 @@ export type PushEvent =
 export type EventPayload =
   | { userId: string; taskTitle: string; entityId?: string }
   | { userId: string; prizeName: string }
-  | { childName: string; prizeName: string }
-  | { childName: string; taskTitle: string; entityId?: string }
+  | { childName: string; prizeName: string; redemptionId?: string; childUserId?: string }
+  | {
+      childName: string;
+      taskTitle: string;
+      entityId?: string;
+      assignmentId?: string;
+      childUserId?: string;
+    }
   | { filhoIds: string[]; taskTitle: string };
 
 export type NotificationPrefs = {
@@ -43,6 +49,17 @@ export type PushNotificationResponse = {
 
 const DEFAULT_CHANNEL_ID = 'trofinho-default';
 
+export type NotificationData = {
+  route: string;
+  entityId?: string;
+  assignmentId?: string;
+  redemptionId?: string;
+  familiaId?: string;
+  childUserId?: string;
+  taskTitle?: string;
+  prizeName?: string;
+};
+
 export type ExpoPushMessage = {
   to: string;
   title: string;
@@ -50,7 +67,8 @@ export type ExpoPushMessage = {
   sound: 'default';
   priority: 'high';
   channelId: string;
-  data: { route: string; entityId?: string };
+  categoryId?: string;
+  data: NotificationData;
 };
 
 export type ExpoTicketResult =
@@ -161,67 +179,222 @@ export function validateRequest(body: unknown):
 
 // ─── Message template builder ────────────────────────────────────────────────
 
-type MessageTemplate = {
+type MessageTemplateVariant = {
   title: string;
   bodyTemplate: string;
+};
+
+type MessageTemplateConfig = {
+  variants: MessageTemplateVariant[];
   route: string;
 };
 
-const MESSAGE_TEMPLATES: Record<PushEvent, MessageTemplate> = {
+export const MESSAGE_TEMPLATES: Record<PushEvent, MessageTemplateConfig> = {
   tarefa_aprovada: {
-    title: 'Tarefa aprovada ✅',
-    bodyTemplate: 'Sua tarefa "{taskTitle}" foi aprovada!',
+    variants: [
+      { title: 'Tarefa aprovada ✅', bodyTemplate: 'Sua tarefa "{taskTitle}" foi aprovada!' },
+      { title: 'Mandou bem! 🎯', bodyTemplate: '"{taskTitle}" aprovada! Continue assim!' },
+      { title: 'Arrasou! ⭐', bodyTemplate: 'Parabéns! "{taskTitle}" foi aprovada!' },
+      { title: 'Muito bem! 🏆', bodyTemplate: '"{taskTitle}" aprovada com sucesso!' },
+    ],
     route: '/(child)/tasks',
   },
   tarefa_rejeitada: {
-    title: 'Tarefa rejeitada',
-    bodyTemplate: 'Sua tarefa "{taskTitle}" foi rejeitada. Confira o motivo.',
+    variants: [
+      {
+        title: 'Quase lá! 🔄',
+        bodyTemplate: 'Sua tarefa "{taskTitle}" precisa de ajustes. Confira!',
+      },
+      {
+        title: 'Tarefa devolvida 📋',
+        bodyTemplate: '"{taskTitle}" foi devolvida. Dá uma olhadinha!',
+      },
+      {
+        title: 'Ops, tenta de novo 💪',
+        bodyTemplate: '"{taskTitle}" precisa de correção. Você consegue!',
+      },
+    ],
     route: '/(child)/tasks',
   },
   tarefa_criada: {
-    title: 'Nova tarefa 📝',
-    bodyTemplate: 'Você tem uma nova tarefa: "{taskTitle}".',
+    variants: [
+      { title: 'Nova tarefa 📝', bodyTemplate: 'Você tem uma nova tarefa: "{taskTitle}".' },
+      { title: 'Missão nova! 🚀', bodyTemplate: 'Nova tarefa chegou: "{taskTitle}". Bora!' },
+      { title: 'Tarefa fresquinha 🆕', bodyTemplate: '"{taskTitle}" te espera. Partiu!' },
+    ],
     route: '/(child)/tasks',
   },
   resgate_confirmado: {
-    title: 'Resgate confirmado 🎉',
-    bodyTemplate: 'Seu resgate de "{prizeName}" foi confirmado!',
+    variants: [
+      {
+        title: 'Resgate confirmado 🎉',
+        bodyTemplate: 'Seu resgate de "{prizeName}" foi confirmado!',
+      },
+      { title: 'Prêmio garantido! 🎁', bodyTemplate: '"{prizeName}" é seu! Aproveite!' },
+      { title: 'Oba! 🥳', bodyTemplate: 'Resgate de "{prizeName}" confirmado! Parabéns!' },
+    ],
     route: '/(child)/redemptions',
   },
   resgate_cancelado: {
-    title: 'Resgate cancelado',
-    bodyTemplate: 'Seu resgate de "{prizeName}" foi cancelado pelo responsável.',
+    variants: [
+      { title: 'Resgate cancelado ❌', bodyTemplate: 'O resgate de "{prizeName}" foi cancelado.' },
+      {
+        title: 'Resgate não aprovado 😕',
+        bodyTemplate: '"{prizeName}" foi cancelado. Que tal tentar outro?',
+      },
+    ],
     route: '/(child)/redemptions',
   },
   resgate_solicitado: {
-    title: 'Resgate solicitado',
-    bodyTemplate: '{childName} solicitou o resgate de "{prizeName}".',
+    variants: [
+      { title: 'Novo resgate! 🎁', bodyTemplate: '{childName} quer resgatar "{prizeName}".' },
+      {
+        title: 'Pedido de resgate 📬',
+        bodyTemplate: '{childName} solicitou "{prizeName}". Confira!',
+      },
+    ],
     route: '/(admin)/redemptions',
   },
   tarefa_concluida: {
-    title: 'Tarefa concluída',
-    bodyTemplate: '{childName} concluiu a tarefa "{taskTitle}".',
+    variants: [
+      {
+        title: 'Tarefa concluída 🎯',
+        bodyTemplate: '{childName} concluiu "{taskTitle}". Confira!',
+      },
+      { title: 'Missão cumprida! ✨', bodyTemplate: '{childName} finalizou "{taskTitle}".' },
+      {
+        title: 'Pronto! 📌',
+        bodyTemplate: '{childName} terminou a tarefa "{taskTitle}".',
+      },
+    ],
     route: '/(admin)/tasks',
   },
 };
 
-export function buildMessage(event: PushEvent, payload: EventPayload): MessageContent {
-  const template = MESSAGE_TEMPLATES[event];
+// ─── Progress suffix (best-effort) ──────────────────────────────────────────
 
-  const body = template.bodyTemplate.replaceAll(
+function getTodaySP(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+}
+
+export async function fetchProgressSuffix(
+  supabase: SupabaseClientLike,
+  event: PushEvent,
+  payload: EventPayload,
+): Promise<string> {
+  try {
+    if (event === 'tarefa_aprovada' || event === 'tarefa_concluida') {
+      const userId =
+        event === 'tarefa_aprovada'
+          ? (payload as { userId: string }).userId
+          : (payload as { childUserId?: string }).childUserId;
+      if (!userId) return '';
+
+      const { data: filhos } = await supabase
+        .from('filhos')
+        .select('id')
+        .eq('usuario_id', userId);
+      if (!filhos?.[0]) return '';
+      const filhoId = filhos[0].id as string;
+
+      const today = getTodaySP();
+      const { data: assignments } = await supabase
+        .from('atribuicoes')
+        .select('status')
+        .eq('filho_id', filhoId)
+        .eq('competencia', today);
+
+      if (!assignments?.length) return '';
+      const approved = assignments.filter(
+        (a: Record<string, unknown>) => a.status === 'aprovada',
+      ).length;
+      return ` (${approved}/${assignments.length} hoje 🎯)`;
+    }
+
+    if (event === 'resgate_confirmado') {
+      const userId = (payload as { userId: string }).userId;
+      if (!userId) return '';
+
+      const { data: filhos } = await supabase
+        .from('filhos')
+        .select('id')
+        .eq('usuario_id', userId);
+      if (!filhos?.[0]) return '';
+      const filhoId = filhos[0].id as string;
+
+      const { data: saldos } = await supabase
+        .from('saldos')
+        .select('saldo_livre')
+        .eq('filho_id', filhoId);
+      if (!saldos?.[0]) return '';
+      const saldo = saldos[0].saldo_livre as number;
+      return ` Saldo: ${saldo} moedas 💰`;
+    }
+  } catch {
+    // Progress is best-effort — don't fail the notification
+  }
+  return '';
+}
+
+const EVENT_CATEGORY_MAP: Partial<Record<PushEvent, string>> = {
+  tarefa_concluida: 'TASK_REVIEW',
+  resgate_solicitado: 'REDEMPTION_REVIEW',
+};
+
+function pickRandom<T>(items: T[]): T {
+  return items[Math.floor(Math.random() * items.length)];
+}
+
+function buildActionData(
+  event: PushEvent,
+  payload: EventPayload,
+  familiaId: string,
+): Partial<NotificationData> {
+  const p = payload as Record<string, string>;
+  if (event === 'tarefa_concluida') {
+    return {
+      ...(p.assignmentId ? { assignmentId: p.assignmentId } : {}),
+      ...(p.childUserId ? { childUserId: p.childUserId } : {}),
+      ...(p.taskTitle ? { taskTitle: p.taskTitle } : {}),
+      familiaId,
+    };
+  }
+  if (event === 'resgate_solicitado') {
+    return {
+      ...(p.redemptionId ? { redemptionId: p.redemptionId } : {}),
+      ...(p.childUserId ? { childUserId: p.childUserId } : {}),
+      ...(p.prizeName ? { prizeName: p.prizeName } : {}),
+      familiaId,
+    };
+  }
+  return {};
+}
+
+export function buildMessage(
+  event: PushEvent,
+  payload: EventPayload,
+  familiaId: string,
+): MessageContent {
+  const config = MESSAGE_TEMPLATES[event];
+  const variant = pickRandom(config.variants);
+
+  const body = variant.bodyTemplate.replaceAll(
     /\{(\w+)\}/g,
     (_, key: string) => (payload as Record<string, string>)[key] ?? '',
   );
 
   const entityId = 'entityId' in payload ? payload.entityId : undefined;
+  const categoryId = EVENT_CATEGORY_MAP[event];
+  const actionData = buildActionData(event, payload, familiaId);
 
   return {
-    title: template.title,
+    title: variant.title,
     body,
     sound: 'default',
     priority: 'high',
     channelId: DEFAULT_CHANNEL_ID,
-    data: { route: template.route, ...(entityId ? { entityId } : {}) },
+    ...(categoryId ? { categoryId } : {}),
+    data: { route: config.route, ...(entityId ? { entityId } : {}), ...actionData },
   };
 }
 
@@ -542,7 +715,11 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
       );
     }
 
-    const messageContent = buildMessage(event, payload);
+    const messageContent = buildMessage(event, payload, familiaId);
+    const suffix = await fetchProgressSuffix(supabase, event, payload);
+    if (suffix) {
+      messageContent.body += suffix;
+    }
     const messages: ExpoPushMessage[] = tokens.map((t) => ({ to: t, ...messageContent }));
     const tickets = await sendToExpoPushApi(messages);
     const response = await processTicketResults(supabase, tickets, tokens);

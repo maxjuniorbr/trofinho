@@ -20,7 +20,9 @@ import {
   registerForPushNotifications,
   savePushToken,
   subscribeToNotificationNavigation,
+  registerNotificationCategories,
 } from '@lib/notifications';
+import { handleNotificationAction } from '@lib/notification-actions';
 import { ThemeProvider, useTheme } from '@/context/theme-context';
 import { QueryProvider, queryClient } from '@/context/query-client';
 import { OfflineBanner } from '@/components/ui/offline-banner';
@@ -128,6 +130,7 @@ function RootNavigator({
 
     const registerPush = async () => {
       try {
+        await registerNotificationCategories();
         const token = await registerForPushNotifications();
         if (mounted) {
           setPushToken(token);
@@ -221,13 +224,18 @@ function RootNavigator({
     let unsubscribe: () => void = () => undefined;
 
     const setupNotificationNavigation = async () => {
-      const cleanup = await subscribeToNotificationNavigation((target) => {
-        if (target.entityId) {
-          router.push(`${target.route}/${target.entityId}` as never);
-        } else {
-          router.push(target.route);
-        }
-      });
+      const cleanup = await subscribeToNotificationNavigation(
+        (target) => {
+          if (target.entityId) {
+            router.push(`${target.route}/${target.entityId}` as never);
+          } else {
+            router.push(target.route);
+          }
+        },
+        (action) => {
+          handleNotificationAction(action.actionId, action.data);
+        },
+      );
 
       if (active) {
         unsubscribe = cleanup;

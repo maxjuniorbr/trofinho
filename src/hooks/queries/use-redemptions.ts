@@ -82,7 +82,7 @@ export const useRequestRedemption = () => {
       opts,
     }: {
       prizeId: string;
-      opts?: { familiaId: string; childName: string; prizeName: string };
+      opts?: { familiaId: string; childName: string; prizeName: string; childUserId?: string };
     }) => queryFnAdapter(() => requestRedemption(prizeId, opts))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.redemptions.all });
