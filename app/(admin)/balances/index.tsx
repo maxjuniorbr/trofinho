@@ -51,7 +51,8 @@ export default function BalancesAdminScreen() {
             <Pressable
               style={({ pressed }) => {
                 const isInactive = item.filhos.ativo === false;
-                const opacity = isInactive ? 0.5 : pressed ? 0.9 : 1;
+                const pressedOpacity = pressed ? 0.9 : 1;
+                const opacity = isInactive ? 0.5 : pressedOpacity;
                 return [
                   styles.card,
                   shadows.card,
