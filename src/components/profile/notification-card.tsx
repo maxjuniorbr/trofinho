@@ -4,23 +4,27 @@ import { InlineMessage } from '@/components/ui/inline-message';
 import { radii, spacing, typography } from '@/constants/theme';
 import type { NotificationPrefs } from '@lib/notifications';
 
-const OPTIONS: readonly {
+type NotificationOption = Readonly<{
   key: keyof NotificationPrefs;
   label: string;
-}[] = [
-  { key: 'tarefasPendentes', label: 'Tarefas pendentes' },
-  { key: 'tarefaAprovada', label: 'Tarefa aprovada' },
-  { key: 'tarefaRejeitada', label: 'Tarefa rejeitada' },
-  { key: 'tarefaConcluida', label: 'Tarefa concluída pelo filho' },
-  { key: 'resgatesSolicitado', label: 'Resgate solicitado' },
-  { key: 'resgateConfirmado', label: 'Resgate confirmado' },
-  { key: 'resgateCancelado', label: 'Resgate cancelado' },
+  roles: readonly ('admin' | 'filho')[];
+}>;
+
+const OPTIONS: readonly NotificationOption[] = [
+  { key: 'tarefasPendentes', label: 'Tarefas pendentes', roles: ['admin'] },
+  { key: 'tarefaAprovada', label: 'Tarefa aprovada', roles: ['filho'] },
+  { key: 'tarefaRejeitada', label: 'Tarefa rejeitada', roles: ['filho'] },
+  { key: 'tarefaConcluida', label: 'Tarefa concluída pelo filho', roles: ['admin'] },
+  { key: 'resgatesSolicitado', label: 'Resgate solicitado', roles: ['admin'] },
+  { key: 'resgateConfirmado', label: 'Resgate confirmado', roles: ['filho'] },
+  { key: 'resgateCancelado', label: 'Resgate cancelado', roles: ['filho'] },
 ];
 
 type NotificationCardProps = Readonly<{
   preferences: NotificationPrefs;
   saving?: boolean;
   error?: string | null;
+  role?: 'admin' | 'filho';
   onPreferencesChange: (prefs: NotificationPrefs) => void | Promise<void>;
 }>;
 
@@ -28,9 +32,11 @@ export function NotificationCard({
   preferences,
   saving = false,
   error = null,
+  role = 'admin',
   onPreferencesChange,
 }: NotificationCardProps) {
   const { colors } = useTheme();
+  const accentColor = role === 'filho' ? colors.accent.filhoDim : colors.accent.adminDim;
 
   const handleToggle = (key: keyof NotificationPrefs, value: boolean) => {
     onPreferencesChange({ ...preferences, [key]: value });
@@ -45,12 +51,12 @@ export function NotificationCard({
     >
       <Text style={[styles.title, { color: colors.text.primary }]}>Notificações</Text>
 
-      {OPTIONS.map(({ key, label }, index) => (
+      {OPTIONS.filter((o) => o.roles.includes(role)).map(({ key, label }, index, arr) => (
         <View
           key={key}
           style={[
             styles.row,
-            index < OPTIONS.length - 1 && {
+            index < arr.length - 1 && {
               borderBottomWidth: 1,
               borderBottomColor: colors.border.subtle,
             },
@@ -65,7 +71,7 @@ export function NotificationCard({
             accessibilityState={{ disabled: saving }}
             trackColor={{
               false: colors.border.default,
-              true: colors.accent.adminDim,
+              true: accentColor,
             }}
             thumbColor={colors.text.inverse}
           />

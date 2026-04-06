@@ -11,8 +11,13 @@ const THEME_OPTIONS: readonly { value: ColorScheme; label: string; Icon: typeof 
   { value: 'system', label: 'Sistema', Icon: Smartphone },
 ];
 
-export function ThemeCard() {
+type ThemeCardProps = Readonly<{
+  role?: 'admin' | 'filho';
+}>;
+
+export function ThemeCard({ role = 'admin' }: ThemeCardProps) {
   const { colors, scheme, setScheme } = useTheme();
+  const accentColor = role === 'filho' ? colors.accent.filhoDim : colors.accent.adminDim;
 
   return (
     <View
@@ -31,8 +36,8 @@ export function ThemeCard() {
               style={[
                 styles.option,
                 {
-                  backgroundColor: isActive ? colors.accent.adminDim : colors.bg.elevated,
-                  borderColor: isActive ? colors.accent.adminDim : colors.border.subtle,
+                  backgroundColor: isActive ? accentColor : colors.bg.elevated,
+                  borderColor: isActive ? accentColor : colors.border.subtle,
                 },
               ]}
               onPress={() => setScheme(value)}

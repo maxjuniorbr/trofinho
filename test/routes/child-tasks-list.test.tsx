@@ -35,7 +35,12 @@ const createHostComponent = vi.hoisted(() => {
     });
 });
 
+const alertMock = vi.hoisted(() => ({
+  alert: vi.fn(),
+}));
+
 vi.mock('react-native', () => ({
+  Alert: alertMock,
   Pressable: createHostComponent('Pressable'),
   RefreshControl: createHostComponent('RefreshControl'),
   StyleSheet: {
@@ -135,6 +140,11 @@ vi.mock('@/components/ui/segmented-bar', () => ({
   SegmentedBar: (props: Record<string, unknown>) => React.createElement('SegmentedBar', props),
 }));
 
+vi.mock('@/components/ui/skeleton', () => ({
+  ListScreenSkeleton: (props: Record<string, unknown>) =>
+    React.createElement('ListScreenSkeleton', props),
+}));
+
 vi.mock('@/components/ui/list-footer', () => ({
   ListFooter: (props: Record<string, unknown>) => React.createElement('ListFooter', props),
 }));
@@ -220,7 +230,86 @@ describe('ChildTasksScreen', () => {
         (node) => (node.type as string) === 'Text' && node.props.children === 'Desativada',
       ),
     ).toHaveLength(1);
-    expect(pressables[0].props.disabled).toBe(true);
+    expect(pressables[0].props.disabled).toBeFalsy();
     expect(pressables[0].props.accessibilityLabel).toBe('Tarefa Arrumar a cama desativada');
+  });
+
+  it('shows Alert when pressing an inactive task', () => {
+    childAssignmentsMock.data = {
+      pages: [
+        {
+          data: [
+            makeAssignment({
+              tarefas: { titulo: 'Arrumar a cama', frequencia: 'unica', ativo: false },
+            }),
+          ],
+          hasMore: false,
+        },
+      ],
+      pageParams: [0],
+    };
+
+    const renderer = render(<ChildTasksScreen />);
+    const pressables = renderer.root.findAll((node) => (node.type as string) === 'Pressable');
+
+    act(() => {
+      pressables[0].props.onPress();
+    });
+
+    expect(alertMock.alert).toHaveBeenCalledWith('Tarefa desativada', expect.any(String));
+  });
+
+  it('passes badge counts to SegmentedBar', () => {
+    childAssignmentsMock.data = {
+      pages: [
+        {
+          data: [
+            makeAssignment({ id: '1', status: 'pendente' }),
+            makeAssignment({ id: '2', status: 'pendente' }),
+            makeAssignment({ id: '3', status: 'aguardando_validacao' }),
+          ],
+          hasMore: false,
+        },
+      ],
+      pageParams: [0],
+    };
+
+    const renderer = render(<ChildTasksScreen />);
+    const segBar = renderer.root.findByType('SegmentedBar' as never);
+    const badges = (segBar.props.options as { badge: number }[]).map((o) => o.badge);
+    expect(badges).toEqual([2, 1, 0]);
+  });
+
+  it('shows evidence hint for tasks requiring evidence', () => {
+    childAssignmentsMock.data = {
+      pages: [
+        {
+          data: [
+            makeAssignment({
+              tarefas: { titulo: 'Lavar louça', frequencia: 'unica', ativo: true, exige_evidencia: true },
+            }),
+          ],
+          hasMore: false,
+        },
+      ],
+      pageParams: [0],
+    };
+
+    const renderer = render(<ChildTasksScreen />);
+    const hint = renderer.root.findAll(
+      (node) => (node.type as string) === 'Text' && node.props.children === 'Requer foto',
+    );
+    expect(hint).toHaveLength(1);
+  });
+
+  it('shows celebratory empty message when no pending tasks', () => {
+    childAssignmentsMock.data = {
+      pages: [{ data: [], hasMore: false }],
+      pageParams: [0],
+    };
+
+    const renderer = render(<ChildTasksScreen />);
+    const emptyState = renderer.root.findByType('EmptyState' as never);
+    expect(emptyState.props.emptyMessage).toBe('Tudo feito por aqui! Você arrasou! 🎉');
   });
 });

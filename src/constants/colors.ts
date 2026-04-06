@@ -107,8 +107,8 @@ export const lightColors = createThemeColors({
   },
   text: {
     primary: '#030711',
-    secondary: '#65758B',
-    muted: '#65758B',
+    secondary: '#556275',
+    muted: '#556275',
   },
   semantic: {
     success: '#20C55D',
@@ -154,8 +154,8 @@ export const darkColors = createThemeColors({
   },
   text: {
     primary: '#F1F5F9',
-    secondary: '#7B899D',
-    muted: '#7B899D',
+    secondary: '#8D9BB0',
+    muted: '#8D9BB0',
   },
   semantic: {
     success: '#20C55D',

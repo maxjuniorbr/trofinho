@@ -11,11 +11,13 @@ import { radii, spacing, typography } from '@/constants/theme';
 type AvatarSectionProps = Readonly<{
   name: string;
   avatarUri: string | null;
+  role?: 'admin' | 'filho';
   onAvatarChange: (url: string | null) => void;
 }>;
 
-export function AvatarSection({ name, avatarUri, onAvatarChange }: AvatarSectionProps) {
+export function AvatarSection({ name, avatarUri, role = 'admin', onAvatarChange }: AvatarSectionProps) {
   const { colors } = useTheme();
+  const accentColor = role === 'filho' ? colors.accent.filhoDim : colors.accent.adminDim;
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,7 +57,7 @@ export function AvatarSection({ name, avatarUri, onAvatarChange }: AvatarSection
         accessibilityLabel="Alterar foto de perfil"
       >
         <Avatar name={name} size={80} imageUri={avatarUri} />
-        <View style={[styles.cameraBtn, { backgroundColor: colors.accent.adminDim }]}>
+        <View style={[styles.cameraBtn, { backgroundColor: accentColor }]}>
           {uploading ? (
             <ActivityIndicator size="small" color={colors.text.inverse} />
           ) : (

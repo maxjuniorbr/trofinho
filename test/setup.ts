@@ -94,6 +94,12 @@ vi.mock('lucide-react-native', () => ({
   TrendingUp: createIcon('TrendingUp'),
   ArrowDownCircle: createIcon('ArrowDownCircle'),
   User: createIcon('User'),
+  BellOff: createIcon('BellOff'),
+  ImagePlus: createIcon('ImagePlus'),
+  Maximize2: createIcon('Maximize2'),
+  RotateCcw: createIcon('RotateCcw'),
+  UserCircle: createIcon('UserCircle'),
+  X: createIcon('X'),
 }));
 
 vi.mock('expo-linear-gradient', () => ({
@@ -148,7 +154,9 @@ vi.mock('expo-status-bar', () => ({
 
 vi.mock('expo-haptics', () => ({
   ImpactFeedbackStyle: { Light: 'light' },
+  NotificationFeedbackType: { Success: 'success' },
   impactAsync: vi.fn().mockResolvedValue(undefined),
+  notificationAsync: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('react-native-safe-area-context', () => ({

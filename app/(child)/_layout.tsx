@@ -18,6 +18,7 @@ export default function ChildLayout() {
       <Stack.Screen name="balance" />
       <Stack.Screen name="prizes/index" />
       <Stack.Screen name="redemptions/index" />
+      <Stack.Screen name="perfil" />
     </Stack>
   );
 }

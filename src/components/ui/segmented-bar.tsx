@@ -7,6 +7,7 @@ import { radii, spacing, typography } from '@/constants/theme';
 export type SegmentOption<K extends string = string> = Readonly<{
   key: K;
   label: string;
+  badge?: number;
   accessibilityLabel?: string;
 }>;
 
@@ -39,11 +40,43 @@ export function SegmentedBar<K extends string>({
             style={[styles.pill, { backgroundColor: isActive ? activeColor : inactiveColor }]}
             onPress={() => onChange(opt.key)}
             accessibilityRole="button"
-            accessibilityLabel={opt.accessibilityLabel ?? opt.label}
+            accessibilityLabel={
+              opt.accessibilityLabel ??
+              (opt.badge != null && opt.badge > 0
+                ? `${opt.label} (${opt.badge})`
+                : opt.label)
+            }
           >
-            <Text style={[styles.label, isActive && { color: colors.text.inverse }]}>
-              {opt.label}
-            </Text>
+            <View style={styles.pillContent}>
+              <Text style={[styles.label, isActive && { color: colors.text.inverse }]}>
+                {opt.label}
+              </Text>
+              {opt.badge != null && opt.badge > 0 ? (
+                <View
+                  style={[
+                    styles.badge,
+                    {
+                      backgroundColor: isActive
+                        ? colors.text.inverse
+                        : activeColor,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.badgeText,
+                      {
+                        color: isActive
+                          ? activeColor
+                          : colors.text.inverse,
+                      },
+                    ]}
+                  >
+                    {opt.badge > 99 ? '99+' : opt.badge}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
           </Pressable>
         );
       })}
@@ -71,10 +104,27 @@ function makeStyles(colors: ThemeColors) {
       minHeight: 44,
       justifyContent: 'center',
     },
+    pillContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1'],
+    },
     label: {
       fontSize: typography.size.xs,
       fontFamily: typography.family.semibold,
       color: colors.text.secondary,
+    },
+    badge: {
+      minWidth: 18,
+      height: 18,
+      borderRadius: radii.full,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      paddingHorizontal: spacing['1'],
+    },
+    badgeText: {
+      fontSize: 10,
+      fontFamily: typography.family.bold,
     },
   });
 }
