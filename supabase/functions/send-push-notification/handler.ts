@@ -277,6 +277,64 @@ function getTodaySP(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 }
 
+async function fetchFilhoId(
+  supabase: SupabaseClientLike,
+  userId: string,
+): Promise<string | null> {
+  const { data: filhos } = await supabase
+    .from('filhos')
+    .select('id')
+    .eq('usuario_id', userId);
+  return (filhos?.[0]?.id as string) ?? null;
+}
+
+async function fetchTaskProgressSuffix(
+  supabase: SupabaseClientLike,
+  event: 'tarefa_aprovada' | 'tarefa_concluida',
+  payload: EventPayload,
+): Promise<string> {
+  const userId =
+    event === 'tarefa_aprovada'
+      ? (payload as { userId: string }).userId
+      : (payload as { childUserId?: string }).childUserId;
+  if (!userId) return '';
+
+  const filhoId = await fetchFilhoId(supabase, userId);
+  if (!filhoId) return '';
+
+  const today = getTodaySP();
+  const { data: assignments } = await supabase
+    .from('atribuicoes')
+    .select('status')
+    .eq('filho_id', filhoId)
+    .eq('competencia', today);
+
+  if (!assignments?.length) return '';
+  const approved = assignments.filter(
+    (a: Record<string, unknown>) => a.status === 'aprovada',
+  ).length;
+  return ` (${approved}/${assignments.length} hoje 🎯)`;
+}
+
+async function fetchRedemptionSuffix(
+  supabase: SupabaseClientLike,
+  payload: EventPayload,
+): Promise<string> {
+  const userId = (payload as { userId: string }).userId;
+  if (!userId) return '';
+
+  const filhoId = await fetchFilhoId(supabase, userId);
+  if (!filhoId) return '';
+
+  const { data: saldos } = await supabase
+    .from('saldos')
+    .select('saldo_livre')
+    .eq('filho_id', filhoId);
+  if (!saldos?.[0]) return '';
+  const saldo = saldos[0].saldo_livre as number;
+  return ` Saldo: ${saldo} moedas 💰`;
+}
+
 export async function fetchProgressSuffix(
   supabase: SupabaseClientLike,
   event: PushEvent,
@@ -284,51 +342,10 @@ export async function fetchProgressSuffix(
 ): Promise<string> {
   try {
     if (event === 'tarefa_aprovada' || event === 'tarefa_concluida') {
-      const userId =
-        event === 'tarefa_aprovada'
-          ? (payload as { userId: string }).userId
-          : (payload as { childUserId?: string }).childUserId;
-      if (!userId) return '';
-
-      const { data: filhos } = await supabase
-        .from('filhos')
-        .select('id')
-        .eq('usuario_id', userId);
-      if (!filhos?.[0]) return '';
-      const filhoId = filhos[0].id as string;
-
-      const today = getTodaySP();
-      const { data: assignments } = await supabase
-        .from('atribuicoes')
-        .select('status')
-        .eq('filho_id', filhoId)
-        .eq('competencia', today);
-
-      if (!assignments?.length) return '';
-      const approved = assignments.filter(
-        (a: Record<string, unknown>) => a.status === 'aprovada',
-      ).length;
-      return ` (${approved}/${assignments.length} hoje 🎯)`;
+      return await fetchTaskProgressSuffix(supabase, event, payload);
     }
-
     if (event === 'resgate_confirmado') {
-      const userId = (payload as { userId: string }).userId;
-      if (!userId) return '';
-
-      const { data: filhos } = await supabase
-        .from('filhos')
-        .select('id')
-        .eq('usuario_id', userId);
-      if (!filhos?.[0]) return '';
-      const filhoId = filhos[0].id as string;
-
-      const { data: saldos } = await supabase
-        .from('saldos')
-        .select('saldo_livre')
-        .eq('filho_id', filhoId);
-      if (!saldos?.[0]) return '';
-      const saldo = saldos[0].saldo_livre as number;
-      return ` Saldo: ${saldo} moedas 💰`;
+      return await fetchRedemptionSuffix(supabase, payload);
     }
   } catch {
     // Progress is best-effort — don't fail the notification
