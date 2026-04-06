@@ -32,7 +32,8 @@ vi.mock('./supabase', () => ({
 function createOrderQuery(result: { data?: unknown; error?: { message: string } | null }) {
   return {
     order: vi.fn().mockReturnThis(),
-    returns: vi.fn().mockResolvedValue(result),
+    returns: vi.fn().mockReturnThis(),
+    overrideTypes: vi.fn().mockResolvedValue(result),
     select: vi.fn().mockReturnThis(),
   };
 }

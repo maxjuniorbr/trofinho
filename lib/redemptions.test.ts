@@ -31,7 +31,8 @@ const mockSelectChain = (data: unknown, error: unknown = null) => {
   chain.order = vi.fn().mockReturnValue(chain);
   chain.range = vi.fn().mockReturnValue(chain);
   chain.eq = vi.fn().mockReturnValue(chain);
-  chain.returns = vi.fn().mockResolvedValue({ data, error });
+  chain.returns = vi.fn().mockReturnValue(chain);
+  chain.overrideTypes = vi.fn().mockResolvedValue({ data, error });
   return chain;
 };
 

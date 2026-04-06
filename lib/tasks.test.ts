@@ -91,7 +91,8 @@ function createOrderQuery(result: QueryResult, orderCallsBeforeResolve = 0) {
     or: vi.fn().mockReturnThis(),
     order: vi.fn(),
     range: vi.fn().mockReturnThis(),
-    returns: vi.fn().mockResolvedValue(result),
+    returns: vi.fn().mockReturnThis(),
+    overrideTypes: vi.fn().mockResolvedValue(result),
     select: vi.fn().mockReturnThis(),
   };
 
@@ -109,6 +110,7 @@ function createSingleQuery(result: QueryResult) {
   return {
     eq: vi.fn().mockReturnThis(),
     returns: vi.fn().mockReturnThis(),
+    overrideTypes: vi.fn().mockReturnThis(),
     select: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue(result),
   };

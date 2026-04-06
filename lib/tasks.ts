@@ -198,7 +198,7 @@ export async function listAdminTasks(
     .select('id, titulo, pontos, frequencia, created_at, ativo, atribuicoes(status)')
     .order('created_at', { ascending: false })
     .range(from, to)
-    .returns<TaskListItem[]>();
+    .overrideTypes<TaskListItem[], { merge: false }>();
 
   if (error) return { data: [], hasMore: false, error: localizeRpcError(error.message) };
   const items = data ?? [];
@@ -314,7 +314,7 @@ export async function listChildAssignments(
     .or(visibleAssignmentsFilter)
     .order('created_at', { ascending: false })
     .range(from, to)
-    .returns<ChildAssignment[]>();
+    .overrideTypes<ChildAssignment[], { merge: false }>();
 
   if (error) return { data: [], hasMore: false, error: localizeRpcError(error.message) };
   const items = data ?? [];
@@ -491,7 +491,7 @@ export async function deactivateTask(taskId: string): Promise<{
     p_tarefa_id: taskId,
   });
   if (error) return { data: null, error: localizeRpcError(error.message) };
-  return { data: { pendingValidationCount: (data as number) ?? 0 }, error: null };
+  return { data: { pendingValidationCount: data ?? 0 }, error: null };
 }
 
 export async function reactivateTask(taskId: string): Promise<{
