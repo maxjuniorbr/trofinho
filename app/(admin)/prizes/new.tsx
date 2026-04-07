@@ -1,9 +1,15 @@
+import * as Sentry from '@sentry/react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+import { ImagePlus } from 'lucide-react-native';
 import { setNavigationFeedback } from '@lib/navigation-feedback';
 import { useTheme } from '@/context/theme-context';
-import { spacing } from '@/constants/theme';
+import type { ThemeColors } from '@/constants/theme';
+import { radii, spacing, typography } from '@/constants/theme';
 import { Button } from '@/components/ui/button';
 import { FormFooter } from '@/components/ui/form-footer';
 import { PrizeFormFields } from '@/components/prizes/prize-form-fields';
@@ -13,13 +19,39 @@ import { useCreatePrize } from '@/hooks/queries';
 export default function NewPrizeScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const createPrizeMutation = useCreatePrize();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [costStr, setCostStr] = useState('');
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+  const [pickingImage, setPickingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handlePickImage = async () => {
+    setPickingImage(true);
+    setError(null);
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [16, 10],
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets[0]) return;
+
+      setSelectedImageUri(result.assets[0].uri);
+    } catch (e) {
+      Sentry.captureException(e);
+      setError('Não foi possível selecionar a imagem agora.');
+    } finally {
+      setPickingImage(false);
+    }
+  };
 
   const handleCreate = () => {
     setError(null);
@@ -30,7 +62,12 @@ export default function NewPrizeScreen() {
     if (cost > 99999) return setError('O custo máximo é 99.999 pontos.');
 
     createPrizeMutation.mutate(
-      { nome: name.trim(), descricao: description.trim() || null, custo_pontos: cost },
+      {
+        nome: name.trim(),
+        descricao: description.trim() || null,
+        custo_pontos: cost,
+        imageUri: selectedImageUri,
+      },
       {
         onSuccess: () => {
           setNavigationFeedback('admin-prize-list', 'Prêmio criado com sucesso.');
@@ -42,6 +79,23 @@ export default function NewPrizeScreen() {
       },
     );
   };
+
+  const mediaPreviewContent = selectedImageUri ? (
+    <View style={styles.mediaWrapper}>
+      <Image
+        source={selectedImageUri}
+        style={styles.mediaPreview}
+        contentFit="cover"
+        transition={200}
+        accessibilityLabel={`Imagem do prêmio ${name || 'novo'}`}
+      />
+    </View>
+  ) : (
+    <View style={[styles.mediaPreview, styles.mediaPlaceholder]}>
+      <ImagePlus size={28} color={colors.text.muted} strokeWidth={2} />
+      <Text style={styles.mediaPlaceholderText}>Adicionar capa (opcional)</Text>
+    </View>
+  );
 
   return (
     <StickyFooterScreen
@@ -63,6 +117,19 @@ export default function NewPrizeScreen() {
       }
     >
       <StatusBar style={colors.statusBar} />
+
+      <View style={styles.mediaCard}>
+        {mediaPreviewContent}
+
+        <Button
+          label={pickingImage ? 'Abrindo galeria…' : selectedImageUri ? 'Trocar capa' : 'Escolher capa'}
+          variant="secondary"
+          onPress={handlePickImage}
+          disabled={pickingImage}
+          accessibilityLabel="Escolher imagem do prêmio"
+        />
+      </View>
+
       <PrizeFormFields
         name={name}
         description={description}
@@ -74,4 +141,42 @@ export default function NewPrizeScreen() {
       />
     </StickyFooterScreen>
   );
+}
+
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    mediaCard: {
+      borderRadius: radii.xl,
+      borderCurve: 'continuous',
+      borderWidth: 1,
+      borderColor: colors.border.default,
+      backgroundColor: colors.bg.surface,
+      padding: spacing['4'],
+      gap: spacing['3'],
+    },
+    mediaWrapper: {
+      width: '100%',
+      height: 180,
+      borderRadius: radii.xl,
+      borderCurve: 'continuous',
+      overflow: 'hidden',
+    },
+    mediaPreview: {
+      width: '100%',
+      height: 180,
+      borderRadius: radii.xl,
+      borderCurve: 'continuous',
+    },
+    mediaPlaceholder: {
+      backgroundColor: colors.bg.muted,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing['2'],
+    },
+    mediaPlaceholderText: {
+      fontSize: typography.size.sm,
+      color: colors.text.muted,
+      fontFamily: typography.family.medium,
+    },
+  });
 }

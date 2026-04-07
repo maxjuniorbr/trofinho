@@ -17,6 +17,7 @@ export type PrizeInput = {
   nome: string;
   descricao: string | null;
   custo_pontos: number;
+  imageUri?: string | null;
 };
 
 export type UpdatePrizeInput = PrizeInput & {
@@ -97,6 +98,25 @@ export async function createPrize(input: PrizeInput): Promise<{
     .single();
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
+
+  if (input.imageUri && data) {
+    const uploadResult = await uploadImageToPublicBucket({
+      bucket: 'premios',
+      imageUri: input.imageUri,
+      imageOptions: PRIZE_IMAGE_OPTIONS,
+      pathWithoutExtension: `${data.id}/capa`,
+    });
+
+    if (uploadResult.publicUrl) {
+      await supabase
+        .from('premios')
+        .update({ imagem_url: uploadResult.publicUrl })
+        .eq('id', data.id);
+
+      data.imagem_url = uploadResult.publicUrl;
+    }
+  }
+
   return { data, error: null };
 }
 
