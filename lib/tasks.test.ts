@@ -304,6 +304,12 @@ describe('tasks', () => {
     await expect(renewDailyTasks()).resolves.toBeUndefined();
   });
 
+  it('throws when renewDailyTasks RPC fails', async () => {
+    supabaseMock.rpc.mockResolvedValueOnce({ error: { message: 'rpc failed' } });
+
+    await expect(renewDailyTasks()).rejects.toThrow('Algo deu errado. Tente novamente.');
+  });
+
   it('updates tasks through rpc and exposes the edit-state rules', async () => {
     supabaseMock.rpc
       .mockResolvedValueOnce({ error: null })

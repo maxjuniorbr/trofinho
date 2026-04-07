@@ -34,6 +34,7 @@ describe('Property 1: Query key hierarchy enables prefix invalidation', () => {
       keyFns: [
         { label: 'lists', fn: () => queryKeys.children.lists() },
         { label: 'detail', fn: (id: string) => queryKeys.children.detail(id) },
+        { label: 'myId', fn: () => queryKeys.children.myId() },
       ],
     },
     {
