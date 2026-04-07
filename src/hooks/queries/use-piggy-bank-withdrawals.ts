@@ -92,8 +92,8 @@ export const useConfigureWithdrawalRate = () => {
   return useMutation({
     mutationFn: ({ childId, rate }: { childId: string; rate: number }) =>
       mutationFnAdapter(() => configureWithdrawalRate(childId, rate))(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });
     },
   });
 };

@@ -9,6 +9,8 @@ import {
   getChildPendingWithdrawal,
   configureWithdrawalRate,
   countPendingPiggyBankWithdrawals,
+  getMinimumWithdrawalAmount,
+  calculateNetAmount,
 } from './piggy-bank-withdrawal';
 
 const dispatchPushNotificationMock = vi.hoisted(() => vi.fn());
@@ -47,6 +49,62 @@ const mockCountChain = (count: number | null, error: unknown = null) => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+});
+
+describe('getMinimumWithdrawalAmount', () => {
+  it('returns 1 when rate is 0', () => {
+    expect(getMinimumWithdrawalAmount(0)).toBe(1);
+  });
+
+  it('returns ceil(100/rate) for positive rates', () => {
+    expect(getMinimumWithdrawalAmount(10)).toBe(10);
+    expect(getMinimumWithdrawalAmount(25)).toBe(4);
+    expect(getMinimumWithdrawalAmount(50)).toBe(2);
+    expect(getMinimumWithdrawalAmount(33)).toBe(4); // ceil(100/33) = 4
+  });
+
+  it('guarantees floor(min * rate / 100) >= 1 for any positive rate', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 50 }),
+        (rate) => {
+          const min = getMinimumWithdrawalAmount(rate);
+          return Math.floor((min * rate) / 100) >= 1;
+        },
+      ),
+    );
+  });
+});
+
+describe('calculateNetAmount', () => {
+  it('returns full amount when rate is 0', () => {
+    expect(calculateNetAmount(50, 0)).toEqual({ net: 50, penalty: 0 });
+  });
+
+  it('guarantees penalty >= 1 when rate > 0', () => {
+    expect(calculateNetAmount(5, 10)).toEqual({ net: 4, penalty: 1 });
+    expect(calculateNetAmount(1, 1)).toEqual({ net: 0, penalty: 1 });
+  });
+
+  it('uses floor for large amounts', () => {
+    // 100 * 10% = 10, floor(10) = 10
+    expect(calculateNetAmount(100, 10)).toEqual({ net: 90, penalty: 10 });
+    // 99 * 10% = 9.9, floor(9.9) = 9
+    expect(calculateNetAmount(99, 10)).toEqual({ net: 90, penalty: 9 });
+  });
+
+  it('penalty is always at least 1 for positive rate via property', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 10000 }),
+        fc.integer({ min: 1, max: 50 }),
+        (amount, rate) => {
+          const { penalty, net } = calculateNetAmount(amount, rate);
+          return penalty >= 1 && net === amount - penalty;
+        },
+      ),
+    );
+  });
 });
 
 describe('requestPiggyBankWithdrawal', () => {

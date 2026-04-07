@@ -2,6 +2,28 @@ import { localizeRpcError } from './api-error';
 import { dispatchPushNotification } from './push';
 import { supabase } from './supabase';
 
+/**
+ * Minimum withdrawal amount so the penalty is at least 1 pt.
+ * When rate is 0, returns 1 (no penalty, any amount is valid).
+ */
+export const getMinimumWithdrawalAmount = (rate: number): number => {
+  if (rate <= 0) return 1;
+  return Math.ceil(100 / rate);
+};
+
+/**
+ * Calculate net amount after penalty, mirroring DB logic:
+ * penalty = GREATEST(FLOOR(amount * rate / 100), 1) when rate > 0.
+ */
+export const calculateNetAmount = (
+  amount: number,
+  rate: number,
+): { net: number; penalty: number } => {
+  if (rate <= 0) return { net: amount, penalty: 0 };
+  const penalty = Math.max(Math.floor((amount * rate) / 100), 1);
+  return { net: amount - penalty, penalty };
+};
+
 export type PiggyBankWithdrawalStatus = 'pendente' | 'confirmado' | 'cancelado';
 
 export type PiggyBankWithdrawal = {

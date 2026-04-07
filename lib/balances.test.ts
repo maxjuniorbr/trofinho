@@ -3,6 +3,7 @@ import * as fc from 'fast-check';
 
 import {
   applyPenalty,
+  calculateProjection,
   configureAppreciation,
   getAppreciationPeriodLabel,
   getBalance,
@@ -143,7 +144,7 @@ describe('balances', () => {
       data: null,
       error: 'Algo deu errado. Tente novamente.',
     });
-    await expect(configureAppreciation('child-1', 12, 'mensal')).resolves.toEqual({ error: null });
+    await expect(configureAppreciation('child-1', 12)).resolves.toEqual({ error: null });
     await expect(transferToPiggyBank('child-1', 4)).resolves.toEqual({
       error: 'Algo deu errado. Tente novamente.',
     });
@@ -155,7 +156,6 @@ describe('balances', () => {
     expect(supabaseMock.rpc).toHaveBeenNthCalledWith(3, 'configurar_valorizacao', {
       p_filho_id: 'child-1',
       p_indice: 12,
-      p_periodo: 'mensal',
     });
   });
 
@@ -249,6 +249,28 @@ describe('balances', () => {
         }),
         { numRuns: 100 },
       );
+    });
+  });
+
+  describe('calculateProjection', () => {
+    it('returns 0 when cofrinho is 0', () => {
+      expect(calculateProjection(0, 10)).toBe(0);
+    });
+
+    it('returns 0 when rate is 0', () => {
+      expect(calculateProjection(100, 0)).toBe(0);
+    });
+
+    it('floors the result like the DB does', () => {
+      expect(calculateProjection(99, 10)).toBe(9);
+    });
+
+    it('returns minimum 1 for small positive balances', () => {
+      expect(calculateProjection(1, 5)).toBe(1);
+    });
+
+    it('calculates correctly for typical values', () => {
+      expect(calculateProjection(200, 15)).toBe(30);
     });
   });
 });

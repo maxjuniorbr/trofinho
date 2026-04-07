@@ -7,7 +7,6 @@ import {
   configureAppreciation,
   transferToPiggyBank,
   syncAutomaticAppreciation,
-  type AppreciationPeriod,
 } from '../../../lib/balances';
 import {
   queryFnAdapter,
@@ -66,11 +65,11 @@ export const useApplyPenalty = () => {
 export const useConfigureAppreciation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (args: { childId: string; rate: number; period: AppreciationPeriod }) =>
-      mutationFnAdapter(() => configureAppreciation(args.childId, args.rate, args.period))(),
-    onSuccess: () => {
+    mutationFn: (args: { childId: string; rate: number }) =>
+      mutationFnAdapter(() => configureAppreciation(args.childId, args.rate))(),
+    onSuccess: async () => {
       syncAutomaticAppreciation().catch(console.error);
-      queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });
     },
   });
 };
