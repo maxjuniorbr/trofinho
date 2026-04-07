@@ -7,6 +7,7 @@ export const queryKeys = {
     pendingCount: () => [...queryKeys.tasks.all, 'pending-count'] as const,
     childAssignments: () => [...queryKeys.tasks.all, 'child-assignments'] as const,
     childAssignment: (id: string) => [...queryKeys.tasks.all, 'child-assignment', id] as const,
+    renewDaily: () => [...queryKeys.tasks.all, 'renew-daily'] as const,
   },
   balances: {
     all: ['balances'] as const,
@@ -48,7 +49,7 @@ export const queryKeys = {
 
 export const STALE_TIMES = {
   tasks: 30_000,
-  balances: 10_000,
+  balances: 30_000,
   profile: 60_000,
   children: 60_000,
   prizes: 60_000,

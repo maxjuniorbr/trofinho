@@ -9,10 +9,6 @@ const routerMock = vi.hoisted(() => ({
   push: vi.fn(),
 }));
 
-const focusEffectMock = vi.hoisted(() => ({
-  callback: null as null | (() => void),
-}));
-
 const childAssignmentsMock = vi.hoisted(() => ({
   data: { pages: [{ data: [] as unknown[], hasMore: false }], pageParams: [0] } as
     | { pages: { data: unknown[]; hasMore: boolean }[]; pageParams: number[] }
@@ -78,9 +74,6 @@ vi.mock('expo-status-bar', () => ({
 
 vi.mock('expo-router', () => ({
   useRouter: () => routerMock,
-  useFocusEffect: (callback: () => void) => {
-    focusEffectMock.callback = callback;
-  },
 }));
 
 vi.mock('@lib/tasks', () => ({
@@ -99,7 +92,6 @@ vi.mock('@lib/status', () => ({
 vi.mock('@/hooks/queries', () => ({
   useChildAssignments: () => childAssignmentsMock,
   useTasksLiveSync: () => undefined,
-  useRenewDailyTasks: () => ({ mutate: vi.fn() }),
 }));
 
 vi.mock('@/context/theme-context', () => ({
@@ -179,7 +171,6 @@ describe('ChildTasksScreen', () => {
   beforeEach(() => {
     routerMock.back.mockReset();
     routerMock.push.mockReset();
-    focusEffectMock.callback = null;
     childAssignmentsMock.data = {
       pages: [{ data: [makeAssignment()], hasMore: false }],
       pageParams: [0],
@@ -187,18 +178,6 @@ describe('ChildTasksScreen', () => {
     childAssignmentsMock.isLoading = false;
     childAssignmentsMock.error = null;
     childAssignmentsMock.refetch.mockReset();
-  });
-
-  it('refetches the list when the screen regains focus', () => {
-    render(<ChildTasksScreen />);
-
-    expect(focusEffectMock.callback).toBeTypeOf('function');
-
-    act(() => {
-      focusEffectMock.callback?.();
-    });
-
-    expect(childAssignmentsMock.refetch).toHaveBeenCalledTimes(1);
   });
 
   it('renders inactive pending tasks as unavailable', () => {

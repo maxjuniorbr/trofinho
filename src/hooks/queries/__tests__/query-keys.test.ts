@@ -15,6 +15,7 @@ describe('Property 1: Query key hierarchy enables prefix invalidation', () => {
         { label: 'pendingCount', fn: () => queryKeys.tasks.pendingCount() },
         { label: 'childAssignments', fn: () => queryKeys.tasks.childAssignments() },
         { label: 'childAssignment', fn: (id: string) => queryKeys.tasks.childAssignment(id) },
+        { label: 'renewDaily', fn: () => queryKeys.tasks.renewDaily() },
       ],
     },
     {
@@ -90,7 +91,7 @@ describe('Property 1: Query key hierarchy enables prefix invalidation', () => {
 describe('STALE_TIMES', () => {
   it('has expected values per domain', () => {
     expect(STALE_TIMES.tasks).toBe(30_000);
-    expect(STALE_TIMES.balances).toBe(10_000);
+    expect(STALE_TIMES.balances).toBe(30_000);
     expect(STALE_TIMES.profile).toBe(60_000);
     expect(STALE_TIMES.children).toBe(60_000);
     expect(STALE_TIMES.prizes).toBe(60_000);
