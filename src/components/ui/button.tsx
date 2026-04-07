@@ -218,6 +218,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontWeight: typography.weight.bold,
+    textAlign: 'center',
   },
   loadingRow: {
     flexDirection: 'row',
