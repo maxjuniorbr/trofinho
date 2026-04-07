@@ -261,6 +261,19 @@ describe('FilhoHomeScreen', () => {
     expect(routerMock.push).toHaveBeenCalledWith('/(child)/tasks');
   });
 
+  it('navigates to balance on summary card press', () => {
+    const renderer = render(<FilhoHomeScreen />);
+    const pressables = renderer.root.findAllByType('Pressable' as never);
+    const summaryCard = pressables.find((p) =>
+      p.props.accessibilityLabel?.includes('ver detalhes'),
+    );
+    expect(summaryCard).toBeDefined();
+    act(() => {
+      summaryCard!.props.onPress();
+    });
+    expect(routerMock.push).toHaveBeenCalledWith('/(child)/balance');
+  });
+
   it('shows mascot image', () => {
     const renderer = render(<FilhoHomeScreen />);
     const images = renderer.root.findAllByType('Image' as never);

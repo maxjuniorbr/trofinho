@@ -209,12 +209,15 @@ export default function FilhoHomeScreen() {
         </View>
 
         {/* Summary card — dark "MEU SALDO" */}
-        <View
-          style={[
+        <Pressable
+          style={({ pressed }) => [
             styles.summaryCard,
             { backgroundColor: summary.bg, borderColor: summary.border },
+            pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
           ]}
-          accessibilityLabel={`Saldo total: ${totalBalance} pontos`}
+          onPress={() => router.push('/(child)/balance')}
+          accessibilityRole="button"
+          accessibilityLabel={`Saldo total: ${totalBalance} pontos, ver detalhes`}
         >
           <Text style={[styles.summaryTitle, { color: summary.textMuted }]}>MEU SALDO</Text>
           <Text style={[styles.summaryTotal, { color: summary.text }]}>
@@ -262,7 +265,7 @@ export default function FilhoHomeScreen() {
               </Text>
             </View>
           </View>
-        </View>
+        </Pressable>
 
         {freeBalance === 0 && piggyBank === 0 ? (
           <Text style={[styles.zeroBalanceHint, { color: colors.text.muted }]}>
