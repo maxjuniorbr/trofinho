@@ -1,9 +1,10 @@
-import { StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native';
+import { Alert, StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Wallet, TrendingUp } from 'lucide-react-native';
+import { Wallet, TrendingUp, PiggyBank } from 'lucide-react-native';
+import { hapticSuccess } from '@lib/haptics';
 import { formatDate } from '@lib/utils';
 import {
   getTransactionTypeLabel,
@@ -17,6 +18,11 @@ import {
   useApplyPenalty,
   useConfigureAppreciation,
   combineQueryStates,
+  usePendingPiggyBankWithdrawals,
+  useConfirmPiggyBankWithdrawal,
+  useCancelPiggyBankWithdrawal,
+  useConfigureWithdrawalRate,
+  useProfile,
 } from '@/hooks/queries';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { useTheme } from '@/context/theme-context';
@@ -30,6 +36,7 @@ import { AppreciationModal } from '@/components/balance/appreciation-modal';
 import { TransactionIcon } from '@/components/balance/transaction-icon';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { ListFooter } from '@/components/ui/list-footer';
+import { Button } from '@/components/ui/button';
 
 type ModalType = 'penalizar' | 'valorizacao_config' | null;
 
@@ -41,6 +48,7 @@ export default function ChildBalanceAdminScreen() {
 
   const balanceQuery = useBalance(filho_id);
   const transactionsQuery = useTransactions(filho_id);
+  const { data: profile } = useProfile();
   const { isLoading, isFetching, refetchAll } = combineQueryStates(balanceQuery, transactionsQuery);
 
   const balance = balanceQuery.data ?? null;
@@ -56,6 +64,16 @@ export default function ChildBalanceAdminScreen() {
 
   const penaltyMutation = useApplyPenalty();
   const configureMutation = useConfigureAppreciation();
+  const confirmWithdrawalMutation = useConfirmPiggyBankWithdrawal();
+  const cancelWithdrawalMutation = useCancelPiggyBankWithdrawal();
+  const configureRateMutation = useConfigureWithdrawalRate();
+
+  const pendingWithdrawalsQuery = usePendingPiggyBankWithdrawals();
+  const pendingWithdrawals = useMemo(
+    () => (pendingWithdrawalsQuery.data ?? []).filter((w) => w.filho_id === filho_id),
+    [pendingWithdrawalsQuery.data, filho_id],
+  );
+  const pendingWithdrawal = pendingWithdrawals[0] ?? null;
 
   const handleRefresh = useCallback(async () => {
     await refetchAll();
@@ -100,6 +118,55 @@ export default function ChildBalanceAdminScreen() {
     },
     [filho_id, configureMutation],
   );
+
+  const handleConfirmWithdrawal = useCallback(async () => {
+    if (!pendingWithdrawal) return;
+    try {
+      await confirmWithdrawalMutation.mutateAsync({
+        withdrawalId: pendingWithdrawal.id,
+        opts: {
+          familiaId: profile?.familia_id ?? '',
+          userId: pendingWithdrawal.filhos?.usuario_id,
+          amount: pendingWithdrawal.valor_liquido,
+        },
+      });
+      hapticSuccess();
+      setSuccessMessage('Resgate do cofrinho aprovado com sucesso.');
+    } catch (e) {
+      setSuccessMessage(e instanceof Error ? e.message : 'Erro ao aprovar resgate.');
+    }
+  }, [pendingWithdrawal, confirmWithdrawalMutation, profile]);
+
+  const handleRejectWithdrawal = useCallback(() => {
+    if (!pendingWithdrawal) return;
+    Alert.alert(
+      'Rejeitar resgate',
+      `Deseja rejeitar o resgate de ${pendingWithdrawal.valor_solicitado} pts do cofrinho?`,
+      [
+        { text: 'Não', style: 'cancel' },
+        {
+          text: 'Sim, rejeitar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await cancelWithdrawalMutation.mutateAsync({
+                withdrawalId: pendingWithdrawal.id,
+                opts: {
+                  familiaId: profile?.familia_id ?? '',
+                  userId: pendingWithdrawal.filhos?.usuario_id,
+                  amount: pendingWithdrawal.valor_solicitado,
+                },
+              });
+              hapticSuccess();
+              setSuccessMessage('Resgate do cofrinho rejeitado.');
+            } catch (e) {
+              setSuccessMessage(e instanceof Error ? e.message : 'Erro ao rejeitar resgate.');
+            }
+          },
+        },
+      ],
+    );
+  }, [pendingWithdrawal, cancelWithdrawalMutation, profile]);
 
   if (isLoading) {
     return (
@@ -190,6 +257,95 @@ export default function ChildBalanceAdminScreen() {
               <Text style={styles.boxConfigAjuda}>
                 A valorização é lançada automaticamente no cofrinho quando o período vence.
               </Text>
+            </View>
+
+            {pendingWithdrawal ? (
+              <View style={styles.pendingBanner}>
+                <View style={styles.pendingBannerHeader}>
+                  <PiggyBank size={16} color={colors.semantic.warning} strokeWidth={2} />
+                  <Text style={styles.pendingBannerTitle}>Resgate do cofrinho pendente</Text>
+                </View>
+                <Text style={styles.pendingBannerText}>
+                  {nome ?? 'Filho'} quer retirar{' '}
+                  <Text style={{ fontFamily: typography.family.bold }}>
+                    {pendingWithdrawal.valor_solicitado}
+                  </Text>{' '}
+                  pts do cofrinho. Taxa: {pendingWithdrawal.taxa_aplicada}% → receberá{' '}
+                  <Text style={{ fontFamily: typography.family.bold }}>
+                    {pendingWithdrawal.valor_liquido}
+                  </Text>{' '}
+                  pts.
+                </Text>
+                <View style={styles.pendingBtns}>
+                  <View style={{ flex: 1 }}>
+                    <Button
+                      variant="outline"
+                      label="Rejeitar"
+                      loading={cancelWithdrawalMutation.isPending}
+                      loadingLabel="Rejeitando…"
+                      onPress={handleRejectWithdrawal}
+                      accessibilityLabel="Rejeitar resgate do cofrinho"
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Button
+                      variant="primary"
+                      label="Aprovar"
+                      loading={confirmWithdrawalMutation.isPending}
+                      loadingLabel="Aprovando…"
+                      onPress={handleConfirmWithdrawal}
+                      accessibilityLabel="Aprovar resgate do cofrinho"
+                    />
+                  </View>
+                </View>
+              </View>
+            ) : null}
+
+            <View style={styles.boxConfig}>
+              <View style={styles.boxConfigTituloRow}>
+                <PiggyBank size={16} color={colors.text.primary} strokeWidth={2} />
+                <Text style={styles.boxConfigTitulo}>Taxa de resgate do cofrinho</Text>
+              </View>
+              <Text style={styles.boxConfigTexto}>
+                {balance?.taxa_resgate_cofrinho ?? 10}% do valor é descontado ao aprovar um resgate
+              </Text>
+              <View style={styles.acoesBtns}>
+                {[0, 10, 25, 50].map((rate) => {
+                  const isActive = (balance?.taxa_resgate_cofrinho ?? 10) === rate;
+                  return (
+                    <Pressable
+                      key={rate}
+                      style={[
+                        styles.btnAcao,
+                        isActive ? { backgroundColor: colors.accent.admin } : undefined,
+                      ]}
+                      onPress={() => {
+                        if (isActive || !filho_id) return;
+                        configureRateMutation.mutate(
+                          { childId: filho_id, rate },
+                          {
+                            onSuccess: () => {
+                              hapticSuccess();
+                              setSuccessMessage(`Taxa de resgate configurada para ${rate}%.`);
+                            },
+                          },
+                        );
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Taxa de resgate ${rate}%`}
+                    >
+                      <Text
+                        style={[
+                          styles.btnAcaoTexto,
+                          isActive ? { color: colors.text.inverse } : undefined,
+                        ]}
+                      >
+                        {rate}%
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
 
             <PenaltyButton onPress={() => setModalType('penalizar')} />
@@ -363,5 +519,31 @@ function makeStyles(colors: ThemeColors) {
     movValor: { fontSize: typography.size.md, fontFamily: typography.family.bold },
     creditoTxt: { color: colors.semantic.success },
     debitoTxt: { color: colors.semantic.error },
+    pendingBanner: {
+      backgroundColor: colors.semantic.warningBg,
+      borderRadius: radii.xl,
+      padding: spacing['4'],
+      marginBottom: spacing['3'],
+      gap: spacing['2'],
+    },
+    pendingBannerHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1.5'],
+    },
+    pendingBannerTitle: {
+      fontSize: typography.size.md,
+      fontFamily: typography.family.bold,
+      color: colors.text.primary,
+    },
+    pendingBannerText: {
+      fontSize: typography.size.sm,
+      color: colors.text.secondary,
+    },
+    pendingBtns: {
+      flexDirection: 'row',
+      gap: spacing['3'],
+      marginTop: spacing['1'],
+    },
   });
 }

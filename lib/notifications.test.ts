@@ -155,6 +155,9 @@ describe('notifications', () => {
         resgatesSolicitado: false,
         resgateConfirmado: true,
         resgateCancelado: true,
+        resgateCofrinhoSolicitado: true,
+        resgateCofrinhoConfirmado: true,
+        resgateCofrinhoCancelado: true,
       };
       getUserMock.mockResolvedValue({ data: { user: { id: 'user-1' } } });
       selectMock.mockResolvedValue({ data: { notif_prefs: serverPrefs }, error: null });
@@ -174,6 +177,9 @@ describe('notifications', () => {
         resgatesSolicitado: false,
         resgateConfirmado: true,
         resgateCancelado: true,
+        resgateCofrinhoSolicitado: true,
+        resgateCofrinhoConfirmado: true,
+        resgateCofrinhoCancelado: true,
       };
       getUserMock.mockRejectedValue(new Error('network'));
       deviceStorageGetMock.mockResolvedValue(JSON.stringify(stored));
@@ -217,6 +223,9 @@ describe('notifications', () => {
         resgatesSolicitado: false,
         resgateConfirmado: true,
         resgateCancelado: true,
+        resgateCofrinhoSolicitado: true,
+        resgateCofrinhoConfirmado: true,
+        resgateCofrinhoCancelado: true,
       };
       getUserMock.mockResolvedValue({ data: { user: { id: 'user-1' } } });
       updateMock.mockResolvedValue({ data: null, error: null });
@@ -340,6 +349,9 @@ describe('Property 3: Preference round trip (server-first)', () => {
     resgatesSolicitado: fc.boolean(),
     resgateConfirmado: fc.boolean(),
     resgateCancelado: fc.boolean(),
+    resgateCofrinhoSolicitado: fc.boolean(),
+    resgateCofrinhoConfirmado: fc.boolean(),
+    resgateCofrinhoCancelado: fc.boolean(),
   });
 
   const fakeUserId = 'user-abc-123';

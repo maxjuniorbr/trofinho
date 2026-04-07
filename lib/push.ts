@@ -8,7 +8,10 @@ type PushEvent =
   | 'resgate_confirmado'
   | 'resgate_solicitado'
   | 'resgate_cancelado'
-  | 'tarefa_concluida';
+  | 'tarefa_concluida'
+  | 'resgate_cofrinho_solicitado'
+  | 'resgate_cofrinho_confirmado'
+  | 'resgate_cofrinho_cancelado';
 
 /** Minimum remaining lifetime (in seconds) before we proactively refresh the token. */
 const TOKEN_REFRESH_BUFFER_S = 30;

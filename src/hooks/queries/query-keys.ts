@@ -45,6 +45,12 @@ export const queryKeys = {
     all: ['family'] as const,
     detail: (id: string) => [...queryKeys.family.all, 'detail', id] as const,
   },
+  piggyBankWithdrawals: {
+    all: ['piggy-bank-withdrawals'] as const,
+    pending: () => [...queryKeys.piggyBankWithdrawals.all, 'pending'] as const,
+    pendingCount: () => [...queryKeys.piggyBankWithdrawals.all, 'pending-count'] as const,
+    childPending: () => [...queryKeys.piggyBankWithdrawals.all, 'child-pending'] as const,
+  },
 } as const;
 
 export const STALE_TIMES = {
@@ -55,6 +61,7 @@ export const STALE_TIMES = {
   prizes: 60_000,
   redemptions: 60_000,
   family: 60_000,
+  piggyBankWithdrawals: 30_000,
 } as const;
 
 export const PAGE_SIZES = {
