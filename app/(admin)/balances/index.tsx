@@ -71,7 +71,7 @@ export default function BalancesAdminScreen() {
                 })
               }
             >
-              <Avatar name={item.filhos.nome} size={44} />
+              <Avatar name={item.filhos.nome} size={44} imageUri={item.filhos.avatar_url} />
               <View style={styles.info}>
                 <Text style={[styles.nome, { color: colors.text.primary }]}>
                   {item.filhos.nome}

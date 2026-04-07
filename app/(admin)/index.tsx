@@ -343,7 +343,7 @@ export default function AdminHomeScreen() {
                     accessibilityRole="button"
                     accessibilityLabel={`${item.nome}, ver nome e e-mail`}
                   >
-                    <Avatar name={item.nome} size={48} />
+                    <Avatar name={item.nome} size={48} imageUri={item.avatar_url} />
                     <View style={styles.childBody}>
                       <Text
                         style={[styles.childName, { color: colors.text.primary }]}

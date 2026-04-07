@@ -139,7 +139,7 @@ describe('BalancesAdminScreen', () => {
         cofrinho: 50,
         indice_valorizacao: 5,
         periodo_valorizacao: 'semanal',
-        filhos: { nome: 'Alice', ativo: true },
+        filhos: { nome: 'Alice', ativo: true, avatar_url: null },
       },
       {
         filho_id: 'c2',
@@ -147,7 +147,7 @@ describe('BalancesAdminScreen', () => {
         cofrinho: 0,
         indice_valorizacao: 0,
         periodo_valorizacao: 'mensal',
-        filhos: { nome: 'Bob', ativo: false },
+        filhos: { nome: 'Bob', ativo: false, avatar_url: null },
       },
     ];
     balancesMock.isLoading = false;
