@@ -66,12 +66,14 @@ export default function ChildRedemptionsScreen() {
             onRetry={handleRefresh}
           />
           {!isLoading && !errorMessage && redemptions.length === 0 ? (
-            <Button
-              variant="primary"
-              label="Ver prêmios 🎁"
-              onPress={() => router.push('/(child)/prizes')}
-              accessibilityLabel="Ver prêmios disponíveis"
-            />
+            <View style={styles.emptyBtnWrapper}>
+              <Button
+                variant="primary"
+                label="Ver prêmios 🎁"
+                onPress={() => router.push('/(child)/prizes')}
+                accessibilityLabel="Ver prêmios disponíveis"
+              />
+            </View>
           ) : null}
         </View>
       ) : (
@@ -134,6 +136,7 @@ function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
     emptyContainer: { flex: 1, alignItems: 'center' },
+    emptyBtnWrapper: { alignSelf: 'stretch', paddingHorizontal: spacing['5'], marginTop: spacing['2'] },
     list: { paddingHorizontal: spacing['4'] },
     card: {
       backgroundColor: colors.bg.surface,
