@@ -28,12 +28,12 @@ export const queryKeys = {
     lists: () => [...queryKeys.prizes.all, 'list'] as const,
     detail: (id: string) => [...queryKeys.prizes.all, 'detail', id] as const,
     active: () => [...queryKeys.prizes.all, 'active'] as const,
-    pendingRedemptionCount: () => [...queryKeys.prizes.all, 'pending-redemption-count'] as const,
   },
   redemptions: {
     all: ['redemptions'] as const,
     admin: () => [...queryKeys.redemptions.all, 'admin'] as const,
     child: () => [...queryKeys.redemptions.all, 'child'] as const,
+    pendingCount: () => [...queryKeys.redemptions.all, 'pending-count'] as const,
   },
   profile: {
     all: ['profile'] as const,

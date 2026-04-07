@@ -25,10 +25,7 @@ export default defineConfig({
         'lib/**/*.ts',
         'src/**/*.ts',
         'src/**/*.tsx',
-        'app/index.tsx',
-        'app/**/login.tsx',
-        'app/**/register.tsx',
-        'app/**/onboarding.tsx',
+        'app/**/*.tsx',
       ],
       exclude: [
         '**/*.test.ts',

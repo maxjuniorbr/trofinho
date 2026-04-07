@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react-native';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
@@ -9,6 +9,7 @@ import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { AvatarSection } from '@/components/profile/avatar-section';
 import { ThemeCard } from '@/components/profile/theme-card';
 import { NotificationCard } from '@/components/profile/notification-card';
+import { Button } from '@/components/ui/button';
 import { useTheme } from '@/context/theme-context';
 import { spacing } from '@/constants/theme';
 import { signOut } from '@lib/auth';
@@ -17,6 +18,7 @@ import {
   useProfile,
   useCurrentAuthUser,
   useNotificationPrefs,
+  useDeleteAccount,
   combineQueryStates,
 } from '@/hooks/queries';
 
@@ -42,10 +44,26 @@ export default function ChildProfileScreen() {
   );
   const [savingNotificationPreferences, setSavingNotificationPreferences] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const deleteAccountMutation = useDeleteAccount();
 
   const effectivePrefs = notificationPreferences ?? notificationPrefsQuery.data ?? null;
   const effectiveAvatarUri = localAvatarUri ?? avatarUri;
   const effectiveName = profile?.nome ?? 'Campeão';
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Excluir conta',
+      'Todos os seus dados serão apagados permanentemente. Essa ação não pode ser desfeita.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir conta',
+          style: 'destructive',
+          onPress: () => deleteAccountMutation.mutate(),
+        },
+      ],
+    );
+  };
 
   const handleSignOut = async () => {
     setLoggingOut(true);
@@ -127,6 +145,15 @@ export default function ChildProfileScreen() {
         ) : null}
 
         <LogoutButton onPress={handleSignOut} loading={loggingOut} />
+
+        <Button
+          variant="danger"
+          label="Excluir minha conta"
+          loadingLabel="Excluindo…"
+          loading={deleteAccountMutation.isPending}
+          onPress={handleDeleteAccount}
+          accessibilityLabel="Excluir minha conta"
+        />
       </ScrollView>
     </SafeScreenFrame>
   );

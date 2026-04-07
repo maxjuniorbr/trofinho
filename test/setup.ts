@@ -176,13 +176,33 @@ vi.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
 }));
 
+/**
+ * Override this object in `beforeEach` to test dark-mode rendering.
+ * Reset happens automatically in the global `afterEach`.
+ *
+ * Usage:
+ *   import { __TEST_THEME_OVERRIDE__ } from '../../test/setup';
+ *   import { darkColors } from '@/constants/theme';
+ *   beforeEach(() => {
+ *     __TEST_THEME_OVERRIDE__.colors = darkColors;
+ *     __TEST_THEME_OVERRIDE__.isDark = true;
+ *     __TEST_THEME_OVERRIDE__.scheme = 'dark';
+ *   });
+ */
+export const __TEST_THEME_OVERRIDE__: {
+  colors: unknown;
+  isDark: boolean;
+  scheme: 'light' | 'dark' | 'system';
+  setScheme: ReturnType<typeof vi.fn>;
+} = {
+  colors: lightColors,
+  isDark: false,
+  scheme: 'light',
+  setScheme: vi.fn(),
+};
+
 vi.mock('@/context/theme-context', () => ({
-  useTheme: () => ({
-    colors: lightColors,
-    isDark: false,
-    scheme: 'light',
-    setScheme: vi.fn(),
-  }),
+  useTheme: () => __TEST_THEME_OVERRIDE__,
 }));
 
 vi.mock('@react-native-community/netinfo', () => ({
@@ -193,4 +213,8 @@ vi.mock('@react-native-community/netinfo', () => ({
 
 afterEach(() => {
   vi.restoreAllMocks();
+  __TEST_THEME_OVERRIDE__.colors = lightColors;
+  __TEST_THEME_OVERRIDE__.isDark = false;
+  __TEST_THEME_OVERRIDE__.scheme = 'light';
+  __TEST_THEME_OVERRIDE__.setScheme = vi.fn();
 });

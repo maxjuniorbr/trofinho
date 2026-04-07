@@ -39,7 +39,6 @@ export {
   usePrizes,
   usePrizeDetail,
   useActivePrizes,
-  usePendingRedemptionCount,
   useCreatePrize,
   useUpdatePrize,
   useDeactivatePrize,
@@ -48,6 +47,7 @@ export {
 export {
   useAdminRedemptions,
   useChildRedemptions,
+  usePendingRedemptionCount,
   useConfirmRedemption,
   useCancelRedemption,
   useRequestRedemption,

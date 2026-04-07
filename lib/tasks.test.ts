@@ -44,7 +44,9 @@ vi.mock('./image-utils', async (importOriginal) => {
 
 const storageBucketMock = vi.hoisted(() => ({
   createSignedUrl: vi.fn(),
+  createSignedUrls: vi.fn(),
   upload: vi.fn(),
+  remove: vi.fn(),
 }));
 
 const supabaseMock = vi.hoisted(() => ({
@@ -144,7 +146,9 @@ describe('tasks', () => {
     fileArrayBufferMock.mockReset();
     fileConstructorMock.mockReset();
     storageBucketMock.createSignedUrl.mockReset();
+    storageBucketMock.createSignedUrls.mockReset();
     storageBucketMock.upload.mockReset();
+    storageBucketMock.remove.mockReset();
     dispatchPushNotificationMock.mockReset();
 
     supabaseMock.auth.getUser.mockReset();
@@ -512,29 +516,23 @@ describe('tasks', () => {
         error: null,
       }),
     );
-    storageBucketMock.createSignedUrl
-      .mockResolvedValueOnce({ data: { signedUrl: 'https://signed.example.com/one' }, error: null })
-      .mockResolvedValueOnce({ data: { signedUrl: 'https://signed.example.com/two' }, error: null })
-      .mockResolvedValueOnce({
-        data: { signedUrl: 'https://signed.example.com/three' },
-        error: null,
-      });
+    storageBucketMock.createSignedUrls.mockResolvedValueOnce({
+      data: [
+        { signedUrl: 'https://signed.example.com/one', error: null },
+        { signedUrl: 'https://signed.example.com/two', error: null },
+        { signedUrl: 'https://signed.example.com/three', error: null },
+      ],
+      error: null,
+    });
 
     const result = await getTaskWithAssignments('task-1');
 
-    expect(storageBucketMock.createSignedUrl).toHaveBeenNthCalledWith(
-      1,
-      'family/child/evidence-one.jpg',
-      3600,
-    );
-    expect(storageBucketMock.createSignedUrl).toHaveBeenNthCalledWith(
-      2,
-      'family/child/file two.jpg',
-      3600,
-    );
-    expect(storageBucketMock.createSignedUrl).toHaveBeenNthCalledWith(
-      3,
-      'family/child/file-three.jpg',
+    expect(storageBucketMock.createSignedUrls).toHaveBeenCalledWith(
+      [
+        'family/child/evidence-one.jpg',
+        'family/child/file two.jpg',
+        'family/child/file-three.jpg',
+      ],
       3600,
     );
     expect(result).toEqual({
@@ -572,7 +570,7 @@ describe('tasks', () => {
       data: null,
       error: 'Algo deu errado. Tente novamente.',
     });
-    expect(storageBucketMock.createSignedUrl).not.toHaveBeenCalled();
+    expect(storageBucketMock.createSignedUrls).not.toHaveBeenCalled();
   });
 
   it('rejects assignments via RPC', async () => {
