@@ -531,7 +531,7 @@ function makeStyles() {
     childProgressRow: { gap: spacing['0.5'] },
     childProgressTrack: {
       flexDirection: 'row',
-      height: 6,
+      height: 8,
       borderRadius: radii.full,
       overflow: 'hidden',
       gap: 2,
