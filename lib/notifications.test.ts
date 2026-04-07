@@ -26,6 +26,11 @@ vi.mock('expo-constants', () => ({
   ExecutionEnvironment: { StoreClient: 'storeClient' },
 }));
 
+vi.mock('expo-application', () => ({
+  getAndroidId: () => null,
+  getIosIdForVendorAsync: vi.fn().mockResolvedValue('ios-vendor-id-mock'),
+}));
+
 vi.mock('expo-crypto', () => ({ randomUUID: () => '00000000-0000-0000-0000-000000000000' }));
 
 vi.mock('expo-device', () => ({ isDevice: true }));
@@ -257,7 +262,21 @@ describe('savePushToken', () => {
     rpcMock.mockReset();
   });
 
-  it('reuses existing device_id from storage and calls rpc', async () => {
+  it('uses native iOS vendor ID as device_id', async () => {
+    rpcMock.mockResolvedValue({ error: null });
+
+    await savePushToken('ExponentPushToken[abc123]');
+
+    expect(rpcMock).toHaveBeenCalledWith('upsert_push_token', {
+      p_token: 'ExponentPushToken[abc123]',
+      p_device_id: 'ios-vendor-id-mock',
+    });
+    expect(deviceStorageGetMock).not.toHaveBeenCalled();
+  });
+
+  it('falls back to stored device_id when native API fails', async () => {
+    const appModule = await import('expo-application');
+    vi.mocked(appModule.getIosIdForVendorAsync).mockRejectedValueOnce(new Error('unavailable'));
     deviceStorageGetMock.mockResolvedValue('existing-device-id');
     rpcMock.mockResolvedValue({ error: null });
 
@@ -270,7 +289,9 @@ describe('savePushToken', () => {
     expect(deviceStorageSetMock).not.toHaveBeenCalled();
   });
 
-  it('generates and persists a new device_id when storage is empty', async () => {
+  it('generates and persists a new device_id when native and storage both empty', async () => {
+    const appModule = await import('expo-application');
+    vi.mocked(appModule.getIosIdForVendorAsync).mockResolvedValueOnce(null);
     deviceStorageGetMock.mockResolvedValue(null);
     deviceStorageSetMock.mockResolvedValue(undefined);
     rpcMock.mockResolvedValue({ error: null });
@@ -286,19 +307,17 @@ describe('savePushToken', () => {
   });
 
   it('trims whitespace from the token before calling rpc', async () => {
-    deviceStorageGetMock.mockResolvedValue('dev-id');
     rpcMock.mockResolvedValue({ error: null });
 
     await savePushToken('  ExponentPushToken[padded]  ');
 
     expect(rpcMock).toHaveBeenCalledWith('upsert_push_token', {
       p_token: 'ExponentPushToken[padded]',
-      p_device_id: 'dev-id',
+      p_device_id: 'ios-vendor-id-mock',
     });
   });
 
   it('throws a user-facing error when rpc fails', async () => {
-    deviceStorageGetMock.mockResolvedValue('dev-id');
     rpcMock.mockResolvedValue({ error: { message: 'network error' } });
 
     await expect(savePushToken('ExponentPushToken[fail]')).rejects.toThrow(

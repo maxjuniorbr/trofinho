@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import * as Application from 'expo-application';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Crypto from 'expo-crypto';
 import * as Device from 'expo-device';
@@ -269,7 +270,26 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
 const DEVICE_ID_STORAGE_KEY = 'device_id';
 
+/**
+ * Returns a stable device identifier that survives app reinstalls.
+ *
+ * - Android: `Application.getAndroidId()` — hardware-bound, stable per device+app signing key.
+ * - iOS: `Application.getIosIdForVendorAsync()` — stable while any app from the same vendor is installed.
+ * - Fallback: persist a random UUID in SecureStore (dev builds, simulators).
+ */
 async function getOrCreateDeviceId(): Promise<string> {
+  try {
+    if (Platform.OS === 'android') {
+      const androidId = Application.getAndroidId();
+      if (androidId) return androidId;
+    } else if (Platform.OS === 'ios') {
+      const iosId = await Application.getIosIdForVendorAsync();
+      if (iosId) return iosId;
+    }
+  } catch {
+    // Native API unavailable (e.g. Expo Go) — fall through to storage-based ID
+  }
+
   const existing = await deviceStorage.getItem(DEVICE_ID_STORAGE_KEY);
   if (existing) return existing;
   const generated = Crypto.randomUUID();
