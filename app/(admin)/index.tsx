@@ -51,8 +51,6 @@ import { InlineMessage } from '@/components/ui/inline-message';
 
 import type { LucideIcon } from 'lucide-react-native';
 
-const CHILDREN_PREVIEW_LIMIT = 3;
-
 const QUICK_ACTIONS: readonly {
   icon: LucideIcon;
   label: string;
@@ -80,6 +78,7 @@ function getSummaryColors(colors: ThemeColors) {
   return {
     bg: isLight ? darkColors.bg.surface : colors.bg.elevated,
     boxBg: isLight ? darkColors.bg.elevated : colors.bg.muted,
+    border: isLight ? withAlpha('#FFFFFF', 0.08) : colors.border.subtle,
     text: '#FFFFFF',
     textMuted: 'rgba(255, 255, 255, 0.7)',
   };
@@ -222,7 +221,7 @@ export default function AdminHomeScreen() {
 
         {showNotificationBanner ? <NotificationPermissionBanner /> : null}
 
-        <View style={[styles.summaryCard, { backgroundColor: summary.bg }]}>
+        <View style={[styles.summaryCard, { backgroundColor: summary.bg, borderColor: summary.border }]}>
           <View style={styles.summaryHeader}>
             <PiggyBank size={16} color={summary.textMuted} strokeWidth={2} />
             <Text style={[styles.summaryHeaderText, { color: summary.textMuted }]}>
@@ -251,23 +250,95 @@ export default function AdminHomeScreen() {
           </View>
         </View>
 
-        {children.length > 0 ? (
+        {pendingValidationCount > 0 ? (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Filhos</Text>
+              <View style={styles.sectionTitleRow}>
+                <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Pendentes</Text>
+                <View style={[styles.countBadge, { backgroundColor: colors.semantic.error }]}>
+                  <Text style={[styles.countBadgeText, { color: colors.text.inverse }]}>
+                    {pendingValidationCount}
+                  </Text>
+                </View>
+              </View>
               <Pressable
-                onPress={() => router.push('/(admin)/balances')}
+                onPress={() => router.push('/(admin)/tasks')}
                 accessibilityRole="button"
-                accessibilityLabel="Ver saldos de todos os filhos"
-                hitSlop={8}
+                hitSlop={12}
               >
-                <Text style={[styles.sectionLink, { color: colors.accent.admin }]}>
-                  Ver saldos {'>'}
-                </Text>
+                <Text style={[styles.sectionLink, { color: colors.accent.admin }]}>Ver todas</Text>
               </Pressable>
             </View>
-            <View style={styles.childrenList}>
-              {children.slice(0, CHILDREN_PREVIEW_LIMIT).map((item) => {
+            <Pressable
+              style={[
+                styles.navCard,
+                {
+                  backgroundColor: colors.bg.surface,
+                  borderColor: withAlpha(colors.semantic.error, 0.25),
+                },
+                shadows.card,
+              ]}
+              onPress={() => router.push('/(admin)/tasks')}
+              accessibilityRole="button"
+              accessibilityLabel={`${pendingValidationCount} tarefas aguardando validação`}
+            >
+              <View style={styles.navCardLead}>
+                <View style={[styles.navIconBox, { backgroundColor: colors.semantic.errorBg }]}>
+                  <ClipboardList size={20} color={colors.semantic.error} strokeWidth={1.75} />
+                </View>
+                <View style={styles.navCardBody}>
+                  <Text style={[styles.navCardTitle, { color: colors.text.primary }]}>Tarefas</Text>
+                  <Text style={[styles.navCardSub, { color: colors.text.secondary }]}>
+                    {pendingValidationCount}{' '}
+                    {pendingValidationCount === 1 ? 'tarefa aguardando' : 'tarefas aguardando'}{' '}
+                    validação
+                  </Text>
+                </View>
+              </View>
+              <Badge label="Validar" variant="error" />
+            </Pressable>
+          </View>
+        ) : null}
+
+        <View style={styles.quickRow}>
+            {QUICK_ACTIONS.map(({ icon: Icon, label, rota, badgeKey }) => {
+              let badge = 0;
+              if (badgeKey === 'tasks') {
+                badge = pendingValidationCount;
+              } else if (badgeKey === 'redemptions') {
+                badge = pendingRedemptionCount;
+              }
+              return (
+                <Pressable
+                  key={rota}
+                  style={({ pressed }) => [
+                    styles.quickCard,
+                    { backgroundColor: colors.bg.surface },
+                    pressed && { opacity: 0.7 },
+                  ]}
+                  onPress={() => router.push(rota as never)}
+                  accessibilityRole="button"
+                  accessibilityLabel={label}
+                >
+                  <View style={[styles.quickIconBox, { backgroundColor: colors.bg.elevated }]}>
+                    <Icon size={22} color={colors.accent.admin} strokeWidth={1.5} />
+                  </View>
+                  <Text style={[styles.quickLabel, { color: colors.text.secondary }]}>{label}</Text>
+                  {badge > 0 ? (
+                    <View style={[styles.quickBadge, { backgroundColor: colors.semantic.error }]}>
+                      <Text style={[styles.quickBadgeText, { color: colors.text.inverse }]}>
+                        {badge}
+                      </Text>
+                    </View>
+                  ) : null}
+                </Pressable>
+              );
+            })}
+        </View>
+
+        {children.length > 0 ? (
+          <View style={styles.childrenList}>
+              {children.map((item) => {
                 const saldo = balancesMap.get(item.id);
                 const pts = saldo ? saldo.saldo_livre + saldo.cofrinho : 0;
                 const cofrinhoPercent =
@@ -336,98 +407,8 @@ export default function AdminHomeScreen() {
                   </Pressable>
                 );
               })}
-            </View>
           </View>
         ) : null}
-
-        {pendingValidationCount > 0 ? (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionTitleRow}>
-                <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Pendentes</Text>
-                <View style={[styles.countBadge, { backgroundColor: colors.semantic.error }]}>
-                  <Text style={[styles.countBadgeText, { color: colors.text.inverse }]}>
-                    {pendingValidationCount}
-                  </Text>
-                </View>
-              </View>
-              <Pressable
-                onPress={() => router.push('/(admin)/tasks')}
-                accessibilityRole="button"
-                hitSlop={12}
-              >
-                <Text style={[styles.sectionLink, { color: colors.accent.admin }]}>Ver todas</Text>
-              </Pressable>
-            </View>
-            <Pressable
-              style={[
-                styles.navCard,
-                {
-                  backgroundColor: colors.bg.surface,
-                  borderColor: withAlpha(colors.semantic.error, 0.25),
-                },
-                shadows.card,
-              ]}
-              onPress={() => router.push('/(admin)/tasks')}
-              accessibilityRole="button"
-              accessibilityLabel={`${pendingValidationCount} tarefas aguardando validação`}
-            >
-              <View style={styles.navCardLead}>
-                <View style={[styles.navIconBox, { backgroundColor: colors.semantic.errorBg }]}>
-                  <ClipboardList size={20} color={colors.semantic.error} strokeWidth={1.75} />
-                </View>
-                <View style={styles.navCardBody}>
-                  <Text style={[styles.navCardTitle, { color: colors.text.primary }]}>Tarefas</Text>
-                  <Text style={[styles.navCardSub, { color: colors.text.secondary }]}>
-                    {pendingValidationCount}{' '}
-                    {pendingValidationCount === 1 ? 'tarefa aguardando' : 'tarefas aguardando'}{' '}
-                    validação
-                  </Text>
-                </View>
-              </View>
-              <Badge label="Validar" variant="error" />
-            </Pressable>
-          </View>
-        ) : null}
-
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Ações rápidas</Text>
-          <View style={styles.quickGrid}>
-            {QUICK_ACTIONS.map(({ icon: Icon, label, rota, badgeKey }) => {
-              let badge = 0;
-              if (badgeKey === 'tasks') {
-                badge = pendingValidationCount;
-              } else if (badgeKey === 'redemptions') {
-                badge = pendingRedemptionCount;
-              }
-              return (
-                <Pressable
-                  key={rota}
-                  style={({ pressed }) => [
-                    styles.quickCard,
-                    { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-                    pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
-                  ]}
-                  onPress={() => router.push(rota as never)}
-                  accessibilityRole="button"
-                  accessibilityLabel={label}
-                >
-                  <View style={[styles.quickIconBox, { backgroundColor: colors.bg.elevated }]}>
-                    <Icon size={22} color={colors.accent.admin} strokeWidth={1.5} />
-                  </View>
-                  <Text style={[styles.quickLabel, { color: colors.text.primary }]}>{label}</Text>
-                  {badge > 0 ? (
-                    <View style={[styles.quickBadge, { backgroundColor: colors.semantic.error }]}>
-                      <Text style={[styles.quickBadgeText, { color: colors.text.inverse }]}>
-                        {badge}
-                      </Text>
-                    </View>
-                  ) : null}
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
       </ScrollView>
     </SafeScreenFrame>
   );
@@ -468,6 +449,7 @@ function makeStyles() {
     summaryCard: {
       borderRadius: radii.xl,
       borderCurve: 'continuous',
+      borderWidth: 1,
       padding: spacing['5'],
       marginBottom: spacing['6'],
       gap: spacing['1'],
@@ -601,32 +583,33 @@ function makeStyles() {
       marginTop: spacing['1'],
     },
 
-    quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing['3'] },
+    quickRow: { flexDirection: 'row', gap: spacing['3'], marginBottom: spacing['6'] },
     quickCard: {
-      width: '30%',
-      flexGrow: 1,
+      flex: 1,
       borderRadius: radii.inner,
-      borderWidth: 1,
-      paddingVertical: spacing['4'],
+      borderCurve: 'continuous',
+      paddingVertical: spacing['3'],
+      paddingHorizontal: spacing['1'],
       alignItems: 'center',
-      gap: spacing['1'],
+      gap: spacing['1.5'],
     },
     quickIconBox: {
       width: 44,
       height: 44,
-      borderRadius: radii.md,
+      borderRadius: radii.lg,
+      borderCurve: 'continuous',
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
     },
     quickLabel: {
-      fontFamily: typography.family.bold,
+      fontFamily: typography.family.semibold,
       fontSize: typography.size.xs,
       textAlign: 'center',
     },
     quickBadge: {
       position: 'absolute',
-      top: spacing['2'],
-      right: spacing['2'],
+      top: spacing['1'],
+      right: spacing['1'],
       minWidth: 20,
       height: 20,
       borderRadius: radii.full,
