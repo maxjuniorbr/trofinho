@@ -80,12 +80,11 @@ const createHostComponent = vi.hoisted(() => {
 });
 
 vi.mock('react-native', () => ({
-  ActivityIndicator: createHostComponent('ActivityIndicator'),
   KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
   Modal: createHostComponent('Modal'),
   Pressable: createHostComponent('Pressable'),
   RefreshControl: createHostComponent('RefreshControl'),
-  StyleSheet: { create: <T,>(styles: T) => styles },
+  StyleSheet: { create: <T,>(styles: T) => styles, hairlineWidth: 0.5 },
   Text: createHostComponent('Text'),
   TextInput: createHostComponent('TextInput'),
   View: createHostComponent('View'),
@@ -133,7 +132,7 @@ vi.mock('@shopify/flash-list', () => ({
 }));
 
 vi.mock('lucide-react-native', () => ({
-  Wallet: (props: Record<string, unknown>) => React.createElement('Wallet', props),
+  PiggyBank: (props: Record<string, unknown>) => React.createElement('PiggyBank', props),
   TrendingUp: (props: Record<string, unknown>) => React.createElement('TrendingUp', props),
 }));
 
@@ -200,8 +199,10 @@ vi.mock('@/components/balance/transaction-icon', () => ({
   TransactionIcon: (props: Record<string, unknown>) => React.createElement('TransactionIcon', props),
 }));
 
-vi.mock('@/components/ui/points-display', () => ({
-  PointsDisplay: (props: Record<string, unknown>) => React.createElement('PointsDisplay', props),
+vi.mock('@/constants/colors', () => ({
+  darkColors: {
+    bg: { surface: '#1D212B', elevated: '#2A303C' },
+  },
 }));
 
 vi.mock('@/components/ui/inline-message', () => ({
@@ -221,7 +222,7 @@ vi.mock('@/context/theme-context', () => ({
       accent: { filho: '#3366CC', filhoBg: '#EEF' },
       border: { default: '#ddd', subtle: '#eee' },
       brand: { vivid: '#000' },
-      semantic: { success: '#0a0', successBg: '#e0ffe0', error: '#c00' },
+      semantic: { success: '#0a0', successBg: '#e0ffe0', error: '#c00', warning: '#fa0', warningBg: '#fff7e0' },
       overlay: { scrimSoft: 'rgba(0,0,0,0.3)' },
     },
   }),
@@ -287,8 +288,8 @@ describe('ChildBalanceScreen', () => {
   it('shows loading state', () => {
     balanceMock.isLoading = true;
     const renderer = render(<ChildBalanceScreen />);
-    const indicators = renderer.root.findAllByType('ActivityIndicator' as never);
-    expect(indicators.length).toBeGreaterThan(0);
+    const empty = renderer.root.findAllByType('EmptyState' as never);
+    expect(empty.length).toBeGreaterThan(0);
   });
 
   it('shows error state when childId fails', () => {
@@ -298,12 +299,13 @@ describe('ChildBalanceScreen', () => {
     expect(empty.props.error).toBeTruthy();
   });
 
-  it('renders balance cards', () => {
+  it('renders balance summary card', () => {
     const renderer = render(<ChildBalanceScreen />);
-    const points = renderer.root.findAllByType('PointsDisplay' as never);
-    expect(points.length).toBe(2);
-    expect(points[0].props.value).toBe(200);
-    expect(points[1].props.value).toBe(80);
+    const text = allText(renderer);
+    expect(text).toContain('MEU SALDO');
+    expect(text).toContain('280');
+    expect(text).toContain('LIVRE');
+    expect(text).toContain('COFRINHO');
   });
 
   it('renders appreciation info', () => {
