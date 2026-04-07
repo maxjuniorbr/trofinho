@@ -313,7 +313,7 @@ export default function AdminHomeScreen() {
                   key={rota}
                   style={({ pressed }) => [
                     styles.quickCard,
-                    { backgroundColor: colors.bg.surface },
+                    { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
                     pressed && { opacity: 0.7 },
                   ]}
                   onPress={() => router.push(rota as never)}
@@ -589,6 +589,7 @@ function makeStyles() {
       flex: 1,
       borderRadius: radii.inner,
       borderCurve: 'continuous',
+      borderWidth: 1,
       paddingVertical: spacing['3'],
       paddingHorizontal: spacing['1'],
       alignItems: 'center',
