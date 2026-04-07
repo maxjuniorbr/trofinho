@@ -122,6 +122,10 @@ vi.mock('@/components/ui/list-footer', () => ({
   ListFooter: (props: Record<string, unknown>) => React.createElement('ListFooter', props),
 }));
 
+vi.mock('@/components/ui/skeleton', () => ({
+  ListScreenSkeleton: () => React.createElement('ListScreenSkeleton'),
+}));
+
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
   act(() => {
@@ -182,8 +186,8 @@ describe('AdminPrizesScreen', () => {
     prizesMock.isLoading = true;
     prizesMock.data = undefined;
     const renderer = render(<AdminPrizesScreen />);
-    const emptyState = renderer.root.findByType('EmptyState' as never);
-    expect(emptyState.props.loading).toBe(true);
+    const skeleton = renderer.root.findByType('ListScreenSkeleton' as never);
+    expect(skeleton).toBeDefined();
   });
 
   it('renders prize name, description and cost', () => {

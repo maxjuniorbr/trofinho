@@ -167,6 +167,10 @@ vi.mock('@/context/theme-context', () => ({
   }),
 }));
 
+vi.mock('@/components/ui/skeleton', () => ({
+  ListScreenSkeleton: () => React.createElement('ListScreenSkeleton'),
+}));
+
 vi.mock('@/constants/theme', () => ({
   gradients: {
     goldHorizontal: { colors: ['#f0c', '#fc0'], start: { x: 0, y: 0 }, end: { x: 1, y: 0 } },
@@ -221,11 +225,11 @@ describe('ChildPrizesScreen', () => {
     profileMock.data = { id: 'u1', nome: 'João', familia_id: 'fam-1' };
   });
 
-  it('shows empty state when loading', () => {
+  it('shows skeleton when loading', () => {
     prizesMock.isLoading = true;
     const renderer = render(<ChildPrizesScreen />);
-    const empty = renderer.root.findByType('EmptyState' as never);
-    expect(empty.props.loading).toBe(true);
+    const skeleton = renderer.root.findByType('ListScreenSkeleton' as never);
+    expect(skeleton).toBeDefined();
   });
 
   it('shows empty state when no prizes', () => {
