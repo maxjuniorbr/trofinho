@@ -5,9 +5,13 @@ import { dispatchPushNotification } from './push';
 
 const invokeMock = vi.hoisted(() => vi.fn());
 const captureExceptionMock = vi.hoisted(() => vi.fn());
+const getSessionMock = vi.hoisted(() => vi.fn());
 
 vi.mock('./supabase', () => ({
   supabase: {
+    auth: {
+      getSession: getSessionMock,
+    },
     functions: {
       invoke: invokeMock,
     },
@@ -22,6 +26,10 @@ describe('dispatchPushNotification', () => {
   beforeEach(() => {
     invokeMock.mockReset();
     captureExceptionMock.mockReset();
+    getSessionMock.mockReset();
+    getSessionMock.mockResolvedValue({
+      data: { session: { access_token: 'test-access-token' } },
+    });
     vi.restoreAllMocks();
   });
 
@@ -141,6 +149,7 @@ describe('dispatchPushNotification', () => {
         familiaId: 'family-123',
         payload: { userId: 'u1', taskTitle: 'Lavar louça' },
       },
+      headers: { Authorization: 'Bearer test-access-token' },
     });
     expect(consoleWarnSpy).not.toHaveBeenCalled();
     expect(captureExceptionMock).not.toHaveBeenCalled();

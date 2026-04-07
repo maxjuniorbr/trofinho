@@ -16,15 +16,26 @@ export async function dispatchPushNotification(
   payload: Record<string, string | string[]>,
 ): Promise<void> {
   try {
+    // Explicitly retrieve the session so the user JWT is sent in the Authorization header.
+    // Without this, supabase.functions.invoke falls back to the anon key when the session
+    // is momentarily unavailable (e.g. during token refresh), causing the edge function
+    // to reject the request with 401.
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
     const { data, error } = await supabase.functions.invoke('send-push-notification', {
       body: { event, familiaId, payload },
+      ...(session ? { headers: { Authorization: `Bearer ${session.access_token}` } } : {}),
     });
 
     if (error) {
       // Supabase Edge Functions retornam erros específicos herdados de FunctionsError
       let errorCategory = 'Inesperado';
+      let statusCode: number | undefined;
       if (error.name === 'FunctionsHttpError') {
-        errorCategory = 'HTTP/Não encontrado (possivelmente falta deploy)';
+        statusCode = (error as { context?: { status?: number } }).context?.status;
+        errorCategory = `HTTP/${statusCode ?? 'desconhecido'}`;
       } else if (error.name === 'FunctionsFetchError' || error.name === 'FunctionsRelayError') {
         errorCategory = 'Rede/Conexão';
       }
@@ -37,7 +48,7 @@ export async function dispatchPushNotification(
 
       Sentry.captureException(error, {
         tags: { subsystem: 'push', event, errorCategory: error.name || 'Unknown' },
-        extra: { familiaId, payload, response: data },
+        extra: { familiaId, payload, response: data, statusCode },
       });
       return;
     }

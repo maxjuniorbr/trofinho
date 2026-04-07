@@ -19,9 +19,14 @@ const supabaseMock = vi.hoisted(() => ({
   from: vi.fn(),
   rpc: vi.fn(),
 }));
+const captureExceptionMock = vi.hoisted(() => vi.fn());
 
 vi.mock('./supabase', () => ({
   supabase: supabaseMock,
+}));
+
+vi.mock('@sentry/react-native', () => ({
+  captureException: captureExceptionMock,
 }));
 
 function createQuery(result: {
