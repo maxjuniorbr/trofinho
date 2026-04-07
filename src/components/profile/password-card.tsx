@@ -1,5 +1,6 @@
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { useState } from 'react';
+import { Lock } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 import { useTransientMessage } from '@/hooks/use-transient-message';
@@ -52,8 +53,10 @@ export const PasswordCard = () => {
         { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
       ]}
     >
-      <Text style={[styles.title, { color: colors.text.primary }]}>Segurança</Text>
-      <Text style={[styles.subtitle, { color: colors.text.secondary }]}>Alterar senha</Text>
+      <View style={styles.titleRow}>
+        <Lock size={16} color={colors.text.primary} strokeWidth={2} />
+        <Text style={[styles.title, { color: colors.text.primary }]}>Segurança</Text>
+      </View>
 
       <Text style={[styles.label, { color: colors.text.secondary }]}>Senha atual</Text>
       <TextInput
@@ -146,16 +149,16 @@ export const PasswordCard = () => {
 };
 
 const styles = StyleSheet.create({
-  card: { borderRadius: radii.lg, borderWidth: 1, padding: spacing['4'], gap: spacing['1'] },
+  card: { borderRadius: radii.xl, borderCurve: 'continuous', borderWidth: 1, padding: spacing['4'], gap: spacing['1'] },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['1.5'],
+    marginBottom: spacing['2'],
+  },
   title: {
     fontFamily: typography.family.bold,
     fontSize: typography.size.md,
-    marginBottom: spacing['2'],
-  },
-  subtitle: {
-    fontFamily: typography.family.semibold,
-    fontSize: typography.size.sm,
-    marginBottom: spacing['2'],
   },
   label: {
     fontSize: typography.size.sm,
@@ -165,7 +168,8 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
+    borderCurve: 'continuous',
     paddingHorizontal: spacing['4'],
     paddingVertical: spacing['3'],
     fontSize: typography.size.md,

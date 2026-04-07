@@ -1,4 +1,5 @@
 import { StyleSheet, Switch, Text, View } from 'react-native';
+import { Bell } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { radii, spacing, typography } from '@/constants/theme';
@@ -49,7 +50,10 @@ export function NotificationCard({
         { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
       ]}
     >
-      <Text style={[styles.title, { color: colors.text.primary }]}>Notificações</Text>
+      <View style={styles.titleRow}>
+        <Bell size={16} color={colors.text.primary} strokeWidth={2} />
+        <Text style={[styles.title, { color: colors.text.primary }]}>Notificações</Text>
+      </View>
 
       {OPTIONS.filter((o) => o.roles.includes(role)).map(({ key, label }, index, arr) => (
         <View
@@ -91,15 +95,21 @@ export function NotificationCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: radii.lg,
+    borderRadius: radii.xl,
+    borderCurve: 'continuous',
     borderWidth: 1,
     padding: spacing['4'],
     gap: spacing['1'],
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['1.5'],
+    marginBottom: spacing['2'],
+  },
   title: {
     fontFamily: typography.family.bold,
     fontSize: typography.size.md,
-    marginBottom: spacing['2'],
   },
   row: {
     flexDirection: 'row',
