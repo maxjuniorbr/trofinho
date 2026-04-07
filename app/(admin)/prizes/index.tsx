@@ -175,7 +175,8 @@ function makeStyles(colors: ThemeColors) {
     card: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,
-      borderCurve: 'continuous',
+      borderWidth: 1,
+      borderColor: colors.border.subtle,
       padding: spacing['4'],
       gap: spacing['3'],
       flexDirection: 'row',
