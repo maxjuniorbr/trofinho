@@ -289,9 +289,7 @@ export async function cancelAssignmentSubmission(
 
 export async function renewDailyTasks(): Promise<void> {
   const { error } = await supabase.rpc('garantir_atribuicoes_diarias');
-  if (error) {
-    console.warn('[renewDailyTasks] RPC failed:', error.message);
-  }
+  if (error) throw new Error(localizeRpcError(error.message));
 }
 
 export async function listChildAssignments(

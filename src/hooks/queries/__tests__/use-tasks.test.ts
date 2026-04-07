@@ -15,6 +15,10 @@ vi.mock('react', async () => {
   };
 });
 
+vi.mock('@sentry/react-native', () => ({
+  captureException: vi.fn(),
+}));
+
 vi.mock('@tanstack/react-query', () => {
   const capturedQuery: { options: Record<string, unknown>[] } = { options: [] };
   const capturedMutation: { options: Record<string, unknown>[] } = { options: [] };
@@ -207,6 +211,18 @@ describe('use-tasks mutation hooks', () => {
       expect(mockInvalidateQueries).toHaveBeenCalledWith({
         queryKey: queryKeys.tasks.childAssignments(),
       });
+    });
+
+    it('useRenewDailyTasks does not invalidate when query has no data', async () => {
+      mockInvalidateQueries.mockClear();
+      const origUseQuery = rq.useQuery as ReturnType<typeof vi.fn>;
+      origUseQuery.mockImplementationOnce((opts: Record<string, unknown>) => {
+        getCapturedQuery().options.push(opts);
+        return { data: undefined, isLoading: false, error: new Error('RPC failed') };
+      });
+      const { useRenewDailyTasks } = await loadHooks();
+      useRenewDailyTasks();
+      expect(mockInvalidateQueries).not.toHaveBeenCalled();
     });
   });
 });

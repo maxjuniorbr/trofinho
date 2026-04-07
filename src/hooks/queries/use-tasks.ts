@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import * as Sentry from '@sentry/react-native';
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   listAdminTasks,
@@ -62,11 +63,17 @@ export const useRenewDailyTasks = () => {
   const query = useQuery({
     queryKey: queryKeys.tasks.renewDaily(),
     queryFn: async () => {
-      await renewDailyTasks();
-      return true;
+      try {
+        await renewDailyTasks();
+        return true;
+      } catch (error) {
+        Sentry.captureException(error, { tags: { subsystem: 'task-renewal' } });
+        throw error;
+      }
     },
     staleTime: Infinity,
     gcTime: Infinity,
+    retry: false,
   });
 
   useEffect(() => {
