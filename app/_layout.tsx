@@ -42,7 +42,6 @@ Sentry.init({
   integrations: [navigationIntegration],
   enableNativeFramesTracking: !isRunningInExpoGo(),
   environment: __DEV__ ? 'development' : 'production',
-  debug: __DEV__,
 });
 
 SplashScreen.preventAutoHideAsync();
