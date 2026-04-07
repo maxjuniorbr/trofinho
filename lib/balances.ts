@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native';
 import { localizeRpcError } from './api-error';
 import { supabase } from './supabase';
 
@@ -126,7 +127,16 @@ export async function transferToPiggyBank(
     p_filho_id: childId,
     p_valor: amount,
   });
-  if (error) return { error: localizeRpcError(error.message) };
+  if (error) {
+    const localized = localizeRpcError(error.message);
+    if (localized === 'Algo deu errado. Tente novamente.') {
+      Sentry.captureException(error, {
+        tags: { subsystem: 'cofrinho' },
+        extra: { childId, amount },
+      });
+    }
+    return { error: localized };
+  }
   return { error: null };
 }
 
