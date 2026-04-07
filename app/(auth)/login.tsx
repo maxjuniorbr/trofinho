@@ -46,7 +46,7 @@ export default function LoginScreen() {
 
     if (signInError) {
       setLoading(false);
-      setError(signInError.message);
+      setError(signInError);
     }
 
     // Navigation is handled by the root layout auth state handler.

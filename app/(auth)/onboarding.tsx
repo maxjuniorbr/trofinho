@@ -2,7 +2,6 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useState, useMemo } from 'react';
 import { createFamily, signOut } from '@lib/auth';
-import { localizeSupabaseError } from '@lib/api-error';
 import { useTheme } from '@/context/theme-context';
 import { spacing, typography } from '@/constants/theme';
 import { AuthShell } from '@/components/auth/auth-shell';
@@ -47,7 +46,7 @@ export default function OnboardingScreen() {
 
     if (createError) {
       setLoading(false);
-      setError(localizeSupabaseError(createError.message));
+      setError(createError);
     }
 
     // Navigation is handled by the root layout auth state handler.
@@ -80,6 +79,7 @@ export default function OnboardingScreen() {
         onFocus={() => setFocusedField('familyName')}
         onBlur={() => setFocusedField(null)}
         autoCapitalize="words"
+        maxLength={60}
         editable={!isBusy}
         accessibilityLabel="Campo de nome da família"
       />
@@ -96,6 +96,7 @@ export default function OnboardingScreen() {
         onFocus={() => setFocusedField('adminName')}
         onBlur={() => setFocusedField(null)}
         autoCapitalize="words"
+        maxLength={60}
         editable={!isBusy}
         accessibilityLabel="Campo de nome do administrador"
       />

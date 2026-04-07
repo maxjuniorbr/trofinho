@@ -68,8 +68,8 @@ export const useConfigureAppreciation = () => {
   return useMutation({
     mutationFn: (args: { childId: string; rate: number; period: AppreciationPeriod }) =>
       mutationFnAdapter(() => configureAppreciation(args.childId, args.rate, args.period))(),
-    onSuccess: async () => {
-      await syncAutomaticAppreciation();
+    onSuccess: () => {
+      syncAutomaticAppreciation().catch(console.error);
       queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });
     },
   });

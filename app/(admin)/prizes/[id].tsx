@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native';
 import { ActivityIndicator, Alert, StyleSheet, Switch, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
@@ -79,6 +80,7 @@ export default function AdminPrizeDetailScreen() {
       setImagePreview(result.assets[0].uri);
       setImageState('loading');
     } catch (e) {
+      Sentry.captureException(e);
       console.error(e);
       setFormError('Não foi possível selecionar a imagem agora.');
     } finally {

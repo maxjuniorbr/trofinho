@@ -14,7 +14,7 @@ interface AvatarProps {
 
 type ReadonlyAvatarProps = Readonly<AvatarProps>;
 
-export function Avatar({ name, size = 44, solidColor, imageUri }: ReadonlyAvatarProps) {
+export const Avatar = ({ name, size = 44, solidColor, imageUri }: ReadonlyAvatarProps) => {
   const { colors } = useTheme();
   const borderRadius = size / 2;
   const [imgError, setImgError] = useState(false);
@@ -64,7 +64,7 @@ export function Avatar({ name, size = 44, solidColor, imageUri }: ReadonlyAvatar
       <Text style={[styles.initial, { color: colors.text.onBrand, fontSize }]}>{initials}</Text>
     </LinearGradient>
   );
-}
+};
 
 const styles = StyleSheet.create({
   base: {

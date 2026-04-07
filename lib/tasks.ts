@@ -1,3 +1,4 @@
+import * as Crypto from 'expo-crypto';
 import { localizeRpcError , extractErrorMessage } from './api-error';
 import { toDateString } from './utils';
 import { dispatchPushNotification } from './push';
@@ -582,7 +583,7 @@ async function uploadEvidence(
 }
 
 function createEvidenceSuffix(): string {
-  return crypto.randomUUID();
+  return Crypto.randomUUID();
 }
 
 const EVIDENCE_URL_TTL_SECONDS = 60 * 60;

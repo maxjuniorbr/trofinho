@@ -84,7 +84,7 @@ export function PenaltyModal({ visible, childName, onClose, onApply }: PenaltyMo
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
       <KeyboardAvoidingView
         style={[styles.overlay, { backgroundColor: colors.overlay.scrim }]}
         behavior="padding"
@@ -110,6 +110,7 @@ export function PenaltyModal({ visible, childName, onClose, onApply }: PenaltyMo
             placeholderTextColor={colors.text.muted}
             keyboardType="number-pad"
             maxLength={5}
+            accessibilityLabel="Valor da penalidade em pontos"
           />
 
           <Text style={[styles.label, { color: colors.text.secondary }]}>Motivo *</Text>
@@ -129,12 +130,15 @@ export function PenaltyModal({ visible, childName, onClose, onApply }: PenaltyMo
             placeholderTextColor={colors.text.muted}
             multiline
             maxLength={200}
+            accessibilityLabel="Motivo da penalidade"
           />
           <FormFooter message={error ?? warning} variant={warning ? 'warning' : 'error'} compact>
             <View style={styles.buttons}>
               <Pressable
                 style={[styles.btn, styles.btnCancel, { borderColor: colors.border.default }]}
                 onPress={handleClose}
+                accessibilityRole="button"
+                accessibilityLabel="Cancelar"
               >
                 <Text style={[styles.btnCancelText, { color: colors.text.secondary }]}>
                   Cancelar
@@ -149,6 +153,8 @@ export function PenaltyModal({ visible, childName, onClose, onApply }: PenaltyMo
                 ]}
                 onPress={handleApply}
                 disabled={saving}
+                accessibilityRole="button"
+                accessibilityLabel="Penalizar"
               >
                 {saving ? (
                   <ActivityIndicator color={colors.text.inverse} />

@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
-import { Animated, KeyboardAvoidingView, ScrollView, StyleSheet, Text } from 'react-native';
+import { Animated, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
 import { Image } from 'expo-image';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
@@ -21,7 +21,7 @@ type AuthShellProps = Readonly<{
   backLabel?: string;
 }>;
 
-export function AuthShell({
+export const AuthShell = ({
   title,
   subtitle,
   children,
@@ -29,7 +29,7 @@ export function AuthShell({
   headerTitle,
   onBack,
   backLabel,
-}: AuthShellProps) {
+}: AuthShellProps) => {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(variant), [variant]);
 
@@ -123,12 +123,12 @@ export function AuthShell({
   return (
     <KeyboardAvoidingView
       style={[styles.flex, { backgroundColor: colors.bg.canvas }]}
-      behavior="padding"
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       {body}
     </KeyboardAvoidingView>
   );
-}
+};
 
 function loadMascotImage(): number {
   try {

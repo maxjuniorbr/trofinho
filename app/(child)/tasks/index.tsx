@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native';
 import { Alert, StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
@@ -7,7 +8,7 @@ import { RefreshCw, Camera } from 'lucide-react-native';
 import { getAssignmentPoints, type ChildAssignment, type AssignmentStatus } from '@lib/tasks';
 import { formatDate } from '@lib/utils';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
-import { useChildAssignments } from '@/hooks/queries';
+import { useChildAssignments, useRenewDailyTasks } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -158,14 +159,16 @@ export default function ChildTasksScreen() {
 
   const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useChildAssignments();
+  const renewMutation = useRenewDailyTasks();
   const assignments = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
   const [filter, setFilter] = useState<Filter>('pendente');
   const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
+      renewMutation.mutate();
       refetch();
-    }, [refetch]),
+    }, [refetch, renewMutation]),
   );
 
   const handleRefresh = async () => {
@@ -173,6 +176,7 @@ export default function ChildTasksScreen() {
     try {
       await refetch();
     } catch (e) {
+      Sentry.captureException(e);
       console.error(e);
     } finally {
       setRefreshing(false);

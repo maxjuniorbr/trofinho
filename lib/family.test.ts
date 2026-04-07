@@ -32,24 +32,24 @@ describe('getFamily', () => {
     expect(supabaseMock.from).toHaveBeenCalledWith('familias');
     expect(query.select).toHaveBeenCalledWith('nome');
     expect(query.eq).toHaveBeenCalledWith('id', 'family-123');
-    expect(result).toEqual({ nome: 'Família Silva' });
+    expect(result).toEqual({ data: { nome: 'Família Silva' }, error: null });
   });
 
-  it('retorna null quando ocorre erro', async () => {
+  it('retorna erro quando ocorre falha', async () => {
     const query = createSingleQuery({ data: null, error: { message: 'not found' } });
     supabaseMock.from.mockReturnValue(query);
 
     const result = await getFamily('invalid-id');
 
-    expect(result).toBeNull();
+    expect(result).toEqual({ data: null, error: expect.any(String) });
   });
 
-  it('retorna null quando data é null', async () => {
+  it('retorna data null quando registro não existe', async () => {
     const query = createSingleQuery({ data: null, error: null });
     supabaseMock.from.mockReturnValue(query);
 
     const result = await getFamily('empty-id');
 
-    expect(result).toBeNull();
+    expect(result).toEqual({ data: null, error: null });
   });
 });

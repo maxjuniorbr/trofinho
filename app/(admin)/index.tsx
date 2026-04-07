@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native';
 import {
   AppState,
   Pressable,
@@ -174,6 +175,7 @@ export default function AdminHomeScreen() {
       const denied = await isNotificationPermissionDenied();
       setShowNotificationBanner(denied);
     } catch (e) {
+      Sentry.captureException(e);
       console.error(e);
     } finally {
       setRefreshing(false);

@@ -19,14 +19,35 @@ const routerMock = vi.hoisted(() => ({
 
 const registerChildMock = vi.hoisted(() => vi.fn().mockResolvedValue({ error: null }));
 
+const mutationStateMock = vi.hoisted(() => ({
+  isPending: false,
+  error: null as Error | null,
+  reset: vi.fn(),
+}));
+
 vi.mock('expo-clipboard', () => clipboardMock);
 
 vi.mock('expo-router', () => ({
   useRouter: () => routerMock,
 }));
 
-vi.mock('@lib/children', () => ({
-  registerChild: registerChildMock,
+vi.mock('@/hooks/queries/use-register-child', () => ({
+  useRegisterChild: () => ({
+    ...mutationStateMock,
+    mutate: (
+      args: { name: string; email: string; tempPassword: string },
+      opts?: { onSuccess?: () => void },
+    ) => {
+      registerChildMock(args.name, args.email, args.tempPassword).then(
+        (res: { error: string | null }) => {
+          if (!res.error && opts?.onSuccess) opts.onSuccess();
+        },
+      );
+    },
+    mutateAsync: async (args: { name: string; email: string; tempPassword: string }) => {
+      return registerChildMock(args.name, args.email, args.tempPassword);
+    },
+  }),
 }));
 
 vi.mock('@lib/validation', () => ({

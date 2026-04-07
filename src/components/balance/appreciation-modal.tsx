@@ -67,7 +67,7 @@ export function AppreciationModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
       <KeyboardAvoidingView
         style={[styles.overlay, { backgroundColor: colors.overlay.scrim }]}
         behavior="padding"
@@ -91,6 +91,7 @@ export function AppreciationModal({
             placeholderTextColor={colors.text.muted}
             keyboardType="decimal-pad"
             maxLength={6}
+            accessibilityLabel="Índice de valorização"
           />
 
           <Text style={[styles.label, { color: colors.text.secondary }]}>Período</Text>
@@ -107,6 +108,9 @@ export function AppreciationModal({
                   ],
                 ]}
                 onPress={() => setPeriod(p.value)}
+                accessibilityRole="button"
+                accessibilityLabel={p.label}
+                accessibilityState={{ selected: period === p.value }}
               >
                 <Text
                   style={[
@@ -128,6 +132,8 @@ export function AppreciationModal({
               <Pressable
                 style={[styles.btn, styles.btnCancel, { borderColor: colors.border.default }]}
                 onPress={handleClose}
+                accessibilityRole="button"
+                accessibilityLabel="Cancelar"
               >
                 <Text style={[styles.btnCancelText, { color: colors.text.secondary }]}>
                   Cancelar
@@ -142,6 +148,8 @@ export function AppreciationModal({
                 ]}
                 onPress={handleSave}
                 disabled={saving}
+                accessibilityRole="button"
+                accessibilityLabel="Salvar"
               >
                 {saving ? (
                   <ActivityIndicator color={colors.text.inverse} />

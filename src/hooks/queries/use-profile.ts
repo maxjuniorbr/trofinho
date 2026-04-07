@@ -7,7 +7,8 @@ import {
   updateUserAvatar,
   deleteAccount,
 } from '../../../lib/auth';
-import { getNotificationPrefs } from '../../../lib/notifications';
+import { getNotificationPrefs, DEFAULT_NOTIFICATION_PREFS } from '../../../lib/notifications';
+import { mutationFnAdapter } from './query-fn-adapter';
 import { queryKeys, STALE_TIMES } from './query-keys';
 
 export const useProfile = () =>
@@ -35,17 +36,20 @@ export const useCurrentAuthUser = () =>
 export const useNotificationPrefs = () =>
   useQuery({
     queryKey: queryKeys.profile.notificationPrefs(),
-    queryFn: () => getNotificationPrefs(),
+    queryFn: async () => {
+      try {
+        return await getNotificationPrefs();
+      } catch {
+        return DEFAULT_NOTIFICATION_PREFS;
+      }
+    },
     staleTime: STALE_TIMES.profile,
   });
 
 export const useUpdateUserName = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (name: string) => {
-      const result = await updateUserName(name);
-      if (result.error) throw new Error(result.error.message);
-    },
+    mutationFn: (name: string) => mutationFnAdapter(() => updateUserName(name))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.profile.all });
     },
@@ -54,16 +58,13 @@ export const useUpdateUserName = () => {
 
 export const useUpdateUserPassword = () =>
   useMutation({
-    mutationFn: async ({
+    mutationFn: ({
       currentPassword,
       newPassword,
     }: {
       currentPassword: string;
       newPassword: string;
-    }) => {
-      const result = await updateUserPassword(currentPassword, newPassword);
-      if (result.error) throw new Error(result.error.message);
-    },
+    }) => mutationFnAdapter(() => updateUserPassword(currentPassword, newPassword))(),
   });
 
 export const useUpdateUserAvatar = () => {
@@ -71,7 +72,7 @@ export const useUpdateUserAvatar = () => {
   return useMutation({
     mutationFn: async (imageUri: string) => {
       const result = await updateUserAvatar(imageUri);
-      if (result.error) throw new Error(result.error.message);
+      if (result.error) throw new Error(result.error);
       return result.url;
     },
     onSuccess: () => {
@@ -82,8 +83,5 @@ export const useUpdateUserAvatar = () => {
 
 export const useDeleteAccount = () =>
   useMutation({
-    mutationFn: async () => {
-      const result = await deleteAccount();
-      if (result.error) throw new Error(result.error.message);
-    },
+    mutationFn: () => mutationFnAdapter(() => deleteAccount())(),
   });

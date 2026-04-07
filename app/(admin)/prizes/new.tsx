@@ -27,6 +27,7 @@ export default function NewPrizeScreen() {
     const cost = Number.parseInt(costStr, 10);
     if (Number.isNaN(cost) || cost <= 0)
       return setError('Custo em pontos deve ser um número maior que zero.');
+    if (cost > 99999) return setError('O custo máximo é 99.999 pontos.');
 
     createPrizeMutation.mutate(
       { nome: name.trim(), descricao: description.trim() || null, custo_pontos: cost },

@@ -2,7 +2,6 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useMemo } from 'react';
 import { signUp } from '@lib/auth';
-import { localizeSupabaseError } from '@lib/api-error';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
 import { useTheme } from '@/context/theme-context';
 import { spacing, typography } from '@/constants/theme';
@@ -51,7 +50,7 @@ export default function RegisterScreen() {
 
     if (signUpError) {
       setLoading(false);
-      setError(localizeSupabaseError(signUpError.message));
+      setError(signUpError);
       return;
     }
 
@@ -81,6 +80,7 @@ export default function RegisterScreen() {
         onFocus={() => setFocusedField('name')}
         onBlur={() => setFocusedField(null)}
         autoCapitalize="words"
+        maxLength={60}
         editable={!loading}
         accessibilityLabel="Campo de nome"
       />

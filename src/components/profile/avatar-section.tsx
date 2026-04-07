@@ -15,13 +15,13 @@ type AvatarSectionProps = Readonly<{
   onAvatarChange: (url: string | null) => void;
 }>;
 
-export function AvatarSection({ name, avatarUri, role = 'admin', onAvatarChange }: AvatarSectionProps) {
+export const AvatarSection = ({ name, avatarUri, role = 'admin', onAvatarChange }: AvatarSectionProps) => {
   const { colors } = useTheme();
   const accentColor = role === 'filho' ? colors.accent.filhoDim : colors.accent.adminDim;
   const [error, setError] = useState<string | null>(null);
   const updateAvatarMutation = useUpdateUserAvatar();
 
-  async function handlePick() {
+  const handlePick = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
@@ -64,7 +64,7 @@ export function AvatarSection({ name, avatarUri, role = 'admin', onAvatarChange 
       {error ? <InlineMessage message={error} variant="error" /> : null}
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   section: { alignItems: 'center', paddingVertical: spacing['4'] },

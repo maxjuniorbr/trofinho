@@ -1,17 +1,18 @@
 import { StyleSheet, Text, View, Pressable, TextInput } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { Button } from '@/components/ui/button';
 import { FormFooter } from '@/components/ui/form-footer';
-import { registerChild } from '@lib/children';
+import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 import { StickyFooterScreen } from '@/components/ui/sticky-footer-screen';
+import { useRegisterChild } from '@/hooks/queries/use-register-child';
 
-export default function NewChildScreen() {
+const NewChildScreen = () => {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(), []);
@@ -20,12 +21,17 @@ export default function NewChildScreen() {
   const [email, setEmail] = useState('');
   const [tempPassword, setTempPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [copied, setCopied] = useState(false);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const shouldShowError = Boolean(error);
+  const registerMutation = useRegisterChild();
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
 
   const handleCopyPassword = useCallback(async () => {
     try {
@@ -38,28 +44,41 @@ export default function NewChildScreen() {
     }
   }, [tempPassword]);
 
-  async function handleRegister() {
-    setError(null);
+  const handleRegister = () => {
+    setValidationError(null);
+    registerMutation.reset();
     const emailValue = email.trim().toLowerCase();
-    if (!name.trim()) return setError('Informe o nome do filho.');
-    if (!isValidEmail(emailValue)) return setError('E-mail inválido.');
-    if (tempPassword.length < 6)
-      return setError('A senha temporária deve ter pelo menos 6 caracteres.');
-    if (tempPassword !== confirmPassword) return setError('As senhas não coincidem.');
-    setSubmitting(true);
-    const { error: registerError } = await registerChild(name.trim(), emailValue, tempPassword);
-    setSubmitting(false);
-    if (registerError) {
-      setError(registerError);
+    if (!name.trim()) {
+      setValidationError('Informe o nome do filho.');
       return;
     }
-    setSuccess(true);
-  }
+    if (!isValidEmail(emailValue)) {
+      setValidationError('E-mail inválido.');
+      return;
+    }
+    if (tempPassword.length < 6) {
+      setValidationError('A senha temporária deve ter pelo menos 6 caracteres.');
+      return;
+    }
+    if (tempPassword !== confirmPassword) {
+      setValidationError('As senhas não coincidem.');
+      return;
+    }
+    registerMutation.mutate(
+      { name: name.trim(), email: emailValue, tempPassword },
+      { onSuccess: () => setSuccess(true) },
+    );
+  };
+
+  const errorMessage =
+    validationError ?? (registerMutation.error ? registerMutation.error.message : null);
+  const shouldShowError = Boolean(errorMessage);
 
   if (success) {
     return (
-      <View style={[styles.sucessoContainer, { backgroundColor: colors.bg.canvas }]}>
-        <StatusBar style={colors.statusBar} />
+      <SafeScreenFrame topInset bottomInset>
+        <View style={[styles.sucessoContainer, { backgroundColor: colors.bg.canvas }]}>
+          <StatusBar style={colors.statusBar} />
         <Text style={styles.sucessoEmoji}>🎉</Text>
         <Text style={[styles.sucessoTitulo, { color: colors.text.primary }]}>
           Filho cadastrado!
@@ -92,7 +111,8 @@ export default function NewChildScreen() {
         >
           <Text style={[styles.botaoConcluirTexto, { color: colors.text.inverse }]}>Concluir</Text>
         </Pressable>
-      </View>
+        </View>
+      </SafeScreenFrame>
     );
   }
 
@@ -102,12 +122,12 @@ export default function NewChildScreen() {
       onBack={() => router.back()}
       keyboardAvoiding
       footer={
-        <FormFooter message={shouldShowError ? error : null} compact includeSafeBottom={false}>
+        <FormFooter message={shouldShowError ? errorMessage : null} compact includeSafeBottom={false}>
           <Button
             label="Cadastrar filho"
             loadingLabel="Cadastrando…"
             onPress={handleRegister}
-            loading={submitting}
+            loading={registerMutation.isPending}
             accessibilityLabel="Cadastrar filho"
           />
         </FormFooter>
@@ -204,7 +224,9 @@ export default function NewChildScreen() {
       )}
     </StickyFooterScreen>
   );
-}
+};
+
+export default NewChildScreen;
 
 function makeStyles() {
   return StyleSheet.create({
