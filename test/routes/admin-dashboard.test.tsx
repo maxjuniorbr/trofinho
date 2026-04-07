@@ -238,15 +238,15 @@ describe('AdminHomeScreen', () => {
     });
   });
 
-  it('shows pending section when there are pending validations', () => {
+  it('shows pending count badge on tasks quick action when there are pending validations', () => {
     pendingValidationMock.data = 3;
     const renderer = render(<AdminHomeScreen />);
     const text = allText(renderer);
-    expect(text).toContain('Pendentes');
     expect(text).toContain('3');
+    expect(text).not.toContain('Pendentes');
   });
 
-  it('does not show pending section when no pending validations', () => {
+  it('does not show pending count when no pending validations', () => {
     pendingValidationMock.data = 0;
     const renderer = render(<AdminHomeScreen />);
     const text = allText(renderer);

@@ -34,9 +34,7 @@ import {
   combineQueryStates,
 } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
-import {
-  radii,
-  shadows,
+import { radii,
   spacing,
   typography,
   withAlpha,
@@ -44,7 +42,6 @@ import {
 } from '@/constants/theme';
 import { darkColors } from '@/constants/colors';
 import { Avatar } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { NotificationPermissionBanner } from '@/components/ui/notification-permission-banner';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { InlineMessage } from '@/components/ui/inline-message';
@@ -250,55 +247,6 @@ export default function AdminHomeScreen() {
           </View>
         </View>
 
-        {pendingValidationCount > 0 ? (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionTitleRow}>
-                <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Pendentes</Text>
-                <View style={[styles.countBadge, { backgroundColor: colors.semantic.error }]}>
-                  <Text style={[styles.countBadgeText, { color: colors.text.inverse }]}>
-                    {pendingValidationCount}
-                  </Text>
-                </View>
-              </View>
-              <Pressable
-                onPress={() => router.push('/(admin)/tasks')}
-                accessibilityRole="button"
-                hitSlop={12}
-              >
-                <Text style={[styles.sectionLink, { color: colors.accent.admin }]}>Ver todas</Text>
-              </Pressable>
-            </View>
-            <Pressable
-              style={[
-                styles.navCard,
-                {
-                  backgroundColor: colors.bg.surface,
-                  borderColor: withAlpha(colors.semantic.error, 0.25),
-                },
-                shadows.card,
-              ]}
-              onPress={() => router.push('/(admin)/tasks')}
-              accessibilityRole="button"
-              accessibilityLabel={`${pendingValidationCount} tarefas aguardando validação`}
-            >
-              <View style={styles.navCardLead}>
-                <View style={[styles.navIconBox, { backgroundColor: colors.semantic.errorBg }]}>
-                  <ClipboardList size={20} color={colors.semantic.error} strokeWidth={1.75} />
-                </View>
-                <View style={styles.navCardBody}>
-                  <Text style={[styles.navCardTitle, { color: colors.text.primary }]}>Tarefas</Text>
-                  <Text style={[styles.navCardSub, { color: colors.text.secondary }]}>
-                    {pendingValidationCount}{' '}
-                    {pendingValidationCount === 1 ? 'tarefa aguardando' : 'tarefas aguardando'}{' '}
-                    validação
-                  </Text>
-                </View>
-              </View>
-              <Badge label="Validar" variant="error" />
-            </Pressable>
-          </View>
-        ) : null}
 
         <View style={styles.quickRow}>
             {QUICK_ACTIONS.map(({ icon: Icon, label, rota, badgeKey }) => {
@@ -500,18 +448,7 @@ function makeStyles() {
     },
 
     section: { marginBottom: spacing['6'], gap: spacing['3'] },
-    sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
     sectionTitle: { fontFamily: typography.family.bold, fontSize: typography.size.md },
-    sectionLink: { fontFamily: typography.family.bold, fontSize: typography.size.sm },
-    countBadge: {
-      width: 24,
-      height: 24,
-      borderRadius: radii.full,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    countBadgeText: { fontFamily: typography.family.black, fontSize: typography.size.xs },
 
     childrenList: { gap: spacing['2'] },
     childCard: {
@@ -560,30 +497,6 @@ function makeStyles() {
       fontSize: typography.size.xxs,
     },
 
-    navCard: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: spacing['3'],
-      borderRadius: radii.outer,
-      borderWidth: 1,
-      padding: spacing['4'],
-    },
-    navCardLead: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing['3'] },
-    navIconBox: {
-      width: 44,
-      height: 44,
-      borderRadius: radii.md,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-    },
-    navCardBody: { flex: 1 },
-    navCardTitle: { fontFamily: typography.family.bold, fontSize: typography.size.md },
-    navCardSub: {
-      fontFamily: typography.family.medium,
-      fontSize: typography.size.xs,
-      marginTop: spacing['1'],
-    },
 
     quickRow: { flexDirection: 'row', gap: spacing['3'], marginBottom: spacing['6'] },
     quickCard: {
