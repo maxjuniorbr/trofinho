@@ -1,4 +1,4 @@
-import { Alert, StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native';
+import { Alert, StyleSheet, Text, View, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
@@ -8,9 +8,8 @@ import { hapticSuccess } from '@lib/haptics';
 import { formatDate } from '@lib/utils';
 import {
   getTransactionTypeLabel,
-  getAppreciationPeriodLabel,
   isCredit,
-  type AppreciationPeriod,
+  calculateProjection,
 } from '@lib/balances';
 import {
   useBalance,
@@ -32,13 +31,14 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PenaltyModal, PenaltyButton } from '@/components/balance/penalty-modal';
-import { AppreciationModal } from '@/components/balance/appreciation-modal';
 import { TransactionIcon } from '@/components/balance/transaction-icon';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { ListFooter } from '@/components/ui/list-footer';
 import { Button } from '@/components/ui/button';
+import { SteppedSlider } from '@/components/ui/stepped-slider';
+import { calculateNetAmount } from '@lib/piggy-bank-withdrawal';
 
-type ModalType = 'penalizar' | 'valorizacao_config' | null;
+type ModalType = 'penalizar' | null;
 
 export default function ChildBalanceAdminScreen() {
   const { filho_id, nome } = useLocalSearchParams<{ filho_id: string; nome: string }>();
@@ -67,6 +67,9 @@ export default function ChildBalanceAdminScreen() {
   const confirmWithdrawalMutation = useConfirmPiggyBankWithdrawal();
   const cancelWithdrawalMutation = useCancelPiggyBankWithdrawal();
   const configureRateMutation = useConfigureWithdrawalRate();
+
+  const [appreciationSlider, setAppreciationSlider] = useState<number | null>(null);
+  const [withdrawalSlider, setWithdrawalSlider] = useState<number | null>(null);
 
   const pendingWithdrawalsQuery = usePendingPiggyBankWithdrawals();
   const pendingWithdrawals = useMemo(
@@ -104,30 +107,17 @@ export default function ChildBalanceAdminScreen() {
     [filho_id, penaltyMutation],
   );
 
-  const handleConfigure = useCallback(
-    async (rate: number, period: AppreciationPeriod) => {
-      if (!filho_id) return { error: 'ID do filho não encontrado' };
-      try {
-        await configureMutation.mutateAsync({ childId: filho_id, rate, period });
-        setModalType(null);
-        setSuccessMessage('Valorização configurada com sucesso.');
-        return { error: null };
-      } catch (e) {
-        return { error: e instanceof Error ? e.message : 'Erro ao configurar valorização.' };
-      }
-    },
-    [filho_id, configureMutation],
-  );
-
   const handleConfirmWithdrawal = useCallback(async () => {
     if (!pendingWithdrawal) return;
+    const currentRate = balance?.taxa_resgate_cofrinho ?? 0;
+    const { net } = calculateNetAmount(pendingWithdrawal.valor_solicitado, currentRate);
     try {
       await confirmWithdrawalMutation.mutateAsync({
         withdrawalId: pendingWithdrawal.id,
         opts: {
           familiaId: profile?.familia_id ?? '',
           userId: pendingWithdrawal.filhos?.usuario_id,
-          amount: pendingWithdrawal.valor_liquido,
+          amount: net,
         },
       });
       hapticSuccess();
@@ -135,7 +125,7 @@ export default function ChildBalanceAdminScreen() {
     } catch (e) {
       setSuccessMessage(e instanceof Error ? e.message : 'Erro ao aprovar resgate.');
     }
-  }, [pendingWithdrawal, confirmWithdrawalMutation, profile]);
+  }, [pendingWithdrawal, confirmWithdrawalMutation, profile, balance]);
 
   const handleRejectWithdrawal = useCallback(() => {
     if (!pendingWithdrawal) return;
@@ -179,13 +169,17 @@ export default function ChildBalanceAdminScreen() {
 
   const saldoLivre = balance?.saldo_livre ?? 0;
   const cofrinho = balance?.cofrinho ?? 0;
-  const periodoAtual = balance ? getAppreciationPeriodLabel(balance.periodo_valorizacao) : null;
-  const hasAppreciationConfigured = (balance?.indice_valorizacao ?? 0) > 0;
+  const totalPts = saldoLivre + cofrinho;
+  const cofrinhoPercent = totalPts > 0 ? Math.round((cofrinho / totalPts) * 100) : 0;
+  const appreciationRate = appreciationSlider ?? (balance?.indice_valorizacao ?? 0);
+  const withdrawRate = withdrawalSlider ?? (balance?.taxa_resgate_cofrinho ?? 0);
+  const projection = calculateProjection(cofrinho, appreciationRate);
+  const hasAppreciationConfigured = appreciationRate > 0;
   const ultimaValorizacaoTexto = balance?.data_ultima_valorizacao
-    ? ` · última em ${formatDate(balance.data_ultima_valorizacao)}`
+    ? `Última: ${formatDate(balance.data_ultima_valorizacao)}`
     : '';
   const proximaValorizacaoTexto = balance?.proxima_valorizacao_em
-    ? ` · próxima em ${formatDate(balance.proxima_valorizacao_em)}`
+    ? `Próxima: ${formatDate(balance.proxima_valorizacao_em)}`
     : '';
 
   return (
@@ -229,37 +223,62 @@ export default function ChildBalanceAdminScreen() {
                 <Text style={styles.saldoPts}>pontos</Text>
               </View>
             </View>
+            {totalPts > 0 ? (
+              <Text style={styles.cofrinhoPercent}>{cofrinhoPercent}% no cofrinho</Text>
+            ) : null}
 
             <View style={styles.boxConfig}>
               <View style={styles.boxConfigTituloRow}>
                 <TrendingUp size={16} color={colors.text.primary} strokeWidth={2} />
                 <Text style={styles.boxConfigTitulo}>Valorização do cofrinho</Text>
               </View>
-              {hasAppreciationConfigured ? (
-                <Text style={styles.boxConfigTexto}>
-                  {balance!.indice_valorizacao}% ao {periodoAtual}
-                  {ultimaValorizacaoTexto}
-                  {proximaValorizacaoTexto}
+              <SteppedSlider
+                value={appreciationRate}
+                onValueChange={setAppreciationSlider}
+                onSlidingComplete={(rate) => {
+                  if (!filho_id) return;
+                  configureMutation.mutate(
+                    { childId: filho_id, rate },
+                    {
+                      onSuccess: () => {
+                        hapticSuccess();
+                        setSuccessMessage(`Valorização configurada para ${rate}% ao mês.`);
+                      },
+                      onSettled: () => setAppreciationSlider(null),
+                    },
+                  );
+                }}
+                accessibilityLabel="Índice de valorização do cofrinho"
+              />
+              {hasAppreciationConfigured && cofrinho > 0 ? (
+                <View style={styles.projectionBox}>
+                  <TrendingUp size={14} color={colors.semantic.success} strokeWidth={2} />
+                  <Text style={[styles.projectionText, { color: colors.semantic.success }]}>
+                    Projeção: +{projection} pts no próximo mês
+                  </Text>
+                </View>
+              ) : null}
+              {hasAppreciationConfigured && cofrinho > 0 ? (
+                <Text style={styles.boxConfigAjuda}>
+                  Sobre {cofrinho} pts no cofrinho a {appreciationRate}%
                 </Text>
-              ) : (
-                <Text style={styles.boxConfigTexto}>Não configurada</Text>
-              )}
-              <View style={styles.acoesBtns}>
-                <Pressable
-                  style={styles.btnAcao}
-                  onPress={() => setModalType('valorizacao_config')}
-                  accessibilityRole="button"
-                  accessibilityLabel="Configurar valorização"
-                >
-                  <Text style={styles.btnAcaoTexto}>Configurar</Text>
-                </Pressable>
-              </View>
+              ) : null}
+              {ultimaValorizacaoTexto || proximaValorizacaoTexto ? (
+                <Text style={styles.boxConfigAjuda}>
+                  {[ultimaValorizacaoTexto, proximaValorizacaoTexto].filter(Boolean).join(' · ')}
+                </Text>
+              ) : null}
               <Text style={styles.boxConfigAjuda}>
                 A valorização é lançada automaticamente no cofrinho quando o período vence.
               </Text>
             </View>
 
-            {pendingWithdrawal ? (
+            {pendingWithdrawal ? (() => {
+              const currentRate = balance?.taxa_resgate_cofrinho ?? 0;
+              const storedRate = pendingWithdrawal.taxa_aplicada;
+              const rateChanged = storedRate !== currentRate;
+              const { net: expectedNet } = calculateNetAmount(pendingWithdrawal.valor_solicitado, currentRate);
+              return (
               <View style={styles.pendingBanner}>
                 <View style={styles.pendingBannerHeader}>
                   <PiggyBank size={16} color={colors.semantic.warning} strokeWidth={2} />
@@ -270,12 +289,17 @@ export default function ChildBalanceAdminScreen() {
                   <Text style={{ fontFamily: typography.family.bold }}>
                     {pendingWithdrawal.valor_solicitado}
                   </Text>{' '}
-                  pts do cofrinho. Taxa: {pendingWithdrawal.taxa_aplicada}% → receberá{' '}
+                  pts do cofrinho. Taxa atual: {currentRate}% → receberá{' '}
                   <Text style={{ fontFamily: typography.family.bold }}>
-                    {pendingWithdrawal.valor_liquido}
+                    ~{expectedNet}
                   </Text>{' '}
                   pts.
                 </Text>
+                {rateChanged ? (
+                  <Text style={[styles.pendingBannerText, { fontStyle: 'italic', marginTop: spacing['1'] }]}>
+                    A taxa mudou de {storedRate}% para {currentRate}% desde a solicitação.
+                  </Text>
+                ) : null}
                 <View style={styles.pendingBtns}>
                   <View style={{ flex: 1 }}>
                     <Button
@@ -299,53 +323,38 @@ export default function ChildBalanceAdminScreen() {
                   </View>
                 </View>
               </View>
-            ) : null}
+              );
+            })() : null}
 
             <View style={styles.boxConfig}>
               <View style={styles.boxConfigTituloRow}>
                 <PiggyBank size={16} color={colors.text.primary} strokeWidth={2} />
                 <Text style={styles.boxConfigTitulo}>Taxa de resgate do cofrinho</Text>
               </View>
-              <Text style={styles.boxConfigTexto}>
-                {balance?.taxa_resgate_cofrinho ?? 10}% do valor é descontado ao aprovar um resgate
-              </Text>
-              <View style={styles.acoesBtns}>
-                {[0, 10, 25, 50].map((rate) => {
-                  const isActive = (balance?.taxa_resgate_cofrinho ?? 10) === rate;
-                  return (
-                    <Pressable
-                      key={rate}
-                      style={[
-                        styles.btnAcao,
-                        isActive ? { backgroundColor: colors.accent.admin } : undefined,
-                      ]}
-                      onPress={() => {
-                        if (isActive || !filho_id) return;
-                        configureRateMutation.mutate(
-                          { childId: filho_id, rate },
-                          {
-                            onSuccess: () => {
-                              hapticSuccess();
-                              setSuccessMessage(`Taxa de resgate configurada para ${rate}%.`);
-                            },
-                          },
-                        );
-                      }}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Taxa de resgate ${rate}%`}
-                    >
-                      <Text
-                        style={[
-                          styles.btnAcaoTexto,
-                          isActive ? { color: colors.text.inverse } : undefined,
-                        ]}
-                      >
-                        {rate}%
-                      </Text>
-                    </Pressable>
+              <SteppedSlider
+                value={withdrawRate}
+                onValueChange={setWithdrawalSlider}
+                onSlidingComplete={(rate) => {
+                  if (!filho_id) return;
+                  configureRateMutation.mutate(
+                    { childId: filho_id, rate },
+                    {
+                      onSuccess: () => {
+                        hapticSuccess();
+                        setSuccessMessage(`Taxa de resgate configurada para ${rate}%.`);
+                      },
+                      onSettled: () => setWithdrawalSlider(null),
+                    },
                   );
-                })}
-              </View>
+                }}
+                accessibilityLabel="Taxa de resgate do cofrinho"
+              />
+              {cofrinho > 0 ? (
+                <Text style={styles.boxConfigAjuda}>
+                  Ex: {cofrinho} pts → recebe{' '}
+                  {Math.round(cofrinho * (1 - withdrawRate / 100))} pts
+                </Text>
+              ) : null}
             </View>
 
             <PenaltyButton onPress={() => setModalType('penalizar')} />
@@ -390,13 +399,6 @@ export default function ChildBalanceAdminScreen() {
         onApply={handlePenalty}
       />
 
-      <AppreciationModal
-        visible={modalType === 'valorizacao_config'}
-        initialRate={balance?.indice_valorizacao ?? 0}
-        initialPeriod={balance?.periodo_valorizacao ?? 'mensal'}
-        onClose={() => setModalType(null)}
-        onSave={handleConfigure}
-      />
     </SafeScreenFrame>
   );
 }
@@ -452,24 +454,23 @@ function makeStyles(colors: ThemeColors) {
       fontFamily: typography.family.bold,
       color: colors.text.primary,
     },
-    boxConfigTexto: {
-      fontSize: typography.size.sm,
-      color: colors.text.secondary,
+    cofrinhoPercent: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.semibold,
+      color: colors.text.muted,
+      textAlign: 'right',
       marginBottom: spacing['3'],
+      marginTop: -spacing['2'],
     },
-    acoesBtns: { flexDirection: 'row', gap: spacing['2'] },
-    btnAcao: {
-      backgroundColor: colors.accent.adminBg,
-      borderRadius: radii.md,
-      paddingVertical: spacing['2'],
-      paddingHorizontal: spacing['3'],
-      minHeight: 44,
-      justifyContent: 'center',
+    projectionBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1.5'],
+      marginTop: spacing['2'],
     },
-    btnAcaoTexto: {
+    projectionText: {
       fontSize: typography.size.sm,
       fontFamily: typography.family.semibold,
-      color: colors.accent.admin,
     },
     boxConfigAjuda: {
       color: colors.text.muted,

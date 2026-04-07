@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Wallet, TrendingUp } from 'lucide-react-native';
 import { hapticSuccess } from '@lib/haptics';
 import { formatDate } from '@lib/utils';
-import { getAppreciationPeriodLabel, getTransactionTypeLabel, isCredit } from '@lib/balances';
+import { getTransactionTypeLabel, isCredit } from '@lib/balances';
 import {
   useBalance,
   useTransactions,
@@ -42,6 +42,7 @@ import { PointsDisplay } from '@/components/ui/points-display';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { ListFooter } from '@/components/ui/list-footer';
 import { getSafeBottomPadding } from '@lib/safe-area';
+import { calculateNetAmount, getMinimumWithdrawalAmount } from '@lib/piggy-bank-withdrawal';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 
 export default function ChildBalanceScreen() {
@@ -182,9 +183,6 @@ export default function ChildBalanceScreen() {
   const freeBalance = balance?.saldo_livre ?? 0;
   const piggyBank = balance?.cofrinho ?? 0;
   const withdrawalRate = balance?.taxa_resgate_cofrinho ?? 0;
-  const appreciationPeriod = balance
-    ? getAppreciationPeriodLabel(balance.periodo_valorizacao)
-    : null;
   const hasTransactions = transactions.length > 0;
   const appreciationNextLine = balance?.proxima_valorizacao_em
     ? '\nPróximo rendimento em ' + formatDate(balance.proxima_valorizacao_em) + '.'
@@ -192,9 +190,11 @@ export default function ChildBalanceScreen() {
   const appreciationHint = 'Os pontos guardados rendem sozinhos com o tempo.' + appreciationNextLine;
 
   const parsedWithdrawAmount = Number.parseInt(amountStr, 10) || 0;
+  const minimumWithdrawal = getMinimumWithdrawalAmount(withdrawalRate);
+  const { net: previewNet } = calculateNetAmount(parsedWithdrawAmount, withdrawalRate);
   const withdrawFeeText =
-    withdrawalRate > 0 && parsedWithdrawAmount > 0
-      ? ` — você receberá ${parsedWithdrawAmount - Math.floor(parsedWithdrawAmount * withdrawalRate / 100)} pts`
+    withdrawalRate > 0 && parsedWithdrawAmount >= minimumWithdrawal
+      ? ` — receberá ~${previewNet} pts`
       : '';
 
   const showAppreciation = (balance?.indice_valorizacao ?? 0) > 0;
@@ -261,7 +261,7 @@ export default function ChildBalanceScreen() {
                 <View style={styles.appreciationRow}>
                   <TrendingUp size={14} color={colors.semantic.success} strokeWidth={2} />
                   <Text style={styles.appreciationText}>
-                    Seu cofrinho cresce {balance!.indice_valorizacao}% a cada {appreciationPeriod}! 🌱
+                    Seu cofrinho cresce {balance!.indice_valorizacao}% ao mês! 🌱
                   </Text>
                 </View>
                 <Text style={styles.appreciationHint}>
@@ -446,12 +446,17 @@ export default function ChildBalanceScreen() {
             </Text>
             {withdrawalRate > 0 ? (
               <Text style={styles.modalHint}>
-                Taxa de resgate: {withdrawalRate}%{withdrawFeeText}
+                Taxa de resgate: {withdrawalRate}% · mínimo {minimumWithdrawal} pts{withdrawFeeText}
+              </Text>
+            ) : null}
+            {withdrawFeeText ? (
+              <Text style={[styles.modalHint, { fontStyle: 'italic', marginTop: -spacing['1'] }]}>
+                Valor final pode variar se a taxa for alterada antes da aprovação.
               </Text>
             ) : null}
             <View style={styles.quickAmountRow}>
-              {[10, 50, piggyBank].map((v, i) => {
-                const label = i === 2 ? 'Tudo' : `${v}`;
+              {[10, 50, piggyBank].filter((v) => v >= minimumWithdrawal).map((v, i, arr) => {
+                const label = i === arr.length - 1 && v === piggyBank ? 'Tudo' : `${v}`;
                 const isSelected = amountStr === String(v);
                 return (
                   <Pressable

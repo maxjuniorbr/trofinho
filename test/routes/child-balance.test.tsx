@@ -310,7 +310,7 @@ describe('ChildBalanceScreen', () => {
     const renderer = render(<ChildBalanceScreen />);
     const text = allText(renderer);
     expect(text).toContain('5%');
-    expect(text).toContain('semanal');
+    expect(text).toContain('ao mês');
   });
 
   it('renders transaction list', () => {

@@ -157,15 +157,18 @@ export async function applyPenalty(
   return { data: { deducted: (data as number) ?? amount }, error: null };
 }
 
+export const calculateProjection = (cofrinho: number, rate: number): number => {
+  if (rate <= 0 || cofrinho <= 0) return 0;
+  return Math.max(Math.floor((cofrinho * rate) / 100), 1);
+};
+
 export async function configureAppreciation(
   childId: string,
   rate: number,
-  period: AppreciationPeriod,
 ): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('configurar_valorizacao', {
     p_filho_id: childId,
     p_indice: rate,
-    p_periodo: period,
   });
   if (error) return { error: localizeRpcError(error.message) };
   return { error: null };

@@ -576,11 +576,7 @@ export type Database = {
         Returns: undefined
       }
       configurar_valorizacao: {
-        Args: {
-          p_filho_id: string
-          p_indice: number
-          p_periodo: Database["public"]["Enums"]["periodo_valorizacao"]
-        }
+        Args: { p_filho_id: string; p_indice: number }
         Returns: undefined
       }
       confirmar_resgate: { Args: { p_resgate_id: string }; Returns: undefined }
