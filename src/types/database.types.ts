@@ -359,6 +359,47 @@ export type Database = {
           },
         ]
       }
+      resgates_cofrinho: {
+        Row: {
+          created_at: string
+          filho_id: string
+          id: string
+          status: Database["public"]["Enums"]["resgate_status"]
+          taxa_aplicada: number
+          updated_at: string
+          valor_liquido: number
+          valor_solicitado: number
+        }
+        Insert: {
+          created_at?: string
+          filho_id: string
+          id?: string
+          status?: Database["public"]["Enums"]["resgate_status"]
+          taxa_aplicada: number
+          updated_at?: string
+          valor_liquido: number
+          valor_solicitado: number
+        }
+        Update: {
+          created_at?: string
+          filho_id?: string
+          id?: string
+          status?: Database["public"]["Enums"]["resgate_status"]
+          taxa_aplicada?: number
+          updated_at?: string
+          valor_liquido?: number
+          valor_solicitado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resgates_cofrinho_filho_id_fkey"
+            columns: ["filho_id"]
+            isOneToOne: false
+            referencedRelation: "filhos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saldos: {
         Row: {
           cofrinho: number
@@ -369,6 +410,7 @@ export type Database = {
           periodo_valorizacao: Database["public"]["Enums"]["periodo_valorizacao"]
           proxima_valorizacao_em: string | null
           saldo_livre: number
+          taxa_resgate_cofrinho: number
           updated_at: string
         }
         Insert: {
@@ -380,6 +422,7 @@ export type Database = {
           periodo_valorizacao?: Database["public"]["Enums"]["periodo_valorizacao"]
           proxima_valorizacao_em?: string | null
           saldo_livre?: number
+          taxa_resgate_cofrinho?: number
           updated_at?: string
         }
         Update: {
@@ -391,6 +434,7 @@ export type Database = {
           periodo_valorizacao?: Database["public"]["Enums"]["periodo_valorizacao"]
           proxima_valorizacao_em?: string | null
           saldo_livre?: number
+          taxa_resgate_cofrinho?: number
           updated_at?: string
         }
         Relationships: [
@@ -519,8 +563,16 @@ export type Database = {
         Returns: undefined
       }
       cancelar_resgate: { Args: { p_resgate_id: string }; Returns: undefined }
+      cancelar_resgate_cofrinho: {
+        Args: { p_resgate_id: string }
+        Returns: undefined
+      }
       concluir_atribuicao: {
         Args: { p_atribuicao_id: string; p_evidencia_url?: string }
+        Returns: undefined
+      }
+      configurar_taxa_resgate_cofrinho: {
+        Args: { p_filho_id: string; p_taxa: number }
         Returns: undefined
       }
       configurar_valorizacao: {
@@ -532,6 +584,10 @@ export type Database = {
         Returns: undefined
       }
       confirmar_resgate: { Args: { p_resgate_id: string }; Returns: undefined }
+      confirmar_resgate_cofrinho: {
+        Args: { p_resgate_id: string }
+        Returns: undefined
+      }
       criar_familia: {
         Args: { nome_familia: string; nome_usuario: string }
         Returns: string
@@ -628,6 +684,7 @@ export type Database = {
         Returns: number
       }
       solicitar_resgate: { Args: { p_premio_id: string }; Returns: string }
+      solicitar_resgate_cofrinho: { Args: { p_valor: number }; Returns: string }
       transferir_para_cofrinho: {
         Args: { p_filho_id: string; p_valor: number }
         Returns: undefined
@@ -666,6 +723,7 @@ export type Database = {
         | "penalizacao"
         | "resgate"
         | "estorno_resgate"
+        | "resgate_cofrinho"
       periodo_valorizacao: "diario" | "semanal" | "mensal"
       resgate_status: "pendente" | "confirmado" | "cancelado"
       tarefa_frequencia: "diaria" | "unica"
@@ -814,6 +872,7 @@ export const Constants = {
         "penalizacao",
         "resgate",
         "estorno_resgate",
+        "resgate_cofrinho",
       ],
       periodo_valorizacao: ["diario", "semanal", "mensal"],
       resgate_status: ["pendente", "confirmado", "cancelado"],

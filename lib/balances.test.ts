@@ -226,6 +226,7 @@ describe('balances', () => {
       'penalizacao',
       'resgate',
       'estorno_resgate',
+      'resgate_cofrinho',
     ];
 
     // Feature: review-phases-1-2-implementation, Property 1: Transaction type labels are exhaustive

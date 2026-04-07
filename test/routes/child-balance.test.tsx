@@ -24,6 +24,7 @@ const balanceMock = vi.hoisted(() => ({
     indice_valorizacao: 5,
     periodo_valorizacao: 'semanal',
     proxima_valorizacao_em: '2025-07-01',
+    taxa_resgate_cofrinho: 10,
   } as Record<string, unknown> | null,
   isLoading: false,
   error: null as Error | null,
@@ -52,6 +53,20 @@ const transactionsMock = vi.hoisted(() => ({
 const transferMutationMock = vi.hoisted(() => ({
   mutateAsync: vi.fn().mockResolvedValue(undefined),
   isPending: false,
+}));
+
+const withdrawalMutationMock = vi.hoisted(() => ({
+  mutateAsync: vi.fn().mockResolvedValue(undefined),
+  isPending: false,
+}));
+
+const cancelWithdrawalMutationMock = vi.hoisted(() => ({
+  mutateAsync: vi.fn().mockResolvedValue(undefined),
+  isPending: false,
+}));
+
+const pendingWithdrawalMock = vi.hoisted(() => ({
+  data: null as Record<string, unknown> | null,
 }));
 
 const createHostComponent = vi.hoisted(() => {
@@ -150,6 +165,9 @@ vi.mock('@/hooks/queries', () => ({
   useBalance: () => balanceMock,
   useTransactions: () => transactionsMock,
   useTransferToPiggyBank: () => transferMutationMock,
+  useChildPendingWithdrawal: () => pendingWithdrawalMock,
+  useRequestPiggyBankWithdrawal: () => withdrawalMutationMock,
+  useCancelPiggyBankWithdrawal: () => cancelWithdrawalMutationMock,
   combineQueryStates: (...queries: Record<string, unknown>[]) => ({
     isLoading: queries.some((q) => q.isLoading),
     error: queries.find((q) => q.error)?.error ?? null,
@@ -246,6 +264,7 @@ describe('ChildBalanceScreen', () => {
       indice_valorizacao: 5,
       periodo_valorizacao: 'semanal',
       proxima_valorizacao_em: '2025-07-01',
+      taxa_resgate_cofrinho: 10,
     };
     balanceMock.isLoading = false;
     transactionsMock.data = {
@@ -260,6 +279,9 @@ describe('ChildBalanceScreen', () => {
     };
     transactionsMock.isLoading = false;
     transferMutationMock.mutateAsync.mockReset().mockResolvedValue(undefined);
+    withdrawalMutationMock.mutateAsync.mockReset().mockResolvedValue(undefined);
+    cancelWithdrawalMutationMock.mutateAsync.mockReset().mockResolvedValue(undefined);
+    pendingWithdrawalMock.data = null;
   });
 
   it('shows loading state', () => {

@@ -53,8 +53,10 @@ async function ensureNotificationHandler(): Promise<void> {
 export type NotificationRoute =
   | '/(admin)/tasks'
   | '/(admin)/redemptions'
+  | '/(admin)/balances'
   | '/(child)/redemptions'
-  | '/(child)/tasks';
+  | '/(child)/tasks'
+  | '/(child)/balance';
 
 export type NotificationPrefs = {
   tarefasPendentes: boolean;
@@ -64,6 +66,9 @@ export type NotificationPrefs = {
   resgatesSolicitado: boolean;
   resgateConfirmado: boolean;
   resgateCancelado: boolean;
+  resgateCofrinhoSolicitado: boolean;
+  resgateCofrinhoConfirmado: boolean;
+  resgateCofrinhoCancelado: boolean;
 };
 
 type NotificationData = Readonly<{
@@ -78,6 +83,9 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   resgatesSolicitado: true,
   resgateConfirmado: true,
   resgateCancelado: true,
+  resgateCofrinhoSolicitado: true,
+  resgateCofrinhoConfirmado: true,
+  resgateCofrinhoCancelado: true,
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -107,6 +115,15 @@ function normalizeNotificationPrefs(rawPreferences: string | null): Notification
         asBoolean(parsed.resgateConfirmado) ?? DEFAULT_NOTIFICATION_PREFS.resgateConfirmado,
       resgateCancelado:
         asBoolean(parsed.resgateCancelado) ?? DEFAULT_NOTIFICATION_PREFS.resgateCancelado,
+      resgateCofrinhoSolicitado:
+        asBoolean(parsed.resgateCofrinhoSolicitado) ??
+        DEFAULT_NOTIFICATION_PREFS.resgateCofrinhoSolicitado,
+      resgateCofrinhoConfirmado:
+        asBoolean(parsed.resgateCofrinhoConfirmado) ??
+        DEFAULT_NOTIFICATION_PREFS.resgateCofrinhoConfirmado,
+      resgateCofrinhoCancelado:
+        asBoolean(parsed.resgateCofrinhoCancelado) ??
+        DEFAULT_NOTIFICATION_PREFS.resgateCofrinhoCancelado,
     };
   } catch {
     return DEFAULT_NOTIFICATION_PREFS;

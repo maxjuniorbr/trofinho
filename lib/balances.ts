@@ -9,7 +9,8 @@ export type TransactionType =
   | 'valorizacao'
   | 'penalizacao'
   | 'resgate'
-  | 'estorno_resgate';
+  | 'estorno_resgate'
+  | 'resgate_cofrinho';
 
 export type AppreciationPeriod = 'diario' | 'semanal' | 'mensal';
 
@@ -21,6 +22,7 @@ export interface Balance {
   periodo_valorizacao: AppreciationPeriod;
   data_ultima_valorizacao: string | null;
   proxima_valorizacao_em: string | null;
+  taxa_resgate_cofrinho: number;
   updated_at: string;
 }
 
@@ -47,6 +49,7 @@ export function getTransactionTypeLabel(type: TransactionType): string {
     penalizacao: 'Penalização',
     resgate: 'Resgate de prêmio',
     estorno_resgate: 'Estorno de resgate',
+    resgate_cofrinho: 'Resgate do cofrinho',
   };
   return map[type] ?? type;
 }
