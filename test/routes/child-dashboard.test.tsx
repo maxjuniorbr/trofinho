@@ -82,8 +82,8 @@ vi.mock('lucide-react-native', () => ({
   ClipboardList: (props: Record<string, unknown>) => React.createElement('ClipboardList', props),
   Gift: (props: Record<string, unknown>) => React.createElement('Gift', props),
   ShoppingBag: (props: Record<string, unknown>) => React.createElement('ShoppingBag', props),
-  Wallet: (props: Record<string, unknown>) => React.createElement('Wallet', props),
   UserCircle: (props: Record<string, unknown>) => React.createElement('UserCircle', props),
+  PiggyBank: (props: Record<string, unknown>) => React.createElement('PiggyBank', props),
 }));
 
 vi.mock('@sentry/react-native', () => ({
@@ -111,8 +111,10 @@ vi.mock('@/hooks/queries', () => ({
   }),
 }));
 
-vi.mock('@/components/ui/points-display', () => ({
-  PointsDisplay: (props: Record<string, unknown>) => React.createElement('PointsDisplay', props),
+vi.mock('@/constants/colors', () => ({
+  darkColors: {
+    bg: { surface: '#1D212B', elevated: '#2A303C' },
+  },
 }));
 
 vi.mock('@/components/ui/notification-permission-banner', () => ({
@@ -141,7 +143,7 @@ vi.mock('@/context/theme-context', () => ({
   useTheme: () => ({
     colors: {
       statusBar: 'dark',
-      bg: { canvas: '#fff', surface: '#fff', muted: '#f0f0f0' },
+      bg: { canvas: '#fff', surface: '#fff', muted: '#f0f0f0', elevated: '#f5f5f5' },
       text: { primary: '#000', secondary: '#666', muted: '#999', inverse: '#fff' },
       accent: { filho: '#3366CC', filhoBg: '#EEF' },
       border: { subtle: '#eee' },
@@ -223,33 +225,35 @@ describe('FilhoHomeScreen', () => {
     expect(text).toContain('Família Silva');
   });
 
-  it('renders pending tasks count', () => {
+  it('renders pending tasks count in badge', () => {
     const renderer = render(<FilhoHomeScreen />);
     const text = allText(renderer);
-    expect(text).toContain('2 tarefas pendentes');
+    expect(text).toContain('2');
+    expect(text).toContain('Tarefas');
   });
 
-  it('renders balance cards', () => {
+  it('renders balance summary card', () => {
     const renderer = render(<FilhoHomeScreen />);
-    const points = renderer.root.findAllByType('PointsDisplay' as never);
-    expect(points.length).toBe(2);
-    expect(points[0].props.value).toBe(150);
-    expect(points[1].props.value).toBe(30);
+    const text = allText(renderer);
+    expect(text).toContain('MEU SALDO');
+    expect(text).toContain('180');
+    expect(text).toContain('LIVRE');
+    expect(text).toContain('COFRINHO');
   });
 
   it('renders quick action buttons', () => {
     const renderer = render(<FilhoHomeScreen />);
     const text = allText(renderer);
+    expect(text).toContain('Tarefas');
     expect(text).toContain('Prêmios');
     expect(text).toContain('Resgates');
-    expect(text).toContain('Saldo');
     expect(text).toContain('Perfil');
   });
 
-  it('navigates to tasks on tasks card press', () => {
+  it('navigates to tasks on quick action press', () => {
     const renderer = render(<FilhoHomeScreen />);
     const pressables = renderer.root.findAllByType('Pressable' as never);
-    const tasksCard = pressables.find((p) => p.props.accessibilityLabel?.includes('tarefas pendentes'));
+    const tasksCard = pressables.find((p) => p.props.accessibilityLabel?.includes('pendentes'));
     expect(tasksCard).toBeDefined();
     act(() => {
       tasksCard!.props.onPress();
@@ -270,12 +274,13 @@ describe('FilhoHomeScreen', () => {
     expect(text).toContain('Complete tarefas para ganhar seus primeiros pontos!');
   });
 
-  it('shows "Tudo em dia!" when no pending tasks', () => {
+  it('shows celebrating mascot when no pending tasks', () => {
     assignmentsMock.data = {
       pages: [{ data: [{ id: 'a1', status: 'concluida' }] }],
     };
     const renderer = render(<FilhoHomeScreen />);
-    const text = allText(renderer);
-    expect(text).toContain('Tudo em dia!');
+    const images = renderer.root.findAllByType('Image' as never);
+    const mascot = images.find((img) => img.props.accessibilityLabel === 'Trofinho celebrando');
+    expect(mascot).toBeDefined();
   });
 });
