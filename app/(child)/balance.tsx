@@ -6,7 +6,6 @@ import {
   Pressable,
   Modal,
   TextInput,
-  ActivityIndicator,
   KeyboardAvoidingView,
   RefreshControl,
 } from 'react-native';
@@ -15,7 +14,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Wallet, TrendingUp } from 'lucide-react-native';
+import { TrendingUp, PiggyBank } from 'lucide-react-native';
 import { hapticSuccess } from '@lib/haptics';
 import { formatDate } from '@lib/utils';
 import { getTransactionTypeLabel, isCredit } from '@lib/balances';
@@ -32,18 +31,28 @@ import {
 } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, shadows, spacing, typography } from '@/constants/theme';
+import { darkColors, radii, spacing, typography, withAlpha } from '@/constants/theme';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { TransactionIcon } from '@/components/balance/transaction-icon';
-import { PointsDisplay } from '@/components/ui/points-display';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { ListFooter } from '@/components/ui/list-footer';
 import { getSafeBottomPadding } from '@lib/safe-area';
 import { calculateNetAmount, getMinimumWithdrawalAmount } from '@lib/piggy-bank-withdrawal';
 import { useTransientMessage } from '@/hooks/use-transient-message';
+
+function getBalanceHeaderColors(colors: ThemeColors) {
+  const isLight = colors.statusBar === 'dark';
+  return {
+    bg: isLight ? darkColors.bg.surface : colors.bg.elevated,
+    boxBg: isLight ? darkColors.bg.elevated : colors.bg.muted,
+    border: isLight ? withAlpha('#FFFFFF', 0.25) : colors.border.subtle,
+    text: '#FFFFFF',
+    textMuted: 'rgba(255, 255, 255, 0.7)',
+  };
+}
 
 export default function ChildBalanceScreen() {
   const router = useRouter();
@@ -171,7 +180,7 @@ export default function ChildBalanceScreen() {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />
-        <ActivityIndicator size="large" color={colors.accent.filho} />
+        <EmptyState loading />
       </View>
     );
   }
@@ -182,6 +191,8 @@ export default function ChildBalanceScreen() {
 
   const freeBalance = balance?.saldo_livre ?? 0;
   const piggyBank = balance?.cofrinho ?? 0;
+  const totalPts = freeBalance + piggyBank;
+  const cofrinhoPercent = totalPts > 0 ? Math.round((piggyBank / totalPts) * 100) : 0;
   const withdrawalRate = balance?.taxa_resgate_cofrinho ?? 0;
   const hasTransactions = transactions.length > 0;
   const appreciationNextLine = balance?.proxima_valorizacao_em
@@ -201,6 +212,7 @@ export default function ChildBalanceScreen() {
   const successFeedback = visibleTransferSuccess ?? visibleWithdrawSuccess ?? null;
   const showPendingWithdrawal = pendingWithdrawal !== null;
   const showWithdrawButton = !showPendingWithdrawal && piggyBank > 0;
+  const header = getBalanceHeaderColors(colors);
 
   return (
     <SafeScreenFrame bottomInset>
@@ -231,46 +243,100 @@ export default function ChildBalanceScreen() {
                 <InlineMessage message={successFeedback} variant="success" />
               </View>
             ) : null}
-            <View style={styles.cardsRow}>
-              <View
-                style={[
-                  styles.balanceCard,
-                  { backgroundColor: colors.bg.elevated },
-                  shadows.goldGlow,
-                ]}
-              >
-                <View style={styles.balanceLabelRow}>
-                  <Wallet size={14} color={colors.text.secondary} strokeWidth={2} />
-                  <Text style={styles.balanceLabel}>Disponível</Text>
-                </View>
-                <PointsDisplay value={freeBalance} label="pontos" variant="gold" size="lg" />
-              </View>
-              <View
-                style={[styles.balanceCard, { backgroundColor: colors.bg.elevated }, shadows.card]}
-              >
-                <View style={styles.balanceLabelRow}>
-                  <Wallet size={14} color={colors.text.secondary} strokeWidth={2} />
-                  <Text style={styles.balanceLabel}>Cofrinho</Text>
-                </View>
-                <PointsDisplay value={piggyBank} label="pontos" variant="amber" size="lg" />
-              </View>
-            </View>
 
-            {showAppreciation && (
-              <View style={styles.appreciationBox}>
-                <View style={styles.appreciationRow}>
-                  <TrendingUp size={14} color={colors.semantic.success} strokeWidth={2} />
-                  <Text style={styles.appreciationText}>
-                    Seu cofrinho cresce {balance!.indice_valorizacao}% ao mês! 🌱
-                  </Text>
-                </View>
-                <Text style={styles.appreciationHint}>
-                  {appreciationHint}
+            {/* Dark header card — same pattern as admin balance */}
+            <View
+              style={[
+                styles.balanceHeader,
+                { backgroundColor: header.bg, borderColor: header.border },
+              ]}
+            >
+              <View style={styles.balanceHeaderTop}>
+                <PiggyBank size={16} color={header.textMuted} strokeWidth={2} />
+                <Text style={[styles.balanceHeaderLabel, { color: header.textMuted }]}>
+                  MEU SALDO
                 </Text>
               </View>
-            )}
+              <Text style={[styles.balanceHeaderTotal, { color: header.text }]}>
+                {totalPts.toLocaleString('pt-BR')}
+              </Text>
+              <Text style={[styles.balanceHeaderSubtitle, { color: header.textMuted }]}>
+                pontos disponíveis
+              </Text>
+              <View style={styles.balanceHeaderBoxes}>
+                <View
+                  style={[
+                    styles.balanceHeaderBox,
+                    { backgroundColor: header.boxBg, borderColor: header.border },
+                  ]}
+                >
+                  <Text style={[styles.balanceHeaderBoxLabel, { color: header.textMuted }]}>
+                    LIVRE
+                  </Text>
+                  <Text style={[styles.balanceHeaderBoxValue, { color: header.text }]}>
+                    {freeBalance.toLocaleString('pt-BR')}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.balanceHeaderBox,
+                    { backgroundColor: header.boxBg, borderColor: header.border },
+                  ]}
+                >
+                  <Text style={[styles.balanceHeaderBoxLabel, { color: header.textMuted }]}>
+                    COFRINHO
+                  </Text>
+                  <Text style={[styles.balanceHeaderBoxValue, { color: header.text }]}>
+                    {piggyBank.toLocaleString('pt-BR')}
+                  </Text>
+                </View>
+              </View>
+              {totalPts > 0 ? (
+                <View style={styles.balanceHeaderProgress}>
+                  <View style={styles.progressTrack}>
+                    <View
+                      style={[
+                        styles.progressFillLeft,
+                        { flex: 100 - cofrinhoPercent, backgroundColor: colors.accent.filho },
+                      ]}
+                    />
+                    <View
+                      style={[
+                        styles.progressFillRight,
+                        { flex: cofrinhoPercent, backgroundColor: colors.semantic.warning },
+                      ]}
+                    />
+                  </View>
+                  <View style={styles.progressLabels}>
+                    <Text style={[styles.progressLabel, { color: header.textMuted }]}>
+                      {100 - cofrinhoPercent}% livre
+                    </Text>
+                    <Text style={[styles.progressLabel, { color: header.textMuted }]}>
+                      {cofrinhoPercent}% cofrinho
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
+            </View>
 
-            <View style={{ marginBottom: spacing['6'] }}>
+            {showAppreciation ? (
+              <View
+                style={[
+                  styles.boxConfig,
+                  { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+                ]}
+              >
+                <View style={styles.boxConfigTituloRow}>
+                  <TrendingUp size={16} color={colors.semantic.success} strokeWidth={2} />
+                  <Text style={styles.boxConfigTitulo}>
+                    Cofrinho rendendo {balance!.indice_valorizacao}% ao mês 🌱
+                  </Text>
+                </View>
+                <Text style={styles.boxConfigSub}>{appreciationHint}</Text>
+              </View>
+            ) : null}
+
+            <View style={{ marginBottom: spacing['3'] }}>
               <Button
                 variant="primary"
                 label="Guardar no cofrinho"
@@ -304,7 +370,7 @@ export default function ChildBalanceScreen() {
             ) : null}
 
             {showWithdrawButton ? (
-              <View style={{ marginBottom: spacing['6'] }}>
+              <View style={{ marginBottom: spacing['3'] }}>
                 <Button
                   variant="secondary"
                   label="Retirar do cofrinho"
@@ -318,30 +384,44 @@ export default function ChildBalanceScreen() {
               </View>
             ) : null}
 
-            <Text style={styles.sectionTitle}>Histórico</Text>
+            <View
+              style={[styles.historicoHeader, { borderBottomColor: colors.border.subtle }]}
+            >
+              <Text style={styles.secaoTitulo}>Histórico</Text>
+            </View>
             {hasTransactions ? null : (
-              <Text style={styles.emptyText}>
+              <Text style={styles.vazio}>
                 Nenhuma movimentação ainda.{'\n'}Complete tarefas para ganhar pontos! 🏆
               </Text>
             )}
           </>
         }
         renderItem={({ item }) => (
-          <View style={styles.txnItem}>
-            <TransactionIcon type={item.tipo} style={styles.txnIconBox} />
-            <View style={styles.txnInfo}>
-              <Text style={styles.txnLabel}>{getTransactionTypeLabel(item.tipo)}</Text>
-              <Text style={styles.txnDesc} numberOfLines={1}>
+          <View
+            style={[
+              styles.movItem,
+              { borderBottomColor: colors.border.subtle },
+            ]}
+          >
+            <TransactionIcon type={item.tipo} style={styles.movIconBox} />
+            <View style={styles.movInfo}>
+              <Text style={styles.movLabel}>{getTransactionTypeLabel(item.tipo)}</Text>
+              <Text style={styles.movDesc} numberOfLines={1}>
                 {item.descricao}
               </Text>
-              <Text style={styles.txnDate}>
-                {formatDate(item.created_at)}
-              </Text>
             </View>
-            <Text style={[styles.txnAmount, isCredit(item.tipo) ? styles.credit : styles.debit]}>
-              {isCredit(item.tipo) ? '+' : '-'}
-              {item.valor}
-            </Text>
+            <View style={styles.movRight}>
+              <Text
+                style={[
+                  styles.movValor,
+                  isCredit(item.tipo) ? styles.creditoTxt : styles.debitoTxt,
+                ]}
+              >
+                {isCredit(item.tipo) ? '+' : '-'}
+                {item.valor}
+              </Text>
+              <Text style={styles.movData}>{formatDate(item.created_at)}</Text>
+            </View>
           </View>
         )}
         onEndReached={() => {
@@ -524,79 +604,170 @@ export default function ChildBalanceScreen() {
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    list: { paddingHorizontal: spacing['5'] },
-    cardsRow: { flexDirection: 'row', gap: spacing['3'], marginBottom: spacing['3'] },
-    balanceCard: {
-      flex: 1,
+    list: { paddingHorizontal: spacing['5'], paddingBottom: spacing['12'] },
+
+    balanceHeader: {
       borderRadius: radii.xl,
-      padding: spacing['4'],
-      alignItems: 'center',
+      borderCurve: 'continuous',
+      borderWidth: 1,
+      padding: spacing['5'],
+      marginBottom: spacing['3'],
       gap: spacing['1'],
     },
-    balanceLabelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
-    balanceLabel: {
-      color: colors.text.secondary,
-      fontSize: typography.size.xs,
-      fontFamily: typography.family.semibold,
+    balanceHeaderTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1.5'],
+      marginBottom: spacing['1'],
     },
-    appreciationBox: {
-      backgroundColor: colors.semantic.successBg,
-      borderRadius: radii.lg,
-      padding: spacing['2'],
+    balanceHeaderLabel: {
+      fontFamily: typography.family.bold,
+      fontSize: typography.size.xs,
+      letterSpacing: 0.5,
+    },
+    balanceHeaderTotal: {
+      fontFamily: typography.family.black,
+      fontSize: typography.size['4xl'],
+      lineHeight: typography.lineHeight['4xl'],
+      fontVariant: ['tabular-nums'],
+    },
+    balanceHeaderSubtitle: {
+      fontFamily: typography.family.medium,
+      fontSize: typography.size.sm,
       marginBottom: spacing['3'],
     },
-    appreciationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
-    appreciationText: { color: colors.semantic.success, fontSize: typography.size.xs, flex: 1 },
-    appreciationHint: {
-      color: colors.text.secondary,
-      fontSize: typography.size.xs,
-      marginTop: spacing['1.5'],
+    balanceHeaderBoxes: { flexDirection: 'row', gap: spacing['3'] },
+    balanceHeaderBox: {
+      flex: 1,
+      borderRadius: radii.lg,
+      borderCurve: 'continuous',
+      borderWidth: 1,
+      paddingVertical: spacing['3'],
+      paddingHorizontal: spacing['4'],
+      alignItems: 'center',
+      gap: spacing['0.5'],
     },
-    sectionTitle: {
+    balanceHeaderBoxLabel: {
+      fontFamily: typography.family.semibold,
+      fontSize: typography.size.xxs,
+      letterSpacing: 0.5,
+    },
+    balanceHeaderBoxValue: {
+      fontFamily: typography.family.black,
+      fontSize: typography.size.xl,
+      fontVariant: ['tabular-nums'],
+    },
+    balanceHeaderProgress: {
+      marginTop: spacing['3'],
+      gap: spacing['1'],
+    },
+    progressTrack: {
+      flexDirection: 'row',
+      height: 8,
+      borderRadius: radii.full,
+      overflow: 'hidden',
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      gap: 2,
+    },
+    progressFillLeft: {
+      borderTopLeftRadius: radii.full,
+      borderBottomLeftRadius: radii.full,
+    },
+    progressFillRight: {
+      borderTopRightRadius: radii.full,
+      borderBottomRightRadius: radii.full,
+    },
+    progressLabels: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    progressLabel: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.semibold,
+      fontVariant: ['tabular-nums'],
+    },
+
+    boxConfig: {
+      borderRadius: radii.xl,
+      borderCurve: 'continuous',
+      borderWidth: 1,
+      padding: spacing['4'],
+      marginBottom: spacing['3'],
+    },
+    boxConfigTituloRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1.5'],
+      marginBottom: spacing['1'],
+    },
+    boxConfigTitulo: {
       fontSize: typography.size.md,
       fontFamily: typography.family.bold,
       color: colors.text.primary,
-      marginBottom: spacing['3'],
+      flex: 1,
     },
-    emptyText: {
+    boxConfigSub: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.medium,
+      color: colors.text.muted,
+    },
+
+    historicoHeader: {
+      borderBottomWidth: 1,
+      paddingBottom: spacing['3'],
+      marginTop: spacing['2'],
+      marginBottom: spacing['1'],
+    },
+    secaoTitulo: {
+      fontSize: typography.size.md,
+      fontFamily: typography.family.bold,
+      color: colors.text.primary,
+    },
+    vazio: {
       color: colors.text.muted,
       fontSize: typography.size.sm,
       textAlign: 'center',
-      marginTop: spacing['2'],
+      marginTop: spacing['4'],
     },
-    txnItem: {
+
+    movItem: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: colors.bg.surface,
-      borderRadius: radii.lg,
-      borderCurve: 'continuous',
-      padding: spacing['3'],
-      marginBottom: spacing['2'],
-      ...shadows.card,
+      paddingVertical: spacing['3'],
+      borderBottomWidth: StyleSheet.hairlineWidth,
     },
-    txnIconBox: {
+    movIconBox: {
       width: 36,
       height: 36,
       borderRadius: radii.md,
+      borderCurve: 'continuous',
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: spacing['3'],
     },
-    txnInfo: { flex: 1 },
-    txnLabel: {
+    movInfo: { flex: 1 },
+    movLabel: {
       fontSize: typography.size.sm,
       fontFamily: typography.family.semibold,
       color: colors.text.primary,
     },
-    txnDesc: {
+    movDesc: {
       fontSize: typography.size.xs,
       color: colors.text.secondary,
-      marginTop: spacing['1'],
+      marginTop: spacing['0.5'],
     },
-    txnDate: { fontSize: typography.size.xs, color: colors.text.muted, marginTop: spacing['1'] },
-    txnAmount: { fontSize: typography.size.md, fontFamily: typography.family.bold },
-    credit: { color: colors.semantic.success },
-    debit: { color: colors.semantic.error },
+    movRight: { alignItems: 'flex-end', gap: spacing['0.5'] },
+    movValor: {
+      fontSize: typography.size.md,
+      fontFamily: typography.family.bold,
+      fontVariant: ['tabular-nums'],
+    },
+    movData: { fontSize: typography.size.xxs, color: colors.text.muted },
+    creditoTxt: { color: colors.semantic.success },
+    debitoTxt: { color: colors.semantic.error },
+
+    pendingWithdrawalBox: { marginBottom: spacing['3'] },
+
     modalOverlay: {
       flex: 1,
       justifyContent: 'flex-end',
@@ -628,6 +799,7 @@ function makeStyles(colors: ThemeColors) {
     quickAmountPill: {
       flex: 1,
       borderRadius: radii.lg,
+      borderCurve: 'continuous',
       paddingVertical: spacing['2'],
       alignItems: 'center',
       minHeight: 40,
@@ -641,6 +813,7 @@ function makeStyles(colors: ThemeColors) {
       borderWidth: 1,
       borderColor: colors.border.default,
       borderRadius: radii.lg,
+      borderCurve: 'continuous',
       paddingHorizontal: spacing['3'],
       paddingVertical: spacing['3'],
       fontSize: typography.size['2xl'],
@@ -650,6 +823,5 @@ function makeStyles(colors: ThemeColors) {
     },
     modalBtns: { flexDirection: 'row', gap: spacing['3'] },
     modalBtnFlex: { flex: 1 },
-    pendingWithdrawalBox: { marginBottom: spacing['6'] },
   });
 }
