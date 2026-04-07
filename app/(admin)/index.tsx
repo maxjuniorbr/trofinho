@@ -235,13 +235,13 @@ export default function AdminHomeScreen() {
             pontos em circulação
           </Text>
           <View style={styles.summaryBoxes}>
-            <View style={[styles.summaryBox, { backgroundColor: summary.boxBg }]}>
+            <View style={[styles.summaryBox, { backgroundColor: summary.boxBg, borderColor: summary.border }]}>
               <Text style={[styles.summaryBoxLabel, { color: summary.textMuted }]}>LIVRE</Text>
               <Text style={[styles.summaryBoxValue, { color: summary.text }]}>
                 {totalLivre.toLocaleString('pt-BR')}
               </Text>
             </View>
-            <View style={[styles.summaryBox, { backgroundColor: summary.boxBg }]}>
+            <View style={[styles.summaryBox, { backgroundColor: summary.boxBg, borderColor: summary.border }]}>
               <Text style={[styles.summaryBoxLabel, { color: summary.textMuted }]}>COFRINHO</Text>
               <Text style={[styles.summaryBoxValue, { color: summary.text }]}>
                 {totalCofrinho.toLocaleString('pt-BR')}
@@ -482,6 +482,7 @@ function makeStyles() {
       flex: 1,
       borderRadius: radii.lg,
       borderCurve: 'continuous',
+      borderWidth: 1,
       paddingVertical: spacing['3'],
       paddingHorizontal: spacing['4'],
       alignItems: 'center',
