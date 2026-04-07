@@ -178,7 +178,7 @@ export default function AdminHomeScreen() {
           styles.container,
           {
             paddingTop: spacing['6'],
-            paddingBottom: spacing['12'],
+            paddingBottom: spacing['6'],
           },
         ]}
         showsVerticalScrollIndicator={false}
@@ -447,7 +447,6 @@ function makeStyles() {
       fontVariant: ['tabular-nums'],
     },
 
-    section: { marginBottom: spacing['6'], gap: spacing['3'] },
     sectionTitle: { fontFamily: typography.family.bold, fontSize: typography.size.md },
 
     childrenList: { gap: spacing['2'] },
