@@ -15,11 +15,14 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { ListFooter } from '@/components/ui/list-footer';
 import { formatDate } from '@lib/utils';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getSafeBottomPadding, getSafeHorizontalPadding } from '@lib/safe-area';
 
 export default function ChildRedemptionsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
 
   const {
     data,
@@ -47,7 +50,7 @@ export default function ChildRedemptionsScreen() {
   };
 
   return (
-    <SafeScreenFrame bottomInset>
+    <SafeScreenFrame bottomInset={false}>
       <StatusBar style={colors.statusBar} />
       <ScreenHeader
         title="Meus Resgates"
@@ -65,22 +68,12 @@ export default function ChildRedemptionsScreen() {
             emptyMessage={emptyStateMessage}
             onRetry={handleRefresh}
           />
-          {!isLoading && !errorMessage && redemptions.length === 0 ? (
-            <View style={styles.emptyBtnWrapper}>
-              <Button
-                variant="primary"
-                label="Ver prêmios 🎁"
-                onPress={() => router.push('/(child)/prizes')}
-                accessibilityLabel="Ver prêmios disponíveis"
-              />
-            </View>
-          ) : null}
         </View>
       ) : (
         <FlashList
           data={redemptions}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: getSafeBottomPadding(insets, spacing['4']) }]}
           refreshControl={
             <RefreshControl
               refreshing={isFetching && !isLoading}
@@ -128,6 +121,26 @@ export default function ChildRedemptionsScreen() {
           ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
         />
       )}
+      {!isLoading && !errorMessage && redemptions.length === 0 ? (
+        <View
+          style={[
+            styles.footer,
+            {
+              backgroundColor: colors.bg.canvas,
+              borderTopColor: colors.border.subtle,
+              paddingBottom: getSafeBottomPadding(insets, spacing['2']),
+              ...getSafeHorizontalPadding(insets, spacing['5']),
+            },
+          ]}
+        >
+          <Button
+            variant="primary"
+            label="Ver prêmios 🎁"
+            onPress={() => router.push('/(child)/prizes')}
+            accessibilityLabel="Ver prêmios disponíveis"
+          />
+        </View>
+      ) : null}
     </SafeScreenFrame>
   );
 }
@@ -136,7 +149,10 @@ function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
     emptyContainer: { flex: 1, alignItems: 'center' },
-    emptyBtnWrapper: { alignSelf: 'stretch', paddingHorizontal: spacing['5'], marginTop: spacing['2'] },
+    footer: {
+      borderTopWidth: 1,
+      paddingTop: spacing['2'],
+    },
     list: { paddingHorizontal: spacing['4'] },
     card: {
       backgroundColor: colors.bg.surface,
