@@ -3,7 +3,7 @@ import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Wallet, TrendingUp, PiggyBank } from 'lucide-react-native';
+import { TrendingUp, PiggyBank } from 'lucide-react-native';
 import { hapticSuccess } from '@lib/haptics';
 import { formatDate } from '@lib/utils';
 import {
@@ -26,7 +26,7 @@ import {
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, shadows, spacing, typography } from '@/constants/theme';
+import { darkColors, radii, spacing, typography, withAlpha } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -39,6 +39,17 @@ import { SteppedSlider } from '@/components/ui/stepped-slider';
 import { calculateNetAmount } from '@lib/piggy-bank-withdrawal';
 
 type ModalType = 'penalizar' | null;
+
+function getBalanceHeaderColors(colors: ThemeColors) {
+  const isLight = colors.statusBar === 'dark';
+  return {
+    bg: isLight ? darkColors.bg.surface : colors.bg.elevated,
+    boxBg: isLight ? darkColors.bg.elevated : colors.bg.muted,
+    border: isLight ? withAlpha('#FFFFFF', 0.08) : colors.border.subtle,
+    text: '#FFFFFF',
+    textMuted: 'rgba(255, 255, 255, 0.7)',
+  };
+}
 
 export default function ChildBalanceAdminScreen() {
   const { filho_id, nome } = useLocalSearchParams<{ filho_id: string; nome: string }>();
@@ -175,6 +186,7 @@ export default function ChildBalanceAdminScreen() {
   const withdrawRate = withdrawalSlider ?? (balance?.taxa_resgate_cofrinho ?? 0);
   const projection = calculateProjection(cofrinho, appreciationRate);
   const hasAppreciationConfigured = appreciationRate > 0;
+  const header = getBalanceHeaderColors(colors);
   const ultimaValorizacaoTexto = balance?.data_ultima_valorizacao
     ? `Última: ${formatDate(balance.data_ultima_valorizacao)}`
     : '';
@@ -205,56 +217,66 @@ export default function ChildBalanceAdminScreen() {
                 <InlineMessage message={visibleSuccess} variant="success" />
               </View>
             ) : null}
-            <View style={styles.cardsRow}>
-              <View style={[styles.saldoCard, { backgroundColor: colors.accent.adminDim }]}>
-                <View style={styles.saldoLabelRow}>
-                  <Wallet size={14} color={colors.text.inverseMuted} strokeWidth={2} />
-                  <Text style={styles.saldoLabel}>Saldo livre</Text>
-                </View>
-                <Text style={styles.saldoValor}>{saldoLivre}</Text>
-                <Text style={styles.saldoPts}>pontos</Text>
+            <View style={[styles.balanceHeader, { backgroundColor: header.bg, borderColor: header.border }]}>
+              <View style={styles.balanceHeaderTop}>
+                <PiggyBank size={16} color={header.textMuted} strokeWidth={2} />
+                <Text style={[styles.balanceHeaderLabel, { color: header.textMuted }]}>
+                  SALDO DE {(nome ?? 'FILHO').toUpperCase()}
+                </Text>
               </View>
-              <View style={[styles.saldoCard, { backgroundColor: colors.semantic.warning }]}>
-                <View style={styles.saldoLabelRow}>
-                  <Wallet size={14} color={colors.text.inverseMuted} strokeWidth={2} />
-                  <Text style={styles.saldoLabel}>Cofrinho</Text>
+              <Text style={[styles.balanceHeaderTotal, { color: header.text }]}>
+                {totalPts.toLocaleString('pt-BR')}
+              </Text>
+              <Text style={[styles.balanceHeaderSubtitle, { color: header.textMuted }]}>
+                pontos disponíveis
+              </Text>
+              <View style={styles.balanceHeaderBoxes}>
+                <View style={[styles.balanceHeaderBox, { backgroundColor: header.boxBg }]}>
+                  <Text style={[styles.balanceHeaderBoxLabel, { color: header.textMuted }]}>LIVRE</Text>
+                  <Text style={[styles.balanceHeaderBoxValue, { color: header.text }]}>
+                    {saldoLivre.toLocaleString('pt-BR')}
+                  </Text>
                 </View>
-                <Text style={styles.saldoValor}>{cofrinho}</Text>
-                <Text style={styles.saldoPts}>pontos</Text>
+                <View style={[styles.balanceHeaderBox, { backgroundColor: header.boxBg }]}>
+                  <Text style={[styles.balanceHeaderBoxLabel, { color: header.textMuted }]}>COFRINHO</Text>
+                  <Text style={[styles.balanceHeaderBoxValue, { color: header.text }]}>
+                    {cofrinho.toLocaleString('pt-BR')}
+                  </Text>
+                </View>
               </View>
+              {totalPts > 0 ? (
+                <View style={styles.balanceHeaderProgress}>
+                  <View style={styles.progressTrack}>
+                    <View
+                      style={[
+                        styles.progressFillLeft,
+                        {
+                          flex: 100 - cofrinhoPercent,
+                          backgroundColor: colors.accent.adminDim,
+                        },
+                      ]}
+                    />
+                    <View
+                      style={[
+                        styles.progressFillRight,
+                        {
+                          flex: cofrinhoPercent,
+                          backgroundColor: colors.semantic.warning,
+                        },
+                      ]}
+                    />
+                  </View>
+                  <View style={styles.progressLabels}>
+                    <Text style={[styles.progressLabel, { color: header.textMuted }]}>
+                      {100 - cofrinhoPercent}% livre
+                    </Text>
+                    <Text style={[styles.progressLabel, { color: header.textMuted }]}>
+                      {cofrinhoPercent}% cofrinho
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
             </View>
-            {totalPts > 0 ? (
-              <View style={styles.progressContainer}>
-                <View style={styles.progressTrack}>
-                  <View
-                    style={[
-                      styles.progressFillLeft,
-                      {
-                        flex: 100 - cofrinhoPercent,
-                        backgroundColor: colors.accent.adminDim,
-                      },
-                    ]}
-                  />
-                  <View
-                    style={[
-                      styles.progressFillRight,
-                      {
-                        flex: cofrinhoPercent,
-                        backgroundColor: colors.semantic.warning,
-                      },
-                    ]}
-                  />
-                </View>
-                <View style={styles.progressLabels}>
-                  <Text style={styles.progressLabel}>
-                    {100 - cofrinhoPercent}% livre
-                  </Text>
-                  <Text style={styles.progressLabel}>
-                    {cofrinhoPercent}% cofrinho
-                  </Text>
-                </View>
-              </View>
-            ) : null}
 
             <View style={styles.boxConfig}>
               <View style={styles.boxConfigTituloRow}>
@@ -436,35 +458,55 @@ function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     lista: { padding: spacing['5'], paddingBottom: spacing['12'] },
-    cardsRow: { flexDirection: 'row', gap: spacing['3'], marginBottom: spacing['3'] },
-    saldoCard: {
-      flex: 1,
+    balanceHeader: {
       borderRadius: radii.xl,
       borderCurve: 'continuous',
-      padding: spacing['4'],
-      alignItems: 'center',
-      ...shadows.card,
+      borderWidth: 1,
+      padding: spacing['5'],
+      marginBottom: spacing['4'],
+      gap: spacing['1'],
     },
-    saldoLabelRow: {
+    balanceHeaderTop: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing['1'],
+      gap: spacing['1.5'],
       marginBottom: spacing['1'],
     },
-    saldoLabel: {
-      color: colors.text.inverseMuted,
+    balanceHeaderLabel: {
+      fontFamily: typography.family.bold,
       fontSize: typography.size.xs,
-      fontFamily: typography.family.semibold,
+      letterSpacing: 0.5,
     },
-    saldoValor: {
-      color: colors.text.inverse,
+    balanceHeaderTotal: {
+      fontFamily: typography.family.black,
       fontSize: typography.size['4xl'],
-      fontFamily: typography.family.extrabold,
+      lineHeight: typography.lineHeight['4xl'],
+      fontVariant: ['tabular-nums'],
     },
-    saldoPts: {
-      color: colors.text.inverseSubtle,
-      fontSize: typography.size.xs,
-      marginTop: spacing['1'],
+    balanceHeaderSubtitle: {
+      fontFamily: typography.family.medium,
+      fontSize: typography.size.sm,
+      marginBottom: spacing['3'],
+    },
+    balanceHeaderBoxes: { flexDirection: 'row', gap: spacing['3'] },
+    balanceHeaderBox: {
+      flex: 1,
+      borderRadius: radii.lg,
+      borderCurve: 'continuous',
+      paddingVertical: spacing['3'],
+      paddingHorizontal: spacing['4'],
+      alignItems: 'center',
+      gap: spacing['0.5'],
+    },
+    balanceHeaderBoxLabel: {
+      fontFamily: typography.family.semibold,
+      fontSize: typography.size.xxs,
+      letterSpacing: 0.5,
+    },
+    balanceHeaderBoxValue: {
+      fontFamily: typography.family.black,
+      fontSize: typography.size.xl,
+      fontVariant: ['tabular-nums'],
     },
     boxConfig: {
       backgroundColor: colors.bg.surface,
@@ -486,8 +528,8 @@ function makeStyles(colors: ThemeColors) {
       fontFamily: typography.family.bold,
       color: colors.text.primary,
     },
-    progressContainer: {
-      marginBottom: spacing['4'],
+    balanceHeaderProgress: {
+      marginTop: spacing['3'],
       gap: spacing['1'],
     },
     progressTrack: {
@@ -495,7 +537,7 @@ function makeStyles(colors: ThemeColors) {
       height: 8,
       borderRadius: radii.full,
       overflow: 'hidden',
-      backgroundColor: colors.bg.muted,
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
       gap: 2,
     },
     progressFillLeft: {
@@ -513,7 +555,6 @@ function makeStyles(colors: ThemeColors) {
     progressLabel: {
       fontSize: typography.size.xs,
       fontFamily: typography.family.semibold,
-      color: colors.text.muted,
       fontVariant: ['tabular-nums'],
     },
     projectionBox: {
