@@ -27,6 +27,7 @@ import {
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
+import { Button } from '@/components/ui/button';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { TransactionIcon } from '@/components/balance/transaction-icon';
@@ -199,19 +200,19 @@ export default function ChildBalanceScreen() {
               </View>
             )}
 
-            <Pressable
-              style={[styles.transferBtn, freeBalance === 0 && styles.disabledBtn]}
-              onPress={() => {
-                setModalVisible(true);
-                setAmountStr('');
-                setModalError(null);
-              }}
-              disabled={freeBalance === 0}
-              accessibilityRole="button"
-              accessibilityLabel="Guardar pontos no cofrinho"
-            >
-              <Text style={styles.transferBtnText}>Guardar no cofrinho</Text>
-            </Pressable>
+            <View style={{ marginBottom: spacing['6'] }}>
+              <Button
+                variant="primary"
+                label="Guardar no cofrinho"
+                disabled={freeBalance === 0}
+                onPress={() => {
+                  setModalVisible(true);
+                  setAmountStr('');
+                  setModalError(null);
+                }}
+                accessibilityLabel="Guardar pontos no cofrinho"
+              />
+            </View>
 
             <Text style={styles.sectionTitle}>Histórico</Text>
             {hasTransactions ? null : (
@@ -307,27 +308,24 @@ export default function ChildBalanceScreen() {
             />
             {modalError ? <InlineMessage message={modalError} variant="error" /> : null}
             <View style={styles.modalBtns}>
-              <Pressable
-                style={styles.cancelBtn}
-                onPress={() => setModalVisible(false)}
-                accessibilityRole="button"
-                accessibilityLabel="Cancelar transferência"
-              >
-                <Text style={styles.cancelBtnText}>Cancelar</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.confirmBtn, transferMutation.isPending && { opacity: 0.6 }]}
-                onPress={handleTransfer}
-                disabled={transferMutation.isPending}
-                accessibilityRole="button"
-                accessibilityLabel="Confirmar transferência para cofrinho"
-              >
-                {transferMutation.isPending ? (
-                  <ActivityIndicator color={colors.text.inverse} />
-                ) : (
-                  <Text style={styles.confirmBtnText}>Guardar</Text>
-                )}
-              </Pressable>
+              <View style={styles.modalBtnFlex}>
+                <Button
+                  variant="secondary"
+                  label="Cancelar"
+                  onPress={() => setModalVisible(false)}
+                  accessibilityLabel="Cancelar transferência"
+                />
+              </View>
+              <View style={styles.modalBtnFlex}>
+                <Button
+                  variant="primary"
+                  label="Guardar"
+                  loading={transferMutation.isPending}
+                  loadingLabel="Guardando…"
+                  onPress={handleTransfer}
+                  accessibilityLabel="Confirmar transferência para cofrinho"
+                />
+              </View>
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -366,20 +364,6 @@ function makeStyles(colors: ThemeColors) {
       color: colors.text.secondary,
       fontSize: typography.size.xs,
       marginTop: spacing['1.5'],
-    },
-    transferBtn: {
-      backgroundColor: colors.accent.filho,
-      borderRadius: radii.xl,
-      paddingVertical: spacing['3'],
-      alignItems: 'center',
-      marginBottom: spacing['6'],
-      minHeight: 48,
-    },
-    disabledBtn: { opacity: 0.4 },
-    transferBtnText: {
-      color: colors.text.inverse,
-      fontFamily: typography.family.bold,
-      fontSize: typography.size.md,
     },
     sectionTitle: {
       fontSize: typography.size.md,
@@ -478,28 +462,6 @@ function makeStyles(colors: ThemeColors) {
       textAlign: 'center',
     },
     modalBtns: { flexDirection: 'row', gap: spacing['3'] },
-    cancelBtn: {
-      flex: 1,
-      borderWidth: 1,
-      borderColor: colors.border.default,
-      borderRadius: radii.xl,
-      paddingVertical: spacing['3'],
-      alignItems: 'center',
-      minHeight: 48,
-    },
-    cancelBtnText: { color: colors.text.secondary, fontFamily: typography.family.semibold },
-    confirmBtn: {
-      flex: 1,
-      backgroundColor: colors.accent.filho,
-      borderRadius: radii.xl,
-      paddingVertical: spacing['3'],
-      alignItems: 'center',
-      minHeight: 48,
-    },
-    confirmBtnText: {
-      color: colors.text.inverse,
-      fontFamily: typography.family.bold,
-      fontSize: typography.size.md,
-    },
+    modalBtnFlex: { flex: 1 },
   });
 }

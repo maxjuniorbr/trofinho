@@ -237,12 +237,6 @@ function findButtonsByLabel(renderer: ReactTestRenderer, label: string) {
   });
 }
 
-function findPressableByAccessibilityLabel(renderer: ReactTestRenderer, label: string) {
-  return renderer.root.findAll((node) => {
-    return (node.type as string) === 'Pressable' && node.props.accessibilityLabel === label;
-  });
-}
-
 describe('ChildTaskDetailScreen — cancel assignment submission', () => {
   beforeEach(() => {
     alertMock.alert.mockReset();
@@ -350,7 +344,7 @@ describe('ChildTaskDetailScreen — cancel assignment submission', () => {
     });
 
     const renderer = render(<ChildTaskDetailScreen />);
-    const completeButtons = findPressableByAccessibilityLabel(renderer, 'Concluir tarefa');
+    const completeButtons = findButtonsByLabel(renderer, 'Concluir tarefa');
 
     expect(completeButtons).toHaveLength(1);
 
