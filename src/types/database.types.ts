@@ -587,6 +587,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      limpar_registros_antigos: { Args: never; Returns: Json }
       meu_filho_id: { Args: never; Returns: string }
       meu_papel: { Args: never; Returns: string }
       minha_familia_id: { Args: never; Returns: string }
@@ -616,6 +617,10 @@ export type Database = {
       }
       rejeitar_atribuicao: {
         Args: { p_atribuicao_id: string; p_nota_rejeicao: string }
+        Returns: undefined
+      }
+      sincronizar_avatar_filho: {
+        Args: { p_avatar_url: string }
         Returns: undefined
       }
       sincronizar_valorizacoes_automaticas: {
