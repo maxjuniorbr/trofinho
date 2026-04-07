@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import { useTheme } from '@/context/theme-context';
-import { useTasksLiveSync, useProfile } from '@/hooks/queries';
+import { useTasksLiveSync, useRedemptionsLiveSync, useProfile } from '@/hooks/queries';
 
 export { ErrorBoundary } from '@/components/ui/route-error-fallback';
 
@@ -8,6 +8,7 @@ export default function AdminLayout() {
   const { colors } = useTheme();
   const { data: profile } = useProfile();
   useTasksLiveSync(profile?.familia_id);
+  useRedemptionsLiveSync(profile?.familia_id);
   return (
     <Stack
       screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg.canvas } }}
