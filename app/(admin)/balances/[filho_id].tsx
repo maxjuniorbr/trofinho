@@ -224,7 +224,36 @@ export default function ChildBalanceAdminScreen() {
               </View>
             </View>
             {totalPts > 0 ? (
-              <Text style={styles.cofrinhoPercent}>{cofrinhoPercent}% no cofrinho</Text>
+              <View style={styles.progressContainer}>
+                <View style={styles.progressTrack}>
+                  <View
+                    style={[
+                      styles.progressFillLeft,
+                      {
+                        flex: 100 - cofrinhoPercent,
+                        backgroundColor: colors.accent.adminDim,
+                      },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.progressFillRight,
+                      {
+                        flex: cofrinhoPercent,
+                        backgroundColor: colors.semantic.warning,
+                      },
+                    ]}
+                  />
+                </View>
+                <View style={styles.progressLabels}>
+                  <Text style={styles.progressLabel}>
+                    {100 - cofrinhoPercent}% livre
+                  </Text>
+                  <Text style={styles.progressLabel}>
+                    {cofrinhoPercent}% cofrinho
+                  </Text>
+                </View>
+              </View>
             ) : null}
 
             <View style={styles.boxConfig}>
@@ -454,13 +483,36 @@ function makeStyles(colors: ThemeColors) {
       fontFamily: typography.family.bold,
       color: colors.text.primary,
     },
-    cofrinhoPercent: {
+    progressContainer: {
+      marginTop: -spacing['2'],
+      marginBottom: spacing['3'],
+      gap: spacing['1'],
+    },
+    progressTrack: {
+      flexDirection: 'row',
+      height: 8,
+      borderRadius: radii.full,
+      overflow: 'hidden',
+      backgroundColor: colors.bg.muted,
+      gap: 2,
+    },
+    progressFillLeft: {
+      borderTopLeftRadius: radii.full,
+      borderBottomLeftRadius: radii.full,
+    },
+    progressFillRight: {
+      borderTopRightRadius: radii.full,
+      borderBottomRightRadius: radii.full,
+    },
+    progressLabels: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    progressLabel: {
       fontSize: typography.size.xs,
       fontFamily: typography.family.semibold,
       color: colors.text.muted,
-      textAlign: 'right',
-      marginBottom: spacing['3'],
-      marginTop: -spacing['2'],
+      fontVariant: ['tabular-nums'],
     },
     projectionBox: {
       flexDirection: 'row',
