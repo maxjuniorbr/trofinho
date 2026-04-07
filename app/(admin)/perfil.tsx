@@ -177,5 +177,5 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  scrollContent: { padding: spacing['5'], paddingBottom: spacing['12'], gap: spacing['4'] },
+  scrollContent: { padding: spacing['5'], paddingBottom: spacing['6'], gap: spacing['4'] },
 });
