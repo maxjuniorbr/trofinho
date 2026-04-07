@@ -12,6 +12,7 @@ import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ListScreenSkeleton } from '@/components/ui/skeleton';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { ListFooter } from '@/components/ui/list-footer';
@@ -39,7 +40,7 @@ export default function ChildRedemptionsScreen() {
 
   const errorMessage = error?.message ?? null;
   const hasError = Boolean(errorMessage);
-  const shouldShowEmptyState = isLoading || hasError || redemptions.length === 0;
+  const shouldShowEmptyState = hasError || redemptions.length === 0;
   const emptyStateMessage = 'Nenhum resgate realizado ainda.\nVá ao catálogo e troque seus pontos! 🎁';
 
   const handleRefresh = async () => {
@@ -61,12 +62,13 @@ export default function ChildRedemptionsScreen() {
         role="filho"
       />
 
-      {shouldShowEmptyState ? (
+      {isLoading ? (
+        <ListScreenSkeleton />
+      ) : shouldShowEmptyState ? (
         <View style={styles.emptyContainer}>
           <EmptyState
-            loading={isLoading}
             error={errorMessage}
-            empty={!isLoading && !errorMessage}
+            empty={!errorMessage}
             emptyMessage={emptyStateMessage}
             onRetry={handleRefresh}
           />

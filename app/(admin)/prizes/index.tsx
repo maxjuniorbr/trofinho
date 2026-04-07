@@ -9,6 +9,7 @@ import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ListScreenSkeleton } from '@/components/ui/skeleton';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { ListFooter } from '@/components/ui/list-footer';
@@ -47,7 +48,7 @@ export default function AdminPrizesScreen() {
   const active = prizes.filter((p) => p.ativo);
   const inactive = prizes.filter((p) => !p.ativo);
   const hasError = Boolean(error);
-  const shouldShowEmptyState = isLoading || hasError || prizes.length === 0;
+  const shouldShowEmptyState = hasError || prizes.length === 0;
   const emptyStateMessage = 'Nenhum prêmio cadastrado.\nToque em "+" para criar o primeiro prêmio.';
   const inactivePlural = inactive.length === 1 ? '' : 's';
   const inactiveSummary =
@@ -75,11 +76,12 @@ export default function AdminPrizesScreen() {
         </View>
       ) : null}
 
-      {shouldShowEmptyState ? (
+      {isLoading ? (
+        <ListScreenSkeleton />
+      ) : shouldShowEmptyState ? (
         <EmptyState
-          loading={isLoading}
           error={error?.message ?? null}
-          empty={!isLoading && !error}
+          empty={!error}
           emptyMessage={emptyStateMessage}
           onRetry={() => refetch()}
         />

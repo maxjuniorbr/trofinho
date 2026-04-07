@@ -1,14 +1,15 @@
-import { Alert, StyleSheet, Text, View, Pressable, RefreshControl, Modal } from 'react-native';
+import { Alert, StyleSheet, Text, View, RefreshControl, Modal } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo } from 'react';
 import { useRouter } from 'expo-router';
-import { Clock, Trophy, User, CheckCircle2, XCircle } from 'lucide-react-native';
+import { Clock, Trophy, User } from 'lucide-react-native';
 import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@lib/status';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ListScreenSkeleton } from '@/components/ui/skeleton';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
@@ -69,7 +70,7 @@ export default function AdminRedemptionsScreen() {
   const [modal, setModal] = useState<ConfirmModalState>(MODAL_INITIAL);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const hasError = Boolean(error);
-  const shouldShowEmptyState = isLoading || hasError || redemptions.length === 0;
+  const shouldShowEmptyState = hasError || redemptions.length === 0;
 
   const handleConfirm = (
     redemptionId: string,
@@ -186,11 +187,12 @@ export default function AdminRedemptionsScreen() {
       <StatusBar style={colors.statusBar} />
       <ScreenHeader title="Resgates" onBack={() => router.back()} backLabel="Início" />
 
-      {shouldShowEmptyState ? (
+      {isLoading ? (
+        <ListScreenSkeleton />
+      ) : shouldShowEmptyState ? (
         <EmptyState
-          loading={isLoading}
           error={error?.message ?? null}
-          empty={!isLoading && !error}
+          empty={!error}
           emptyMessage="Nenhum resgate registrado ainda."
           onRetry={() => refetch()}
         />
@@ -272,56 +274,39 @@ export default function AdminRedemptionsScreen() {
 
                   {isPending ? (
                     <View style={styles.acoesRow}>
-                      <Pressable
-                        style={({ pressed }) => [
-                          styles.botaoConfirmar,
-                          isProcessing && styles.botaoDesabilitado,
-                          pressed && !isProcessing && { opacity: 0.85 },
-                        ]}
-                        onPress={() =>
-                          handleConfirm(
-                            item.id,
-                            item.filhos.nome,
-                            item.filhos.usuario_id,
-                            item.premios.nome,
-                          )
-                        }
-                        disabled={isProcessing}
-                      >
-                        {isProcessing ? (
-                          <Text style={styles.botaoConfirmarTexto}>…</Text>
-                        ) : (
-                          <View style={styles.botaoInner}>
-                            <CheckCircle2 size={14} color={colors.text.inverse} strokeWidth={2} />
-                            <Text style={styles.botaoConfirmarTexto}>Confirmar</Text>
-                          </View>
-                        )}
-                      </Pressable>
-                      <Pressable
-                        style={({ pressed }) => [
-                          styles.botaoCancelar,
-                          isProcessing && styles.botaoDesabilitado,
-                          pressed && !isProcessing && { opacity: 0.85 },
-                        ]}
-                        onPress={() =>
-                          handleCancel(
-                            item.id,
-                            item.filhos.nome,
-                            item.premios.nome,
-                            item.pontos_debitados,
-                          )
-                        }
-                        disabled={isProcessing}
-                      >
-                        {isProcessing ? (
-                          <Text style={styles.botaoCancelarTexto}>…</Text>
-                        ) : (
-                          <View style={styles.botaoInner}>
-                            <XCircle size={14} color={colors.semantic.error} strokeWidth={2} />
-                            <Text style={styles.botaoCancelarTexto}>Cancelar</Text>
-                          </View>
-                        )}
-                      </Pressable>
+                      <View style={{ flex: 1 }}>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          label="Confirmar"
+                          loading={isProcessing}
+                          disabled={isProcessing}
+                          onPress={() =>
+                            handleConfirm(
+                              item.id,
+                              item.filhos.nome,
+                              item.filhos.usuario_id,
+                              item.premios.nome,
+                            )
+                          }
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          label="Cancelar"
+                          disabled={isProcessing}
+                          onPress={() =>
+                            handleCancel(
+                              item.id,
+                              item.filhos.nome,
+                              item.premios.nome,
+                              item.pontos_debitados,
+                            )
+                          }
+                        />
+                      </View>
                     </View>
                   ) : null}
                 </View>
@@ -348,18 +333,22 @@ export default function AdminRedemptionsScreen() {
                 : `Cancelar o resgate de "${modal.prizeName}" de ${modal.childName}? Os ${modal.points} pts serão estornados.`}
             </Text>
             <View style={styles.modalBtns}>
-              <Button
-                variant="outline"
-                size="sm"
-                label="Voltar"
-                onPress={() => setModal(MODAL_INITIAL)}
-              />
-              <Button
-                variant={modal.type === 'confirm' ? 'primary' : 'danger'}
-                size="sm"
-                label={modal.type === 'confirm' ? 'Confirmar' : 'Cancelar resgate'}
-                onPress={handleModalConfirm}
-              />
+              <View style={{ flex: 1 }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  label="Voltar"
+                  onPress={() => setModal(MODAL_INITIAL)}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  variant={modal.type === 'confirm' ? 'primary' : 'danger'}
+                  size="sm"
+                  label={modal.type === 'confirm' ? 'Confirmar' : 'Cancelar resgate'}
+                  onPress={handleModalConfirm}
+                />
+              </View>
             </View>
           </View>
         </View>
@@ -418,39 +407,6 @@ function makeStyles(colors: ThemeColors) {
     },
     dataSolicitacao: { fontSize: typography.size.xs, color: colors.text.muted },
     acoesRow: { flexDirection: 'row', gap: spacing['2'], marginTop: spacing['1'] },
-    botaoInner: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
-    botaoConfirmar: {
-      flex: 1,
-      backgroundColor: colors.semantic.success,
-      borderRadius: radii.lg,
-      borderCurve: 'continuous',
-      paddingVertical: spacing['2'],
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: 44,
-    },
-    botaoConfirmarTexto: {
-      color: colors.text.inverse,
-      fontFamily: typography.family.bold,
-      fontSize: typography.size.sm,
-    },
-    botaoCancelar: {
-      flex: 1,
-      borderRadius: radii.lg,
-      borderCurve: 'continuous',
-      borderWidth: 1.5,
-      borderColor: colors.semantic.error,
-      paddingVertical: spacing['2'],
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: 44,
-    },
-    botaoCancelarTexto: {
-      color: colors.semantic.error,
-      fontFamily: typography.family.bold,
-      fontSize: typography.size.sm,
-    },
-    botaoDesabilitado: { opacity: 0.5 },
     modalOverlay: {
       flex: 1,
       justifyContent: 'center',
@@ -476,31 +432,5 @@ function makeStyles(colors: ThemeColors) {
       lineHeight: typography.lineHeight.md,
     },
     modalBtns: { flexDirection: 'row', gap: spacing['3'] },
-    modalCancelBtn: {
-      flex: 1,
-      borderWidth: 1,
-      borderColor: colors.border.default,
-      borderRadius: radii.xl,
-      paddingVertical: spacing['3'],
-      alignItems: 'center',
-      minHeight: 48,
-    },
-    modalCancelBtnText: {
-      color: colors.text.secondary,
-      fontFamily: typography.family.semibold,
-      fontSize: typography.size.sm,
-    },
-    modalConfirmBtn: {
-      flex: 1,
-      borderRadius: radii.xl,
-      paddingVertical: spacing['3'],
-      alignItems: 'center',
-      minHeight: 48,
-    },
-    modalConfirmBtnText: {
-      color: colors.text.inverse,
-      fontFamily: typography.family.bold,
-      fontSize: typography.size.sm,
-    },
   });
 }

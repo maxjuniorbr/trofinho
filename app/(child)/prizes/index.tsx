@@ -28,6 +28,7 @@ import type { ThemeColors } from '@/constants/theme';
 import { gradients, radii, shadows, spacing, typography } from '@/constants/theme';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ListScreenSkeleton } from '@/components/ui/skeleton';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
@@ -54,7 +55,7 @@ export default function ChildPrizesScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const hasError = Boolean(error);
-  const shouldShowEmptyState = isLoading || hasError || prizes.length === 0;
+  const shouldShowEmptyState = hasError || prizes.length === 0;
   const emptyStateMessage = 'Nenhum prêmio disponível no momento.\nPergunte ao responsável! 🎯';
 
   const handleRefresh = async () => {
@@ -118,11 +119,12 @@ export default function ChildPrizesScreen() {
         role="filho"
       />
 
-      {shouldShowEmptyState ? (
+      {isLoading ? (
+        <ListScreenSkeleton />
+      ) : shouldShowEmptyState ? (
         <EmptyState
-          loading={isLoading}
           error={error?.message ?? null}
-          empty={!isLoading && !error}
+          empty={!error}
           emptyMessage={emptyStateMessage}
           onRetry={handleRefresh}
         />
