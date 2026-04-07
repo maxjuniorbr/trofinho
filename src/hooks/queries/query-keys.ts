@@ -68,5 +68,5 @@ export const PAGE_SIZES = {
   tasks: 20,
   prizes: 20,
   redemptions: 20,
-  transactions: 20,
+  transactions: 10,
 } as const;

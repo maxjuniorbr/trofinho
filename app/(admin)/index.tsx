@@ -78,7 +78,7 @@ function getSummaryColors(colors: ThemeColors) {
   return {
     bg: isLight ? darkColors.bg.surface : colors.bg.elevated,
     boxBg: isLight ? darkColors.bg.elevated : colors.bg.muted,
-    border: isLight ? withAlpha('#FFFFFF', 0.15) : colors.border.subtle,
+    border: isLight ? withAlpha('#FFFFFF', 0.25) : colors.border.subtle,
     text: '#FFFFFF',
     textMuted: 'rgba(255, 255, 255, 0.7)',
   };

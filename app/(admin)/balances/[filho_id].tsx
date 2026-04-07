@@ -45,7 +45,7 @@ function getBalanceHeaderColors(colors: ThemeColors) {
   return {
     bg: isLight ? darkColors.bg.surface : colors.bg.elevated,
     boxBg: isLight ? darkColors.bg.elevated : colors.bg.muted,
-    border: isLight ? withAlpha('#FFFFFF', 0.15) : colors.border.subtle,
+    border: isLight ? withAlpha('#FFFFFF', 0.25) : colors.border.subtle,
     text: '#FFFFFF',
     textMuted: 'rgba(255, 255, 255, 0.7)',
   };
@@ -221,7 +221,7 @@ export default function ChildBalanceAdminScreen() {
               <View style={styles.balanceHeaderTop}>
                 <PiggyBank size={16} color={header.textMuted} strokeWidth={2} />
                 <Text style={[styles.balanceHeaderLabel, { color: header.textMuted }]}>
-                  SALDO DE {(nome ?? 'FILHO').toUpperCase()}
+                  SALDO
                 </Text>
               </View>
               <Text style={[styles.balanceHeaderTotal, { color: header.text }]}>
