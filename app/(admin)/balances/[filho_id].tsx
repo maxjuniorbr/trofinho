@@ -231,13 +231,13 @@ export default function ChildBalanceAdminScreen() {
                 pontos disponíveis
               </Text>
               <View style={styles.balanceHeaderBoxes}>
-                <View style={[styles.balanceHeaderBox, { backgroundColor: header.boxBg }]}>
+                <View style={[styles.balanceHeaderBox, { backgroundColor: header.boxBg, borderColor: header.border }]}>
                   <Text style={[styles.balanceHeaderBoxLabel, { color: header.textMuted }]}>LIVRE</Text>
                   <Text style={[styles.balanceHeaderBoxValue, { color: header.text }]}>
                     {saldoLivre.toLocaleString('pt-BR')}
                   </Text>
                 </View>
-                <View style={[styles.balanceHeaderBox, { backgroundColor: header.boxBg }]}>
+                <View style={[styles.balanceHeaderBox, { backgroundColor: header.boxBg, borderColor: header.border }]}>
                   <Text style={[styles.balanceHeaderBoxLabel, { color: header.textMuted }]}>COFRINHO</Text>
                   <Text style={[styles.balanceHeaderBoxValue, { color: header.text }]}>
                     {cofrinho.toLocaleString('pt-BR')}
@@ -495,6 +495,7 @@ function makeStyles(colors: ThemeColors) {
       flex: 1,
       borderRadius: radii.lg,
       borderCurve: 'continuous',
+      borderWidth: 1,
       paddingVertical: spacing['3'],
       paddingHorizontal: spacing['4'],
       alignItems: 'center',
