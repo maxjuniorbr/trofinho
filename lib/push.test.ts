@@ -6,11 +6,13 @@ import { dispatchPushNotification } from './push';
 const invokeMock = vi.hoisted(() => vi.fn());
 const captureExceptionMock = vi.hoisted(() => vi.fn());
 const getSessionMock = vi.hoisted(() => vi.fn());
+const refreshSessionMock = vi.hoisted(() => vi.fn());
 
 vi.mock('./supabase', () => ({
   supabase: {
     auth: {
       getSession: getSessionMock,
+      refreshSession: refreshSessionMock,
     },
     functions: {
       invoke: invokeMock,
@@ -27,8 +29,19 @@ describe('dispatchPushNotification', () => {
     invokeMock.mockReset();
     captureExceptionMock.mockReset();
     getSessionMock.mockReset();
+    refreshSessionMock.mockReset();
+    // Default: session with token valid for 1 hour
     getSessionMock.mockResolvedValue({
-      data: { session: { access_token: 'test-access-token' } },
+      data: {
+        session: {
+          access_token: 'test-access-token',
+          expires_at: Math.floor(Date.now() / 1000) + 3600,
+        },
+      },
+    });
+    refreshSessionMock.mockResolvedValue({
+      data: { session: null },
+      error: new Error('no refresh needed'),
     });
     vi.restoreAllMocks();
   });
@@ -154,5 +167,89 @@ describe('dispatchPushNotification', () => {
     expect(consoleWarnSpy).not.toHaveBeenCalled();
     expect(captureExceptionMock).not.toHaveBeenCalled();
     consoleWarnSpy.mockRestore();
+  });
+
+  describe('Token freshness', () => {
+    it('skips notification when session is null', async () => {
+      getSessionMock.mockResolvedValueOnce({ data: { session: null } });
+
+      await dispatchPushNotification('tarefa_aprovada', 'family-1', {
+        userId: 'u1',
+        taskTitle: 'T',
+      });
+
+      expect(invokeMock).not.toHaveBeenCalled();
+      expect(captureExceptionMock).not.toHaveBeenCalled();
+    });
+
+    it('refreshes token when session is expired', async () => {
+      getSessionMock.mockResolvedValueOnce({
+        data: {
+          session: {
+            access_token: 'expired-token',
+            expires_at: Math.floor(Date.now() / 1000) - 60,
+          },
+        },
+      });
+      refreshSessionMock.mockResolvedValueOnce({
+        data: {
+          session: {
+            access_token: 'refreshed-token',
+            expires_at: Math.floor(Date.now() / 1000) + 3600,
+          },
+        },
+      });
+      invokeMock.mockResolvedValueOnce({ data: { sent: 1 }, error: null });
+
+      await dispatchPushNotification('tarefa_aprovada', 'family-1', {
+        userId: 'u1',
+        taskTitle: 'T',
+      });
+
+      expect(refreshSessionMock).toHaveBeenCalledOnce();
+      expect(invokeMock).toHaveBeenCalledWith('send-push-notification', {
+        body: {
+          event: 'tarefa_aprovada',
+          familiaId: 'family-1',
+          payload: { userId: 'u1', taskTitle: 'T' },
+        },
+        headers: { Authorization: 'Bearer refreshed-token' },
+      });
+    });
+
+    it('skips notification when refresh fails', async () => {
+      getSessionMock.mockResolvedValueOnce({
+        data: {
+          session: {
+            access_token: 'expired-token',
+            expires_at: Math.floor(Date.now() / 1000) - 60,
+          },
+        },
+      });
+      refreshSessionMock.mockResolvedValueOnce({
+        data: { session: null },
+        error: new Error('refresh failed'),
+      });
+
+      await dispatchPushNotification('tarefa_aprovada', 'family-1', {
+        userId: 'u1',
+        taskTitle: 'T',
+      });
+
+      expect(invokeMock).not.toHaveBeenCalled();
+      expect(captureExceptionMock).not.toHaveBeenCalled();
+    });
+
+    it('does not refresh when token has plenty of time left', async () => {
+      invokeMock.mockResolvedValueOnce({ data: { sent: 1 }, error: null });
+
+      await dispatchPushNotification('tarefa_aprovada', 'family-1', {
+        userId: 'u1',
+        taskTitle: 'T',
+      });
+
+      expect(refreshSessionMock).not.toHaveBeenCalled();
+      expect(invokeMock).toHaveBeenCalledOnce();
+    });
   });
 });
