@@ -201,5 +201,10 @@ export async function updateUserAvatar(
     };
   }
 
+  // Best-effort sync to filhos table so admin views show the avatar
+  await supabase.rpc('sincronizar_avatar_filho', {
+    p_avatar_url: uploadResult.publicUrl,
+  });
+
   return { url: uploadResult.publicUrl, error: null };
 }
