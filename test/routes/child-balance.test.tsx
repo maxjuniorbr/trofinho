@@ -213,6 +213,10 @@ vi.mock('@/components/ui/list-footer', () => ({
   ListFooter: (props: Record<string, unknown>) => React.createElement('ListFooter', props),
 }));
 
+vi.mock('@/components/ui/skeleton', () => ({
+  ListScreenSkeleton: () => React.createElement('ListScreenSkeleton'),
+}));
+
 vi.mock('@/context/theme-context', () => ({
   useTheme: () => ({
     colors: {
@@ -288,8 +292,8 @@ describe('ChildBalanceScreen', () => {
   it('shows loading state', () => {
     balanceMock.isLoading = true;
     const renderer = render(<ChildBalanceScreen />);
-    const empty = renderer.root.findAllByType('EmptyState' as never);
-    expect(empty.length).toBeGreaterThan(0);
+    const skeleton = renderer.root.findAllByType('ListScreenSkeleton' as never);
+    expect(skeleton.length).toBeGreaterThan(0);
   });
 
   it('shows error state when childId fails', () => {

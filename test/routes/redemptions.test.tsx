@@ -126,6 +126,14 @@ vi.mock('@/components/ui/safe-screen-frame', () => ({
     React.createElement('SafeScreenFrame', null, children),
 }));
 
+vi.mock('@/components/ui/button', () => ({
+  Button: (props: Record<string, unknown>) => React.createElement('Button', props),
+}));
+
+vi.mock('@/components/ui/skeleton', () => ({
+  ListScreenSkeleton: () => React.createElement('ListScreenSkeleton'),
+}));
+
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
   act(() => {
@@ -145,31 +153,18 @@ function makePendingRedemption(id: string, childName: string, prizeName: string,
   };
 }
 
-/** Find the "Cancelar" button for a specific redemption card by looking for XCircle icon sibling */
+/** Find the "Cancelar" button for a specific redemption card */
 function findCancelButton(renderer: ReactTestRenderer) {
-  return renderer.root.findAll((node) => {
-    if ((node.type as string) !== 'Pressable') return false;
-    try {
-      const texts = node.findAll((n) => (n.type as string) === 'Text');
-      return texts.some((t) => t.props.children === 'Cancelar');
-    } catch {
-      return false;
-    }
-  });
+  return renderer.root.findAll(
+    (node) => (node.type as string) === 'Button' && node.props.label === 'Cancelar',
+  );
 }
 
 /** Find the modal's "Cancelar resgate" confirm button */
 function findModalConfirmButton(renderer: ReactTestRenderer) {
-  // The modal confirm button has text "Cancelar resgate" inside a Pressable
-  return renderer.root.findAll((node) => {
-    if ((node.type as string) !== 'Pressable') return false;
-    try {
-      const texts = node.findAll((n) => (n.type as string) === 'Text');
-      return texts.some((t) => t.props.children === 'Cancelar resgate');
-    } catch {
-      return false;
-    }
-  });
+  return renderer.root.findAll(
+    (node) => (node.type as string) === 'Button' && node.props.label === 'Cancelar resgate',
+  );
 }
 
 describe('AdminRedemptionsScreen — cancellation dialog property tests', () => {

@@ -127,6 +127,10 @@ vi.mock('@/components/ui/inline-message', () => ({
   InlineMessage: (props: Record<string, unknown>) => React.createElement('InlineMessage', props),
 }));
 
+vi.mock('@/components/ui/skeleton', () => ({
+  AdminHomeScreenSkeleton: () => React.createElement('AdminHomeScreenSkeleton'),
+}));
+
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
   act(() => {
@@ -171,8 +175,8 @@ describe('AdminHomeScreen', () => {
   it('shows loading indicator when data is loading', () => {
     profileMock.isLoading = true;
     const renderer = render(<AdminHomeScreen />);
-    const indicators = renderer.root.findAllByType('ActivityIndicator' as never);
-    expect(indicators.length).toBeGreaterThan(0);
+    const skeleton = renderer.root.findAllByType('AdminHomeScreenSkeleton' as never);
+    expect(skeleton.length).toBeGreaterThan(0);
   });
 
   it('renders greeting and admin name', () => {
