@@ -78,7 +78,7 @@ function getSummaryColors(colors: ThemeColors) {
   return {
     bg: isLight ? darkColors.bg.surface : colors.bg.elevated,
     boxBg: isLight ? darkColors.bg.elevated : colors.bg.muted,
-    border: isLight ? withAlpha('#FFFFFF', 0.08) : colors.border.subtle,
+    border: isLight ? withAlpha('#FFFFFF', 0.15) : colors.border.subtle,
     text: '#FFFFFF',
     textMuted: 'rgba(255, 255, 255, 0.7)',
   };
@@ -338,6 +338,7 @@ export default function AdminHomeScreen() {
 
         {children.length > 0 ? (
           <View style={styles.childrenList}>
+              <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Filhos</Text>
               {children.map((item) => {
                 const saldo = balancesMap.get(item.id);
                 const pts = saldo ? saldo.saldo_livre + saldo.cofrinho : 0;

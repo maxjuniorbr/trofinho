@@ -45,7 +45,7 @@ function getBalanceHeaderColors(colors: ThemeColors) {
   return {
     bg: isLight ? darkColors.bg.surface : colors.bg.elevated,
     boxBg: isLight ? darkColors.bg.elevated : colors.bg.muted,
-    border: isLight ? withAlpha('#FFFFFF', 0.08) : colors.border.subtle,
+    border: isLight ? withAlpha('#FFFFFF', 0.15) : colors.border.subtle,
     text: '#FFFFFF',
     textMuted: 'rgba(255, 255, 255, 0.7)',
   };
@@ -281,8 +281,11 @@ export default function ChildBalanceAdminScreen() {
             <View style={styles.boxConfig}>
               <View style={styles.boxConfigTituloRow}>
                 <TrendingUp size={16} color={colors.text.primary} strokeWidth={2} />
-                <Text style={styles.boxConfigTitulo}>Valorização do cofrinho</Text>
+                <Text style={styles.boxConfigTitulo}>Valorização</Text>
               </View>
+              <Text style={styles.boxConfigSub}>
+                Taxa mensal aplicada sobre o cofrinho
+              </Text>
               <SteppedSlider
                 value={appreciationRate}
                 onValueChange={setAppreciationSlider}
@@ -305,23 +308,15 @@ export default function ChildBalanceAdminScreen() {
                 <View style={styles.projectionBox}>
                   <TrendingUp size={14} color={colors.semantic.success} strokeWidth={2} />
                   <Text style={[styles.projectionText, { color: colors.semantic.success }]}>
-                    Projeção: +{projection} pts no próximo mês
+                    +{projection} pts no próximo mês
                   </Text>
                 </View>
-              ) : null}
-              {hasAppreciationConfigured && cofrinho > 0 ? (
-                <Text style={styles.boxConfigAjuda}>
-                  Sobre {cofrinho} pts no cofrinho a {appreciationRate}%
-                </Text>
               ) : null}
               {ultimaValorizacaoTexto || proximaValorizacaoTexto ? (
                 <Text style={styles.boxConfigAjuda}>
                   {[ultimaValorizacaoTexto, proximaValorizacaoTexto].filter(Boolean).join(' · ')}
                 </Text>
               ) : null}
-              <Text style={styles.boxConfigAjuda}>
-                A valorização é lançada automaticamente no cofrinho quando o período vence.
-              </Text>
             </View>
 
             {pendingWithdrawal ? (() => {
@@ -380,8 +375,11 @@ export default function ChildBalanceAdminScreen() {
             <View style={styles.boxConfig}>
               <View style={styles.boxConfigTituloRow}>
                 <PiggyBank size={16} color={colors.text.primary} strokeWidth={2} />
-                <Text style={styles.boxConfigTitulo}>Taxa de resgate do cofrinho</Text>
+                <Text style={styles.boxConfigTitulo}>Taxa de resgate</Text>
               </View>
+              <Text style={styles.boxConfigSub}>
+                Percentual retido ao resgatar do cofrinho
+              </Text>
               <SteppedSlider
                 value={withdrawRate}
                 onValueChange={setWithdrawalSlider}
@@ -402,7 +400,7 @@ export default function ChildBalanceAdminScreen() {
               />
               {cofrinho > 0 ? (
                 <Text style={styles.boxConfigAjuda}>
-                  Ex: {cofrinho} pts → recebe{' '}
+                  {cofrinho} pts → recebe{' '}
                   {Math.round(cofrinho * (1 - withdrawRate / 100))} pts
                 </Text>
               ) : null}
@@ -410,30 +408,34 @@ export default function ChildBalanceAdminScreen() {
 
             <PenaltyButton onPress={() => setModalType('penalizar')} />
 
-            <Text style={styles.secaoTitulo}>Histórico</Text>
+            <View style={[styles.historicoHeader, { borderBottomColor: colors.border.subtle }]}>
+              <Text style={styles.secaoTitulo}>Histórico</Text>
+            </View>
             {transactions.length === 0 ? (
               <Text style={styles.vazio}>Nenhuma movimentação ainda.</Text>
             ) : null}
           </>
         }
         renderItem={({ item }) => (
-          <View style={styles.movItem}>
+          <View style={[styles.movItem, { borderBottomColor: colors.border.subtle }]}>
             <TransactionIcon type={item.tipo} style={styles.movIconBox} />
             <View style={styles.movInfo}>
               <Text style={styles.movLabel}>{getTransactionTypeLabel(item.tipo)}</Text>
               <Text style={styles.movDesc} numberOfLines={1}>
                 {item.descricao}
               </Text>
+            </View>
+            <View style={styles.movRight}>
+              <Text
+                style={[styles.movValor, isCredit(item.tipo) ? styles.creditoTxt : styles.debitoTxt]}
+              >
+                {isCredit(item.tipo) ? '+' : '-'}
+                {item.valor}
+              </Text>
               <Text style={styles.movData}>
                 {formatDate(item.created_at)}
               </Text>
             </View>
-            <Text
-              style={[styles.movValor, isCredit(item.tipo) ? styles.creditoTxt : styles.debitoTxt]}
-            >
-              {isCredit(item.tipo) ? '+' : '-'}
-              {item.valor}
-            </Text>
           </View>
         )}
         onEndReached={() => {
@@ -463,7 +465,7 @@ function makeStyles(colors: ThemeColors) {
       borderCurve: 'continuous',
       borderWidth: 1,
       padding: spacing['5'],
-      marginBottom: spacing['4'],
+      marginBottom: spacing['3'],
       gap: spacing['1'],
     },
     balanceHeaderTop: {
@@ -528,6 +530,12 @@ function makeStyles(colors: ThemeColors) {
       fontFamily: typography.family.bold,
       color: colors.text.primary,
     },
+    boxConfigSub: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.medium,
+      color: colors.text.muted,
+      marginBottom: spacing['2'],
+    },
     balanceHeaderProgress: {
       marginTop: spacing['3'],
       gap: spacing['1'],
@@ -572,32 +580,34 @@ function makeStyles(colors: ThemeColors) {
       fontSize: typography.size.xs,
       marginTop: spacing['2'],
     },
+    historicoHeader: {
+      borderBottomWidth: 1,
+      paddingBottom: spacing['3'],
+      marginTop: spacing['2'],
+      marginBottom: spacing['1'],
+    },
     secaoTitulo: {
       fontSize: typography.size.md,
       fontFamily: typography.family.bold,
       color: colors.text.primary,
-      marginTop: spacing['2'],
-      marginBottom: spacing['3'],
     },
     vazio: {
       color: colors.text.muted,
       fontSize: typography.size.sm,
       textAlign: 'center',
-      marginTop: spacing['2'],
+      marginTop: spacing['4'],
     },
     movItem: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: colors.bg.surface,
-      borderRadius: radii.lg,
-      borderCurve: 'continuous',
-      padding: spacing['3'],
-      marginBottom: spacing['2'],
+      paddingVertical: spacing['3'],
+      borderBottomWidth: StyleSheet.hairlineWidth,
     },
     movIconBox: {
       width: 36,
       height: 36,
       borderRadius: radii.md,
+      borderCurve: 'continuous',
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: spacing['3'],
@@ -611,10 +621,11 @@ function makeStyles(colors: ThemeColors) {
     movDesc: {
       fontSize: typography.size.xs,
       color: colors.text.secondary,
-      marginTop: spacing['1'],
+      marginTop: spacing['0.5'],
     },
-    movData: { fontSize: typography.size.xs, color: colors.text.muted, marginTop: spacing['1'] },
-    movValor: { fontSize: typography.size.md, fontFamily: typography.family.bold },
+    movRight: { alignItems: 'flex-end', gap: spacing['0.5'] },
+    movValor: { fontSize: typography.size.md, fontFamily: typography.family.bold, fontVariant: ['tabular-nums'] },
+    movData: { fontSize: typography.size.xxs, color: colors.text.muted },
     creditoTxt: { color: colors.semantic.success },
     debitoTxt: { color: colors.semantic.error },
     pendingBanner: {
