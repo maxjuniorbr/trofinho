@@ -40,27 +40,26 @@ export function HomeScreenSkeleton() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
+      {/* Hero: greeting, name, family */}
       <View style={styles.heroSkeleton}>
         <SkeletonBox width={120} height={14} />
-        <SkeletonBox width={180} height={28} style={{ marginTop: spacing['2'] }} />
+        <SkeletonBox width={180} height={32} style={{ marginTop: spacing['2'] }} />
         <SkeletonBox width={100} height={14} style={{ marginTop: spacing['1'] }} />
       </View>
 
+      {/* Mascot image + caption */}
       <SkeletonBox width={120} height={120} borderRadius={radii.full} />
-      <SkeletonBox width={160} height={14} style={{ marginTop: spacing['2'] }} />
+      <SkeletonBox width={160} height={14} />
 
+      {/* Summary card (MEU SALDO — label, total, progress bar, 2 boxes) */}
+      <SkeletonBox height={180} borderRadius={radii.xl} />
+
+      {/* Quick actions row (4 cards) */}
       <View style={styles.cardsRow}>
-        <SkeletonBox height={90} borderRadius={radii.outer} style={{ flex: 1 }} />
-        <SkeletonBox height={90} borderRadius={radii.outer} style={{ flex: 1 }} />
-      </View>
-
-      <SkeletonBox height={64} borderRadius={radii.outer} />
-
-      <View style={styles.cardsRow}>
-        <SkeletonBox height={80} borderRadius={radii.inner} style={{ flex: 1 }} />
-        <SkeletonBox height={80} borderRadius={radii.inner} style={{ flex: 1 }} />
-        <SkeletonBox height={80} borderRadius={radii.inner} style={{ flex: 1 }} />
-        <SkeletonBox height={80} borderRadius={radii.inner} style={{ flex: 1 }} />
+        <SkeletonBox height={88} borderRadius={radii.xl} style={{ flex: 1 }} />
+        <SkeletonBox height={88} borderRadius={radii.xl} style={{ flex: 1 }} />
+        <SkeletonBox height={88} borderRadius={radii.xl} style={{ flex: 1 }} />
+        <SkeletonBox height={88} borderRadius={radii.xl} style={{ flex: 1 }} />
       </View>
     </View>
   );
