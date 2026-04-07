@@ -4,7 +4,7 @@ import { Camera } from 'lucide-react-native';
 import { useState } from 'react';
 import { Avatar } from '@/components/ui/avatar';
 import { InlineMessage } from '@/components/ui/inline-message';
-import { updateUserAvatar } from '@lib/auth';
+import { useUpdateUserAvatar } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 
@@ -18,8 +18,8 @@ type AvatarSectionProps = Readonly<{
 export function AvatarSection({ name, avatarUri, role = 'admin', onAvatarChange }: AvatarSectionProps) {
   const { colors } = useTheme();
   const accentColor = role === 'filho' ? colors.accent.filhoDim : colors.accent.adminDim;
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const updateAvatarMutation = useUpdateUserAvatar();
 
   async function handlePick() {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -32,18 +32,12 @@ export function AvatarSection({ name, avatarUri, role = 'admin', onAvatarChange 
     if (result.canceled || !result.assets[0]) return;
 
     setError(null);
-    setUploading(true);
     try {
-      const { url, error: uploadError } = await updateUserAvatar(result.assets[0].uri);
-      if (uploadError) {
-        setError(uploadError.message);
-        return;
-      }
-      onAvatarChange(url);
-    } catch {
-      setError('Não foi possível atualizar a foto.');
-    } finally {
-      setUploading(false);
+      const url = await updateAvatarMutation.mutateAsync(result.assets[0].uri);
+      onAvatarChange(url ?? null);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Não foi possível atualizar a foto.';
+      setError(message);
     }
   }
 
@@ -51,14 +45,14 @@ export function AvatarSection({ name, avatarUri, role = 'admin', onAvatarChange 
     <View style={styles.section}>
       <Pressable
         onPress={handlePick}
-        disabled={uploading}
+        disabled={updateAvatarMutation.isPending}
         style={styles.wrapper}
         accessibilityRole="button"
         accessibilityLabel="Alterar foto de perfil"
       >
         <Avatar name={name} size={80} imageUri={avatarUri} />
         <View style={[styles.cameraBtn, { backgroundColor: accentColor }]}>
-          {uploading ? (
+          {updateAvatarMutation.isPending ? (
             <ActivityIndicator size="small" color={colors.text.inverse} />
           ) : (
             <Camera size={12} color={colors.text.inverse} strokeWidth={2.5} />
