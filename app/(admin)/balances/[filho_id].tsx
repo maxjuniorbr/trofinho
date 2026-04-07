@@ -436,10 +436,11 @@ function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     lista: { padding: spacing['5'], paddingBottom: spacing['12'] },
-    cardsRow: { flexDirection: 'row', gap: spacing['3'], marginBottom: spacing['4'] },
+    cardsRow: { flexDirection: 'row', gap: spacing['3'], marginBottom: spacing['3'] },
     saldoCard: {
       flex: 1,
       borderRadius: radii.xl,
+      borderCurve: 'continuous',
       padding: spacing['4'],
       alignItems: 'center',
       ...shadows.card,
@@ -468,9 +469,11 @@ function makeStyles(colors: ThemeColors) {
     boxConfig: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,
+      borderCurve: 'continuous',
+      borderWidth: 1,
+      borderColor: colors.border.subtle,
       padding: spacing['4'],
       marginBottom: spacing['3'],
-      ...shadows.card,
     },
     boxConfigTituloRow: {
       flexDirection: 'row',
@@ -484,8 +487,7 @@ function makeStyles(colors: ThemeColors) {
       color: colors.text.primary,
     },
     progressContainer: {
-      marginTop: -spacing['2'],
-      marginBottom: spacing['3'],
+      marginBottom: spacing['4'],
       gap: spacing['1'],
     },
     progressTrack: {
@@ -533,6 +535,7 @@ function makeStyles(colors: ThemeColors) {
       fontSize: typography.size.md,
       fontFamily: typography.family.bold,
       color: colors.text.primary,
+      marginTop: spacing['2'],
       marginBottom: spacing['3'],
     },
     vazio: {
@@ -546,6 +549,7 @@ function makeStyles(colors: ThemeColors) {
       alignItems: 'center',
       backgroundColor: colors.bg.surface,
       borderRadius: radii.lg,
+      borderCurve: 'continuous',
       padding: spacing['3'],
       marginBottom: spacing['2'],
     },
@@ -575,6 +579,7 @@ function makeStyles(colors: ThemeColors) {
     pendingBanner: {
       backgroundColor: colors.semantic.warningBg,
       borderRadius: radii.xl,
+      borderCurve: 'continuous',
       padding: spacing['4'],
       marginBottom: spacing['3'],
       gap: spacing['2'],
