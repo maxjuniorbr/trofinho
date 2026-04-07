@@ -179,7 +179,7 @@ describe('AdminHomeScreen', () => {
     const renderer = render(<AdminHomeScreen />);
     const text = allText(renderer);
     expect(text).toContain('Bom dia');
-    expect(text).toContain('Olá, Max');
+    expect(text).toContain('Família Silva');
   });
 
   it('renders family name', () => {
@@ -195,21 +195,21 @@ describe('AdminHomeScreen', () => {
     expect(text).toContain('Pedro');
   });
 
-  it('renders metric cards with correct values', () => {
+  it('renders family summary card with totals', () => {
     const renderer = render(<AdminHomeScreen />);
     const text = allText(renderer);
-    expect(text).toContain('Filhos');
-    expect(text).toContain('Pontos da família');
+    expect(text).toContain('RESUMO DA FAMÍLIA');
+    expect(text).toContain('LIVRE');
+    expect(text).toContain('COFRINHO');
   });
 
   it('renders quick actions', () => {
     const renderer = render(<AdminHomeScreen />);
     const text = allText(renderer);
     expect(text).toContain('Tarefas');
-    expect(text).toContain('Filhos');
-    expect(text).toContain('Saldos');
     expect(text).toContain('Prêmios');
     expect(text).toContain('Resgates');
+    expect(text).not.toContain('Saldos');
   });
 
   it('navigates to profile when avatar is pressed', () => {
@@ -223,7 +223,7 @@ describe('AdminHomeScreen', () => {
     expect(routerMock.push).toHaveBeenCalledWith('/(admin)/perfil');
   });
 
-  it('navigates to children screen when pressing child card', () => {
+  it('navigates to balance screen when pressing child card', () => {
     const renderer = render(<AdminHomeScreen />);
     const childCards = renderer.root.findAll(
       (node) => node.props.accessibilityLabel?.includes('Ana'),
@@ -232,7 +232,10 @@ describe('AdminHomeScreen', () => {
     act(() => {
       childCards[0].props.onPress();
     });
-    expect(routerMock.push).toHaveBeenCalledWith('/(admin)/children/c1');
+    expect(routerMock.push).toHaveBeenCalledWith({
+      pathname: '/(admin)/balances/[filho_id]',
+      params: { filho_id: 'c1', nome: 'Ana' },
+    });
   });
 
   it('shows pending section when there are pending validations', () => {

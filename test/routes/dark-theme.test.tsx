@@ -272,18 +272,25 @@ describe('Dark theme rendering', () => {
 
     it('applies dark surface background to cards', () => {
       const renderer = render(<AdminHomeScreen />);
-      const views = renderer.root.findAllByType('View' as never);
-      const surfaceViews = views.filter((v) => {
-        const style = v.props.style;
-        if (Array.isArray(style)) {
-          return style.some(
+
+      const hasSurfaceBg = (style: unknown): boolean => {
+        const resolved = typeof style === 'function' ? style({ pressed: false }) : style;
+        if (Array.isArray(resolved)) {
+          return resolved.some(
             (s: Record<string, unknown>) =>
               s && typeof s === 'object' && s.backgroundColor === darkColors.bg.surface,
           );
         }
-        return style?.backgroundColor === darkColors.bg.surface;
-      });
-      expect(surfaceViews.length).toBeGreaterThan(0);
+        return (
+          resolved != null &&
+          typeof resolved === 'object' &&
+          (resolved as Record<string, unknown>).backgroundColor === darkColors.bg.surface
+        );
+      };
+
+      const allElements = renderer.root.findAll(() => true);
+      const surfaceElements = allElements.filter((el) => hasSurfaceBg(el.props.style));
+      expect(surfaceElements.length).toBeGreaterThan(0);
     });
   });
 
