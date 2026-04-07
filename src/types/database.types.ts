@@ -317,6 +317,7 @@ export type Database = {
       resgates: {
         Row: {
           created_at: string
+          familia_id: string
           filho_id: string
           id: string
           pontos_debitados: number
@@ -326,6 +327,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          familia_id: string
           filho_id: string
           id?: string
           pontos_debitados: number
@@ -335,6 +337,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          familia_id?: string
           filho_id?: string
           id?: string
           pontos_debitados?: number
@@ -343,6 +346,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "resgates_familia_id_fkey"
+            columns: ["familia_id"]
+            isOneToOne: false
+            referencedRelation: "familias"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "resgates_filho_id_fkey"
             columns: ["filho_id"]

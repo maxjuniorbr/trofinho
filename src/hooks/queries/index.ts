@@ -3,6 +3,7 @@ export { queryFnAdapter, mutationFnAdapter } from './query-fn-adapter';
 export { combineQueryStates } from './combine-query-states';
 export { useTasksLiveSync } from './use-tasks-live-sync';
 export { useBalanceLiveSync } from './use-balance-live-sync';
+export { useRedemptionsLiveSync } from './use-redemptions-live-sync';
 
 export {
   useAdminTasks,
