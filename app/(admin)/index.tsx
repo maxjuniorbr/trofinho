@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Text,
   View,
-  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useMemo } from 'react';
@@ -45,6 +44,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { NotificationPermissionBanner } from '@/components/ui/notification-permission-banner';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { InlineMessage } from '@/components/ui/inline-message';
+import { AdminHomeScreenSkeleton } from '@/components/ui/skeleton';
 
 import type { LucideIcon } from 'lucide-react-native';
 
@@ -152,9 +152,9 @@ export default function AdminHomeScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.loading, { backgroundColor: colors.bg.canvas }]}>
-        <ActivityIndicator size="large" color={colors.brand.vivid} />
-      </View>
+      <SafeScreenFrame topInset bottomInset>
+        <AdminHomeScreenSkeleton />
+      </SafeScreenFrame>
     );
   }
 
@@ -365,7 +365,6 @@ export default function AdminHomeScreen() {
 
 function makeStyles() {
   return StyleSheet.create({
-    loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     container: { flexGrow: 1, paddingHorizontal: spacing.screen },
 
     hero: {

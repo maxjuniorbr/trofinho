@@ -65,6 +65,41 @@ export function HomeScreenSkeleton() {
   );
 }
 
+export function AdminHomeScreenSkeleton() {
+  const { colors } = useTheme();
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
+      {/* Hero: greeting + name left, avatar right */}
+      <View style={styles.adminHeroRow}>
+        <View style={styles.adminHeroText}>
+          <SkeletonBox width={100} height={14} />
+          <SkeletonBox width={200} height={28} style={{ marginTop: spacing['2'] }} />
+        </View>
+        <SkeletonBox width={52} height={52} borderRadius={radii.full} />
+      </View>
+
+      {/* Summary card */}
+      <SkeletonBox height={160} borderRadius={radii.xl} style={{ width: '100%' }} />
+
+      {/* Quick actions row (4 cards) */}
+      <View style={styles.cardsRow}>
+        {Array.from({ length: 4 }, (_, i) => (
+          <SkeletonBox key={i} height={88} borderRadius={radii.xl} style={{ flex: 1 }} />
+        ))}
+      </View>
+
+      {/* Children section header */}
+      <SkeletonBox width={60} height={18} style={{ alignSelf: 'flex-start' }} />
+
+      {/* Children cards */}
+      {Array.from({ length: 2 }, (_, i) => (
+        <SkeletonBox key={i} height={72} borderRadius={radii.xl} style={{ width: '100%' }} />
+      ))}
+    </View>
+  );
+}
+
 export function ListScreenSkeleton() {
   return (
     <View style={styles.listContainer}>
@@ -94,6 +129,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     marginBottom: spacing['2'],
+  },
+  adminHeroRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  adminHeroText: {
+    gap: spacing['1'],
   },
   cardsRow: {
     flexDirection: 'row',

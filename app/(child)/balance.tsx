@@ -34,6 +34,7 @@ import type { ThemeColors } from '@/constants/theme';
 import { darkColors, radii, spacing, typography, withAlpha } from '@/constants/theme';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ListScreenSkeleton } from '@/components/ui/skeleton';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { TransactionIcon } from '@/components/balance/transaction-icon';
@@ -178,10 +179,10 @@ export default function ChildBalanceScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
+      <SafeScreenFrame topInset bottomInset>
         <StatusBar style={colors.statusBar} />
-        <EmptyState loading />
-      </View>
+        <ListScreenSkeleton />
+      </SafeScreenFrame>
     );
   }
 
@@ -603,7 +604,6 @@ export default function ChildBalanceScreen() {
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     list: { paddingHorizontal: spacing['5'], paddingBottom: spacing['12'] },
 
     balanceHeader: {
