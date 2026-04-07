@@ -58,79 +58,89 @@ export const PasswordCard = () => {
         <Text style={[styles.title, { color: colors.text.primary }]}>Segurança</Text>
       </View>
 
-      <Text style={[styles.label, { color: colors.text.secondary }]}>Senha atual</Text>
-      <TextInput
-        style={[
-          styles.input,
-          {
-            backgroundColor: colors.bg.elevated,
-            borderColor: colors.border.default,
-            color: colors.text.primary,
-          },
-        ]}
-        value={currentPassword}
-        onChangeText={(v) => {
-          setCurrentPassword(v);
-          setSuccess(null);
-          setValidationError(null);
-          updatePasswordMutation.reset();
-        }}
-        placeholder="Digite sua senha atual"
-        placeholderTextColor={colors.text.muted}
-        secureTextEntry
-        autoCapitalize="none"
-        autoCorrect={false}
-        maxLength={72}
-        accessibilityLabel="Senha atual"
-      />
-      <TextInput
-        style={[
-          styles.input,
-          {
-            backgroundColor: colors.bg.elevated,
-            borderColor: colors.border.default,
-            color: colors.text.primary,
-          },
-        ]}
-        value={newPassword}
-        onChangeText={(v) => {
-          setNewPassword(v);
-          setSuccess(null);
-          setValidationError(null);
-          updatePasswordMutation.reset();
-        }}
-        placeholder="Mínimo 6 caracteres"
-        placeholderTextColor={colors.text.muted}
-        secureTextEntry
-        autoCapitalize="none"
-        autoCorrect={false}
-        maxLength={72}
-        accessibilityLabel="Nova senha"
-      />
-      <TextInput
-        style={[
-          styles.input,
-          {
-            backgroundColor: colors.bg.elevated,
-            borderColor: colors.border.default,
-            color: colors.text.primary,
-          },
-        ]}
-        value={confirmPassword}
-        onChangeText={(v) => {
-          setConfirmPassword(v);
-          setSuccess(null);
-          setValidationError(null);
-          updatePasswordMutation.reset();
-        }}
-        placeholder="Repita a nova senha"
-        placeholderTextColor={colors.text.muted}
-        secureTextEntry
-        autoCapitalize="none"
-        autoCorrect={false}
-        maxLength={72}
-        accessibilityLabel="Confirmar nova senha"
-      />
+      <View style={styles.field}>
+        <Text style={[styles.label, { color: colors.text.secondary }]}>Senha atual</Text>
+        <TextInput
+          style={[
+            styles.input,
+            {
+              backgroundColor: colors.bg.elevated,
+              borderColor: colors.border.default,
+              color: colors.text.primary,
+            },
+          ]}
+          value={currentPassword}
+          onChangeText={(v) => {
+            setCurrentPassword(v);
+            setSuccess(null);
+            setValidationError(null);
+            updatePasswordMutation.reset();
+          }}
+          placeholder="Digite sua senha atual"
+          placeholderTextColor={colors.text.muted}
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+          maxLength={72}
+          accessibilityLabel="Senha atual"
+        />
+      </View>
+
+      <View style={styles.field}>
+        <Text style={[styles.label, { color: colors.text.secondary }]}>Nova senha</Text>
+        <TextInput
+          style={[
+            styles.input,
+            {
+              backgroundColor: colors.bg.elevated,
+              borderColor: colors.border.default,
+              color: colors.text.primary,
+            },
+          ]}
+          value={newPassword}
+          onChangeText={(v) => {
+            setNewPassword(v);
+            setSuccess(null);
+            setValidationError(null);
+            updatePasswordMutation.reset();
+          }}
+          placeholder="Mínimo 6 caracteres"
+          placeholderTextColor={colors.text.muted}
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+          maxLength={72}
+          accessibilityLabel="Nova senha"
+        />
+      </View>
+
+      <View style={styles.field}>
+        <Text style={[styles.label, { color: colors.text.secondary }]}>Confirmar nova senha</Text>
+        <TextInput
+          style={[
+            styles.input,
+            {
+              backgroundColor: colors.bg.elevated,
+              borderColor: colors.border.default,
+              color: colors.text.primary,
+            },
+          ]}
+          value={confirmPassword}
+          onChangeText={(v) => {
+            setConfirmPassword(v);
+            setSuccess(null);
+            setValidationError(null);
+            updatePasswordMutation.reset();
+          }}
+          placeholder="Repita a nova senha"
+          placeholderTextColor={colors.text.muted}
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+          maxLength={72}
+          accessibilityLabel="Confirmar nova senha"
+        />
+      </View>
 
       {errorMessage ? <InlineMessage message={errorMessage} variant="error" /> : null}
       {visibleSuccessMessage ? (
@@ -139,7 +149,7 @@ export const PasswordCard = () => {
 
       <Button
         label="Confirmar nova senha"
-        variant="secondary"
+        variant="primary"
         loading={updatePasswordMutation.isPending}
         onPress={handleSave}
         disabled={updatePasswordMutation.isPending}
@@ -149,22 +159,20 @@ export const PasswordCard = () => {
 };
 
 const styles = StyleSheet.create({
-  card: { borderRadius: radii.xl, borderCurve: 'continuous', borderWidth: 1, padding: spacing['4'], gap: spacing['1'] },
+  card: { borderRadius: radii.xl, borderCurve: 'continuous', borderWidth: 1, padding: spacing['4'], gap: spacing['4'] },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing['1.5'],
-    marginBottom: spacing['2'],
   },
   title: {
     fontFamily: typography.family.bold,
     fontSize: typography.size.md,
   },
+  field: { gap: spacing['1'] },
   label: {
     fontSize: typography.size.sm,
     fontFamily: typography.family.semibold,
-    marginTop: spacing['3'],
-    marginBottom: spacing['1'],
   },
   input: {
     borderWidth: 1,
@@ -173,5 +181,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['4'],
     paddingVertical: spacing['3'],
     fontSize: typography.size.md,
+    minHeight: 48,
   },
 });
