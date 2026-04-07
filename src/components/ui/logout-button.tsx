@@ -36,7 +36,8 @@ export function LogoutButton({ onPress, loading }: LogoutButtonProps) {
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: radii.md,
+    borderRadius: radii.xl,
+    borderCurve: 'continuous',
     borderWidth: 1,
     paddingVertical: spacing['3'],
     alignItems: 'center',

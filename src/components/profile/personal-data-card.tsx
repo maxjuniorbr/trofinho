@@ -1,5 +1,6 @@
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { useState } from 'react';
+import { User } from 'lucide-react-native';
 import { type UserProfile } from '@lib/auth';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
@@ -49,7 +50,10 @@ export const PersonalDataCard = ({ profile, email, onNameUpdated }: PersonalData
         { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
       ]}
     >
-      <Text style={[styles.title, { color: colors.text.primary }]}>Dados pessoais</Text>
+      <View style={styles.titleRow}>
+        <User size={16} color={colors.text.primary} strokeWidth={2} />
+        <Text style={[styles.title, { color: colors.text.primary }]}>Dados pessoais</Text>
+      </View>
 
       <Text style={[styles.label, { color: colors.text.secondary }]}>Nome completo</Text>
       <TextInput
@@ -103,11 +107,16 @@ export const PersonalDataCard = ({ profile, email, onNameUpdated }: PersonalData
 };
 
 const styles = StyleSheet.create({
-  card: { borderRadius: radii.lg, borderWidth: 1, padding: spacing['4'], gap: spacing['1'] },
+  card: { borderRadius: radii.xl, borderCurve: 'continuous', borderWidth: 1, padding: spacing['4'], gap: spacing['1'] },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['1.5'],
+    marginBottom: spacing['2'],
+  },
   title: {
     fontFamily: typography.family.bold,
     fontSize: typography.size.md,
-    marginBottom: spacing['2'],
   },
   label: {
     fontSize: typography.size.sm,
@@ -117,14 +126,16 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
+    borderCurve: 'continuous',
     paddingHorizontal: spacing['4'],
     paddingVertical: spacing['3'],
     fontSize: typography.size.md,
   },
   inputReadonly: {
     borderWidth: 1,
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
+    borderCurve: 'continuous',
     paddingHorizontal: spacing['4'],
     paddingVertical: spacing['3'],
     minHeight: 48,
