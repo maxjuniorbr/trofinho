@@ -62,7 +62,7 @@ function getSizeTokens(size: Size): ButtonSizeTokens {
   }
 }
 
-export function Button({
+export const Button = ({
   variant = 'primary',
   size = 'md',
   loading = false,
@@ -71,7 +71,7 @@ export function Button({
   disabled,
   onPress,
   ...rest
-}: ReadonlyButtonProps) {
+}: ReadonlyButtonProps) => {
   const { colors } = useTheme();
 
   const isDisabled = disabled || loading;
@@ -156,6 +156,8 @@ export function Button({
       {...rest}
       onPress={handlePress}
       disabled={isDisabled}
+      accessibilityRole="button"
+      accessibilityLabel={rest.accessibilityLabel ?? (loading && loadingLabel ? loadingLabel : label)}
       style={({ pressed }) => {
         let opacity = 1;
         if (isDisabled) opacity = 0.45;
@@ -192,7 +194,7 @@ export function Button({
       )}
     </Pressable>
   );
-}
+};
 
 const styles = StyleSheet.create({
   base: {

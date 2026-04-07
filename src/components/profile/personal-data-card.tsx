@@ -1,10 +1,12 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { useState } from 'react';
-import { updateUserName, type UserProfile } from '@lib/auth';
+import { type UserProfile } from '@lib/auth';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { InlineMessage } from '@/components/ui/inline-message';
+import { Button } from '@/components/ui/button';
+import { useUpdateUserName } from '@/hooks/queries/use-profile';
 
 type PersonalDataCardProps = Readonly<{
   profile: UserProfile | null;
@@ -12,29 +14,33 @@ type PersonalDataCardProps = Readonly<{
   onNameUpdated: (name: string) => void;
 }>;
 
-export function PersonalDataCard({ profile, email, onNameUpdated }: PersonalDataCardProps) {
+export const PersonalDataCard = ({ profile, email, onNameUpdated }: PersonalDataCardProps) => {
   const { colors } = useTheme();
   const [name, setName] = useState(profile?.nome ?? '');
-  const [saving, setSaving] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const visibleSuccessMessage = useTransientMessage(success);
+  const updateNameMutation = useUpdateUserName();
 
-  async function handleSave() {
-    setError(null);
+  const handleSave = () => {
+    setValidationError(null);
     setSuccess(null);
+    updateNameMutation.reset();
     const trimmed = name.trim();
-    if (!trimmed) return setError('Informe seu nome.');
-    setSaving(true);
-    const { error: saveError } = await updateUserName(trimmed);
-    setSaving(false);
-    if (saveError) {
-      setError(saveError.message);
+    if (!trimmed) {
+      setValidationError('Informe seu nome.');
       return;
     }
-    onNameUpdated(trimmed);
-    setSuccess('Nome atualizado.');
-  }
+    updateNameMutation.mutate(trimmed, {
+      onSuccess: () => {
+        onNameUpdated(trimmed);
+        setSuccess('Nome atualizado.');
+      },
+    });
+  };
+
+  const errorMessage =
+    validationError ?? (updateNameMutation.error ? updateNameMutation.error.message : null);
 
   return (
     <View
@@ -59,13 +65,15 @@ export function PersonalDataCard({ profile, email, onNameUpdated }: PersonalData
         onChangeText={(v) => {
           setName(v);
           setSuccess(null);
-          setError(null);
+          setValidationError(null);
+          updateNameMutation.reset();
         }}
         placeholder="Seu nome"
         placeholderTextColor={colors.text.muted}
         autoCapitalize="words"
         autoCorrect={false}
         maxLength={60}
+        accessibilityLabel="Nome completo"
       />
 
       <Text style={[styles.label, { color: colors.text.secondary }]}>E-mail</Text>
@@ -78,28 +86,21 @@ export function PersonalDataCard({ profile, email, onNameUpdated }: PersonalData
         <Text style={[styles.inputReadonlyText, { color: colors.text.muted }]}>{email}</Text>
       </View>
 
-      {error ? <InlineMessage message={error} variant="error" /> : null}
+      {errorMessage ? <InlineMessage message={errorMessage} variant="error" /> : null}
       {visibleSuccessMessage ? (
         <InlineMessage message={visibleSuccessMessage} variant="success" />
       ) : null}
 
-      <Pressable
-        style={[
-          styles.btn,
-          { backgroundColor: colors.accent.adminDim, opacity: saving ? 0.55 : 1 },
-        ]}
+      <Button
+        label="Salvar alterações"
+        variant="secondary"
+        loading={updateNameMutation.isPending}
         onPress={handleSave}
-        disabled={saving}
-      >
-        {saving ? (
-          <ActivityIndicator color={colors.text.inverse} />
-        ) : (
-          <Text style={[styles.btnText, { color: colors.text.inverse }]}>Salvar alterações</Text>
-        )}
-      </Pressable>
+        disabled={updateNameMutation.isPending}
+      />
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   card: { borderRadius: radii.lg, borderWidth: 1, padding: spacing['4'], gap: spacing['1'] },
@@ -130,14 +131,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   inputReadonlyText: { fontSize: typography.size.md },
-
-  btn: {
-    borderRadius: radii.md,
-    paddingVertical: spacing['3'],
-    alignItems: 'center',
-    minHeight: 48,
-    justifyContent: 'center',
-    marginTop: spacing['3'],
-  },
-  btnText: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
 });

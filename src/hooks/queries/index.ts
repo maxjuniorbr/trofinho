@@ -18,6 +18,7 @@ export {
   useCompleteAssignment,
   useDeactivateTask,
   useReactivateTask,
+  useRenewDailyTasks,
 } from './use-tasks';
 export {
   useBalance,

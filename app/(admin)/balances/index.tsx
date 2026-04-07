@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View, Pressable, FlatList, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useMemo } from 'react';
 import { useRouter } from 'expo-router';
@@ -30,7 +31,7 @@ export default function BalancesAdminScreen() {
       {isLoading ? (
         <EmptyState loading />
       ) : (
-        <FlatList
+        <FlashList
           data={balances}
           keyExtractor={(s) => s.filho_id}
           contentContainerStyle={styles.lista}

@@ -46,15 +46,15 @@ export const useTaskDetail = (taskId: string | undefined) =>
     enabled: !!taskId,
   });
 
+export const useRenewDailyTasks = () =>
+  useMutation({
+    mutationFn: () => renewDailyTasks(),
+  });
+
 export const useChildAssignments = () =>
   useInfiniteQuery({
     queryKey: queryKeys.tasks.childAssignments(),
-    queryFn: async ({ pageParam }) => {
-      if (pageParam === 0) await renewDailyTasks();
-      const result = await listChildAssignments(pageParam, PAGE_SIZES.tasks);
-      if (result.error) throw new Error(result.error);
-      return { data: result.data, hasMore: result.hasMore };
-    },
+    queryFn: paginatedQueryFnAdapter(listChildAssignments, PAGE_SIZES.tasks),
     initialPageParam: 0,
     getNextPageParam: (
       lastPage: PaginatedPage<unknown>,

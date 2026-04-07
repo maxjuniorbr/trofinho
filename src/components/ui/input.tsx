@@ -20,6 +20,7 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
       <Text style={[styles.label, { color: colors.text.secondary }]}>{label}</Text>
       <TextInput
         ref={ref}
+        accessibilityLabel={rest.accessibilityLabel ?? label}
         style={[
           styles.input,
           {

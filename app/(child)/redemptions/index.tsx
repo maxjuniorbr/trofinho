@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native';
 import { StyleSheet, Text, View, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
@@ -45,6 +46,7 @@ export default function ChildRedemptionsScreen() {
     try {
       await refetch();
     } catch (e) {
+      Sentry.captureException(e);
       console.error(e);
     }
   };

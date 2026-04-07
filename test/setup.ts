@@ -128,6 +128,7 @@ class AnimatedValue {
 
 vi.mock('react-native', () => ({
   ActivityIndicator: createHostComponent('ActivityIndicator'),
+  Alert: { alert: vi.fn() },
   Animated: {
     View: createHostComponent('Animated.View'),
     Value: AnimatedValue,
@@ -137,6 +138,7 @@ vi.mock('react-native', () => ({
   },
   Image: createHostComponent('Image'),
   KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
+  Platform: { OS: 'ios', select: (obj: Record<string, unknown>) => obj.ios },
   Pressable: createHostComponent('Pressable'),
   ScrollView: createHostComponent('ScrollView'),
   StyleSheet: {
@@ -157,6 +159,17 @@ vi.mock('expo-haptics', () => ({
   NotificationFeedbackType: { Success: 'success' },
   impactAsync: vi.fn().mockResolvedValue(undefined),
   notificationAsync: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('expo-crypto', () => ({
+  randomUUID: () => '00000000-0000-4000-8000-000000000000',
+}));
+
+vi.mock('@sentry/react-native', () => ({
+  captureException: vi.fn(),
+  init: vi.fn(),
+  wrap: (component: unknown) => component,
+  ReactNavigationInstrumentation: vi.fn(),
 }));
 
 vi.mock('react-native-safe-area-context', () => ({

@@ -99,6 +99,7 @@ vi.mock('@lib/status', () => ({
 vi.mock('@/hooks/queries', () => ({
   useChildAssignments: () => childAssignmentsMock,
   useTasksLiveSync: () => undefined,
+  useRenewDailyTasks: () => ({ mutate: vi.fn() }),
 }));
 
 vi.mock('@/context/theme-context', () => ({

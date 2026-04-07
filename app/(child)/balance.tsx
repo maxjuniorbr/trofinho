@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native';
 import {
   StyleSheet,
   Text,
@@ -16,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Wallet, TrendingUp } from 'lucide-react-native';
 import { hapticSuccess } from '@lib/haptics';
+import { formatDate } from '@lib/utils';
 import { getAppreciationPeriodLabel, getTransactionTypeLabel, isCredit } from '@lib/balances';
 import { getMyChildId } from '@lib/children';
 import {
@@ -28,6 +30,7 @@ import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { TransactionIcon } from '@/components/balance/transaction-icon';
@@ -44,11 +47,15 @@ export default function ChildBalanceScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [childId, setChildId] = useState<string | null>(null);
+  const [childIdError, setChildIdError] = useState(false);
 
   useEffect(() => {
     getMyChildId()
       .then(setChildId)
-      .catch(() => setChildId(null));
+      .catch((e) => {
+        Sentry.captureException(e);
+        setChildIdError(true);
+      });
   }, []);
 
   const balanceQuery = useBalance(childId ?? undefined);
@@ -77,6 +84,7 @@ export default function ChildBalanceScreen() {
     try {
       await refetchAll();
     } catch (e) {
+      Sentry.captureException(e);
       console.error(e);
     } finally {
       setRefreshing(false);
@@ -108,6 +116,18 @@ export default function ChildBalanceScreen() {
     }
   };
 
+  if (childIdError) {
+    return (
+      <SafeScreenFrame>
+        <StatusBar style={colors.statusBar} />
+        <ScreenHeader title="Meu saldo" />
+        <EmptyState
+          error="Não foi possível carregar seu saldo. Tente novamente mais tarde."
+        />
+      </SafeScreenFrame>
+    );
+  }
+
   if (isLoading || childId === null) {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
@@ -128,7 +148,7 @@ export default function ChildBalanceScreen() {
     : null;
   const hasTransactions = transactions.length > 0;
   const nextAppreciationText = balance?.proxima_valorizacao_em
-    ? ` em ${new Date(balance.proxima_valorizacao_em).toLocaleDateString('pt-BR')}`
+    ? ` em ${formatDate(balance.proxima_valorizacao_em)}`
     : '';
 
   return (
@@ -231,11 +251,7 @@ export default function ChildBalanceScreen() {
                 {item.descricao}
               </Text>
               <Text style={styles.txnDate}>
-                {new Date(item.created_at).toLocaleDateString('pt-BR', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric',
-                })}
+                {formatDate(item.created_at)}
               </Text>
             </View>
             <Text style={[styles.txnAmount, isCredit(item.tipo) ? styles.credit : styles.debit]}>

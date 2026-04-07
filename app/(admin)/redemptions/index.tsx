@@ -13,6 +13,7 @@ import { InlineMessage } from '@/components/ui/inline-message';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { ListFooter } from '@/components/ui/list-footer';
+import { Button } from '@/components/ui/button';
 import { formatDate } from '@lib/utils';
 import {
   useAdminRedemptions,
@@ -109,6 +110,7 @@ export default function AdminRedemptionsScreen() {
   };
 
   const executeModalAction = (redemptionId: string, type: 'confirm' | 'cancel') => {
+    if (!profile) return;
     setProcessingId(redemptionId);
 
     if (type === 'confirm') {
@@ -116,7 +118,7 @@ export default function AdminRedemptionsScreen() {
         {
           redemptionId,
           opts: {
-            familiaId: profile!.familia_id,
+            familiaId: profile.familia_id,
             userId: modal.childUserId,
             prizeName: modal.prizeName,
           },
@@ -138,7 +140,7 @@ export default function AdminRedemptionsScreen() {
           redemptionId,
           opts: modal.childUserId
             ? {
-                familiaId: profile!.familia_id,
+                familiaId: profile.familia_id,
                 userId: modal.childUserId,
                 prizeName: modal.prizeName,
               }
@@ -334,7 +336,7 @@ export default function AdminRedemptionsScreen() {
         />
       )}
 
-      <Modal visible={modal.visible} transparent animationType="fade">
+      <Modal visible={modal.visible} transparent animationType="fade" onRequestClose={() => setModal(MODAL_INITIAL)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>
@@ -346,23 +348,18 @@ export default function AdminRedemptionsScreen() {
                 : `Cancelar o resgate de "${modal.prizeName}" de ${modal.childName}? Os ${modal.points} pts serão estornados.`}
             </Text>
             <View style={styles.modalBtns}>
-              <Pressable style={styles.modalCancelBtn} onPress={() => setModal(MODAL_INITIAL)}>
-                <Text style={styles.modalCancelBtnText}>Voltar</Text>
-              </Pressable>
-              <Pressable
-                style={[
-                  styles.modalConfirmBtn,
-                  {
-                    backgroundColor:
-                      modal.type === 'confirm' ? colors.semantic.success : colors.semantic.error,
-                  },
-                ]}
+              <Button
+                variant="outline"
+                size="sm"
+                label="Voltar"
+                onPress={() => setModal(MODAL_INITIAL)}
+              />
+              <Button
+                variant={modal.type === 'confirm' ? 'primary' : 'danger'}
+                size="sm"
+                label={modal.type === 'confirm' ? 'Confirmar' : 'Cancelar resgate'}
                 onPress={handleModalConfirm}
-              >
-                <Text style={styles.modalConfirmBtnText}>
-                  {modal.type === 'confirm' ? 'Confirmar' : 'Cancelar resgate'}
-                </Text>
-              </Pressable>
+              />
             </View>
           </View>
         </View>

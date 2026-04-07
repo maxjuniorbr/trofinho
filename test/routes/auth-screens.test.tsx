@@ -124,7 +124,7 @@ describe('auth screens', () => {
   it('delegates navigation to the auth state handler after successful login', async () => {
     authMocks.signIn
       .mockResolvedValueOnce({ error: null })
-      .mockResolvedValueOnce({ error: { message: 'E-mail ou senha incorretos.' } });
+      .mockResolvedValueOnce({ error: 'E-mail ou senha incorretos.' });
 
     const renderer = render(<LoginScreen />);
     changeInput(renderer, 0, 'max@example.com');
@@ -141,7 +141,7 @@ describe('auth screens', () => {
   });
 
   it('shows inline error when login fails', async () => {
-    authMocks.signIn.mockResolvedValueOnce({ error: { message: 'E-mail ou senha incorretos.' } });
+    authMocks.signIn.mockResolvedValueOnce({ error: 'E-mail ou senha incorretos.' });
 
     const renderer = render(<LoginScreen />);
     changeInput(renderer, 0, 'max@example.com');
@@ -188,7 +188,7 @@ describe('auth screens', () => {
 
   it('validates register input and handles provider errors', async () => {
     authMocks.signUp.mockResolvedValueOnce({
-      error: { message: 'User already registered' },
+      error: 'Este e-mail já está cadastrado.',
     });
 
     const renderer = render(<RegisterScreen />);
@@ -289,7 +289,7 @@ describe('auth screens', () => {
   it('creates the family, surfaces errors, and delegates navigation to auth state handler', async () => {
     localSearchParamsState.value = { name: 'Max' };
     authMocks.createFamily
-      .mockResolvedValueOnce({ error: { message: 'Usuário não autenticado' } })
+      .mockResolvedValueOnce({ error: 'Algo deu errado. Tente novamente.' })
       .mockResolvedValueOnce({ error: null });
     authMocks.signOut.mockResolvedValue(undefined);
 

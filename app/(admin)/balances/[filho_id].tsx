@@ -1,8 +1,10 @@
-import { StyleSheet, Text, View, Pressable, FlatList, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Wallet, TrendingUp } from 'lucide-react-native';
+import { formatDate } from '@lib/utils';
 import {
   getTransactionTypeLabel,
   getAppreciationPeriodLabel,
@@ -113,10 +115,10 @@ export default function ChildBalanceAdminScreen() {
   const periodoAtual = balance ? getAppreciationPeriodLabel(balance.periodo_valorizacao) : null;
   const hasAppreciationConfigured = (balance?.indice_valorizacao ?? 0) > 0;
   const ultimaValorizacaoTexto = balance?.data_ultima_valorizacao
-    ? ` · última em ${new Date(balance.data_ultima_valorizacao).toLocaleDateString('pt-BR')}`
+    ? ` · última em ${formatDate(balance.data_ultima_valorizacao)}`
     : '';
   const proximaValorizacaoTexto = balance?.proxima_valorizacao_em
-    ? ` · próxima em ${new Date(balance.proxima_valorizacao_em).toLocaleDateString('pt-BR')}`
+    ? ` · próxima em ${formatDate(balance.proxima_valorizacao_em)}`
     : '';
 
   return (
@@ -124,7 +126,7 @@ export default function ChildBalanceAdminScreen() {
       <StatusBar style={colors.statusBar} />
       <ScreenHeader title={nome ?? 'Filho'} onBack={() => router.back()} />
 
-      <FlatList
+      <FlashList
         data={transactions}
         keyExtractor={(m) => m.id}
         contentContainerStyle={styles.lista}
@@ -207,11 +209,7 @@ export default function ChildBalanceAdminScreen() {
                 {item.descricao}
               </Text>
               <Text style={styles.movData}>
-                {new Date(item.created_at).toLocaleDateString('pt-BR', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric',
-                })}
+                {formatDate(item.created_at)}
               </Text>
             </View>
             <Text

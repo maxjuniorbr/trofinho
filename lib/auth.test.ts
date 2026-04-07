@@ -215,11 +215,11 @@ describe('auth', () => {
 
     await expect(signIn('max@example.com', invalidPassword)).resolves.toEqual({
       profile: null,
-      error: { message: 'E-mail ou senha incorretos.' },
+      error: 'E-mail ou senha incorretos.',
     });
 
     await expect(signUp('max@example.com', mockPassword)).resolves.toEqual({
-      error: { message: 'Este e-mail já está cadastrado.' },
+      error: 'Este e-mail já está cadastrado.',
     });
   });
 
@@ -322,17 +322,17 @@ describe('auth', () => {
 
     await expect(createFamily('Silva', 'Max')).resolves.toEqual({
       familiaId: null,
-      error: { message: 'Você já tem uma família cadastrada.' },
+      error: 'Você já tem uma família cadastrada.',
     });
 
     await expect(createFamily('Silva', 'Max')).resolves.toEqual({
       familiaId: null,
-      error: { message: 'Sessão expirada. Faça login novamente.' },
+      error: 'Sessão expirada. Faça login novamente.',
     });
 
     await expect(createFamily('Silva', 'Max')).resolves.toEqual({
       familiaId: null,
-      error: { message: 'Algo deu errado. Tente novamente.' },
+      error: 'Algo deu errado. Tente novamente.',
     });
   });
 
@@ -348,11 +348,11 @@ describe('auth', () => {
     supabaseMock.from.mockReturnValueOnce(updateErrorQuery).mockReturnValueOnce(updateSuccessQuery);
 
     await expect(updateUserName('Novo Nome')).resolves.toEqual({
-      error: { message: 'Sessão expirada. Faça login novamente.' },
+      error: 'Sessão expirada. Faça login novamente.',
     });
 
     await expect(updateUserName('Novo Nome')).resolves.toEqual({
-      error: { message: 'Algo deu errado. Tente novamente.' },
+      error: 'Algo deu errado. Tente novamente.',
     });
 
     await expect(updateUserName('Novo Nome')).resolves.toEqual({ error: null });
@@ -370,7 +370,7 @@ describe('auth', () => {
       .mockResolvedValueOnce({ error: null });
 
     await expect(updateUserPassword('currentPass', '123')).resolves.toEqual({
-      error: { message: 'A senha deve ter ao menos 6 caracteres.' },
+      error: 'A senha deve ter ao menos 6 caracteres.',
     });
 
     await expect(updateUserPassword('currentPass', '123456')).resolves.toEqual({ error: null });
@@ -433,7 +433,7 @@ describe('auth', () => {
     });
     expect(result).toEqual({
       url: 'https://cdn.example.com/user-2/avatar.webp?t=5678',
-      error: { message: 'Algo deu errado. Tente novamente.' },
+      error: 'Algo deu errado. Tente novamente.',
     });
   });
 
@@ -445,7 +445,7 @@ describe('auth', () => {
 
     await expect(updateUserAvatar('/test/avatar.jpg')).resolves.toEqual({
       url: null,
-      error: { message: 'Sessão expirada. Faça login novamente.' },
+      error: 'Sessão expirada. Faça login novamente.',
     });
 
     fileArrayBufferMock.mockResolvedValue(new ArrayBuffer(4));
@@ -453,7 +453,7 @@ describe('auth', () => {
 
     await expect(updateUserAvatar('/test/avatar.jpg')).resolves.toEqual({
       url: null,
-      error: { message: 'upload failed' },
+      error: 'upload failed',
     });
 
     fileArrayBufferMock.mockRejectedValue(new Error('read failed'));
@@ -464,7 +464,7 @@ describe('auth', () => {
 
     await expect(updateUserAvatar('/test/avatar.unknown')).resolves.toEqual({
       url: null,
-      error: { message: 'Não foi possível ler a imagem selecionada' },
+      error: 'Não foi possível ler a imagem selecionada',
     });
   });
 
@@ -499,7 +499,7 @@ describe('auth', () => {
           });
           expect(supabaseMock.auth.updateUser).not.toHaveBeenCalled();
           expect(result.error).not.toBeNull();
-          expect(result.error!.message).toBe('Senha atual incorreta.');
+          expect(result.error).toBe('Senha atual incorreta.');
         }),
         { numRuns: 100 },
       );

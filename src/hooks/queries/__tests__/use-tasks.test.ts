@@ -115,12 +115,12 @@ describe('use-tasks query hooks', () => {
       expect(tasksLib.listAdminTasks).toHaveBeenCalled();
     });
 
-    it('useChildAssignments queryFn calls renewDailyTasks then listChildAssignments', async () => {
+    it('useChildAssignments queryFn calls listChildAssignments without renewDailyTasks', async () => {
       const { useChildAssignments } = await loadHooks();
       useChildAssignments();
       const qf = lastQueryOpts().queryFn as (ctx: { pageParam: number }) => Promise<unknown>;
       await qf({ pageParam: 0 });
-      expect(tasksLib.renewDailyTasks).toHaveBeenCalled();
+      expect(tasksLib.renewDailyTasks).not.toHaveBeenCalled();
       expect(tasksLib.listChildAssignments).toHaveBeenCalled();
     });
 

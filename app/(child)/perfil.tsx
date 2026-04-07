@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
@@ -51,6 +52,7 @@ export default function ChildProfileScreen() {
     try {
       await signOut();
     } catch (e) {
+      Sentry.captureException(e);
       console.error(e);
       setLoggingOut(false);
     }
@@ -66,6 +68,7 @@ export default function ChildProfileScreen() {
     try {
       await setNotificationPrefs(next);
     } catch (e) {
+      Sentry.captureException(e);
       console.error(e);
       setNotificationPreferences(previous);
       setNotificationPreferencesError('Não foi possível salvar as preferências agora.');

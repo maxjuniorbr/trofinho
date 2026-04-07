@@ -13,18 +13,14 @@ export type UserProfile = {
   avatarUrl?: string | null;
 };
 
-export type AuthError = {
-  message: string;
-};
-
 export async function signIn(
   email: string,
   password: string,
-): Promise<{ profile: UserProfile | null; error: AuthError | null }> {
+): Promise<{ profile: UserProfile | null; error: string | null }> {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    return { profile: null, error: { message: localizeSupabaseError(error.message) } };
+    return { profile: null, error: localizeSupabaseError(error.message) };
   }
 
   const profile = await getProfile();
@@ -34,11 +30,11 @@ export async function signIn(
 export async function signUp(
   email: string,
   password: string,
-): Promise<{ error: AuthError | null }> {
+): Promise<{ error: string | null }> {
   const { error } = await supabase.auth.signUp({ email, password });
 
   if (error) {
-    return { error: { message: localizeSupabaseError(error.message) } };
+    return { error: localizeSupabaseError(error.message) };
   }
 
   return { error: null };
@@ -102,25 +98,25 @@ export async function getProfile(): Promise<UserProfile | null> {
 export async function createFamily(
   familyName: string,
   userName: string,
-): Promise<{ familiaId: string | null; error: AuthError | null }> {
+): Promise<{ familiaId: string | null; error: string | null }> {
   const { data, error } = await supabase.rpc('criar_familia', {
     nome_familia: familyName,
     nome_usuario: userName,
   });
 
   if (error) {
-    return { familiaId: null, error: { message: localizeRpcError(error.message) } };
+    return { familiaId: null, error: localizeRpcError(error.message) };
   }
 
   // RPC criar_familia returns the new family UUID as text
   return { familiaId: data, error: null };
 }
 
-export async function updateUserName(name: string): Promise<{ error: AuthError | null }> {
+export async function updateUserName(name: string): Promise<{ error: string | null }> {
   const { data: authData, error: authError } = await supabase.auth.getUser();
 
   if (authError || !authData.user) {
-    return { error: { message: 'Sessão expirada. Faça login novamente.' } };
+    return { error: 'Sessão expirada. Faça login novamente.' };
   }
 
   const { error } = await supabase
@@ -128,7 +124,7 @@ export async function updateUserName(name: string): Promise<{ error: AuthError |
     .update({ nome: name })
     .eq('id', authData.user.id);
 
-  if (error) return { error: { message: localizeSupabaseError(error.message) } };
+  if (error) return { error: localizeSupabaseError(error.message) };
 
   return { error: null };
 }
@@ -136,11 +132,11 @@ export async function updateUserName(name: string): Promise<{ error: AuthError |
 export async function updateUserPassword(
   currentPassword: string,
   newPassword: string,
-): Promise<{ error: AuthError | null }> {
+): Promise<{ error: string | null }> {
   const { data: authData, error: authError } = await supabase.auth.getUser();
 
   if (authError || !authData.user?.email) {
-    return { error: { message: 'Sessão expirada. Faça login novamente.' } };
+    return { error: 'Sessão expirada. Faça login novamente.' };
   }
 
   const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -149,23 +145,23 @@ export async function updateUserPassword(
   });
 
   if (signInError) {
-    return { error: { message: 'Senha atual incorreta.' } };
+    return { error: 'Senha atual incorreta.' };
   }
 
   const { error } = await supabase.auth.updateUser({ password: newPassword });
 
   if (error) {
-    return { error: { message: localizeSupabaseError(error.message) } };
+    return { error: localizeSupabaseError(error.message) };
   }
 
   return { error: null };
 }
 
-export async function deleteAccount(): Promise<{ error: AuthError | null }> {
+export async function deleteAccount(): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('excluir_minha_conta');
 
   if (error) {
-    return { error: { message: localizeRpcError(error.message) } };
+    return { error: localizeRpcError(error.message) };
   }
 
   await supabase.auth.signOut({ scope: 'local' });
@@ -174,11 +170,11 @@ export async function deleteAccount(): Promise<{ error: AuthError | null }> {
 
 export async function updateUserAvatar(
   imageUri: string,
-): Promise<{ url: string | null; error: AuthError | null }> {
+): Promise<{ url: string | null; error: string | null }> {
   const { data: authData, error: authError } = await supabase.auth.getUser();
 
   if (authError || !authData.user) {
-    return { url: null, error: { message: 'Sessão expirada. Faça login novamente.' } };
+    return { url: null, error: 'Sessão expirada. Faça login novamente.' };
   }
 
   const uploadResult = await uploadImageToPublicBucket({
@@ -190,7 +186,7 @@ export async function updateUserAvatar(
   if (uploadResult.error || !uploadResult.publicUrl) {
     return {
       url: null,
-      error: { message: uploadResult.error ?? 'Erro ao fazer upload do avatar' },
+      error: uploadResult.error ?? 'Erro ao fazer upload do avatar',
     };
   }
 
@@ -201,7 +197,7 @@ export async function updateUserAvatar(
   if (metaError) {
     return {
       url: uploadResult.publicUrl,
-      error: { message: localizeSupabaseError(metaError.message) },
+      error: localizeSupabaseError(metaError.message),
     };
   }
 

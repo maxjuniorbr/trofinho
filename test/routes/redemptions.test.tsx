@@ -184,12 +184,12 @@ describe('AdminRedemptionsScreen — cancellation dialog property tests', () => 
   });
 
   // **Validates: Requirements 3.2**
-  it('P6: cancellation dialog message contains the points value for any points', () => {
-    fc.assert(
-      fc.property(
+  it('P6: cancellation dialog message contains the points value for any points', async () => {
+    await fc.assert(
+      fc.asyncProperty(
         fc.integer({ min: 1, max: 99999 }),
         fc.string({ minLength: 1, maxLength: 30 }).filter((s) => s.trim().length > 0),
-        (points, childName) => {
+        async (points, childName) => {
           alertMock.alert.mockReset();
 
           redemptionsMock.data = {
@@ -214,7 +214,7 @@ describe('AdminRedemptionsScreen — cancellation dialog property tests', () => 
           // Step 2: Press the "Cancelar resgate" button in the modal to trigger Alert.alert
           const modalConfirmButtons = findModalConfirmButton(renderer);
           expect(modalConfirmButtons.length).toBeGreaterThan(0);
-          act(() => {
+          await act(async () => {
             modalConfirmButtons[0].props.onPress();
           });
 
@@ -229,9 +229,9 @@ describe('AdminRedemptionsScreen — cancellation dialog property tests', () => 
   });
 
   // **Validates: Requirements 3.4, 3.5**
-  it('P8-cancel: cancel mutation is called only when user confirms the Alert, not on dismiss', () => {
-    fc.assert(
-      fc.property(fc.integer({ min: 1, max: 99999 }), fc.boolean(), (points, userConfirms) => {
+  it('P8-cancel: cancel mutation is called only when user confirms the Alert, not on dismiss', async () => {
+    await fc.assert(
+      fc.asyncProperty(fc.integer({ min: 1, max: 99999 }), fc.boolean(), async (points, userConfirms) => {
         alertMock.alert.mockReset();
         cancelMutationMock.mutate.mockReset();
 
@@ -255,7 +255,7 @@ describe('AdminRedemptionsScreen — cancellation dialog property tests', () => 
 
         // Trigger Alert from modal
         const modalConfirmButtons = findModalConfirmButton(renderer);
-        act(() => {
+        await act(async () => {
           modalConfirmButtons[0].props.onPress();
         });
 

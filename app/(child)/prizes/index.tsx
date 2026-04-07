@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native';
 import {
   Alert,
   StyleSheet,
@@ -61,6 +62,7 @@ export default function ChildPrizesScreen() {
     try {
       await refetchAll();
     } catch (e) {
+      Sentry.captureException(e);
       console.error(e);
     } finally {
       setRefreshing(false);

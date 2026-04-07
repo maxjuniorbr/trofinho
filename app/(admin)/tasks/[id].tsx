@@ -177,6 +177,8 @@ function AssignmentCard({
                 placeholder="Motivo da rejeição (obrigatório)"
                 placeholderTextColor={colors.text.muted}
                 multiline
+                maxLength={500}
+                accessibilityLabel="Motivo da rejeição"
               />
               <View style={styles.botoesRejeitar}>
                 <Pressable

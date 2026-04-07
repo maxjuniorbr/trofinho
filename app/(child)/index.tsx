@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native';
 import {
   AppState,
   Pressable,
@@ -9,8 +10,8 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'expo-router';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { ClipboardList, Gift, ShoppingBag, Wallet, UserCircle } from 'lucide-react-native';
 import { getGreeting } from '@lib/utils';
 import { isNotificationPermissionDenied } from '@lib/notifications';
@@ -19,6 +20,7 @@ import {
   useFamily,
   useChildAssignments,
   useBalance,
+  useRenewDailyTasks,
   combineQueryStates,
 } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
@@ -59,6 +61,7 @@ export default function FilhoHomeScreen() {
   const family = familyQuery.data ?? null;
 
   const assignmentsQuery = useChildAssignments();
+  const renewMutation = useRenewDailyTasks();
   const assignments = useMemo(
     () => assignmentsQuery.data?.pages.flatMap((p) => p.data) ?? [],
     [assignmentsQuery.data],
@@ -77,6 +80,12 @@ export default function FilhoHomeScreen() {
   const pendingCount = useMemo(
     () => assignments.filter((a) => a.status === 'pendente').length,
     [assignments],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      renewMutation.mutate();
+    }, [renewMutation]),
   );
 
   const freeBalance = balanceData?.saldo_livre ?? 0;
@@ -115,6 +124,7 @@ export default function FilhoHomeScreen() {
       const denied = await isNotificationPermissionDenied();
       setShowNotificationBanner(denied);
     } catch (e) {
+      Sentry.captureException(e);
       console.error(e);
     } finally {
       setRefreshing(false);

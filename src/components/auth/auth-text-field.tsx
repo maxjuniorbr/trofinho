@@ -9,7 +9,7 @@ type AuthTextFieldProps = TextInputProps &
     focused: boolean;
   }>;
 
-export function AuthTextField({ label, focused, style, ...inputProps }: AuthTextFieldProps) {
+export const AuthTextField = ({ label, focused, style, ...inputProps }: AuthTextFieldProps) => {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(), []);
 
@@ -17,6 +17,7 @@ export function AuthTextField({ label, focused, style, ...inputProps }: AuthText
     <>
       <Text style={[styles.label, { color: colors.text.secondary }]}>{label}</Text>
       <TextInput
+        accessibilityLabel={label}
         style={[
           styles.input,
           {
@@ -31,7 +32,7 @@ export function AuthTextField({ label, focused, style, ...inputProps }: AuthText
       />
     </>
   );
-}
+};
 
 function makeStyles() {
   return StyleSheet.create({
