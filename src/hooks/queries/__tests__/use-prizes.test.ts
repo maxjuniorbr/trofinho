@@ -48,10 +48,6 @@ vi.mock('../../../../lib/prizes', () => ({
   reactivatePrize: vi.fn().mockResolvedValue({ error: null }),
 }));
 
-vi.mock('../../../../lib/redemptions', () => ({
-  countPendingRedemptions: vi.fn().mockResolvedValue({ data: 0, error: null }),
-}));
-
 type CapturedStore = { options: Record<string, unknown>[] };
 const getCapturedQuery = () => (rq as unknown as { _capturedQuery: CapturedStore })._capturedQuery;
 const getCapturedMutation = () =>

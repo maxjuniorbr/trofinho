@@ -44,7 +44,6 @@ describe('Property 1: Query key hierarchy enables prefix invalidation', () => {
         { label: 'lists', fn: () => queryKeys.prizes.lists() },
         { label: 'detail', fn: (id: string) => queryKeys.prizes.detail(id) },
         { label: 'active', fn: () => queryKeys.prizes.active() },
-        { label: 'pendingRedemptionCount', fn: () => queryKeys.prizes.pendingRedemptionCount() },
       ],
     },
     {
@@ -53,6 +52,7 @@ describe('Property 1: Query key hierarchy enables prefix invalidation', () => {
       keyFns: [
         { label: 'admin', fn: () => queryKeys.redemptions.admin() },
         { label: 'child', fn: () => queryKeys.redemptions.child() },
+        { label: 'pendingCount', fn: () => queryKeys.redemptions.pendingCount() },
       ],
     },
     {

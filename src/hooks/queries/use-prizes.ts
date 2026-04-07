@@ -10,7 +10,6 @@ import {
   type PrizeInput,
   type UpdatePrizeInput,
 } from '../../../lib/prizes';
-import { countPendingRedemptions } from '../../../lib/redemptions';
 import {
   queryFnAdapter,
   mutationFnAdapter,
@@ -44,13 +43,6 @@ export const useActivePrizes = () =>
   useQuery({
     queryKey: queryKeys.prizes.active(),
     queryFn: queryFnAdapter(() => listActivePrizes()),
-    staleTime: STALE_TIMES.prizes,
-  });
-
-export const usePendingRedemptionCount = () =>
-  useQuery({
-    queryKey: queryKeys.prizes.pendingRedemptionCount(),
-    queryFn: queryFnAdapter(() => countPendingRedemptions()),
     staleTime: STALE_TIMES.prizes,
   });
 

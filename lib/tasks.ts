@@ -361,7 +361,12 @@ export async function completeAssignment(
     p_evidencia_url: evidenceUrl,
   });
 
-  if (error) return { error: localizeRpcError(error.message) };
+  if (error) {
+    if (evidenceUrl) {
+      supabase.storage.from('evidencias').remove([evidenceUrl]).catch(() => {});
+    }
+    return { error: localizeRpcError(error.message) };
+  }
   dispatchPushNotification('tarefa_concluida', opts.familiaId, {
     childName: opts.childName,
     taskTitle: opts.taskTitle,
@@ -587,7 +592,39 @@ function createEvidenceSuffix(): string {
 const EVIDENCE_URL_TTL_SECONDS = 60 * 60;
 
 async function signTaskEvidence(task: TaskDetail): Promise<TaskDetail> {
-  const assignments = await Promise.all(task.atribuicoes.map((a) => signEvidence(a)));
+  const paths = task.atribuicoes.map((a) => {
+    if (!a.evidencia_url) return null;
+    return normalizeEvidencePath(a.evidencia_url);
+  });
+
+  const validEntries = paths
+    .map((path, index) => (path ? { path, index } : null))
+    .filter((e): e is { path: string; index: number } => e !== null);
+
+  if (validEntries.length === 0) return task;
+
+  const { data, error } = await supabase.storage
+    .from('evidencias')
+    .createSignedUrls(
+      validEntries.map((e) => e.path),
+      EVIDENCE_URL_TTL_SECONDS,
+    );
+
+  const signedMap = new Map<number, string>();
+  if (!error && data) {
+    for (let i = 0; i < validEntries.length; i++) {
+      const signed = data[i];
+      if (signed && !signed.error) {
+        signedMap.set(validEntries[i].index, signed.signedUrl);
+      }
+    }
+  }
+
+  const assignments = task.atribuicoes.map((a, index) => {
+    const signedUrl = signedMap.get(index);
+    if (signedUrl) return { ...a, evidencia_url: signedUrl };
+    return a;
+  });
 
   return { ...task, atribuicoes: assignments };
 }

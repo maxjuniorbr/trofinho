@@ -135,6 +135,10 @@ export async function updatePrize(
   });
 
   if (error) {
+    if (input.imageUri && nextImageUrl) {
+      const path = `${id}/capa`;
+      supabase.storage.from('premios').remove([path]).catch(() => {});
+    }
     return {
       error: localizeRpcError(error.message),
       imageUrl: nextImageUrl,

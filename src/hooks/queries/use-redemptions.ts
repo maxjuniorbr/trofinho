@@ -1,10 +1,11 @@
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   listRedemptions,
   listChildRedemptions,
   confirmRedemption,
   cancelRedemption,
   requestRedemption,
+  countPendingRedemptions,
 } from '../../../lib/redemptions';
 import {
   queryFnAdapter,
@@ -13,6 +14,13 @@ import {
   type PaginatedPage,
 } from './query-fn-adapter';
 import { queryKeys, STALE_TIMES, PAGE_SIZES } from './query-keys';
+
+export const usePendingRedemptionCount = () =>
+  useQuery({
+    queryKey: queryKeys.redemptions.pendingCount(),
+    queryFn: queryFnAdapter(() => countPendingRedemptions()),
+    staleTime: STALE_TIMES.redemptions,
+  });
 
 export const useAdminRedemptions = () =>
   useInfiniteQuery({
