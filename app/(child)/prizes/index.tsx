@@ -3,8 +3,6 @@ import {
   StyleSheet,
   Text,
   View,
-  Pressable,
-  ActivityIndicator,
   Animated,
   RefreshControl,
 } from 'react-native';
@@ -27,6 +25,7 @@ import {
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { gradients, radii, shadows, spacing, typography } from '@/constants/theme';
+import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { ScreenHeader } from '@/components/ui/screen-header';
@@ -282,29 +281,19 @@ function PrizeCard({ item, freeBalance, redeeming, onRedeem }: PrizeCardProps) {
         )}
       </View>
 
-      <Pressable
-        style={({ pressed }) => [
-          cardStyles.button,
-          { backgroundColor: hasBalance ? colors.accent.filho : colors.accent.filhoBg },
-          (!hasBalance || redeeming !== null) && cardStyles.disabledButton,
-          pressed && hasBalance && !redeeming && { opacity: 0.85 },
-        ]}
-        onPress={() => onRedeem(item)}
+      <Button
+        variant="primary"
+        size="sm"
+        label={hasBalance ? 'Resgatar' : `Faltam ${item.custo_pontos - freeBalance} pts`}
         disabled={!hasBalance || redeeming !== null}
-        accessibilityRole="button"
+        loading={isRedeeming}
+        loadingLabel="Resgatando…"
+        onPress={() => onRedeem(item)}
         accessibilityLabel={
           hasBalance ? `Resgatar ${item.nome}` : `Saldo insuficiente para ${item.nome}`
         }
         accessibilityState={{ disabled: !hasBalance || redeeming !== null }}
-      >
-        {isRedeeming ? (
-          <ActivityIndicator size="small" color={colors.text.inverse} />
-        ) : (
-          <Text style={[cardStyles.buttonText, { color: colors.text.inverse }]}>
-            {hasBalance ? 'Resgatar' : `Faltam ${item.custo_pontos - freeBalance} pts`}
-          </Text>
-        )}
-      </Pressable>
+      />
     </View>
   );
 }
@@ -371,19 +360,5 @@ const cardStyles = StyleSheet.create({
   statusText: {
     fontSize: typography.size.xs,
     fontFamily: typography.family.semibold,
-  },
-  button: {
-    borderRadius: radii.lg,
-    borderCurve: 'continuous',
-    paddingVertical: spacing['2'],
-    alignItems: 'center',
-    marginTop: spacing['1'],
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  disabledButton: { opacity: 0.5 },
-  buttonText: {
-    fontFamily: typography.family.bold,
-    fontSize: typography.size.xs,
   },
 });

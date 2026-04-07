@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, RefreshControl, Pressable } from 'react-native';
+import { StyleSheet, Text, View, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo } from 'react';
@@ -9,6 +9,7 @@ import { useChildRedemptions } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
+import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
@@ -65,16 +66,12 @@ export default function ChildRedemptionsScreen() {
             onRetry={handleRefresh}
           />
           {!isLoading && !errorMessage && redemptions.length === 0 ? (
-            <Pressable
-              style={[styles.emptyActionBtn, { backgroundColor: colors.accent.filho }]}
+            <Button
+              variant="primary"
+              label="Ver prêmios 🎁"
               onPress={() => router.push('/(child)/prizes')}
-              accessibilityRole="button"
               accessibilityLabel="Ver prêmios disponíveis"
-            >
-              <Text style={[styles.emptyActionText, { color: colors.text.inverse }]}>
-                Ver prêmios 🎁
-              </Text>
-            </Pressable>
+            />
           ) : null}
         </View>
       ) : (
@@ -137,17 +134,6 @@ function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
     emptyContainer: { flex: 1, alignItems: 'center' },
-    emptyActionBtn: {
-      borderRadius: radii.xl,
-      paddingVertical: spacing['3'],
-      paddingHorizontal: spacing['6'],
-      minHeight: 48,
-      justifyContent: 'center',
-    },
-    emptyActionText: {
-      fontSize: typography.size.md,
-      fontFamily: typography.family.bold,
-    },
     list: { paddingHorizontal: spacing['4'] },
     card: {
       backgroundColor: colors.bg.surface,

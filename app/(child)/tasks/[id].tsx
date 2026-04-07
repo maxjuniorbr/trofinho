@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { RefreshCw, Camera, Clock, Trophy, CheckCircle2, Maximize2 } from 'lucide-react-native';
+import { RefreshCw, Camera, Clock, Trophy, Maximize2 } from 'lucide-react-native';
 import { hapticSuccess } from '@lib/haptics';
 import {
   getAssignmentCancellationState,
@@ -133,24 +133,6 @@ type StatusFooterProps = Readonly<{
   styles: ReturnType<typeof makeStyles>;
 }>;
 
-type CompleteButtonContentProps = Readonly<{
-  requiresEvidence: boolean;
-  colors: ThemeColors;
-  styles: ReturnType<typeof makeStyles>;
-}>;
-
-function CompleteButtonContent({ requiresEvidence, colors, styles }: CompleteButtonContentProps) {
-  const Icon = requiresEvidence ? Camera : CheckCircle2;
-  const label = requiresEvidence ? 'Tirar foto e concluir' : 'Concluir tarefa';
-
-  return (
-    <View style={styles.completeBtnInner}>
-      <Icon size={16} color={colors.text.inverse} strokeWidth={2} />
-      <Text style={[styles.completeBtnText, { color: colors.text.inverse }]}>{label}</Text>
-    </View>
-  );
-}
-
 function StatusFooter({
   assignment,
   completing,
@@ -174,25 +156,16 @@ function StatusFooter({
           <InlineMessage message={completionError} variant="error" />
         )}
         {!completionReason && (
-          <Pressable
-            style={[styles.completeBtn, completing && styles.disabledBtn]}
+          <Button
+            variant="primary"
+            label={requiresEvidence ? 'Tirar foto e concluir' : 'Concluir tarefa'}
+            loading={completing}
+            loadingLabel="Concluindo…"
             onPress={onComplete}
-            disabled={completing}
-            accessibilityRole="button"
             accessibilityLabel={
               requiresEvidence ? 'Tirar foto e concluir tarefa' : 'Concluir tarefa'
             }
-          >
-            {completing ? (
-              <ActivityIndicator color={colors.text.inverse} />
-            ) : (
-              <CompleteButtonContent
-                requiresEvidence={requiresEvidence}
-                colors={colors}
-                styles={styles}
-              />
-            )}
-          </Pressable>
+          />
         )}
       </>
     );
@@ -693,18 +666,6 @@ function makeStyles(colors: ThemeColors) {
       color: colors.text.muted,
       fontStyle: 'italic',
     },
-    completeBtn: {
-      backgroundColor: colors.accent.filho,
-      borderRadius: radii.xl,
-      paddingVertical: spacing['4'],
-      alignItems: 'center',
-      marginTop: spacing['2'],
-      minHeight: 48,
-      justifyContent: 'center',
-    },
-    completeBtnInner: { flexDirection: 'row', alignItems: 'center', gap: spacing['1.5'] },
-    disabledBtn: { opacity: 0.6 },
-    completeBtnText: { fontSize: typography.size.md, fontFamily: typography.family.bold },
     footerMessage: { marginTop: spacing['2'] },
     statusRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1.5'] },
     awaitingBox: {
