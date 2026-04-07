@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   listAdminTasks,
@@ -46,10 +47,36 @@ export const useTaskDetail = (taskId: string | undefined) =>
     enabled: !!taskId,
   });
 
-export const useRenewDailyTasks = () =>
-  useMutation({
-    mutationFn: () => renewDailyTasks(),
+/**
+ * Ensures today's daily assignments exist. Runs once per app session
+ * (staleTime: Infinity) so that navigating between screens doesn't
+ * re-fire the RPC or re-invalidate task caches.
+ *
+ * The RPC is idempotent (ON CONFLICT DO NOTHING), so duplicate calls
+ * are harmless — but the post-success cache invalidation was the main
+ * source of a "refetch storm" that made child mode feel slow.
+ */
+export const useRenewDailyTasks = () => {
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: queryKeys.tasks.renewDaily(),
+    queryFn: async () => {
+      await renewDailyTasks();
+      return true;
+    },
+    staleTime: Infinity,
+    gcTime: Infinity,
   });
+
+  useEffect(() => {
+    if (query.data) {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.childAssignments() });
+    }
+  }, [query.data, queryClient]);
+
+  return query;
+};
 
 export const useChildAssignments = () =>
   useInfiniteQuery({

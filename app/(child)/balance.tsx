@@ -51,7 +51,7 @@ export default function ChildBalanceScreen() {
   const childIdQuery = useMyChildId(profile?.id);
   const childId = childIdQuery.data ?? null;
 
-  const balanceQuery = useBalance(childId ?? undefined);
+  const balanceQuery = useBalance();
   const balance = balanceQuery.data ?? null;
 
   const transactionsQuery = useTransactions(childId ?? '');
@@ -62,7 +62,6 @@ export default function ChildBalanceScreen() {
   const { fetchNextPage, hasNextPage, isFetchingNextPage } = transactionsQuery;
 
   const { isLoading, error, refetchAll } = combineQueryStates(
-    childIdQuery,
     balanceQuery,
     transactionsQuery,
   );

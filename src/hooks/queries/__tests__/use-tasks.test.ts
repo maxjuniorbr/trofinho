@@ -7,6 +7,14 @@ import * as rq from '@tanstack/react-query';
 
 const mockInvalidateQueries = vi.fn();
 
+vi.mock('react', async () => {
+  const actual = await vi.importActual<typeof import('react')>('react');
+  return {
+    ...actual,
+    useEffect: (fn: () => void) => fn(),
+  };
+});
+
 vi.mock('@tanstack/react-query', () => {
   const capturedQuery: { options: Record<string, unknown>[] } = { options: [] };
   const capturedMutation: { options: Record<string, unknown>[] } = { options: [] };
@@ -185,6 +193,20 @@ describe('use-tasks mutation hooks', () => {
       const onSuccess = lastMutationOpts().onSuccess as () => void;
       onSuccess();
       expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.tasks.all });
+    });
+
+    it('useRenewDailyTasks invalidates childAssignments when data is truthy', async () => {
+      // Override useQuery to return data: true to trigger the useEffect invalidation
+      const origUseQuery = rq.useQuery as ReturnType<typeof vi.fn>;
+      origUseQuery.mockImplementationOnce((opts: Record<string, unknown>) => {
+        getCapturedQuery().options.push(opts);
+        return { data: true, isLoading: false, error: null };
+      });
+      const { useRenewDailyTasks } = await loadHooks();
+      useRenewDailyTasks();
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({
+        queryKey: queryKeys.tasks.childAssignments(),
+      });
     });
   });
 });
