@@ -1,4 +1,30 @@
 /**
+ * Time limit for any single query/mutation call (auth session + HTTP request).
+ * Prevents infinite loading when Supabase auth lock or network hangs.
+ * React Query retries (default 2) will recover from transient issues.
+ */
+const QUERY_TIMEOUT_MS = 15_000;
+
+function withTimeout<T>(promise: Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error('Tempo limite excedido. Tente novamente.')),
+      QUERY_TIMEOUT_MS,
+    );
+    promise.then(
+      (val) => {
+        clearTimeout(timer);
+        resolve(val);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
+/**
  * Wraps a lib/ function that returns { data, error } and converts it
  * to React Query's contract: returns data on success, throws on error.
  * Handles: error string → throw, data null with no error → throw "not found",
@@ -8,7 +34,7 @@ export function queryFnAdapter<T>(
   fn: () => Promise<{ data: T; error: string | null }>,
 ): () => Promise<NonNullable<T>> {
   return async () => {
-    const result = await fn();
+    const result = await withTimeout(fn());
     if (result.error) throw new Error(result.error);
     if (result.data == null) throw new Error('Registro não encontrado.');
     return result.data;
@@ -23,7 +49,7 @@ export function nullableQueryFnAdapter<T>(
   fn: () => Promise<{ data: T; error: string | null }>,
 ): () => Promise<T> {
   return async () => {
-    const result = await fn();
+    const result = await withTimeout(fn());
     if (result.error) throw new Error(result.error);
     return result.data;
   };
@@ -56,7 +82,7 @@ export function paginatedQueryFnAdapter<T>(
   pageSize: number,
 ): (ctx: { pageParam: number }) => Promise<PaginatedPage<T>> {
   return async ({ pageParam }) => {
-    const result = await fn(pageParam, pageSize);
+    const result = await withTimeout(fn(pageParam, pageSize));
     if (result.error) throw new Error(result.error);
     return { data: result.data, hasMore: result.hasMore };
   };

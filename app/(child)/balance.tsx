@@ -12,18 +12,19 @@ import {
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Wallet, TrendingUp } from 'lucide-react-native';
 import { hapticSuccess } from '@lib/haptics';
 import { formatDate } from '@lib/utils';
 import { getAppreciationPeriodLabel, getTransactionTypeLabel, isCredit } from '@lib/balances';
-import { getMyChildId } from '@lib/children';
 import {
   useBalance,
   useTransactions,
   useTransferToPiggyBank,
+  useProfile,
+  useMyChildId,
   combineQueryStates,
 } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
@@ -46,17 +47,9 @@ export default function ChildBalanceScreen() {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [childId, setChildId] = useState<string | null>(null);
-  const [childIdError, setChildIdError] = useState(false);
-
-  useEffect(() => {
-    getMyChildId()
-      .then(setChildId)
-      .catch((e) => {
-        Sentry.captureException(e);
-        setChildIdError(true);
-      });
-  }, []);
+  const { data: profile } = useProfile();
+  const childIdQuery = useMyChildId(profile?.id);
+  const childId = childIdQuery.data ?? null;
 
   const balanceQuery = useBalance(childId ?? undefined);
   const balance = balanceQuery.data ?? null;
@@ -68,7 +61,11 @@ export default function ChildBalanceScreen() {
   );
   const { fetchNextPage, hasNextPage, isFetchingNextPage } = transactionsQuery;
 
-  const { isLoading, error, refetchAll } = combineQueryStates(balanceQuery, transactionsQuery);
+  const { isLoading, error, refetchAll } = combineQueryStates(
+    childIdQuery,
+    balanceQuery,
+    transactionsQuery,
+  );
 
   const transferMutation = useTransferToPiggyBank();
 
@@ -116,7 +113,7 @@ export default function ChildBalanceScreen() {
     }
   };
 
-  if (childIdError) {
+  if (childIdQuery.isError) {
     return (
       <SafeScreenFrame>
         <StatusBar style={colors.statusBar} />
@@ -128,7 +125,7 @@ export default function ChildBalanceScreen() {
     );
   }
 
-  if (isLoading || childId === null) {
+  if (isLoading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />

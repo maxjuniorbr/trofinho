@@ -31,6 +31,7 @@ export {
 export {
   useChildrenList,
   useChildDetail,
+  useMyChildId,
   useDeactivateChild,
   useReactivateChild,
 } from './use-children';

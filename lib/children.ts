@@ -104,16 +104,21 @@ export async function getChild(
   return { data: child, error: null };
 }
 
-export async function getMyChildId(): Promise<string | null> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+export async function getMyChildId(userId?: string): Promise<string | null> {
+  let uid = userId;
+
+  if (!uid) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
+    uid = user.id;
+  }
 
   const { data } = await supabase
     .from('filhos')
     .select('id')
-    .eq('usuario_id', user.id)
+    .eq('usuario_id', uid)
     .maybeSingle();
 
   return data?.id ?? null;

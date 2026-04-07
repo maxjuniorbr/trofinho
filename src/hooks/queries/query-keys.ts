@@ -20,6 +20,7 @@ export const queryKeys = {
     all: ['children'] as const,
     lists: () => [...queryKeys.children.all, 'list'] as const,
     detail: (id: string) => [...queryKeys.children.all, 'detail', id] as const,
+    myId: () => [...queryKeys.children.all, 'my-id'] as const,
   },
   prizes: {
     all: ['prizes'] as const,
