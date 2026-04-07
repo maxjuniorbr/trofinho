@@ -170,7 +170,7 @@ function makeStyles(colors: ThemeColors) {
       paddingHorizontal: spacing['4'],
       paddingTop: spacing['4'],
     },
-    lista: { paddingHorizontal: spacing['4'], gap: spacing['3'] },
+    lista: { paddingHorizontal: spacing['4'] },
     resumo: { fontSize: typography.size.xs, color: colors.text.muted, marginBottom: spacing['1'] },
     card: {
       backgroundColor: colors.bg.surface,
@@ -180,6 +180,7 @@ function makeStyles(colors: ThemeColors) {
       gap: spacing['3'],
       flexDirection: 'row',
       alignItems: 'center',
+      marginBottom: spacing['3'],
       ...shadows.card,
     },
     cardInativo: { opacity: 0.55 },
