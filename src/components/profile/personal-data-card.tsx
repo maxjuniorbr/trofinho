@@ -55,39 +55,43 @@ export const PersonalDataCard = ({ profile, email, onNameUpdated }: PersonalData
         <Text style={[styles.title, { color: colors.text.primary }]}>Dados pessoais</Text>
       </View>
 
-      <Text style={[styles.label, { color: colors.text.secondary }]}>Nome completo</Text>
-      <TextInput
-        style={[
-          styles.input,
-          {
-            backgroundColor: colors.bg.elevated,
-            borderColor: colors.border.default,
-            color: colors.text.primary,
-          },
-        ]}
-        value={name}
-        onChangeText={(v) => {
-          setName(v);
-          setSuccess(null);
-          setValidationError(null);
-          updateNameMutation.reset();
-        }}
-        placeholder="Seu nome"
-        placeholderTextColor={colors.text.muted}
-        autoCapitalize="words"
-        autoCorrect={false}
-        maxLength={60}
-        accessibilityLabel="Nome completo"
-      />
+      <View style={styles.field}>
+        <Text style={[styles.label, { color: colors.text.secondary }]}>Nome completo</Text>
+        <TextInput
+          style={[
+            styles.input,
+            {
+              backgroundColor: colors.bg.elevated,
+              borderColor: colors.border.default,
+              color: colors.text.primary,
+            },
+          ]}
+          value={name}
+          onChangeText={(v) => {
+            setName(v);
+            setSuccess(null);
+            setValidationError(null);
+            updateNameMutation.reset();
+          }}
+          placeholder="Seu nome"
+          placeholderTextColor={colors.text.muted}
+          autoCapitalize="words"
+          autoCorrect={false}
+          maxLength={60}
+          accessibilityLabel="Nome completo"
+        />
+      </View>
 
-      <Text style={[styles.label, { color: colors.text.secondary }]}>E-mail</Text>
-      <View
-        style={[
-          styles.inputReadonly,
-          { backgroundColor: colors.bg.muted, borderColor: colors.border.subtle },
-        ]}
-      >
-        <Text style={[styles.inputReadonlyText, { color: colors.text.muted }]}>{email}</Text>
+      <View style={styles.field}>
+        <Text style={[styles.label, { color: colors.text.secondary }]}>E-mail</Text>
+        <View
+          style={[
+            styles.inputReadonly,
+            { backgroundColor: colors.bg.muted, borderColor: colors.border.subtle },
+          ]}
+        >
+          <Text style={[styles.inputReadonlyText, { color: colors.text.muted }]}>{email}</Text>
+        </View>
       </View>
 
       {errorMessage ? <InlineMessage message={errorMessage} variant="error" /> : null}
@@ -97,7 +101,7 @@ export const PersonalDataCard = ({ profile, email, onNameUpdated }: PersonalData
 
       <Button
         label="Salvar alterações"
-        variant="secondary"
+        variant="primary"
         loading={updateNameMutation.isPending}
         onPress={handleSave}
         disabled={updateNameMutation.isPending}
@@ -107,22 +111,20 @@ export const PersonalDataCard = ({ profile, email, onNameUpdated }: PersonalData
 };
 
 const styles = StyleSheet.create({
-  card: { borderRadius: radii.xl, borderCurve: 'continuous', borderWidth: 1, padding: spacing['4'], gap: spacing['1'] },
+  card: { borderRadius: radii.xl, borderCurve: 'continuous', borderWidth: 1, padding: spacing['4'], gap: spacing['4'] },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing['1.5'],
-    marginBottom: spacing['2'],
   },
   title: {
     fontFamily: typography.family.bold,
     fontSize: typography.size.md,
   },
+  field: { gap: spacing['1'] },
   label: {
     fontSize: typography.size.sm,
     fontFamily: typography.family.semibold,
-    marginTop: spacing['3'],
-    marginBottom: spacing['1'],
   },
   input: {
     borderWidth: 1,
@@ -131,6 +133,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['4'],
     paddingVertical: spacing['3'],
     fontSize: typography.size.md,
+    minHeight: 48,
   },
   inputReadonly: {
     borderWidth: 1,
