@@ -75,28 +75,31 @@ type TaskCardProps = {
   router: ReturnType<typeof useRouter>;
 };
 
-function TaskCard({ item, filter, colors, styles, router }: TaskCardProps) {
+function TaskCard({ item, filter, colors, styles, router }: Readonly<TaskCardProps>) {
   const dateLine = getAssignmentDateLine(item, filter);
   const isInactive = item.tarefas.ativo === false;
   const isUnavailable = isInactive && item.status === 'pendente';
+  const isDaily = item.tarefas.frequencia === 'diaria';
+  const showEvidenceHint = item.tarefas.exige_evidencia && filter === 'pendente';
+
+  const handlePress = isUnavailable
+    ? () =>
+        Alert.alert(
+          'Tarefa desativada',
+          'Esta tarefa foi desativada pelo responsável e não pode mais ser concluída.',
+        )
+    : () => router.push(`/(child)/tasks/${item.id}` as never);
+
+  const accessibilityLabel = isUnavailable
+    ? `Tarefa ${item.tarefas.titulo} desativada`
+    : `Ver detalhes da tarefa ${item.tarefas.titulo}`;
+
   return (
     <Pressable
       style={[styles.card, isInactive && styles.inactiveCard]}
-      onPress={
-        isUnavailable
-          ? () =>
-              Alert.alert(
-                'Tarefa desativada',
-                'Esta tarefa foi desativada pelo responsável e não pode mais ser concluída.',
-              )
-          : () => router.push(`/(child)/tasks/${item.id}` as never)
-      }
+      onPress={handlePress}
       accessibilityRole="button"
-      accessibilityLabel={
-        isUnavailable
-          ? `Tarefa ${item.tarefas.titulo} desativada`
-          : `Ver detalhes da tarefa ${item.tarefas.titulo}`
-      }
+      accessibilityLabel={accessibilityLabel}
     >
       <View style={styles.cardTop}>
         <Text style={styles.cardTitle} numberOfLines={2}>
@@ -112,12 +115,8 @@ function TaskCard({ item, filter, colors, styles, router }: TaskCardProps) {
         </View>
       ) : null}
       <View style={styles.freqRow}>
-        {item.tarefas.frequencia === 'diaria' ? (
-          <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
-        ) : null}
-        <Text style={styles.cardDeadline}>
-          {item.tarefas.frequencia === 'diaria' ? 'Diária' : 'Única'}
-        </Text>
+        {isDaily ? <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} /> : null}
+        <Text style={styles.cardDeadline}>{isDaily ? 'Diária' : 'Única'}</Text>
       </View>
       {dateLine ? (
         <Text style={styles.cardDeadline}>
@@ -125,7 +124,7 @@ function TaskCard({ item, filter, colors, styles, router }: TaskCardProps) {
           {dateLine.value}
         </Text>
       ) : null}
-      {item.tarefas.exige_evidencia && filter === 'pendente' ? (
+      {showEvidenceHint ? (
         <View style={styles.evidenceHint}>
           <Camera size={12} color={colors.text.muted} strokeWidth={2} />
           <Text style={styles.evidenceHintText}>Requer foto</Text>
