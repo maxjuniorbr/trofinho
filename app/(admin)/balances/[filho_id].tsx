@@ -632,6 +632,8 @@ function makeStyles(colors: ThemeColors) {
       backgroundColor: colors.semantic.warningBg,
       borderRadius: radii.xl,
       borderCurve: 'continuous',
+      borderWidth: 1,
+      borderColor: colors.border.subtle,
       padding: spacing['4'],
       marginBottom: spacing['3'],
       gap: spacing['2'],
