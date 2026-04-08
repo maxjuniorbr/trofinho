@@ -395,6 +395,63 @@ describe('tasks', () => {
       infoMessage: null,
     });
 
+    // pendingDiasSemana: switching one-time → recurring unlocks points
+    expect(
+      getTaskEditState(
+        {
+          dias_semana: 0,
+          ativo: true,
+          atribuicoes: [
+            createAssignmentWithChild({ status: 'pendente', concluida_em: null }),
+          ],
+        },
+        127,
+      ),
+    ).toEqual({
+      canEdit: true,
+      canEditPoints: true,
+      errorMessage: null,
+      infoMessage:
+        'Se você alterar os pontos, o novo valor será usado apenas nas próximas atribuições.',
+    });
+
+    // pendingDiasSemana: switching recurring → one-time locks points
+    expect(
+      getTaskEditState(
+        {
+          dias_semana: 127,
+          ativo: true,
+          atribuicoes: [
+            createAssignmentWithChild({ status: 'pendente', concluida_em: null }),
+          ],
+        },
+        0,
+      ),
+    ).toEqual({
+      canEdit: true,
+      canEditPoints: false,
+      errorMessage: null,
+      infoMessage:
+        'Os pontos desta tarefa pontual já foram definidos na atribuição criada e não podem ser alterados.',
+    });
+
+    // pendingDiasSemana: inactive task ignores pending value
+    expect(
+      getTaskEditState(
+        {
+          dias_semana: 0,
+          ativo: false,
+          atribuicoes: [],
+        },
+        127,
+      ),
+    ).toEqual({
+      canEdit: false,
+      canEditPoints: false,
+      errorMessage: 'Esta tarefa está desativada e não pode ser editada.',
+      infoMessage: null,
+    });
+
     expect(
       getAssignmentPoints({
         pontos_snapshot: 15,

@@ -458,6 +458,7 @@ export function getAssignmentCompletionState(
 
 export function getTaskEditState(
   task: Pick<TaskDetail, 'atribuicoes' | 'dias_semana' | 'ativo'>,
+  pendingDiasSemana?: number,
 ): TaskEditState {
   if (task.ativo === false) {
     return {
@@ -468,7 +469,11 @@ export function getTaskEditState(
     };
   }
 
-  if (isRecurring(task.dias_semana)) {
+  // Use the effective value: if the user is toggling weekdays in the form,
+  // use that pending value; otherwise fall back to the persisted one.
+  const effectiveDiasSemana = pendingDiasSemana ?? task.dias_semana;
+
+  if (isRecurring(effectiveDiasSemana)) {
     return {
       canEdit: true,
       canEditPoints: true,

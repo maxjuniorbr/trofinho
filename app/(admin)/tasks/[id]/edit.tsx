@@ -27,10 +27,14 @@ export default function EditTaskScreen() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [points, setPoints] = useState('');
+  const [diasSemana, setDiasSemana] = useState(0);
   const [formError, setFormError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
 
-  const editState = useMemo(() => (task ? getTaskEditState(task) : null), [task]);
+  const editState = useMemo(
+    () => (task ? getTaskEditState(task, diasSemana) : null),
+    [task, diasSemana],
+  );
 
   // Populate form fields when task data first loads
   useEffect(() => {
@@ -38,6 +42,7 @@ export default function EditTaskScreen() {
       setTitle(task.titulo);
       setDescription(task.descricao ?? '');
       setPoints(String(task.pontos));
+      setDiasSemana(task.dias_semana);
       setInitialized(true);
     }
   }, [task, initialized]);
@@ -89,7 +94,7 @@ export default function EditTaskScreen() {
           descricao: description.trim() || null,
           pontos: editState.canEditPoints ? parsedPoints : task.pontos,
           exige_evidencia: task.exige_evidencia,
-          dias_semana: task.dias_semana,
+          dias_semana: diasSemana,
         },
       },
       {
@@ -172,10 +177,10 @@ export default function EditTaskScreen() {
         ]}
       >
         <Text style={[styles.assignedChildrenTitle, { color: colors.text.primary }]}>
-          Campos bloqueados neste marco
+          Filhos atribuídos
         </Text>
         <Text style={[styles.assignedChildrenText, { color: colors.text.secondary }]}>
-          Filhos atribuídos permanecem fixos para preservar o histórico e o escopo da tarefa.
+          Os filhos atribuídos permanecem fixos para preservar o histórico da tarefa.
         </Text>
       </View>
 
@@ -183,15 +188,15 @@ export default function EditTaskScreen() {
         title={title}
         description={description}
         points={points}
-        diasSemana={task.dias_semana}
+        diasSemana={diasSemana}
         requiresEvidence={task.exige_evidencia}
         onTitleChange={setTitle}
         onDescriptionChange={setDescription}
         onPointsChange={setPoints}
-        onDiasSemanaChange={() => {}}
+        onDiasSemanaChange={setDiasSemana}
         onRequiresEvidenceChange={() => {}}
         autoFocusTitle
-        weekdaysEditable={false}
+        weekdaysEditable={editState.canEdit}
         pointsEditable={editState.canEditPoints}
       />
     </StickyFooterScreen>
