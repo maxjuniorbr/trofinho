@@ -17,6 +17,7 @@ import {
   getTaskWithAssignments,
   listAdminTasks,
   listChildAssignments,
+  listTaskAssignments,
   reactivateTask,
   rejectAssignment,
   renewRecurringTasks,
@@ -255,6 +256,44 @@ describe('tasks', () => {
     );
 
     await expect(listAdminTasks()).resolves.toEqual({
+      data: [],
+      hasMore: false,
+      error: 'Algo deu errado. Tente novamente.',
+    });
+  });
+
+  it('lists task assignments with pagination', async () => {
+    const assignments = Array.from({ length: 11 }, (_, i) => ({ id: `a-${i}` }));
+    supabaseMock.from.mockReturnValueOnce(
+      createOrderQuery({ data: assignments, error: null }),
+    );
+    storageBucketMock.createSignedUrls.mockResolvedValueOnce({ data: [], error: null });
+
+    const result = await listTaskAssignments('task-1', 0, 10);
+
+    expect(result.hasMore).toBe(true);
+    expect(result.data).toHaveLength(10);
+    expect(result.error).toBeNull();
+  });
+
+  it('returns hasMore false when fewer items than pageSize', async () => {
+    supabaseMock.from.mockReturnValueOnce(
+      createOrderQuery({ data: [{ id: 'a-1' }], error: null }),
+    );
+
+    const result = await listTaskAssignments('task-1', 0, 10);
+
+    expect(result.hasMore).toBe(false);
+    expect(result.data).toHaveLength(1);
+    expect(result.error).toBeNull();
+  });
+
+  it('returns error for task assignments query failure', async () => {
+    supabaseMock.from.mockReturnValueOnce(
+      createOrderQuery({ data: null, error: { message: 'assignments failed' } }),
+    );
+
+    await expect(listTaskAssignments('task-1')).resolves.toEqual({
       data: [],
       hasMore: false,
       error: 'Algo deu errado. Tente novamente.',

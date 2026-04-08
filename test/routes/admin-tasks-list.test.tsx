@@ -233,9 +233,9 @@ describe('AdminTasksScreen', () => {
     const renderer = render(<AdminTasksScreen />);
     const badges = renderer.root.findAllByType('Badge' as never);
     const labels = badges.map((b) => b.props.label);
-    expect(labels).toContain('1 pendente');
+    expect(labels).not.toContain('1 pendente');
     expect(labels).toContain('1 validar');
-    expect(labels).toContain('1 aprovada');
+    expect(labels).not.toContain('1 aprovada');
   });
 
   it('navigates to task detail on press', () => {

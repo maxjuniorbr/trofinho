@@ -3,8 +3,9 @@ import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo } from 'react';
 import { useRouter } from 'expo-router';
-import { Clock, Trophy, User } from 'lucide-react-native';
+import { CheckCircle2, Clock, Trophy, User, XCircle } from 'lucide-react-native';
 import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@lib/status';
+import type { RedemptionWithChildAndPrize } from '@lib/redemptions';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -44,6 +45,40 @@ const MODAL_INITIAL: ConfirmModalState = {
   points: 0,
 };
 
+type RedemptionRowProps = Readonly<{
+  item: RedemptionWithChildAndPrize;
+  colors: ThemeColors;
+  styles: ReturnType<typeof makeStyles>;
+  isLast: boolean;
+}>;
+
+function RedemptionRow({ item, colors, styles, isLast }: RedemptionRowProps) {
+  const statusColor = getRedemptionStatusColor(item.status, colors);
+  const StatusIcon = item.status === 'confirmado' ? CheckCircle2 : XCircle;
+  return (
+    <View
+      style={[
+        styles.resRow,
+        !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border.subtle },
+      ]}
+    >
+      <View style={[styles.resRowIcon, { backgroundColor: statusColor + '20' }]}>
+        <StatusIcon size={14} color={statusColor} strokeWidth={2} />
+      </View>
+      <View style={styles.resRowInfo}>
+        <Text style={styles.resRowPremio}>{item.premios.nome}</Text>
+        <Text style={styles.resRowFilho}>{item.filhos.nome}</Text>
+      </View>
+      <View style={styles.resRowRight}>
+        <Text style={[styles.resRowStatus, { color: statusColor }]}>
+          {getRedemptionStatusLabel(item.status)}
+        </Text>
+        <Text style={styles.resRowData}>{formatDate(new Date(item.created_at))}</Text>
+      </View>
+    </View>
+  );
+}
+
 export default function AdminRedemptionsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
@@ -60,6 +95,14 @@ export default function AdminRedemptionsScreen() {
     isFetchingNextPage,
   } = useAdminRedemptions();
   const redemptions = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
+  const pendingRedemptions = useMemo(
+    () => redemptions.filter((r) => r.status === 'pendente'),
+    [redemptions],
+  );
+  const historicalRedemptions = useMemo(
+    () => redemptions.filter((r) => r.status !== 'pendente'),
+    [redemptions],
+  );
   const { data: profile } = useProfile();
   const confirmMutation = useConfirmRedemption();
   const cancelMutation = useCancelRedemption();
@@ -180,8 +223,6 @@ export default function AdminRedemptionsScreen() {
     executeModalAction(redemptionId, type);
   };
 
-  const pending = redemptions.filter((r) => r.status === 'pendente');
-
   return (
     <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
@@ -198,7 +239,7 @@ export default function AdminRedemptionsScreen() {
         />
       ) : (
         <FlashList
-          data={redemptions}
+          data={historicalRedemptions}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
           refreshControl={
@@ -213,110 +254,122 @@ export default function AdminRedemptionsScreen() {
               <View style={{ height: spacing['4'] }} />
               {visibleSuccess ? <InlineMessage message={visibleSuccess} variant="success" /> : null}
               {actionError ? <InlineMessage message={actionError} variant="error" /> : null}
-              {pending.length > 0 && (
-                <View style={styles.secaoHeader}>
-                  <View style={styles.secaoTituloRow}>
-                    <Clock size={14} color={colors.text.muted} strokeWidth={2} />
-                    <Text style={styles.secaoTitulo}>Pendentes ({pending.length})</Text>
+              {pendingRedemptions.length > 0 && (
+                <>
+                  <View style={styles.secaoHeader}>
+                    <View style={styles.secaoTituloRow}>
+                      <Clock size={14} color={colors.text.muted} strokeWidth={2} />
+                      <Text style={styles.secaoTitulo}>
+                        Pendentes ({pendingRedemptions.length})
+                      </Text>
+                    </View>
                   </View>
+                  {pendingRedemptions.map((item) => {
+                    const isProcessing = processingId === item.id;
+                    return (
+                      <View key={item.id} style={[styles.card, styles.cardPendente]}>
+                        <View style={styles.cardTopo}>
+                          <View style={{ flex: 1, gap: spacing['1'] }}>
+                            <Text style={[styles.premioNome, { color: colors.text.primary }]}>
+                              {item.premios.nome}
+                            </Text>
+                            <View style={styles.cardFilhoRow}>
+                              <User size={12} color={colors.text.secondary} strokeWidth={2} />
+                              <Text style={styles.cardFilho}>{item.filhos.nome}</Text>
+                            </View>
+                          </View>
+                          <View style={{ alignItems: 'flex-end' }}>
+                            <View
+                              style={[
+                                styles.statusBadge,
+                                {
+                                  backgroundColor:
+                                    getRedemptionStatusColor(item.status, colors) + '22',
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.statusTexto,
+                                  { color: getRedemptionStatusColor(item.status, colors) },
+                                ]}
+                              >
+                                {getRedemptionStatusLabel(item.status)}
+                              </Text>
+                            </View>
+                            <Text style={styles.cardData}>
+                              {formatDate(new Date(item.created_at))}
+                            </Text>
+                          </View>
+                        </View>
+                        <View style={styles.cardPontosRow}>
+                          <Trophy size={12} color={colors.accent.admin} strokeWidth={2} />
+                          <Text style={styles.cardPontos}>{item.pontos_debitados} pts</Text>
+                        </View>
+                        <View style={styles.acoesRow}>
+                          <View style={{ flex: 1 }}>
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              label="Confirmar"
+                              loading={isProcessing}
+                              disabled={isProcessing}
+                              onPress={() =>
+                                handleConfirm(
+                                  item.id,
+                                  item.filhos.nome,
+                                  item.filhos.usuario_id,
+                                  item.premios.nome,
+                                )
+                              }
+                            />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              label="Cancelar"
+                              disabled={isProcessing}
+                              onPress={() =>
+                                handleCancel(
+                                  item.id,
+                                  item.filhos.nome,
+                                  item.premios.nome,
+                                  item.pontos_debitados,
+                                )
+                              }
+                            />
+                          </View>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </>
+              )}
+              {historicalRedemptions.length > 0 && (
+                <View style={styles.secaoHeader}>
+                  <Text style={styles.secaoTitulo}>Histórico</Text>
                 </View>
               )}
+              {redemptions.length > 0 &&
+              historicalRedemptions.length === 0 &&
+              !isFetching ? (
+                <Text style={styles.semHistorico}>Nenhum histórico de resgates.</Text>
+              ) : null}
             </>
           }
-          renderItem={({ item, index }) => {
-            const isPending = item.status === 'pendente';
-            const isProcessing = processingId === item.id;
-            const previousPending = index > 0 && redemptions[index - 1]?.status === 'pendente';
-            const showHistorySeparator = !isPending && (index === 0 || previousPending);
-
-            return (
-              <>
-                {showHistorySeparator ? (
-                  <View style={styles.secaoHeader}>
-                    <Text style={styles.secaoTitulo}>Histórico</Text>
-                  </View>
-                ) : null}
-                <View style={[styles.card, isPending && styles.cardPendente]}>
-                  <View style={styles.cardTopo}>
-                    <View style={{ flex: 1, gap: spacing['1'] }}>
-                      <Text style={[styles.premioNome, { color: colors.text.primary }]}>
-                        {item.premios.nome}
-                      </Text>
-                      <View style={styles.cardFilhoRow}>
-                        <User size={12} color={colors.text.secondary} strokeWidth={2} />
-                        <Text style={styles.cardFilho}>{item.filhos.nome}</Text>
-                      </View>
-                    </View>
-                    <View>
-                      <View
-                        style={[
-                          styles.statusBadge,
-                          { backgroundColor: getRedemptionStatusColor(item.status, colors) + '22' },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.statusTexto,
-                            { color: getRedemptionStatusColor(item.status, colors) },
-                          ]}
-                        >
-                          {getRedemptionStatusLabel(item.status)}
-                        </Text>
-                      </View>
-                      <Text style={styles.cardData}>{formatDate(new Date(item.created_at))}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.cardPontosRow}>
-                    <Trophy size={12} color={colors.accent.admin} strokeWidth={2} />
-                    <Text style={styles.cardPontos}>{item.pontos_debitados} pts</Text>
-                  </View>
-
-                  {isPending ? (
-                    <View style={styles.acoesRow}>
-                      <View style={{ flex: 1 }}>
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          label="Confirmar"
-                          loading={isProcessing}
-                          disabled={isProcessing}
-                          onPress={() =>
-                            handleConfirm(
-                              item.id,
-                              item.filhos.nome,
-                              item.filhos.usuario_id,
-                              item.premios.nome,
-                            )
-                          }
-                        />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          label="Cancelar"
-                          disabled={isProcessing}
-                          onPress={() =>
-                            handleCancel(
-                              item.id,
-                              item.filhos.nome,
-                              item.premios.nome,
-                              item.pontos_debitados,
-                            )
-                          }
-                        />
-                      </View>
-                    </View>
-                  ) : null}
-                </View>
-              </>
-            );
-          }}
+          renderItem={({ item, index }) => (
+            <RedemptionRow
+              item={item}
+              colors={colors}
+              styles={styles}
+              isLast={index === historicalRedemptions.length - 1}
+            />
+          )}
           onEndReached={() => {
-            if (hasNextPage) fetchNextPage();
+            if (hasNextPage && !isFetchingNextPage) fetchNextPage();
           }}
-          onEndReachedThreshold={0.5}
+          onEndReachedThreshold={0.1}
           ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
         />
       )}
@@ -374,9 +427,11 @@ function makeStyles(colors: ThemeColors) {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,
       borderCurve: 'continuous',
+      borderWidth: 1,
+      borderColor: colors.border.subtle,
       padding: spacing['4'],
-      gap: spacing['2'],
-      marginBottom: spacing['2'],
+      gap: spacing['3'],
+      marginBottom: spacing['3'],
       ...shadows.card,
     },
     cardPendente: { borderLeftWidth: 3, borderLeftColor: colors.semantic.warning },
@@ -390,13 +445,11 @@ function makeStyles(colors: ThemeColors) {
       borderCurve: 'continuous',
       paddingHorizontal: spacing['2'],
       paddingVertical: spacing['1'],
-      alignSelf: 'flex-end',
     },
     statusTexto: { fontSize: typography.size.xs, fontFamily: typography.family.bold },
     cardData: {
       fontSize: typography.size.xs,
       color: colors.text.muted,
-      textAlign: 'right',
       marginTop: spacing['1'],
     },
     cardPontosRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
@@ -407,6 +460,44 @@ function makeStyles(colors: ThemeColors) {
     },
     dataSolicitacao: { fontSize: typography.size.xs, color: colors.text.muted },
     acoesRow: { flexDirection: 'row', gap: spacing['2'], marginTop: spacing['1'] },
+    semHistorico: {
+      fontSize: typography.size.sm,
+      color: colors.text.muted,
+      fontStyle: 'italic',
+      padding: spacing['3'],
+    },
+    resRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: spacing['3'],
+      paddingHorizontal: spacing['3'],
+      gap: spacing['2'],
+    },
+    resRowIcon: {
+      width: 30,
+      height: 30,
+      borderRadius: radii.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    resRowInfo: { flex: 1 },
+    resRowPremio: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.semibold,
+      color: colors.text.primary,
+    },
+    resRowFilho: {
+      fontSize: typography.size.xs,
+      color: colors.text.secondary,
+      marginTop: spacing['0.5'],
+    },
+    resRowRight: { alignItems: 'flex-end' },
+    resRowStatus: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
+    resRowData: {
+      fontSize: typography.size.xs,
+      color: colors.text.muted,
+      marginTop: spacing['0.5'],
+    },
     modalOverlay: {
       flex: 1,
       justifyContent: 'center',

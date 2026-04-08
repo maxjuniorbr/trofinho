@@ -38,9 +38,7 @@ type AdminTaskCardProps = Readonly<{
 
 function AdminTaskCard({ item, colors, styles, onPress }: AdminTaskCardProps) {
   const total = item.atribuicoes.length;
-  const pendentes = item.atribuicoes.filter((a) => a.status === 'pendente').length;
   const aguardando = item.atribuicoes.filter((a) => a.status === 'aguardando_validacao').length;
-  const aprovadas = item.atribuicoes.filter((a) => a.status === 'aprovada').length;
 
   const isInactive = item.ativo === false;
 
@@ -90,18 +88,11 @@ function AdminTaskCard({ item, colors, styles, onPress }: AdminTaskCardProps) {
         </Text>
       </View>
       <View style={styles.cardStats}>
-        {total === 0 ? (
+        {total === 0 && (
           <Text style={[styles.statTexto, { color: colors.text.muted }]}>Sem atribuições</Text>
-        ) : (
-          <>
-            {pendentes > 0 ? (
-              <Badge label={`${pendentes} pendente${pendentes > 1 ? 's' : ''}`} variant="warning" />
-            ) : null}
-            {aguardando > 0 ? <Badge label={`${aguardando} validar`} variant="info" /> : null}
-            {aprovadas > 0 ? (
-              <Badge label={`${aprovadas} aprovada${aprovadas > 1 ? 's' : ''}`} variant="success" />
-            ) : null}
-          </>
+        )}
+        {total > 0 && aguardando > 0 && (
+          <Badge label={`${aguardando} validar`} variant="info" />
         )}
       </View>
     </Pressable>

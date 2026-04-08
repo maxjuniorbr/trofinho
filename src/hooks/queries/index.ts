@@ -8,6 +8,7 @@ export { useRedemptionsLiveSync } from './use-redemptions-live-sync';
 export {
   useAdminTasks,
   useTaskDetail,
+  useTaskAssignments,
   useChildAssignments,
   useChildAssignment,
   usePendingValidationCount,

@@ -29,6 +29,7 @@ const approveMutationMock = vi.hoisted(() => ({
 const taskDetailMock = vi.hoisted(() => ({
   data: undefined as unknown,
   isLoading: false,
+  isFetching: false,
   error: null as Error | null,
   refetch: vi.fn(),
 }));
@@ -58,7 +59,7 @@ vi.mock('react-native', () => {
     ActivityIndicator: createHostComponent('ActivityIndicator'),
     Alert: alertMock,
     Pressable: createHostComponent('Pressable'),
-    ScrollView: createHostComponent('ScrollView'),
+    RefreshControl: createHostComponent('RefreshControl'),
     StyleSheet: {
       create: <T,>(styles: T) => styles,
       absoluteFillObject: {
@@ -68,12 +69,38 @@ vi.mock('react-native', () => {
         top: 0,
         bottom: 0,
       },
+      hairlineWidth: 1,
     },
+    Switch: createHostComponent('Switch'),
     Text: createHostComponent('Text'),
     TextInput: createHostComponent('TextInput'),
     View: createHostComponent('View'),
   };
 });
+
+vi.mock('@shopify/flash-list', () => ({
+  FlashList: React.forwardRef(function FlashListMock(
+    props: {
+      data?: unknown[];
+      renderItem?: (info: { item: unknown; index: number }) => React.ReactNode;
+      ListHeaderComponent?: React.ReactNode;
+      ListFooterComponent?: React.ReactNode;
+      keyExtractor?: (item: unknown, index: number) => string;
+      [key: string]: unknown;
+    },
+    ref: React.ForwardedRef<unknown>,
+  ) {
+    return React.createElement('FlashList', { ref }, [
+      props.ListHeaderComponent,
+      ...(props.data ?? []).map((item, index) =>
+        React.createElement(React.Fragment, { key: props.keyExtractor?.(item, index) ?? String(index) },
+          props.renderItem?.({ item, index }),
+        ),
+      ),
+      props.ListFooterComponent,
+    ]);
+  }),
+}));
 
 vi.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ id: 'task-1' }),
@@ -87,7 +114,7 @@ vi.mock('@lib/tasks', () => ({
   formatWeekdays: (dias: number) => (dias === 0 ? 'Pontual' : 'Todos os dias'),
 }));
 
-vi.mock('@/constants/status', () => ({
+vi.mock('@lib/status', () => ({
   getAssignmentStatusColor: () => '#ccc',
   getAssignmentStatusLabel: (status: string) => status,
 }));
@@ -97,8 +124,23 @@ vi.mock('@lib/utils', () => ({
   toDateString: () => '2024-01-01',
 }));
 
+vi.mock('@lib/navigation-feedback', () => ({
+  consumeNavigationFeedback: () => null,
+}));
+
+const taskAssignmentsMock = vi.hoisted(() => ({
+  data: { pages: [{ data: [], hasMore: false }] },
+  isLoading: false,
+  isFetching: false,
+  isFetchingNextPage: false,
+  hasNextPage: false,
+  fetchNextPage: vi.fn(),
+  refetch: vi.fn(),
+}));
+
 vi.mock('@/hooks/queries', () => ({
   useTaskDetail: () => taskDetailMock,
+  useTaskAssignments: () => taskAssignmentsMock,
   useApproveAssignment: () => approveMutationMock,
   useRejectAssignment: () => rejectMutationMock,
   useDeactivateTask: () => deactivateMutationMock,
@@ -119,8 +161,18 @@ vi.mock('@/components/ui/inline-message', () => ({
   InlineMessage: (props: Record<string, unknown>) => React.createElement('InlineMessage', props),
 }));
 
-vi.mock('@lib/safe-area', () => ({
-  getSafeBottomPadding: () => 24,
+vi.mock('@/components/ui/fullscreen-image-viewer', () => ({
+  FullscreenImageViewer: (props: Record<string, unknown>) =>
+    React.createElement('FullscreenImageViewer', props),
+}));
+
+vi.mock('@/components/ui/safe-screen-frame', () => ({
+  SafeScreenFrame: (props: Record<string, unknown> & { children?: React.ReactNode }) =>
+    React.createElement('SafeScreenFrame', props, props.children),
+}));
+
+vi.mock('@/components/ui/list-footer', () => ({
+  ListFooter: (props: Record<string, unknown>) => React.createElement('ListFooter', props),
 }));
 
 vi.mock('@/hooks/use-transient-message', () => ({
@@ -142,6 +194,7 @@ function render(element: React.ReactElement) {
 function makeTask(assignmentId: string) {
   return {
     id: 'task-1',
+    familia_id: 'family-1',
     titulo: 'Tarefa Teste',
     descricao: 'Descrição',
     pontos: 10,
@@ -158,7 +211,7 @@ function makeTask(assignmentId: string) {
         evidencia_url: null,
         competencia: null,
         created_at: '2024-01-01T00:00:00Z',
-        filhos: { nome: 'Filho Teste' },
+        filhos: { nome: 'Filho Teste', usuario_id: 'user-1' },
       },
     ],
   };

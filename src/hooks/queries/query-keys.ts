@@ -7,6 +7,7 @@ export const queryKeys = {
     pendingCount: () => [...queryKeys.tasks.all, 'pending-count'] as const,
     childAssignments: () => [...queryKeys.tasks.all, 'child-assignments'] as const,
     childAssignment: (id: string) => [...queryKeys.tasks.all, 'child-assignment', id] as const,
+    assignments: (taskId: string) => [...queryKeys.tasks.all, 'assignments', taskId] as const,
     renewRecurring: () => [...queryKeys.tasks.all, 'renew-recurring'] as const,
   },
   balances: {
@@ -65,8 +66,9 @@ export const STALE_TIMES = {
 } as const;
 
 export const PAGE_SIZES = {
-  tasks: 20,
+  tasks: 10,
+  assignments: 10,
   prizes: 20,
-  redemptions: 20,
+  redemptions: 10,
   transactions: 10,
 } as const;

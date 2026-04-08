@@ -242,6 +242,74 @@ export async function getTaskWithAssignments(
   return { data: task, error: null };
 }
 
+export async function listTaskAssignments(
+  taskId: string,
+  page = 0,
+  pageSize = 10,
+): Promise<{
+  data: AssignmentWithChild[];
+  hasMore: boolean;
+  error: string | null;
+}> {
+  const from = page * pageSize;
+  const to = from + pageSize; // fetch one extra to detect next page
+
+  const { data, error } = await supabase
+    .from('atribuicoes')
+    .select('*, filhos(nome, usuario_id)')
+    .eq('tarefa_id', taskId)
+    .order('created_at', { ascending: false })
+    .range(from, to)
+    .overrideTypes<AssignmentWithChild[], { merge: false }>();
+
+  if (error) return { data: [], hasMore: false, error: localizeRpcError(error.message) };
+
+  const items = data ?? [];
+  const hasMore = items.length > pageSize;
+  const page_items = hasMore ? items.slice(0, pageSize) : items;
+
+  // Sign evidence URLs for items that have them
+  const signed = await signAssignmentListEvidence(page_items);
+  return { data: sortAssignments(signed), hasMore, error: null };
+}
+
+async function signAssignmentListEvidence(
+  assignments: AssignmentWithChild[],
+): Promise<AssignmentWithChild[]> {
+  const paths = assignments.map((a) => {
+    if (!a.evidencia_url) return null;
+    return normalizeEvidencePath(a.evidencia_url);
+  });
+
+  const validEntries = paths
+    .map((path, index) => (path ? { path, index } : null))
+    .filter((e): e is { path: string; index: number } => e !== null);
+
+  if (validEntries.length === 0) return assignments;
+
+  const { data, error } = await supabase.storage
+    .from('evidencias')
+    .createSignedUrls(
+      validEntries.map((e) => e.path),
+      EVIDENCE_URL_TTL_SECONDS,
+    );
+
+  if (error || !data) return assignments;
+
+  const signedMap = new Map<number, string>();
+  for (let i = 0; i < validEntries.length; i++) {
+    const signed = data[i];
+    if (signed && !signed.error) {
+      signedMap.set(validEntries[i].index, signed.signedUrl);
+    }
+  }
+
+  return assignments.map((a, index) => {
+    const signedUrl = signedMap.get(index);
+    return signedUrl ? { ...a, evidencia_url: signedUrl } : a;
+  });
+}
+
 export async function approveAssignment(
   assignmentId: string,
   opts: { familiaId: string; userId?: string | null; taskTitle: string },

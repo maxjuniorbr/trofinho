@@ -1,25 +1,27 @@
 import {
   Alert,
   StyleSheet,
+  Switch,
   Text,
   View,
   Pressable,
-  ScrollView,
   TextInput,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { RefreshCw, Camera, Pencil } from 'lucide-react-native';
+import { RefreshCw, Camera, Pencil, CheckCircle2, XCircle, Clock } from 'lucide-react-native';
 import { getTaskEditState, buildTaskDeactivateMessage, isRecurring, formatWeekdays, type AssignmentWithChild } from '@lib/tasks';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
 import { consumeNavigationFeedback } from '@lib/navigation-feedback';
 import { formatDate, toDateString } from '@lib/utils';
 import {
   useTaskDetail,
+  useTaskAssignments,
   useApproveAssignment,
   useRejectAssignment,
   useDeactivateTask,
@@ -29,12 +31,12 @@ import { useTransientMessage } from '@/hooks/use-transient-message';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
-import { Button } from '@/components/ui/button';
 import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { FullscreenImageViewer } from '@/components/ui/fullscreen-image-viewer';
-import { getSafeBottomPadding } from '@lib/safe-area';
+import { ListFooter } from '@/components/ui/list-footer';
+import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 
 type DateLine = { label: string; date: string };
 
@@ -64,6 +66,67 @@ function getAssignmentDateLine(assignment: AssignmentWithChild): DateLine | null
       return date ? { label: 'Rejeitada em ', date: formatDate(date) } : null;
     }
   }
+}
+
+type AssignmentRowProps = Readonly<{
+  assignment: AssignmentWithChild;
+  colors: ThemeColors;
+  styles: ReturnType<typeof makeStyles>;
+  isLast: boolean;
+}>;
+
+function getRowStatusLabel(assignment: AssignmentWithChild): string {
+  if (
+    assignment.status === 'pendente' &&
+    assignment.competencia !== null &&
+    assignment.competencia < toDateString(new Date())
+  ) {
+    return 'Não executada';
+  }
+  return getAssignmentStatusLabel(assignment.status);
+}
+
+function getRowStatusIcon(status: AssignmentWithChild['status']) {
+  const map = {
+    aprovada: CheckCircle2,
+    rejeitada: XCircle,
+    pendente: Clock,
+    aguardando_validacao: Clock,
+  } as const;
+  return map[status];
+}
+
+function AssignmentRow({ assignment, colors, styles, isLast }: AssignmentRowProps) {
+  const dateLine = getAssignmentDateLine(assignment);
+  const statusColor = getAssignmentStatusColor(assignment.status, colors);
+  const StatusIcon = getRowStatusIcon(assignment.status);
+
+  return (
+    <View
+      style={[
+        styles.atribRow,
+        !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border.subtle },
+      ]}
+    >
+      <View style={[styles.atribRowIcon, { backgroundColor: statusColor + '20' }]}>
+        <StatusIcon size={14} color={statusColor} strokeWidth={2} />
+      </View>
+      <View style={styles.atribRowInfo}>
+        <Text style={styles.atribRowNome}>{assignment.filhos.nome}</Text>
+        {assignment.nota_rejeicao ? (
+          <Text style={styles.atribRowNota} numberOfLines={2}>
+            {assignment.nota_rejeicao}
+          </Text>
+        ) : null}
+      </View>
+      <View style={styles.atribRowRight}>
+        <Text style={[styles.atribRowStatus, { color: statusColor }]}>
+          {getRowStatusLabel(assignment)}
+        </Text>
+        {dateLine ? <Text style={styles.atribRowData}>{dateLine.date}</Text> : null}
+      </View>
+    </View>
+  );
 }
 
 type AssignmentCardProps = Readonly<{
@@ -259,10 +322,10 @@ export default function TaskDetailAdminScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const { data: task, isLoading, error, refetch } = useTaskDetail(id);
+  const { data: task, isLoading, error, refetch, isFetching } = useTaskDetail(id);
+  const assignmentsQuery = useTaskAssignments(id);
   const approveMutation = useApproveAssignment();
   const rejectMutation = useRejectAssignment();
   const deactivateMutation = useDeactivateTask();
@@ -408,6 +471,30 @@ export default function TaskDetailAdminScreen() {
     );
   }, [task, executeReactivate]);
 
+  const handleToggle = useCallback(
+    (value: boolean) => {
+      if (value) {
+        handleReactivate();
+      } else {
+        handleDeactivate();
+      }
+    },
+    [handleDeactivate, handleReactivate],
+  );
+
+  const actionableAssignments = useMemo(
+    () => task?.atribuicoes.filter((a) => a.status === 'aguardando_validacao') ?? [],
+    [task],
+  );
+  const paginatedAssignments = useMemo(
+    () => assignmentsQuery.data?.pages.flatMap((p) => p.data) ?? [],
+    [assignmentsQuery.data],
+  );
+
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([refetch(), assignmentsQuery.refetch()]);
+  }, [refetch, assignmentsQuery]);
+
   if (isLoading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
@@ -435,7 +522,7 @@ export default function TaskDetailAdminScreen() {
   const editState = getTaskEditState(task);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
+    <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
       <ScreenHeader
         title="Detalhes"
@@ -452,106 +539,132 @@ export default function TaskDetailAdminScreen() {
         }
       />
 
-      <ScrollView
-        overScrollMode="never"
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: getSafeBottomPadding(insets, spacing['12']) },
-        ]}
-      >
-        {visibleFeedback ? (
-          <View style={styles.feedbackWrapper}>
-            <InlineMessage message={visibleFeedback} variant={feedbackVariant} />
-          </View>
-        ) : null}
-
-        {visibleUpdatedMessage ? (
-          <View style={styles.feedbackWrapper}>
-            <InlineMessage message={visibleUpdatedMessage} variant="success" />
-          </View>
-        ) : null}
-
-        {!task.ativo && (
-          <View style={styles.deactivatedSection}>
-            <InlineMessage message="Esta tarefa está desativada." variant="warning" />
-            <Button
-              variant="outline"
-              label="Reativar tarefa"
-              onPress={handleReactivate}
-              loading={reactivateMutation.isPending}
-              loadingLabel="Reativando…"
-              accessibilityLabel="Reativar tarefa"
-            />
-          </View>
-        )}
-
-        <View style={styles.card}>
-          <View style={styles.cardTopo}>
-            <Text style={styles.cardTitulo}>{task.titulo}</Text>
-            <View style={styles.pontosTag}>
-              <Text style={styles.pontosTexto}>{task.pontos} pts</Text>
-            </View>
-          </View>
-          {task.descricao ? <Text style={styles.descricao}>{task.descricao}</Text> : null}
-          <View style={styles.metaRow}>
-            {isRecurring(task.dias_semana) ? (
-              <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
+      <FlashList
+        data={paginatedAssignments}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={(isFetching || assignmentsQuery.isFetching) && !isLoading}
+            onRefresh={handleRefresh}
+            tintColor={colors.accent.admin}
+          />
+        }
+        ListHeaderComponent={
+          <>
+            {visibleFeedback ? (
+              <View style={styles.feedbackWrapper}>
+                <InlineMessage message={visibleFeedback} variant={feedbackVariant} />
+              </View>
             ) : null}
-            <Text style={styles.meta}>{formatWeekdays(task.dias_semana)}</Text>
-          </View>
-          {task.exige_evidencia && (
-            <View style={styles.tagEvidencia}>
-              <View style={styles.tagEvidenciaRow}>
-                <Camera size={12} color={colors.semantic.warningText} strokeWidth={2} />
-                <Text style={styles.tagEvidenciaTexto}>Exige foto</Text>
+
+            {visibleUpdatedMessage ? (
+              <View style={styles.feedbackWrapper}>
+                <InlineMessage message={visibleUpdatedMessage} variant="success" />
+              </View>
+            ) : null}
+
+            {task.ativo === false && (
+              <View style={styles.feedbackWrapper}>
+                <InlineMessage message="Esta tarefa está desativada." variant="warning" />
+              </View>
+            )}
+
+            <View style={styles.card}>
+              <View style={styles.cardTopo}>
+                <Text style={styles.cardTitulo}>{task.titulo}</Text>
+                <View style={styles.pontosTag}>
+                  <Text style={styles.pontosTexto}>{task.pontos} pts</Text>
+                </View>
+              </View>
+              {task.descricao ? <Text style={styles.descricao}>{task.descricao}</Text> : null}
+              <View style={styles.metaRow}>
+                {isRecurring(task.dias_semana) ? (
+                  <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
+                ) : null}
+                <Text style={styles.meta}>{formatWeekdays(task.dias_semana)}</Text>
+              </View>
+              {task.exige_evidencia && (
+                <View style={styles.tagEvidencia}>
+                  <View style={styles.tagEvidenciaRow}>
+                    <Camera size={12} color={colors.semantic.warningText} strokeWidth={2} />
+                    <Text style={styles.tagEvidenciaTexto}>Exige foto</Text>
+                  </View>
+                </View>
+              )}
+              <View style={[styles.switchRow, { borderTopColor: colors.border.subtle }]}>
+                <Text style={[styles.switchLabel, { color: colors.text.secondary }]}>
+                  Tarefa ativa
+                </Text>
+                <Switch
+                  value={task.ativo !== false}
+                  onValueChange={handleToggle}
+                  disabled={deactivateMutation.isPending || reactivateMutation.isPending}
+                  trackColor={{ true: colors.accent.admin, false: colors.border.default }}
+                  thumbColor={colors.bg.surface}
+                  accessibilityLabel="Ativar ou desativar tarefa"
+                />
               </View>
             </View>
-          )}
-        </View>
 
-        <Text style={styles.secaoTitulo}>Atribuições ({task.atribuicoes.length})</Text>
+            {actionableAssignments.map((assignment) => (
+              <AssignmentCard
+                key={assignment.id}
+                assignment={assignment}
+                action={getAction(assignment.id)}
+                note={getNote(assignment.id)}
+                assignmentError={getError(assignment.id)}
+                imageState={getImgState(assignment.id)}
+                colors={colors}
+                styles={styles}
+                onApprove={() => handleApprove(assignment)}
+                onReject={() => handleReject(assignment)}
+                onStartReject={() =>
+                  setActions((prev) => ({ ...prev, [assignment.id]: 'rejecting' }))
+                }
+                onCancelReject={() =>
+                  setActions((prev) => ({ ...prev, [assignment.id]: null }))
+                }
+                onNoteChange={(value) =>
+                  setNotes((prev) => ({ ...prev, [assignment.id]: value }))
+                }
+                onImageStateChange={(state) =>
+                  setImgStates((prev) => ({ ...prev, [assignment.id]: state }))
+                }
+                onImagePress={(url) => setFullscreenImageUrl(url)}
+              />
+            ))}
 
-        {task.atribuicoes.length === 0 ? (
-          <Text style={styles.semAtrib}>Nenhum filho atribuído.</Text>
-        ) : (
-          task.atribuicoes.map((assignment) => (
-            <AssignmentCard
-              key={assignment.id}
-              assignment={assignment}
-              action={getAction(assignment.id)}
-              note={getNote(assignment.id)}
-              assignmentError={getError(assignment.id)}
-              imageState={getImgState(assignment.id)}
-              colors={colors}
-              styles={styles}
-              onApprove={() => handleApprove(assignment)}
-              onReject={() => handleReject(assignment)}
-              onStartReject={() =>
-                setActions((prev) => ({ ...prev, [assignment.id]: 'rejecting' }))
-              }
-              onCancelReject={() => setActions((prev) => ({ ...prev, [assignment.id]: null }))}
-              onNoteChange={(value) => setNotes((prev) => ({ ...prev, [assignment.id]: value }))}
-              onImageStateChange={(state) =>
-                setImgStates((prev) => ({ ...prev, [assignment.id]: state }))
-              }
-              onImagePress={(url) => setFullscreenImageUrl(url)}
-            />
-          ))
+            <Text style={styles.secaoTitulo}>Atribuições</Text>
+
+            {assignmentsQuery.error ? (
+              <View style={styles.feedbackWrapper}>
+                <InlineMessage
+                  message={assignmentsQuery.error.message}
+                  variant="error"
+                />
+              </View>
+            ) : paginatedAssignments.length === 0 && !assignmentsQuery.isLoading ? (
+              <Text style={styles.semAtrib}>Nenhuma atribuição registrada.</Text>
+            ) : null}
+          </>
+        }
+        renderItem={({ item, index }) => (
+          <AssignmentRow
+            assignment={item}
+            colors={colors}
+            styles={styles}
+            isLast={index === paginatedAssignments.length - 1}
+          />
         )}
-
-        {task.ativo && (
-          <View style={styles.deactivateSection}>
-            <Button
-              variant="danger"
-              label="Desativar tarefa"
-              onPress={handleDeactivate}
-              loading={deactivateMutation.isPending}
-              loadingLabel="Desativando…"
-              accessibilityLabel="Desativar tarefa"
-            />
-          </View>
-        )}
-      </ScrollView>
+        onEndReached={() => {
+          if (assignmentsQuery.hasNextPage && !assignmentsQuery.isFetchingNextPage) {
+            assignmentsQuery.fetchNextPage();
+          }
+        }}
+        onEndReachedThreshold={0.1}
+        ListFooterComponent={<ListFooter loading={assignmentsQuery.isFetchingNextPage} />}
+      />
 
       {fullscreenImageUrl ? (
         <FullscreenImageViewer
@@ -560,7 +673,7 @@ export default function TaskDetailAdminScreen() {
           onClose={() => setFullscreenImageUrl(null)}
         />
       ) : null}
-    </View>
+    </SafeScreenFrame>
   );
 }
 
@@ -572,12 +685,56 @@ function makeStyles(colors: ThemeColors) {
     feedbackWrapper: {
       marginBottom: spacing['4'],
     },
-    deactivatedSection: {
-      gap: spacing['3'],
-      marginBottom: spacing['4'],
+    switchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderTopWidth: StyleSheet.hairlineWidth,
+      paddingTop: spacing['3'],
+      marginTop: spacing['3'],
     },
-    deactivateSection: {
-      marginTop: spacing['2'],
+    switchLabel: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.medium,
+    },
+    atribRowList: {
+      borderRadius: radii.lg,
+      borderWidth: StyleSheet.hairlineWidth,
+      overflow: 'hidden',
+      marginBottom: spacing['3'],
+      ...shadows.card,
+    },
+    atribRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: spacing['3'],
+      paddingHorizontal: spacing['3'],
+      gap: spacing['2'],
+    },
+    atribRowIcon: {
+      width: 30,
+      height: 30,
+      borderRadius: radii.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    atribRowInfo: { flex: 1 },
+    atribRowNome: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.semibold,
+      color: colors.text.primary,
+    },
+    atribRowNota: {
+      fontSize: typography.size.xs,
+      color: colors.text.muted,
+      marginTop: spacing['0.5'],
+    },
+    atribRowRight: { alignItems: 'flex-end' },
+    atribRowStatus: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
+    atribRowData: {
+      fontSize: typography.size.xs,
+      color: colors.text.muted,
+      marginTop: spacing['0.5'],
     },
     card: {
       backgroundColor: colors.bg.surface,

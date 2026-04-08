@@ -72,6 +72,7 @@ vi.mock('react-native', () => {
     ScrollView: createHostComponent('ScrollView'),
     StyleSheet: {
       create: <T,>(styles: T) => styles,
+      hairlineWidth: 0.5,
     },
     Text: createHostComponent('Text'),
     View: createHostComponent('View'),
@@ -147,6 +148,22 @@ function makePendingRedemption(id: string, childName: string, prizeName: string,
     id,
     status: 'pendente',
     pontos_debitados: points,
+    created_at: '2024-01-01T00:00:00Z',
+    filhos: { nome: childName, usuario_id: null },
+    premios: { nome: prizeName },
+  };
+}
+
+function makeHistoricalRedemption(
+  id: string,
+  childName: string,
+  prizeName: string,
+  status: 'confirmado' | 'cancelado' = 'confirmado',
+) {
+  return {
+    id,
+    status,
+    pontos_debitados: 50,
     created_at: '2024-01-01T00:00:00Z',
     filhos: { nome: childName, usuario_id: null },
     premios: { nome: prizeName },
@@ -274,5 +291,56 @@ describe('AdminRedemptionsScreen — cancellation dialog property tests', () => 
       }),
       { numRuns: 100 },
     );
+  });
+});
+
+describe('AdminRedemptionsScreen — row vs card rendering', () => {
+  beforeEach(() => {
+    redemptionsMock.data = undefined;
+    redemptionsMock.isLoading = false;
+    redemptionsMock.error = null;
+    confirmMutationMock.mutate.mockReset();
+    cancelMutationMock.mutate.mockReset();
+  });
+
+  // Feature: list-optimization, Property 1: historical items render without action buttons
+  it('historical (confirmed) items do not show Confirmar or Cancelar buttons', () => {
+    redemptionsMock.data = {
+      pages: [
+        {
+          data: [makeHistoricalRedemption('r-1', 'Maria', 'Videogame')],
+          hasMore: false,
+        },
+      ],
+      pageParams: [0],
+    };
+
+    const renderer = render(<AdminRedemptionsScreen />);
+
+    // "Cancelar" is only on pending action cards (modal uses "Cancelar resgate")
+    const cancelButtons = findCancelButton(renderer);
+    expect(cancelButtons).toHaveLength(0);
+  });
+
+  // Feature: list-optimization, Property 2: pending items show action buttons, historical do not
+  it('only pending items show Cancelar button, not historical items', () => {
+    redemptionsMock.data = {
+      pages: [
+        {
+          data: [
+            makePendingRedemption('r-pending', 'Filho A', 'Prêmio A', 30),
+            makeHistoricalRedemption('r-confirmed', 'Filho B', 'Prêmio B'),
+          ],
+          hasMore: false,
+        },
+      ],
+      pageParams: [0],
+    };
+
+    const renderer = render(<AdminRedemptionsScreen />);
+
+    // "Cancelar" is only on pending action cards; confirmed item is a compact row with no buttons
+    const cancelButtons = findCancelButton(renderer);
+    expect(cancelButtons).toHaveLength(1);
   });
 });

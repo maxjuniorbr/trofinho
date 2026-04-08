@@ -4,6 +4,7 @@ import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tansta
 import {
   listAdminTasks,
   getTaskWithAssignments,
+  listTaskAssignments,
   listChildAssignments,
   getChildAssignment,
   countPendingValidations,
@@ -44,6 +45,23 @@ export const useTaskDetail = (taskId: string | undefined) =>
   useQuery({
     queryKey: queryKeys.tasks.detail(taskId!),
     queryFn: queryFnAdapter(() => getTaskWithAssignments(taskId!)),
+    staleTime: STALE_TIMES.tasks,
+    enabled: !!taskId,
+  });
+
+export const useTaskAssignments = (taskId: string | undefined) =>
+  useInfiniteQuery({
+    queryKey: queryKeys.tasks.assignments(taskId!),
+    queryFn: paginatedQueryFnAdapter(
+      (page, pageSize) => listTaskAssignments(taskId!, page, pageSize),
+      PAGE_SIZES.assignments,
+    ),
+    initialPageParam: 0,
+    getNextPageParam: (
+      lastPage: PaginatedPage<unknown>,
+      _allPages: unknown[],
+      lastPageParam: number,
+    ) => (lastPage.hasMore ? lastPageParam + 1 : undefined),
     staleTime: STALE_TIMES.tasks,
     enabled: !!taskId,
   });

@@ -4,12 +4,12 @@ import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
-import { Trophy } from 'lucide-react-native';
+import { CheckCircle2, Clock, XCircle } from 'lucide-react-native';
 import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@lib/status';
 import { useChildRedemptions } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, shadows, spacing, typography } from '@/constants/theme';
+import { radii, spacing, typography } from '@/constants/theme';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ListScreenSkeleton } from '@/components/ui/skeleton';
@@ -86,42 +86,47 @@ export default function ChildRedemptionsScreen() {
             />
           }
           ListHeaderComponent={<View style={{ height: spacing['4'] }} />}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <View style={styles.cardTop}>
-                <Text style={styles.cardName}>{item.premios?.nome ?? 'Prêmio removido'}</Text>
-                <View
-                  style={[
-                    styles.statusBadge,
-                    { backgroundColor: getRedemptionStatusColor(item.status, colors) + '22' },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.statusText,
-                      { color: getRedemptionStatusColor(item.status, colors) },
-                    ]}
-                  >
+          renderItem={({ item, index }) => {
+            const statusColor = getRedemptionStatusColor(item.status, colors);
+            const StatusIcon =
+              item.status === 'confirmado'
+                ? CheckCircle2
+                : item.status === 'cancelado'
+                  ? XCircle
+                  : Clock;
+            const isLast = index === redemptions.length - 1;
+            return (
+              <View
+                style={[
+                  styles.row,
+                  !isLast && {
+                    borderBottomWidth: StyleSheet.hairlineWidth,
+                    borderBottomColor: colors.border.subtle,
+                  },
+                ]}
+              >
+                <View style={[styles.rowIcon, { backgroundColor: statusColor + '20' }]}>
+                  <StatusIcon size={14} color={statusColor} strokeWidth={2} />
+                </View>
+                <View style={styles.rowInfo}>
+                  <Text style={styles.rowNome}>{item.premios?.nome ?? 'Prêmio removido'}</Text>
+                  {item.status === 'pendente' ? (
+                    <Text style={styles.rowHint}>Aguardando confirmação</Text>
+                  ) : null}
+                </View>
+                <View style={styles.rowRight}>
+                  <Text style={[styles.rowStatus, { color: statusColor }]}>
                     {getRedemptionStatusLabel(item.status)}
                   </Text>
+                  <Text style={styles.rowData}>{formatDate(new Date(item.created_at))}</Text>
                 </View>
               </View>
-              {item.status === 'pendente' ? (
-                <Text style={styles.pendingHint}>Aguardando confirmação do responsável ⏳</Text>
-              ) : null}
-              <View style={styles.cardFooter}>
-                <View style={styles.cardPointsRow}>
-                  <Trophy size={12} color={colors.accent.filho} strokeWidth={2} />
-                  <Text style={styles.cardPoints}>{item.pontos_debitados} pts</Text>
-                </View>
-                <Text style={styles.cardDate}>{formatDate(new Date(item.created_at))}</Text>
-              </View>
-            </View>
-          )}
-          onEndReached={() => {
-            if (hasNextPage) fetchNextPage();
+            );
           }}
-          onEndReachedThreshold={0.5}
+          onEndReached={() => {
+            if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+          }}
+          onEndReachedThreshold={0.1}
           ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
         />
       )}
@@ -158,41 +163,38 @@ function makeStyles(colors: ThemeColors) {
       paddingTop: spacing['2'],
     },
     list: { paddingHorizontal: spacing['4'] },
-    card: {
-      backgroundColor: colors.bg.surface,
-      borderRadius: radii.xl,
-      borderCurve: 'continuous',
-      padding: spacing['4'],
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: spacing['3'],
+      paddingHorizontal: spacing['3'],
       gap: spacing['2'],
-      marginBottom: spacing['2'],
-      ...shadows.card,
     },
-    cardTop: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
-    cardName: {
-      fontSize: typography.size.md,
+    rowIcon: {
+      width: 30,
+      height: 30,
+      borderRadius: radii.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    rowInfo: { flex: 1 },
+    rowNome: {
+      fontSize: typography.size.sm,
       fontFamily: typography.family.semibold,
       color: colors.text.primary,
-      flex: 1,
     },
-    statusBadge: {
-      borderRadius: radii.md,
-      borderCurve: 'continuous',
-      paddingHorizontal: spacing['2'],
-      paddingVertical: spacing['1'],
-    },
-    statusText: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
-    pendingHint: {
+    rowHint: {
       fontSize: typography.size.xs,
       color: colors.text.muted,
       fontStyle: 'italic',
+      marginTop: spacing['0.5'],
     },
-    cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    cardPointsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
-    cardPoints: {
+    rowRight: { alignItems: 'flex-end' },
+    rowStatus: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
+    rowData: {
       fontSize: typography.size.xs,
-      fontFamily: typography.family.bold,
-      color: colors.accent.filho,
+      color: colors.text.muted,
+      marginTop: spacing['0.5'],
     },
-    cardDate: { fontSize: typography.size.xs, color: colors.text.muted },
   });
 }

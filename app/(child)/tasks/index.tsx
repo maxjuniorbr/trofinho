@@ -117,7 +117,7 @@ function TaskCard({ item, filter, colors, styles, router }: Readonly<TaskCardPro
       ) : null}
       <View style={styles.freqRow}>
         {recurring ? <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} /> : null}
-        <Text style={styles.cardDeadline}>{formatWeekdays(item.tarefas.dias_semana)}</Text>
+        <Text style={[styles.cardDeadline, { marginBottom: 0 }]}>{formatWeekdays(item.tarefas.dias_semana)}</Text>
       </View>
       {dateLine ? (
         <Text style={styles.cardDeadline}>
