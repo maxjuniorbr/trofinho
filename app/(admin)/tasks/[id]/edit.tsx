@@ -1,5 +1,6 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import * as Sentry from '@sentry/react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { getTaskEditState } from '@lib/tasks';
@@ -32,8 +33,8 @@ export default function EditTaskScreen() {
   const [initialized, setInitialized] = useState(false);
 
   const editState = useMemo(
-    () => (task ? getTaskEditState(task, diasSemana) : null),
-    [task, diasSemana],
+    () => (task ? getTaskEditState(task, initialized ? diasSemana : undefined) : null),
+    [task, diasSemana, initialized],
   );
 
   // Populate form fields when task data first loads
@@ -52,6 +53,13 @@ export default function EditTaskScreen() {
     if (isLoading || !task || !editState || editState.canEdit) {
       return;
     }
+
+    Sentry.addBreadcrumb({
+      category: 'navigation',
+      message: `Edit screen redirected: task ${task.id} not editable`,
+      level: 'warning',
+      data: { taskId: task.id, reason: editState.errorMessage },
+    });
 
     router.dismissTo({
       pathname: '/(admin)/tasks/[id]',
