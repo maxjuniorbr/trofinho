@@ -15,7 +15,7 @@ export type Redemption = {
 };
 
 export type RedemptionWithPrize = Redemption & {
-  premios: { nome: string; custo_pontos: number };
+  premios: { nome: string; custo_pontos: number } | null;
 };
 
 export type RedemptionWithChildAndPrize = Redemption & {
