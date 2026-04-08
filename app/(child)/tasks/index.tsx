@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { RefreshCw, Camera } from 'lucide-react-native';
-import { getAssignmentPoints, type ChildAssignment, type AssignmentStatus } from '@lib/tasks';
+import { getAssignmentPoints, isRecurring, formatWeekdays, type ChildAssignment, type AssignmentStatus } from '@lib/tasks';
 import { formatDate } from '@lib/utils';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
 import { useChildAssignments } from '@/hooks/queries';
@@ -80,7 +80,7 @@ function TaskCard({ item, filter, colors, styles, router }: Readonly<TaskCardPro
   const dateLine = getAssignmentDateLine(item, filter);
   const isInactive = item.tarefas.ativo === false;
   const isUnavailable = isInactive && item.status === 'pendente';
-  const isDaily = item.tarefas.frequencia === 'diaria';
+  const recurring = isRecurring(item.tarefas.dias_semana);
   const showEvidenceHint = item.tarefas.exige_evidencia && filter === 'pendente';
 
   const handlePress = isUnavailable
@@ -116,8 +116,8 @@ function TaskCard({ item, filter, colors, styles, router }: Readonly<TaskCardPro
         </View>
       ) : null}
       <View style={styles.freqRow}>
-        {isDaily ? <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} /> : null}
-        <Text style={styles.cardDeadline}>{isDaily ? 'Diária' : 'Única'}</Text>
+        {recurring ? <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} /> : null}
+        <Text style={styles.cardDeadline}>{formatWeekdays(item.tarefas.dias_semana)}</Text>
       </View>
       {dateLine ? (
         <Text style={styles.cardDeadline}>

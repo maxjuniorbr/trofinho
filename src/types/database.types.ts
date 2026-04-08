@@ -463,9 +463,9 @@ export type Database = {
           created_at: string
           criado_por: string | null
           descricao: string | null
+          dias_semana: number
           exige_evidencia: boolean
           familia_id: string
-          frequencia: Database["public"]["Enums"]["tarefa_frequencia"]
           id: string
           pontos: number
           titulo: string
@@ -475,9 +475,9 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           descricao?: string | null
+          dias_semana?: number
           exige_evidencia?: boolean
           familia_id: string
-          frequencia?: Database["public"]["Enums"]["tarefa_frequencia"]
           id?: string
           pontos: number
           titulo: string
@@ -487,9 +487,9 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           descricao?: string | null
+          dias_semana?: number
           exige_evidencia?: boolean
           familia_id?: string
-          frequencia?: Database["public"]["Enums"]["tarefa_frequencia"]
           id?: string
           pontos?: number
           titulo?: string
@@ -605,9 +605,9 @@ export type Database = {
       criar_tarefa_com_atribuicoes: {
         Args: {
           p_descricao: string
+          p_dias_semana: number
           p_exige_evidencia: boolean
           p_filho_ids?: string[]
-          p_frequencia: Database["public"]["Enums"]["tarefa_frequencia"]
           p_pontos: number
           p_titulo: string
         }
@@ -635,7 +635,7 @@ export type Database = {
       editar_tarefa: {
         Args: {
           p_descricao: string
-          p_frequencia?: Database["public"]["Enums"]["tarefa_frequencia"]
+          p_dias_semana?: number
           p_pontos?: number
           p_requer_evidencia?: boolean
           p_tarefa_id: string
@@ -644,7 +644,7 @@ export type Database = {
         Returns: undefined
       }
       excluir_minha_conta: { Args: never; Returns: undefined }
-      garantir_atribuicoes_diarias: { Args: never; Returns: undefined }
+      garantir_atribuicoes_recorrentes: { Args: never; Returns: undefined }
       limpar_auth_user_orfao: {
         Args: { p_user_id: string }
         Returns: undefined
@@ -732,7 +732,6 @@ export type Database = {
         | "resgate_cofrinho"
       periodo_valorizacao: "diario" | "semanal" | "mensal"
       resgate_status: "pendente" | "confirmado" | "cancelado"
-      tarefa_frequencia: "diaria" | "unica"
       usuario_papel: "admin" | "filho"
     }
     CompositeTypes: {
@@ -882,7 +881,6 @@ export const Constants = {
       ],
       periodo_valorizacao: ["diario", "semanal", "mensal"],
       resgate_status: ["pendente", "confirmado", "cancelado"],
-      tarefa_frequencia: ["diaria", "unica"],
       usuario_papel: ["admin", "filho"],
     },
   },

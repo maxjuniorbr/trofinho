@@ -14,7 +14,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RefreshCw, Camera, Pencil } from 'lucide-react-native';
-import { getTaskEditState, buildTaskDeactivateMessage, type AssignmentWithChild } from '@lib/tasks';
+import { getTaskEditState, buildTaskDeactivateMessage, isRecurring, formatWeekdays, type AssignmentWithChild } from '@lib/tasks';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
 import { consumeNavigationFeedback } from '@lib/navigation-feedback';
 import { formatDate, toDateString } from '@lib/utils';
@@ -400,7 +400,7 @@ export default function TaskDetailAdminScreen() {
     if (!task) return;
     Alert.alert(
       'Reativar tarefa?',
-      'A tarefa voltará a aparecer para os filhos e gerar atribuições diárias (se aplicável).',
+      'A tarefa voltará a aparecer para os filhos e gerar atribuições recorrentes (se aplicável).',
       [
         { text: 'Cancelar', style: 'cancel' },
         { text: 'Reativar', onPress: executeReactivate },
@@ -494,10 +494,10 @@ export default function TaskDetailAdminScreen() {
           </View>
           {task.descricao ? <Text style={styles.descricao}>{task.descricao}</Text> : null}
           <View style={styles.metaRow}>
-            {task.frequencia === 'diaria' ? (
+            {isRecurring(task.dias_semana) ? (
               <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
             ) : null}
-            <Text style={styles.meta}>{task.frequencia === 'diaria' ? 'Diária' : 'Única'}</Text>
+            <Text style={styles.meta}>{formatWeekdays(task.dias_semana)}</Text>
           </View>
           {task.exige_evidencia && (
             <View style={styles.tagEvidencia}>

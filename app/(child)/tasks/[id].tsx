@@ -10,6 +10,8 @@ import {
   getAssignmentCancellationState,
   getAssignmentCompletionState,
   getAssignmentPoints,
+  isRecurring,
+  formatWeekdays,
   type ChildAssignment,
 } from '@lib/tasks';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
@@ -482,10 +484,10 @@ export default function ChildTaskDetailScreen() {
           </View>
           {task.descricao ? <Text style={styles.description}>{task.descricao}</Text> : null}
           <View style={styles.metaRow}>
-            {task.frequencia === 'diaria' ? (
+            {isRecurring(task.dias_semana) ? (
               <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
             ) : null}
-            <Text style={styles.meta}>{task.frequencia === 'diaria' ? 'Diária' : 'Única'}</Text>
+            <Text style={styles.meta}>{formatWeekdays(task.dias_semana)}</Text>
           </View>
           {task.exige_evidencia ? (
             <View style={styles.evidenceTag}>

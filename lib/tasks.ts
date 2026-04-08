@@ -5,7 +5,23 @@ import { dispatchPushNotification } from './push';
 import { prepareImageUpload } from './storage';
 import { supabase } from './supabase';
 
-export type TaskFrequencia = 'diaria' | 'unica';
+export const WEEKDAY_LABELS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'] as const;
+export const WEEKDAY_FULL_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'] as const;
+export const ALL_DAYS = 0b1111111; // 127
+
+export const isRecurring = (diasSemana: number): boolean => diasSemana > 0;
+
+export const isDayActive = (diasSemana: number, dow: number): boolean =>
+  (diasSemana & (1 << dow)) > 0;
+
+export const toggleDay = (diasSemana: number, dow: number): number =>
+  diasSemana ^ (1 << dow);
+
+export const formatWeekdays = (diasSemana: number): string => {
+  if (diasSemana === 0) return 'Pontual';
+  if (diasSemana === ALL_DAYS) return 'Todos os dias';
+  return WEEKDAY_FULL_LABELS.filter((_, i) => isDayActive(diasSemana, i)).join(', ');
+};
 
 export type Task = {
   id: string;
@@ -13,7 +29,7 @@ export type Task = {
   titulo: string;
   descricao: string | null;
   pontos: number;
-  frequencia: TaskFrequencia;
+  dias_semana: number;
   exige_evidencia: boolean;
   criado_por: string | null;
   created_at: string;
@@ -41,7 +57,7 @@ export type TaskListItem = {
   id: string;
   titulo: string;
   pontos: number;
-  frequencia: TaskFrequencia;
+  dias_semana: number;
   created_at: string;
   ativo: boolean;
   atribuicoes: { status: AssignmentStatus }[];
@@ -102,7 +118,7 @@ export type NewTaskInput = {
   titulo: string;
   descricao: string | null;
   pontos: number;
-  frequencia: TaskFrequencia;
+  dias_semana: number;
   exige_evidencia: boolean;
   filhoIds: string[];
 };
@@ -112,6 +128,7 @@ export type UpdateTaskInput = Readonly<{
   descricao: string | null;
   pontos: number;
   exige_evidencia: boolean;
+  dias_semana: number;
 }>;
 
 export type TaskEditState = Readonly<{
@@ -139,7 +156,7 @@ export async function createTask(
     p_titulo: input.titulo,
     p_descricao: input.descricao ?? '',
     p_pontos: input.pontos,
-    p_frequencia: input.frequencia,
+    p_dias_semana: input.dias_semana,
     p_exige_evidencia: input.exige_evidencia,
     p_filho_ids: input.filhoIds,
   });
@@ -164,6 +181,7 @@ export async function updateTask(
     p_descricao: input.descricao ?? '',
     p_pontos: input.pontos,
     p_requer_evidencia: input.exige_evidencia,
+    p_dias_semana: input.dias_semana,
   });
 
   if (error) return { error: localizeRpcError(error.message) };
@@ -196,7 +214,7 @@ export async function listAdminTasks(
 
   const { data, error } = await supabase
     .from('tarefas')
-    .select('id, titulo, pontos, frequencia, created_at, ativo, atribuicoes(status)')
+    .select('id, titulo, pontos, dias_semana, created_at, ativo, atribuicoes(status)')
     .order('created_at', { ascending: false })
     .range(from, to)
     .overrideTypes<TaskListItem[], { merge: false }>();
@@ -287,8 +305,8 @@ export async function cancelAssignmentSubmission(
   return { error: null };
 }
 
-export async function renewDailyTasks(): Promise<void> {
-  const { error } = await supabase.rpc('garantir_atribuicoes_diarias');
+export async function renewRecurringTasks(): Promise<void> {
+  const { error } = await supabase.rpc('garantir_atribuicoes_recorrentes');
   if (error) throw new Error(localizeRpcError(error.message));
 }
 
@@ -379,7 +397,7 @@ export async function completeAssignment(
 
 export function getAssignmentCancellationState(
   assignment: Pick<Assignment, 'status' | 'competencia'>,
-  task: Pick<Task, 'ativo' | 'frequencia'>,
+  task: Pick<Task, 'ativo' | 'dias_semana'>,
   referenceDate = new Date(),
 ): AssignmentCancellationState {
   if (assignment.status !== 'aguardando_validacao') {
@@ -397,13 +415,13 @@ export function getAssignmentCancellationState(
   }
 
   if (
-    task.frequencia === 'diaria' &&
+    isRecurring(task.dias_semana) &&
     assignment.competencia !== null &&
     assignment.competencia < toDateString(referenceDate)
   ) {
     return {
       canCancel: false,
-      reason: 'Não é possível cancelar o envio de uma tarefa diária de data anterior.',
+      reason: 'Não é possível cancelar o envio de uma tarefa recorrente de data anterior.',
     };
   }
 
@@ -439,7 +457,7 @@ export function getAssignmentCompletionState(
 }
 
 export function getTaskEditState(
-  task: Pick<TaskDetail, 'atribuicoes' | 'frequencia' | 'ativo'>,
+  task: Pick<TaskDetail, 'atribuicoes' | 'dias_semana' | 'ativo'>,
 ): TaskEditState {
   if (task.ativo === false) {
     return {
@@ -450,13 +468,13 @@ export function getTaskEditState(
     };
   }
 
-  if (task.frequencia === 'diaria') {
+  if (isRecurring(task.dias_semana)) {
     return {
       canEdit: true,
       canEditPoints: true,
       errorMessage: null,
       infoMessage:
-        'Se você alterar os pontos, o novo valor será usado apenas nas próximas atribuições diárias.',
+        'Se você alterar os pontos, o novo valor será usado apenas nas próximas atribuições.',
     };
   }
 
@@ -479,7 +497,7 @@ export function getTaskEditState(
     canEditPoints: false,
     errorMessage: null,
     infoMessage:
-      'Os pontos desta tarefa única já foram definidos na atribuição criada e não podem ser alterados.',
+      'Os pontos desta tarefa pontual já foram definidos na atribuição criada e não podem ser alterados.',
   };
 }
 
@@ -509,7 +527,7 @@ export async function reactivateTask(taskId: string): Promise<{
 }
 
 export function buildTaskDeactivateMessage(
-  task: Pick<Task, 'frequencia'>,
+  task: Pick<Task, 'dias_semana'>,
   assignments: { status: AssignmentStatus }[],
 ): string {
   const parts: string[] = [];
@@ -525,8 +543,8 @@ export function buildTaskDeactivateMessage(
     );
   }
 
-  if (task.frequencia === 'diaria') {
-    parts.push('Novas atribuições diárias não serão mais geradas.');
+  if (isRecurring(task.dias_semana)) {
+    parts.push('Novas atribuições recorrentes não serão mais geradas.');
   }
 
   if (awaitingCount > 0) {

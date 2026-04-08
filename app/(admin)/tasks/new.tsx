@@ -8,7 +8,6 @@ import { TaskFormFields } from '@/components/tasks/task-form-fields';
 import { StickyFooterScreen } from '@/components/ui/sticky-footer-screen';
 import { setNavigationFeedback } from '@lib/navigation-feedback';
 import { useChildrenList, useCreateTask, useProfile } from '@/hooks/queries';
-import type { TaskFrequencia } from '@lib/tasks';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 
@@ -25,7 +24,7 @@ export default function NewTaskScreen() {
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
   const [pontos, setPontos] = useState('');
-  const [frequencia, setFrequencia] = useState<TaskFrequencia>('unica');
+  const [diasSemana, setDiasSemana] = useState(0);
   const [exigeEvidencia, setExigeEvidencia] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +59,7 @@ export default function NewTaskScreen() {
           titulo: titulo.trim(),
           descricao: descricao.trim() || null,
           pontos: pontosNum,
-          frequencia,
+          dias_semana: diasSemana,
           exige_evidencia: exigeEvidencia,
           filhoIds,
         },
@@ -150,12 +149,12 @@ export default function NewTaskScreen() {
         title={titulo}
         description={descricao}
         points={pontos}
-        frequency={frequencia}
+        diasSemana={diasSemana}
         requiresEvidence={exigeEvidencia}
         onTitleChange={setTitulo}
         onDescriptionChange={setDescricao}
         onPointsChange={setPontos}
-        onFrequencyChange={setFrequencia}
+        onDiasSemanaChange={setDiasSemana}
         onRequiresEvidenceChange={setExigeEvidencia}
         autoFocusTitle
       />
