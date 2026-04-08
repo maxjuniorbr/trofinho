@@ -74,6 +74,10 @@
     "typescript": "^6.0.2",
     "vitest": "^4.1.0"
   },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0 <11.0.0"
+  },
   "private": true,
   "expo": {
     "install": {
