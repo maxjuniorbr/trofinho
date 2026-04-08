@@ -103,7 +103,7 @@ vi.mock('@/hooks/queries', () => ({
   useFamily: () => familyMock,
   useChildAssignments: () => assignmentsMock,
   useBalance: () => balanceMock,
-  useRenewDailyTasks: vi.fn(),
+  useRenewRecurringTasks: vi.fn(),
   combineQueryStates: (...queries: Record<string, unknown>[]) => ({
     isLoading: queries.some((q) => q.isLoading),
     error: queries.find((q) => q.error)?.error ?? null,

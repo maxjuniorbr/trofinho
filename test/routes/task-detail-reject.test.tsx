@@ -83,6 +83,8 @@ vi.mock('expo-router', () => ({
 vi.mock('@lib/tasks', () => ({
   getTaskEditState: () => ({ canEdit: false }),
   buildTaskDeactivateMessage: () => 'Esta tarefa será desativada.',
+  isRecurring: (dias: number) => dias > 0,
+  formatWeekdays: (dias: number) => (dias === 0 ? 'Pontual' : 'Todos os dias'),
 }));
 
 vi.mock('@/constants/status', () => ({
@@ -143,7 +145,7 @@ function makeTask(assignmentId: string) {
     titulo: 'Tarefa Teste',
     descricao: 'Descrição',
     pontos: 10,
-    frequencia: 'unica',
+    dias_semana: 0,
     exige_evidencia: false,
     ativo: true,
     atribuicoes: [

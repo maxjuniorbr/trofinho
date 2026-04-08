@@ -89,6 +89,7 @@ export default function EditTaskScreen() {
           descricao: description.trim() || null,
           pontos: editState.canEditPoints ? parsedPoints : task.pontos,
           exige_evidencia: task.exige_evidencia,
+          dias_semana: task.dias_semana,
         },
       },
       {
@@ -174,8 +175,7 @@ export default function EditTaskScreen() {
           Campos bloqueados neste marco
         </Text>
         <Text style={[styles.assignedChildrenText, { color: colors.text.secondary }]}>
-          Filhos atribuídos e frequência permanecem fixos para preservar o histórico e o escopo da
-          tarefa.
+          Filhos atribuídos permanecem fixos para preservar o histórico e o escopo da tarefa.
         </Text>
       </View>
 
@@ -183,15 +183,15 @@ export default function EditTaskScreen() {
         title={title}
         description={description}
         points={points}
-        frequency={task.frequencia}
+        diasSemana={task.dias_semana}
         requiresEvidence={task.exige_evidencia}
         onTitleChange={setTitle}
         onDescriptionChange={setDescription}
         onPointsChange={setPoints}
-        onFrequencyChange={() => {}}
+        onDiasSemanaChange={() => {}}
         onRequiresEvidenceChange={() => {}}
         autoFocusTitle
-        frequencyEditable={false}
+        weekdaysEditable={false}
         pointsEditable={editState.canEditPoints}
       />
     </StickyFooterScreen>

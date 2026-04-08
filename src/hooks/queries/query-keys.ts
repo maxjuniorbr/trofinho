@@ -7,7 +7,7 @@ export const queryKeys = {
     pendingCount: () => [...queryKeys.tasks.all, 'pending-count'] as const,
     childAssignments: () => [...queryKeys.tasks.all, 'child-assignments'] as const,
     childAssignment: (id: string) => [...queryKeys.tasks.all, 'child-assignment', id] as const,
-    renewDaily: () => [...queryKeys.tasks.all, 'renew-daily'] as const,
+    renewRecurring: () => [...queryKeys.tasks.all, 'renew-recurring'] as const,
   },
   balances: {
     all: ['balances'] as const,

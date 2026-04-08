@@ -78,6 +78,8 @@ vi.mock('expo-router', () => ({
 
 vi.mock('@lib/tasks', () => ({
   getAssignmentPoints: (assignment: { pontos_snapshot: number }) => assignment.pontos_snapshot,
+  isRecurring: (dias: number) => dias > 0,
+  formatWeekdays: (dias: number) => (dias === 0 ? 'Pontual' : 'Todos os dias'),
 }));
 
 vi.mock('@lib/utils', () => ({
@@ -160,7 +162,7 @@ function makeAssignment(overrides: Record<string, unknown> = {}) {
     created_at: '2026-04-03T10:00:00Z',
     tarefas: {
       titulo: 'Arrumar a cama',
-      frequencia: 'unica',
+      dias_semana: 0,
       ativo: true,
     },
     ...overrides,
@@ -188,7 +190,7 @@ describe('ChildTasksScreen', () => {
             makeAssignment({
               tarefas: {
                 titulo: 'Arrumar a cama',
-                frequencia: 'unica',
+                dias_semana: 0,
                 ativo: false,
               },
             }),
@@ -220,7 +222,7 @@ describe('ChildTasksScreen', () => {
         {
           data: [
             makeAssignment({
-              tarefas: { titulo: 'Arrumar a cama', frequencia: 'unica', ativo: false },
+              tarefas: { titulo: 'Arrumar a cama', dias_semana: 0, ativo: false },
             }),
           ],
           hasMore: false,
@@ -266,7 +268,7 @@ describe('ChildTasksScreen', () => {
         {
           data: [
             makeAssignment({
-              tarefas: { titulo: 'Lavar louça', frequencia: 'unica', ativo: true, exige_evidencia: true },
+              tarefas: { titulo: 'Lavar louça', dias_semana: 0, ativo: true, exige_evidencia: true },
             }),
           ],
           hasMore: false,

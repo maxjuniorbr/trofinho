@@ -15,7 +15,7 @@ describe('Property 1: Query key hierarchy enables prefix invalidation', () => {
         { label: 'pendingCount', fn: () => queryKeys.tasks.pendingCount() },
         { label: 'childAssignments', fn: () => queryKeys.tasks.childAssignments() },
         { label: 'childAssignment', fn: (id: string) => queryKeys.tasks.childAssignment(id) },
-        { label: 'renewDaily', fn: () => queryKeys.tasks.renewDaily() },
+        { label: 'renewRecurring', fn: () => queryKeys.tasks.renewRecurring() },
       ],
     },
     {

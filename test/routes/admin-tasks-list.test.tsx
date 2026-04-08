@@ -17,7 +17,7 @@ const adminTasksMock = vi.hoisted(() => ({
             id: string;
             titulo: string;
             pontos: number;
-            frequencia: string;
+            dias_semana: number;
             ativo: boolean;
             created_at: string;
             atribuicoes: { status: string }[];
@@ -87,6 +87,8 @@ vi.mock('expo-router', () => ({
 
 vi.mock('@lib/tasks', () => ({
   sortAdminTasks: (tasks: unknown[]) => tasks,
+  isRecurring: (dias: number) => dias > 0,
+  formatWeekdays: (dias: number) => (dias === 0 ? 'Pontual' : dias === 127 ? 'Todos os dias' : 'Parcial'),
 }));
 
 vi.mock('@lib/utils', () => ({
@@ -167,7 +169,7 @@ function makeTask(overrides: Record<string, unknown> = {}) {
     id: 'task-1',
     titulo: 'Arrumar quarto',
     pontos: 10,
-    frequencia: 'unica',
+    dias_semana: 0,
     ativo: true,
     created_at: '2026-04-01T10:00:00Z',
     atribuicoes: [{ status: 'pendente' }],
@@ -266,13 +268,13 @@ describe('AdminTasksScreen', () => {
     expect(text).toContain('Desativada');
   });
 
-  it('shows daily frequency label', () => {
+  it('shows recurring frequency label', () => {
     adminTasksMock.data = {
-      pages: [{ data: [makeTask({ frequencia: 'diaria' })], hasMore: false }],
+      pages: [{ data: [makeTask({ dias_semana: 127 })], hasMore: false }],
       pageParams: [0],
     };
     const renderer = render(<AdminTasksScreen />);
     const text = allText(renderer);
-    expect(text).toContain('Diária');
+    expect(text).toContain('Todos os dias');
   });
 });

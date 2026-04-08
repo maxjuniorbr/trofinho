@@ -20,7 +20,7 @@ import {
   useFamily,
   useChildAssignments,
   useBalance,
-  useRenewDailyTasks,
+  useRenewRecurringTasks,
   combineQueryStates,
 } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
@@ -78,7 +78,7 @@ export default function FilhoHomeScreen() {
   const family = familyQuery.data ?? null;
 
   const assignmentsQuery = useChildAssignments();
-  useRenewDailyTasks();
+  useRenewRecurringTasks();
   const assignments = useMemo(
     () => assignmentsQuery.data?.pages.flatMap((p) => p.data) ?? [],
     [assignmentsQuery.data],

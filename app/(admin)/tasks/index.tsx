@@ -14,7 +14,7 @@ import { ListFooter } from '@/components/ui/list-footer';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { consumeNavigationFeedback, type NavigationFeedback } from '@lib/navigation-feedback';
 import { useAdminTasks } from '@/hooks/queries';
-import { sortAdminTasks, type AdminTaskSort, type TaskListItem } from '@lib/tasks';
+import { sortAdminTasks, isRecurring, formatWeekdays, type AdminTaskSort, type TaskListItem } from '@lib/tasks';
 import { formatDate } from '@lib/utils';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
@@ -80,11 +80,11 @@ function AdminTaskCard({ item, colors, styles, onPress }: AdminTaskCardProps) {
         </View>
       </View>
       <View style={styles.freqRow}>
-        {item.frequencia === 'diaria' ? (
+        {isRecurring(item.dias_semana) ? (
           <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
         ) : null}
         <Text style={[styles.cardPrazo, { color: colors.text.muted }]}>
-          {item.frequencia === 'diaria' ? 'Diária' : 'Única'}
+          {formatWeekdays(item.dias_semana)}
           {' · '}
           {formatDate(item.created_at)}
         </Text>

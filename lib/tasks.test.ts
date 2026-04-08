@@ -19,7 +19,7 @@ import {
   listChildAssignments,
   reactivateTask,
   rejectAssignment,
-  renewDailyTasks,
+  renewRecurringTasks,
   sortAdminTasks,
   updateTask,
 } from './tasks';
@@ -164,7 +164,7 @@ describe('tasks', () => {
       id,
       titulo: `Tarefa ${id}`,
       pontos: 10,
-      frequencia: 'unica',
+      dias_semana: 0,
       ativo: true,
       created_at: `2026-03-${id.padStart(2, '0')}T00:00:00Z`,
       atribuicoes: statuses.map((status) => ({ status }) as TaskListItem['atribuicoes'][number]),
@@ -293,7 +293,7 @@ describe('tasks', () => {
         titulo: 'Arrumar a cama',
         descricao: null,
         pontos: 10,
-        frequencia: 'diaria',
+        dias_semana: 127,
         exige_evidencia: false,
         filhoIds: ['child-1'],
       }),
@@ -305,13 +305,13 @@ describe('tasks', () => {
       error: 'Algo deu errado. Tente novamente.',
     });
 
-    await expect(renewDailyTasks()).resolves.toBeUndefined();
+    await expect(renewRecurringTasks()).resolves.toBeUndefined();
   });
 
-  it('throws when renewDailyTasks RPC fails', async () => {
+  it('throws when renewRecurringTasks RPC fails', async () => {
     supabaseMock.rpc.mockResolvedValueOnce({ error: { message: 'rpc failed' } });
 
-    await expect(renewDailyTasks()).rejects.toThrow('Algo deu errado. Tente novamente.');
+    await expect(renewRecurringTasks()).rejects.toThrow('Algo deu errado. Tente novamente.');
   });
 
   it('updates tasks through rpc and exposes the edit-state rules', async () => {
@@ -325,6 +325,7 @@ describe('tasks', () => {
         descricao: 'Detalhes',
         pontos: 20,
         exige_evidencia: true,
+        dias_semana: 127,
       }),
     ).resolves.toEqual({ error: null });
 
@@ -334,12 +335,13 @@ describe('tasks', () => {
         descricao: 'Detalhes',
         pontos: 20,
         exige_evidencia: false,
+        dias_semana: 0,
       }),
     ).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
 
     expect(
       getTaskEditState({
-        frequencia: 'diaria',
+        dias_semana: 127,
         ativo: true,
         atribuicoes: [
           createAssignmentWithChild({
@@ -353,12 +355,12 @@ describe('tasks', () => {
       canEditPoints: true,
       errorMessage: null,
       infoMessage:
-        'Se você alterar os pontos, o novo valor será usado apenas nas próximas atribuições diárias.',
+        'Se você alterar os pontos, o novo valor será usado apenas nas próximas atribuições.',
     });
 
     expect(
       getTaskEditState({
-        frequencia: 'unica',
+        dias_semana: 0,
         ativo: true,
         atribuicoes: [
           createAssignmentWithChild({
@@ -372,12 +374,12 @@ describe('tasks', () => {
       canEditPoints: false,
       errorMessage: null,
       infoMessage:
-        'Os pontos desta tarefa única já foram definidos na atribuição criada e não podem ser alterados.',
+        'Os pontos desta tarefa pontual já foram definidos na atribuição criada e não podem ser alterados.',
     });
 
     expect(
       getTaskEditState({
-        frequencia: 'unica',
+        dias_semana: 0,
         ativo: true,
         atribuicoes: [
           createAssignmentWithChild({
@@ -411,7 +413,7 @@ describe('tasks', () => {
         },
         {
           ativo: false,
-          frequencia: 'unica',
+          dias_semana: 0,
         },
         referenceDate,
       ),
@@ -428,13 +430,13 @@ describe('tasks', () => {
         },
         {
           ativo: true,
-          frequencia: 'diaria',
+          dias_semana: 127,
         },
         referenceDate,
       ),
     ).toEqual({
       canCancel: false,
-      reason: 'Não é possível cancelar o envio de uma tarefa diária de data anterior.',
+      reason: 'Não é possível cancelar o envio de uma tarefa recorrente de data anterior.',
     });
 
     expect(
@@ -445,7 +447,7 @@ describe('tasks', () => {
         },
         {
           ativo: true,
-          frequencia: 'diaria',
+          dias_semana: 127,
         },
         referenceDate,
       ),
@@ -1170,7 +1172,7 @@ describe('tasks', () => {
     it('returns canEdit: false when ativo = false', () => {
       expect(
         getTaskEditState({
-          frequencia: 'diaria',
+          dias_semana: 127,
           ativo: false,
           atribuicoes: [createAssignmentWithChild({ status: 'pendente' })],
         }),
@@ -1206,7 +1208,7 @@ describe('tasks', () => {
       fc.assert(
         fc.property(
           fc.record({
-            frequencia: fc.constantFrom('diaria' as const, 'unica' as const),
+            dias_semana: fc.integer({ min: 0, max: 127 }),
           }),
           fc.array(
             fc.record({
@@ -1236,8 +1238,8 @@ describe('tasks', () => {
               expect(message).toContain('mantida');
             }
 
-            if (task.frequencia === 'diaria') {
-              expect(message).toContain('diárias');
+            if (task.dias_semana > 0) {
+              expect(message).toContain('recorrentes');
             }
 
             // Message is never empty
@@ -1254,7 +1256,7 @@ describe('tasks', () => {
       fc.assert(
         fc.property(
           fc.record({
-            frequencia: fc.constantFrom('diaria' as const, 'unica' as const),
+            dias_semana: fc.integer({ min: 0, max: 127 }),
             atribuicoes: fc.array(
               fc.record({
                 status: fc.constantFrom(
@@ -1270,7 +1272,7 @@ describe('tasks', () => {
           }),
           (task) => {
             const result = getTaskEditState(
-              task as Pick<TaskDetail, 'atribuicoes' | 'frequencia' | 'ativo'>,
+              task as Pick<TaskDetail, 'atribuicoes' | 'dias_semana' | 'ativo'>,
             );
             expect(result.canEdit).toBe(false);
           },

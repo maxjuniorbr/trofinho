@@ -63,7 +63,7 @@ vi.mock('../../../../lib/tasks', () => ({
   rejectAssignment: vi.fn().mockResolvedValue({ error: null }),
   cancelAssignmentSubmission: vi.fn().mockResolvedValue({ error: null }),
   completeAssignment: vi.fn().mockResolvedValue({ error: null }),
-  renewDailyTasks: vi.fn().mockResolvedValue(undefined),
+  renewRecurringTasks: vi.fn().mockResolvedValue(undefined),
 }));
 
 type CapturedStore = { options: Record<string, unknown>[] };
@@ -127,12 +127,12 @@ describe('use-tasks query hooks', () => {
       expect(tasksLib.listAdminTasks).toHaveBeenCalled();
     });
 
-    it('useChildAssignments queryFn calls listChildAssignments without renewDailyTasks', async () => {
+    it('useChildAssignments queryFn calls listChildAssignments without renewRecurringTasks', async () => {
       const { useChildAssignments } = await loadHooks();
       useChildAssignments();
       const qf = lastQueryOpts().queryFn as (ctx: { pageParam: number }) => Promise<unknown>;
       await qf({ pageParam: 0 });
-      expect(tasksLib.renewDailyTasks).not.toHaveBeenCalled();
+      expect(tasksLib.renewRecurringTasks).not.toHaveBeenCalled();
       expect(tasksLib.listChildAssignments).toHaveBeenCalled();
     });
 
@@ -199,29 +199,29 @@ describe('use-tasks mutation hooks', () => {
       expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.tasks.all });
     });
 
-    it('useRenewDailyTasks invalidates childAssignments when data is truthy', async () => {
+    it('useRenewRecurringTasks invalidates childAssignments when data is truthy', async () => {
       // Override useQuery to return data: true to trigger the useEffect invalidation
       const origUseQuery = rq.useQuery as ReturnType<typeof vi.fn>;
       origUseQuery.mockImplementationOnce((opts: Record<string, unknown>) => {
         getCapturedQuery().options.push(opts);
         return { data: true, isLoading: false, error: null };
       });
-      const { useRenewDailyTasks } = await loadHooks();
-      useRenewDailyTasks();
+      const { useRenewRecurringTasks } = await loadHooks();
+      useRenewRecurringTasks();
       expect(mockInvalidateQueries).toHaveBeenCalledWith({
         queryKey: queryKeys.tasks.childAssignments(),
       });
     });
 
-    it('useRenewDailyTasks does not invalidate when query has no data', async () => {
+    it('useRenewRecurringTasks does not invalidate when query has no data', async () => {
       mockInvalidateQueries.mockClear();
       const origUseQuery = rq.useQuery as ReturnType<typeof vi.fn>;
       origUseQuery.mockImplementationOnce((opts: Record<string, unknown>) => {
         getCapturedQuery().options.push(opts);
         return { data: undefined, isLoading: false, error: new Error('RPC failed') };
       });
-      const { useRenewDailyTasks } = await loadHooks();
-      useRenewDailyTasks();
+      const { useRenewRecurringTasks } = await loadHooks();
+      useRenewRecurringTasks();
       expect(mockInvalidateQueries).not.toHaveBeenCalled();
     });
   });

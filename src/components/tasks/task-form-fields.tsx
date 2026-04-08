@@ -1,51 +1,40 @@
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { StyleSheet, Switch, Text, View } from 'react-native';
 import { Input } from '@/components/ui/input';
+import { WeekdaySelector } from '@/components/tasks/weekday-selector';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, spacing, typography } from '@/constants/theme';
-import type { TaskFrequencia } from '@lib/tasks';
 
 type TaskFormFieldsProps = Readonly<{
   title: string;
   description: string;
   points: string;
-  frequency: TaskFrequencia;
+  diasSemana: number;
   requiresEvidence: boolean;
   onTitleChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onPointsChange: (value: string) => void;
-  onFrequencyChange: (value: TaskFrequencia) => void;
+  onDiasSemanaChange: (value: number) => void;
   onRequiresEvidenceChange: (value: boolean) => void;
   autoFocusTitle?: boolean;
-  frequencyEditable?: boolean;
+  weekdaysEditable?: boolean;
   pointsEditable?: boolean;
 }>;
-
-type FrequencyOption = Readonly<{
-  description: string;
-  label: string;
-  value: TaskFrequencia;
-}>;
-
-const FREQUENCY_OPTIONS: readonly FrequencyOption[] = [
-  { value: 'unica', label: 'Única', description: 'Realizada uma vez' },
-  { value: 'diaria', label: 'Diária', description: 'Repetida todo dia' },
-];
 
 export function TaskFormFields({
   title,
   description,
   points,
-  frequency,
+  diasSemana,
   requiresEvidence,
   onTitleChange,
   onDescriptionChange,
   onPointsChange,
-  onFrequencyChange,
+  onDiasSemanaChange,
   onRequiresEvidenceChange,
   autoFocusTitle = false,
-  frequencyEditable = true,
+  weekdaysEditable = true,
   pointsEditable = true,
 }: TaskFormFieldsProps) {
   const { colors } = useTheme();
@@ -91,51 +80,12 @@ export function TaskFormFields({
       />
 
       <View style={styles.section}>
-        <Text style={styles.label}>Frequência *</Text>
-        <View style={styles.frequencyRow}>
-          {FREQUENCY_OPTIONS.map((option) => {
-            const selected = option.value === frequency;
-
-            return (
-              <Pressable
-                key={option.value}
-                style={[
-                  styles.frequencyButton,
-                  {
-                    borderColor: selected ? colors.accent.admin : colors.border.default,
-                    backgroundColor: selected ? colors.accent.adminBg : colors.bg.surface,
-                    opacity: frequencyEditable ? 1 : 0.55,
-                  },
-                ]}
-                onPress={() => {
-                  if (frequencyEditable) {
-                    onFrequencyChange(option.value);
-                  }
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={`Selecionar frequência ${option.label.toLowerCase()}`}
-                accessibilityState={{ selected, disabled: !frequencyEditable }}
-              >
-                <Text
-                  style={[
-                    styles.frequencyTitle,
-                    { color: selected ? colors.accent.admin : colors.text.primary },
-                  ]}
-                >
-                  {option.label}
-                </Text>
-                <Text
-                  style={[
-                    styles.frequencyDescription,
-                    { color: selected ? colors.accent.admin : colors.text.muted },
-                  ]}
-                >
-                  {option.description}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <Text style={styles.label}>Repetir nos dias</Text>
+        <WeekdaySelector
+          value={diasSemana}
+          onChange={onDiasSemanaChange}
+          disabled={!weekdaysEditable}
+        />
       </View>
 
       <View style={styles.switchRow}>
@@ -177,29 +127,6 @@ function makeStyles(colors: ThemeColors) {
       fontFamily: typography.family.semibold,
       color: colors.text.secondary,
       marginBottom: spacing['2'],
-    },
-    frequencyRow: {
-      flexDirection: 'row',
-      gap: spacing['2'],
-    },
-    frequencyButton: {
-      flex: 1,
-      borderWidth: 1.5,
-      borderRadius: radii.lg,
-      borderCurve: 'continuous',
-      paddingHorizontal: spacing['3'],
-      paddingVertical: spacing['3'],
-      gap: spacing['1'],
-      minHeight: 88,
-      justifyContent: 'center',
-    },
-    frequencyTitle: {
-      fontSize: typography.size.md,
-      fontFamily: typography.family.semibold,
-    },
-    frequencyDescription: {
-      fontSize: typography.size.xs,
-      lineHeight: typography.lineHeight.sm,
     },
     switchRow: {
       flexDirection: 'row',

@@ -88,6 +88,8 @@ vi.mock('expo-router', () => ({
 
 vi.mock('@lib/tasks', () => ({
   getAssignmentPoints: (assignment: { pontos_snapshot: number }) => assignment.pontos_snapshot,
+  isRecurring: (dias: number) => dias > 0,
+  formatWeekdays: (dias: number) => (dias === 0 ? 'Pontual' : 'Todos os dias'),
   getAssignmentCompletionState: (assignment: { status: string }, task: { ativo: boolean }) => {
     if (assignment.status !== 'pendente') {
       return { canComplete: false, reason: null };
@@ -105,7 +107,7 @@ vi.mock('@lib/tasks', () => ({
   },
   getAssignmentCancellationState: (
     assignment: { status: string; competencia: string | null },
-    task: { ativo: boolean; frequencia: string },
+    task: { ativo: boolean; dias_semana: number },
   ) => {
     if (assignment.status !== 'aguardando_validacao') {
       return { canCancel: false, reason: null };
@@ -118,10 +120,10 @@ vi.mock('@lib/tasks', () => ({
       };
     }
 
-    if (task.frequencia === 'diaria' && assignment.competencia === '2026-03-20') {
+    if (task.dias_semana > 0 && assignment.competencia === '2026-03-20') {
       return {
         canCancel: false,
-        reason: 'Não é possível cancelar o envio de uma tarefa diária de data anterior.',
+        reason: 'Não é possível cancelar o envio de uma tarefa recorrente de data anterior.',
       };
     }
 
@@ -221,7 +223,7 @@ function makeAssignment(overrides: Record<string, unknown> = {}) {
       titulo: 'Arrumar a cama',
       descricao: null,
       pontos: 10,
-      frequencia: 'unica',
+      dias_semana: 0,
       exige_evidencia: false,
       criado_por: 'admin-1',
       created_at: '2026-03-01T00:00:00Z',
@@ -333,7 +335,7 @@ describe('ChildTaskDetailScreen — cancel assignment submission', () => {
           titulo: 'Arrumar a cama',
           descricao: null,
           pontos: 10,
-          frequencia: 'unica',
+          dias_semana: 0,
           exige_evidencia: false,
           criado_por: 'admin-1',
           created_at: '2026-03-01T00:00:00Z',
@@ -368,7 +370,7 @@ describe('ChildTaskDetailScreen — cancel assignment submission', () => {
     ).toBe(true);
   });
 
-  it('does not render the cancel CTA for an old daily assignment and shows the blocking reason inline', () => {
+  it('does not render the cancel CTA for an old recurring assignment and shows the blocking reason inline', () => {
     childAssignmentMock.data = makeAssignment({
       competencia: '2026-03-20',
       tarefas: {
@@ -377,7 +379,7 @@ describe('ChildTaskDetailScreen — cancel assignment submission', () => {
         titulo: 'Arrumar a cama',
         descricao: null,
         pontos: 10,
-        frequencia: 'diaria',
+        dias_semana: 127,
         exige_evidencia: false,
         criado_por: 'admin-1',
         created_at: '2026-03-01T00:00:00Z',
@@ -397,7 +399,7 @@ describe('ChildTaskDetailScreen — cancel assignment submission', () => {
       inlineMessages.some(
         (node) =>
           node.props.message ===
-          'Não é possível cancelar o envio de uma tarefa diária de data anterior.',
+          'Não é possível cancelar o envio de uma tarefa recorrente de data anterior.',
       ),
     ).toBe(true);
   });

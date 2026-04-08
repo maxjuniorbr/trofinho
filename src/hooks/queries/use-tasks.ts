@@ -15,7 +15,7 @@ import {
   completeAssignment,
   deactivateTask,
   reactivateTask,
-  renewDailyTasks,
+  renewRecurringTasks,
   type NewTaskInput,
   type UpdateTaskInput,
 } from '../../../lib/tasks';
@@ -57,14 +57,14 @@ export const useTaskDetail = (taskId: string | undefined) =>
  * are harmless — but the post-success cache invalidation was the main
  * source of a "refetch storm" that made child mode feel slow.
  */
-export const useRenewDailyTasks = () => {
+export const useRenewRecurringTasks = () => {
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: queryKeys.tasks.renewDaily(),
+    queryKey: queryKeys.tasks.renewRecurring(),
     queryFn: async () => {
       try {
-        await renewDailyTasks();
+        await renewRecurringTasks();
         return true;
       } catch (error) {
         Sentry.captureException(error, { tags: { subsystem: 'task-renewal' } });
