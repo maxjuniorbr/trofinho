@@ -89,7 +89,7 @@ export default function ChildRedemptionsScreen() {
           renderItem={({ item }) => (
             <View style={styles.card}>
               <View style={styles.cardTop}>
-                <Text style={styles.cardName}>{item.premios.nome}</Text>
+                <Text style={styles.cardName}>{item.premios?.nome ?? 'Prêmio removido'}</Text>
                 <View
                   style={[
                     styles.statusBadge,
