@@ -396,7 +396,8 @@ describe('Contract parity: push events & notification prefs', () => {
   const clientPrefKeys = Object.keys(DEFAULT_NOTIFICATION_PREFS);
 
   it('VALID_EVENTS matches MESSAGE_TEMPLATES keys', () => {
-    expect([...VALID_EVENTS].sort()).toEqual(handlerEvents.sort());
+    const sorted = (arr: string[]) => [...arr].toSorted((a, b) => a.localeCompare(b));
+    expect(sorted([...VALID_EVENTS])).toEqual(sorted(handlerEvents));
   });
 
   it('every handler event has a preference key mapping', () => {
@@ -406,7 +407,8 @@ describe('Contract parity: push events & notification prefs', () => {
   });
 
   it('PREFERENCE_KEY_MAP values cover all client NotificationPrefs keys', () => {
-    expect(handlerPrefKeys.sort()).toEqual(clientPrefKeys.sort());
+    const sorted = (arr: string[]) => [...arr].toSorted((a, b) => a.localeCompare(b));
+    expect(sorted(handlerPrefKeys)).toEqual(sorted(clientPrefKeys));
   });
 
   it('every MESSAGE_TEMPLATES route is handled by getNotificationRoute', () => {

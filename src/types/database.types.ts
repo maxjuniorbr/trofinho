@@ -45,6 +45,7 @@ export type Database = {
           concluida_em: string | null
           created_at: string
           evidencia_url: string | null
+          familia_id: string
           filho_id: string
           id: string
           nota_rejeicao: string | null
@@ -59,6 +60,7 @@ export type Database = {
           concluida_em?: string | null
           created_at?: string
           evidencia_url?: string | null
+          familia_id: string
           filho_id: string
           id?: string
           nota_rejeicao?: string | null
@@ -73,6 +75,7 @@ export type Database = {
           concluida_em?: string | null
           created_at?: string
           evidencia_url?: string | null
+          familia_id?: string
           filho_id?: string
           id?: string
           nota_rejeicao?: string | null
@@ -83,6 +86,13 @@ export type Database = {
           validada_por?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "atribuicoes_familia_id_fkey"
+            columns: ["familia_id"]
+            isOneToOne: false
+            referencedRelation: "familias"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "atribuicoes_filho_id_fkey"
             columns: ["filho_id"]

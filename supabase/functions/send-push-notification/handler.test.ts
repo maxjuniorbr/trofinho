@@ -14,8 +14,6 @@ import {
   ADMIN_ONLY_EVENTS,
   FILHO_ONLY_EVENTS,
   MESSAGE_TEMPLATES,
-  VALID_EVENTS,
-  PREFERENCE_KEY_MAP,
   type SupabaseClientLike,
   type ExpoTicketResult,
   type ExpoPushMessage,

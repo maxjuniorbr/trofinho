@@ -202,7 +202,15 @@ function RootNavigator({
 
   useEffect(() => {
     const target = resolveNavDecision(ready, profile, segments as string[]);
-    if (target) router.replace(target as never);
+    if (target) {
+      Sentry.addBreadcrumb({
+        category: 'navigation',
+        message: 'nav_redirect',
+        level: 'info',
+        data: { target, from: segments[0], role: profile?.papel },
+      });
+      router.replace(target as never);
+    }
   }, [ready, profile, router, segments]);
 
   useEffect(() => {
