@@ -1,6 +1,6 @@
 import { localizeRpcError, localizeSupabaseError } from './api-error';
 import { deviceStorage } from './device-storage';
-import { uploadImageToPublicBucket } from './storage';
+import { resolveStorageUrl, uploadImageToPublicBucket } from './storage';
 import { supabase } from './supabase';
 
 const AVATAR_BUCKET = 'avatars';
@@ -46,9 +46,10 @@ export async function getCurrentAuthUser(): Promise<{
 } | null> {
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) return null;
+  const rawAvatarUrl = (data.user.user_metadata?.avatar_url as string | undefined) ?? null;
   return {
     email: data.user.email ?? '',
-    avatarUrl: (data.user.user_metadata?.avatar_url as string | undefined) ?? null,
+    avatarUrl: await resolveStorageUrl('avatars', rawAvatarUrl),
   };
 }
 
@@ -91,7 +92,7 @@ export async function getProfile(): Promise<UserProfile | null> {
     familia_id: profile.familia_id,
     papel: profile.papel as 'admin' | 'filho',
     nome: profile.nome,
-    avatarUrl: profile.avatarUrl ?? null,
+    avatarUrl: await resolveStorageUrl('avatars', profile.avatarUrl),
   };
 }
 

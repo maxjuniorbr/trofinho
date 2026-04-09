@@ -350,6 +350,7 @@ export async function getNotificationPrefs(): Promise<NotificationPrefs> {
       data: { user },
     } = await supabase.auth.getUser();
     if (user) {
+      const storageKey = `${NOTIFICATION_PREFERENCES_KEY}_${user.id}`;
       const { data, error } = await supabase
         .from('usuarios')
         .select('notif_prefs')
@@ -358,9 +359,13 @@ export async function getNotificationPrefs(): Promise<NotificationPrefs> {
 
       if (!error && data?.notif_prefs) {
         const serverPrefs = data.notif_prefs as NotificationPrefs;
-        await deviceStorage.setItem(NOTIFICATION_PREFERENCES_KEY, JSON.stringify(serverPrefs));
+        await deviceStorage.setItem(storageKey, JSON.stringify(serverPrefs));
         return serverPrefs;
       }
+
+      // Server had no prefs — try user-scoped local cache
+      const rawPreferences = await deviceStorage.getItem(storageKey);
+      return normalizeNotificationPrefs(rawPreferences);
     }
   } catch {
     // Network error — fall back to local cache
@@ -383,7 +388,10 @@ export async function setNotificationPrefs(preferences: NotificationPrefs): Prom
 
   if (error) throw error;
 
-  await deviceStorage.setItem(NOTIFICATION_PREFERENCES_KEY, JSON.stringify(preferences));
+  await deviceStorage.setItem(
+    `${NOTIFICATION_PREFERENCES_KEY}_${user.id}`,
+    JSON.stringify(preferences),
+  );
 }
 
 export async function isNotificationPermissionDenied(): Promise<boolean> {

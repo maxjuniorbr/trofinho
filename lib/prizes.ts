@@ -1,5 +1,5 @@
 import { localizeRpcError } from './api-error';
-import { uploadImageToPublicBucket } from './storage';
+import { resolveStorageUrl, resolveStorageUrls, uploadImageToPublicBucket } from './storage';
 import { supabase } from './supabase';
 
 export type Prize = {
@@ -53,7 +53,18 @@ export async function listPrizes(
   if (error) return { data: [], hasMore: false, error: localizeRpcError(error.message) };
   const items = data ?? [];
   const hasMore = items.length > pageSize;
-  return { data: hasMore ? items.slice(0, pageSize) : items, hasMore, error: null };
+  const page_items = hasMore ? items.slice(0, pageSize) : items;
+
+  const signedUrls = await resolveStorageUrls(
+    'premios',
+    page_items.map((p) => p.imagem_url),
+  );
+  const resolved = page_items.map((prize, i) => ({
+    ...prize,
+    imagem_url: signedUrls[i] ?? null,
+  }));
+
+  return { data: resolved, hasMore, error: null };
 }
 
 export async function getPrize(id: string): Promise<{
@@ -68,7 +79,13 @@ export async function getPrize(id: string): Promise<{
     .single();
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
-  return { data, error: null };
+
+  const prize = data as Prize | null;
+  if (prize?.imagem_url) {
+    prize.imagem_url = await resolveStorageUrl('premios', prize.imagem_url);
+  }
+
+  return { data: prize, error: null };
 }
 
 export async function createPrize(input: PrizeInput): Promise<{

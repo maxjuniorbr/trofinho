@@ -29,6 +29,10 @@ vi.mock('./image-utils', async (importOriginal) => {
 });
 
 const storageBucketMock = vi.hoisted(() => ({
+  createSignedUrl: vi.fn().mockResolvedValue({
+    data: { signedUrl: 'https://signed-url' },
+    error: null,
+  }),
   getPublicUrl: vi.fn(),
   upload: vi.fn(),
 }));
@@ -140,7 +144,7 @@ describe('auth', () => {
       });
 
       const result = await getCurrentAuthUser();
-      expect(result).toEqual({ email: 'max@test.com', avatarUrl: 'https://avatar' });
+      expect(result).toEqual({ email: 'max@test.com', avatarUrl: 'https://signed-url' });
     });
 
     it('returns null when there is an auth error', async () => {
@@ -199,7 +203,7 @@ describe('auth', () => {
         familia_id: 'family-1',
         papel: 'admin',
         nome: 'Max',
-        avatarUrl: 'https://avatar',
+        avatarUrl: 'https://signed-url',
       },
       error: null,
     });
@@ -292,7 +296,7 @@ describe('auth', () => {
       familia_id: 'family-1',
       papel: 'filho',
       nome: 'Lia',
-      avatarUrl: 'https://cdn.example.com/child-avatar.jpg',
+      avatarUrl: 'https://signed-url',
     });
   });
 

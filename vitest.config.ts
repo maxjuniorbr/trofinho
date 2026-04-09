@@ -40,7 +40,6 @@ export default defineConfig({
         '**/*.test.tsx',
         '**/*.d.ts',
         'lib/supabase.ts',
-        'lib/notifications.ts',
         'src/constants/assets.ts',
         'src/constants/theme.ts',
         'src/context/theme-context.tsx',
@@ -51,7 +50,6 @@ export default defineConfig({
         'src/components/tasks/**',
         'src/hooks/use-transient-message.ts',
         'src/hooks/queries/index.ts',
-        'src/hooks/queries/use-*.ts',
         'app/**/_layout.tsx',
       ],
       thresholds: {

@@ -29,6 +29,11 @@ vi.mock('./supabase', () => ({
   supabase: supabaseMock,
 }));
 
+vi.mock('./storage', () => ({
+  resolveStorageUrl: vi.fn(async (_b: string, v: string | null) => v),
+  resolveStorageUrls: vi.fn(async (_b: string, vs: (string | null | undefined)[]) => vs),
+}));
+
 function createOrderQuery(result: { data?: unknown; error?: { message: string } | null }) {
   return {
     order: vi.fn().mockReturnThis(),

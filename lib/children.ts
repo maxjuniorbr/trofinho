@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { localizeRpcError } from './api-error';
+import { resolveStorageUrl, resolveStorageUrls } from './storage';
 import { supabase } from './supabase';
 
 export type Child = {
@@ -89,7 +90,18 @@ export async function listChildren(onlyActive = false): Promise<{
   const { data, error } = await query.order('nome').overrideTypes<Child[], { merge: false }>();
 
   if (error) return { data: [], error: localizeRpcError(error.message) };
-  return { data: data ?? [], error: null };
+
+  const children = data ?? [];
+  const signedUrls = await resolveStorageUrls(
+    'avatars',
+    children.map((c) => c.avatar_url),
+  );
+  const resolved = children.map((child, i) => ({
+    ...child,
+    avatar_url: signedUrls[i],
+  }));
+
+  return { data: resolved, error: null };
 }
 
 export async function getChild(
@@ -101,6 +113,11 @@ export async function getChild(
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
   const child: AdminChildProfile | null = Array.isArray(data) ? (data[0] ?? null) : null;
+
+  if (child?.avatar_url) {
+    child.avatar_url = await resolveStorageUrl('avatars', child.avatar_url);
+  }
+
   return { data: child, error: null };
 }
 

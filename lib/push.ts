@@ -81,7 +81,7 @@ export async function dispatchPushNotification(
 
       Sentry.captureException(error, {
         tags: { subsystem: 'push', event, errorCategory: error.name || 'Unknown' },
-        extra: { familiaId, payload, response: data, statusCode },
+        extra: { statusCode },
       });
       return;
     }
@@ -96,7 +96,6 @@ export async function dispatchPushNotification(
     );
     Sentry.captureException(err, {
       tags: { subsystem: 'push', event, errorCategory: 'Exception' },
-      extra: { familiaId, payload },
     });
   }
 }

@@ -37,6 +37,8 @@ vi.mock('./supabase', () => ({
 
 vi.mock('./storage', () => ({
   uploadImageToPublicBucket: uploadImageToPublicBucketMock,
+  resolveStorageUrl: vi.fn(async (_b: string, v: string | null) => v),
+  resolveStorageUrls: vi.fn(async (_b: string, vs: (string | null)[]) => vs),
 }));
 
 vi.mock('./push', () => ({
@@ -114,7 +116,7 @@ describe('prizes', () => {
     supabaseMock.from.mockReturnValueOnce(listQuery).mockReturnValueOnce(getQuery);
 
     await expect(listPrizes()).resolves.toEqual({
-      data: [{ id: 'prize-1' }],
+      data: [{ id: 'prize-1', imagem_url: null }],
       hasMore: false,
       error: null,
     });

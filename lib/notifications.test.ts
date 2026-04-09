@@ -163,7 +163,7 @@ describe('notifications', () => {
       selectMock.mockResolvedValue({ data: { notif_prefs: serverPrefs }, error: null });
       await expect(getNotificationPrefs()).resolves.toEqual(serverPrefs);
       expect(deviceStorageSetMock).toHaveBeenCalledWith(
-        'notification_prefs',
+        'notification_prefs_user-1',
         JSON.stringify(serverPrefs),
       );
     });
@@ -232,7 +232,7 @@ describe('notifications', () => {
       await setNotificationPrefs(prefs);
       expect(updateMock).toHaveBeenCalledWith('id', 'user-1');
       expect(deviceStorageSetMock).toHaveBeenCalledWith(
-        'notification_prefs',
+        'notification_prefs_user-1',
         JSON.stringify(prefs),
       );
     });
