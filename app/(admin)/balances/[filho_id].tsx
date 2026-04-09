@@ -266,6 +266,7 @@ export default function ChildBalanceAdminScreen() {
       <FlashList
         data={transactions}
         keyExtractor={(m) => m.id}
+        maintainVisibleContentPosition={{ disabled: true }}
         contentContainerStyle={styles.lista}
         refreshControl={
           <RefreshControl

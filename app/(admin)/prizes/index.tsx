@@ -84,6 +84,7 @@ export default function AdminPrizesScreen() {
       <FlashList
         data={prizes}
         keyExtractor={(item) => item.id}
+        maintainVisibleContentPosition={{ disabled: true }}
         contentContainerStyle={styles.lista}
         refreshControl={
           <RefreshControl

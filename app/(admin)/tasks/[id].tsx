@@ -558,6 +558,7 @@ export default function TaskDetailAdminScreen() {
       <FlashList
         data={paginatedAssignments}
         keyExtractor={(item) => item.id}
+        maintainVisibleContentPosition={{ disabled: true }}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl

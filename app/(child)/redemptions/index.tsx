@@ -94,6 +94,7 @@ export default function ChildRedemptionsScreen() {
       <FlashList
         data={historicalRedemptions}
         keyExtractor={(item) => item.id}
+        maintainVisibleContentPosition={{ disabled: true }}
         contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl

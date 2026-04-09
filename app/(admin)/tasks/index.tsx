@@ -163,6 +163,7 @@ export default function AdminTasksScreen() {
       <FlashList
         data={sortedTasks}
         keyExtractor={(item) => item.id}
+        maintainVisibleContentPosition={{ disabled: true }}
         contentContainerStyle={styles.lista}
         refreshControl={
           <RefreshControl

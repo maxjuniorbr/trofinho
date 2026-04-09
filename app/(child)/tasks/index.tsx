@@ -282,6 +282,7 @@ export default function ChildTasksScreen() {
       <FlashList
         data={filtered}
         keyExtractor={(item) => item.id}
+        maintainVisibleContentPosition={{ disabled: true }}
         contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl

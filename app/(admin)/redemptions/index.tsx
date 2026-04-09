@@ -252,6 +252,7 @@ export default function AdminRedemptionsScreen() {
       <FlashList
         data={historicalRedemptions}
         keyExtractor={(item) => item.id}
+        maintainVisibleContentPosition={{ disabled: true }}
         contentContainerStyle={styles.lista}
         refreshControl={
           <RefreshControl

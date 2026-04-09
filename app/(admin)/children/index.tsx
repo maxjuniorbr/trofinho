@@ -68,6 +68,7 @@ export default function AdminChildrenScreen() {
       <FlashList
         data={children}
         keyExtractor={(item) => item.id}
+        maintainVisibleContentPosition={{ disabled: true }}
         contentContainerStyle={styles.lista}
         refreshControl={
           <RefreshControl

@@ -139,6 +139,7 @@ export default function ChildPrizesScreen() {
       <FlashList
         data={prizes}
         keyExtractor={(item) => item.id}
+        maintainVisibleContentPosition={{ disabled: true }}
         contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl
