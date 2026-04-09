@@ -15,6 +15,7 @@ import {
 import { supabase } from '@lib/supabase';
 import { getProfile, type UserProfile } from '@lib/auth';
 import { syncAutomaticAppreciation } from '@lib/balances';
+import { resolveNavDecision } from '@lib/nav-guard';
 import { createAuthStateHandler } from '@lib/auth-state';
 import {
   registerForPushNotifications,
@@ -38,7 +39,7 @@ Sentry.init({
   profilesSampleRate: __DEV__ ? 1 : 0.1,
   replaysOnErrorSampleRate: 0,
   replaysSessionSampleRate: 0,
-  enableLogs: true,
+  enableLogs: __DEV__,
   integrations: [navigationIntegration],
   enableNativeFramesTracking: !isRunningInExpoGo(),
   environment: __DEV__ ? 'development' : 'production',
@@ -66,9 +67,20 @@ function RootLayout() {
   }, [ref]);
 
   useEffect(() => {
+    const handleProfileChange = (p: UserProfile | null) => {
+      setProfile(p);
+      if (p) {
+        Sentry.setUser({ id: p.id });
+        Sentry.setTag('papel', p.papel);
+        Sentry.setTag('familia_id', p.familia_id);
+      } else {
+        Sentry.setUser(null);
+      }
+    };
+
     const authStateHandler = createAuthStateHandler({
       getProfile,
-      onProfileChange: setProfile,
+      onProfileChange: handleProfileChange,
       onReadyChange: setReady,
       onSignOut: () => queryClient.clear(),
     });
@@ -135,11 +147,13 @@ function RootNavigator({
           setPushToken(token);
         }
         if (!token) {
+          Sentry.addBreadcrumb({ category: 'push', message: 'token_null', level: 'warning' });
           console.warn(
             '[push-token] registerForPushNotifications returned null — token not obtained',
           );
         }
       } catch (error) {
+        Sentry.addBreadcrumb({ category: 'push', message: 'registration_error', level: 'error' });
         console.warn('[push-token] Exception during push registration:', error);
         if (mounted) {
           setPushToken(null);
@@ -170,6 +184,7 @@ function RootNavigator({
           lastSavedPushTokenKeyRef.current = saveKey;
         }
       } catch (error) {
+        Sentry.addBreadcrumb({ category: 'push', message: 'persist_failed', level: 'error' });
         console.warn('[push-token] Failed to persist token:', error);
         if (mounted) {
           lastSavedPushTokenKeyRef.current = null;
@@ -184,44 +199,11 @@ function RootNavigator({
     };
   }, [profile?.id, pushToken]);
 
-  const roleHome = profile?.papel === 'admin' ? '/(admin)/' : '/(child)/';
 
   useEffect(() => {
-    if (!ready) return;
-
-    const inAuth = segments[0] === '(auth)';
-    const seg1 = segments[1 as keyof typeof segments] as string | undefined;
-
-    if (profile === null) {
-      if (!inAuth) router.replace('/(auth)/login');
-      return;
-    }
-
-    if (profile === undefined) return;
-
-    if (!profile.familia_id) {
-      if (seg1 !== 'onboarding') router.replace('/(auth)/onboarding');
-      return;
-    }
-
-    if (inAuth) {
-      router.replace(roleHome);
-      return;
-    }
-
-    // Enforce role-based route access — redirect if current group doesn't match role.
-    const inAdmin = segments[0] === '(admin)';
-    const inChild = segments[0] === '(child)';
-    if ((inAdmin && profile.papel !== 'admin') || (inChild && profile.papel !== 'filho')) {
-      router.replace(roleHome);
-      return;
-    }
-
-    // Redirect when still on the blank index route (initial load).
-    if (!inAdmin && !inChild) {
-      router.replace(roleHome);
-    }
-  }, [ready, profile, router, segments, roleHome]);
+    const target = resolveNavDecision(ready, profile, segments as string[]);
+    if (target) router.replace(target as never);
+  }, [ready, profile, router, segments]);
 
   useEffect(() => {
     let active = true;

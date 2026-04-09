@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AlertTriangle } from 'lucide-react-native';
+import * as Sentry from '@sentry/react-native';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
@@ -14,6 +15,7 @@ export function ErrorBoundary({ error, retry }: RouteErrorFallbackProps) {
   const { colors } = useTheme();
 
   useEffect(() => {
+    Sentry.captureException(error);
     console.error(error);
   }, [error]);
 

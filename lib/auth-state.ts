@@ -1,4 +1,5 @@
 import type { AuthChangeEvent, Session } from '@supabase/auth-js';
+import * as Sentry from '@sentry/react-native';
 import type { UserProfile } from './auth';
 
 type AuthStateHandlerOptions = Readonly<{
@@ -22,6 +23,8 @@ export function createAuthStateHandler({
   let active = true;
   let requestId = 0;
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  let lastUserId: string | null = null;
+  let lastUserId: string | null = null;
 
   function clearPendingTimeout() {
     if (timeoutId === null) return;
@@ -39,6 +42,9 @@ export function createAuthStateHandler({
     if (event === 'SIGNED_OUT' || !session) {
       requestId += 1;
       clearPendingTimeout();
+      lastUserId = null;
+
+      Sentry.addBreadcrumb({ category: 'auth', message: 'signed_out', level: 'info' });
 
       if (!active) return;
 
@@ -47,6 +53,17 @@ export function createAuthStateHandler({
       onReadyChange(true);
       return;
     }
+
+    // Detect cross-account switch: different user without explicit sign-out.
+    // Clear stale cache before loading the new user's profile.
+    const currentUserId = session.user?.id ?? null;
+    if (lastUserId && currentUserId && currentUserId !== lastUserId) {
+      Sentry.addBreadcrumb({ category: 'auth', message: 'user_switch_detected', level: 'warning' });
+      onSignOut?.();
+    }
+    lastUserId = currentUserId;
+
+    Sentry.addBreadcrumb({ category: 'auth', message: event.toLowerCase(), level: 'info' });
 
     const currentRequestId = ++requestId;
     clearPendingTimeout();
@@ -61,6 +78,7 @@ export function createAuthStateHandler({
           applyResolvedProfile(profile, currentRequestId);
         })
         .catch(() => {
+          Sentry.addBreadcrumb({ category: 'auth', message: 'profile_load_failed', level: 'error' });
           applyResolvedProfile(null, currentRequestId);
         });
     }, 0);

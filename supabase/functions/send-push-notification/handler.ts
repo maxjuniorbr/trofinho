@@ -596,7 +596,7 @@ export async function processTicketResults(
         tokensToDelete.push(tokens[i]);
       } else {
         console.error(
-          `[send-push-notification] Expo error for token ${tokens[i]}: ${errorType ?? ticket.message}`,
+          `[send-push-notification] Expo error for token ${tokens[i].slice(0, 12)}***: ${errorType ?? ticket.message}`,
         );
       }
     }

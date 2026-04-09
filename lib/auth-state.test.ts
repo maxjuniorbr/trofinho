@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as Sentry from '@sentry/react-native';
 import { createAuthStateHandler } from './auth-state';
 import type { UserProfile } from './auth';
+
+vi.mock('@sentry/react-native', () => ({
+  addBreadcrumb: vi.fn(),
+}));
 
 describe('createAuthStateHandler', () => {
   const getProfile = vi.fn<() => Promise<UserProfile | null>>();
@@ -14,6 +19,7 @@ describe('createAuthStateHandler', () => {
     onProfileChange.mockReset();
     onReadyChange.mockReset();
     onSignOut.mockReset();
+    vi.mocked(Sentry.addBreadcrumb).mockClear();
   });
 
   it('defers profile refresh until after the auth callback returns', async () => {
@@ -191,5 +197,157 @@ describe('createAuthStateHandler', () => {
     expect(trackingOnSignOut).toHaveBeenCalledTimes(1);
     expect(trackingOnProfileChange).toHaveBeenCalledWith(null);
     expect(callOrder).toEqual(['signOut', 'profileChange']);
+  });
+
+  it('calls onSignOut when userId changes without explicit sign-out', async () => {
+    getProfile.mockResolvedValue({
+      id: 'user-2',
+      familia_id: 'family-2',
+      papel: 'admin',
+      nome: 'Ana',
+    });
+
+    const handler = createAuthStateHandler({
+      getProfile,
+      onProfileChange,
+      onReadyChange,
+      onSignOut,
+    });
+
+    // First login — establishes lastUserId
+    handler.handleAuthStateChange('SIGNED_IN', {
+      access_token: 'token-1',
+      user: { id: 'user-1' },
+    } as never);
+    await vi.runAllTimersAsync();
+
+    // Second login — different user without SIGNED_OUT
+    handler.handleAuthStateChange('SIGNED_IN', {
+      access_token: 'token-2',
+      user: { id: 'user-2' },
+    } as never);
+
+    expect(onSignOut).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call onSignOut when same user re-authenticates', async () => {
+    getProfile.mockResolvedValue({
+      id: 'user-1',
+      familia_id: 'family-1',
+      papel: 'admin',
+      nome: 'Max',
+    });
+
+    const handler = createAuthStateHandler({
+      getProfile,
+      onProfileChange,
+      onReadyChange,
+      onSignOut,
+    });
+
+    handler.handleAuthStateChange('SIGNED_IN', {
+      access_token: 'token-1',
+      user: { id: 'user-1' },
+    } as never);
+    await vi.runAllTimersAsync();
+
+    handler.handleAuthStateChange('TOKEN_REFRESHED', {
+      access_token: 'token-2',
+      user: { id: 'user-1' },
+    } as never);
+
+    expect(onSignOut).not.toHaveBeenCalled();
+  });
+
+  it('emits signed_out breadcrumb on SIGNED_OUT', () => {
+    const handler = createAuthStateHandler({
+      getProfile,
+      onProfileChange,
+      onReadyChange,
+    });
+
+    handler.handleAuthStateChange('SIGNED_OUT', null);
+
+    expect(Sentry.addBreadcrumb).toHaveBeenCalledWith({
+      category: 'auth',
+      message: 'signed_out',
+      level: 'info',
+    });
+  });
+
+  it('emits auth event breadcrumb on SIGNED_IN', async () => {
+    getProfile.mockResolvedValue({
+      id: 'user-1',
+      familia_id: 'family-1',
+      papel: 'admin',
+      nome: 'Max',
+    });
+
+    const handler = createAuthStateHandler({
+      getProfile,
+      onProfileChange,
+      onReadyChange,
+    });
+
+    handler.handleAuthStateChange('SIGNED_IN', { access_token: 'token', user: { id: 'user-1' } } as never);
+    await vi.runAllTimersAsync();
+
+    expect(Sentry.addBreadcrumb).toHaveBeenCalledWith({
+      category: 'auth',
+      message: 'signed_in',
+      level: 'info',
+    });
+  });
+
+  it('emits user_switch_detected breadcrumb on cross-account switch', async () => {
+    getProfile.mockResolvedValue({
+      id: 'user-2',
+      familia_id: 'family-2',
+      papel: 'admin',
+      nome: 'Ana',
+    });
+
+    const handler = createAuthStateHandler({
+      getProfile,
+      onProfileChange,
+      onReadyChange,
+      onSignOut,
+    });
+
+    handler.handleAuthStateChange('SIGNED_IN', {
+      access_token: 'token-1',
+      user: { id: 'user-1' },
+    } as never);
+    await vi.runAllTimersAsync();
+
+    handler.handleAuthStateChange('SIGNED_IN', {
+      access_token: 'token-2',
+      user: { id: 'user-2' },
+    } as never);
+
+    expect(Sentry.addBreadcrumb).toHaveBeenCalledWith({
+      category: 'auth',
+      message: 'user_switch_detected',
+      level: 'warning',
+    });
+  });
+
+  it('emits profile_load_failed breadcrumb when getProfile rejects', async () => {
+    getProfile.mockRejectedValue(new Error('network error'));
+
+    const handler = createAuthStateHandler({
+      getProfile,
+      onProfileChange,
+      onReadyChange,
+    });
+
+    handler.handleAuthStateChange('SIGNED_IN', { access_token: 'token', user: { id: 'user-1' } } as never);
+    await vi.runAllTimersAsync();
+
+    expect(Sentry.addBreadcrumb).toHaveBeenCalledWith({
+      category: 'auth',
+      message: 'profile_load_failed',
+      level: 'error',
+    });
   });
 });
