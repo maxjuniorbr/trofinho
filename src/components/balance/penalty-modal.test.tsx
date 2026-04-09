@@ -73,6 +73,33 @@ describe('PenaltyModal — confirmation dialog property tests', () => {
   const onCloseMock = vi.fn();
   const onApplyMock = vi.fn();
 
+  type AlertButton = { text: string; style: string; onPress?: () => void };
+  type AlertCall = [title: string, message: string, buttons: AlertButton[]];
+
+  /** Renders the modal, fills inputs, presses Penalizar, and asserts the alert fired. */
+  function fillAndSubmit(childName: string, amount: number): AlertCall {
+    const renderer = render(
+      <PenaltyModal
+        visible={true}
+        childName={childName}
+        onClose={onCloseMock}
+        onApply={onApplyMock}
+      />,
+    );
+    const inputs = findTextInputs(renderer);
+    act(() => {
+      inputs.find((i) => i.props.keyboardType === 'number-pad')!.props.onChangeText(String(amount));
+    });
+    act(() => {
+      inputs.find((i) => i.props.multiline === true)!.props.onChangeText('Motivo de teste');
+    });
+    act(() => {
+      findPenalizeButton(renderer).props.onPress();
+    });
+    expect(alertMock.alert).toHaveBeenCalledTimes(1);
+    return alertMock.alert.mock.calls[0] as AlertCall;
+  }
+
   beforeEach(() => {
     alertMock.alert.mockReset();
     onCloseMock.mockReset();
@@ -88,36 +115,7 @@ describe('PenaltyModal — confirmation dialog property tests', () => {
         fc.string({ minLength: 1, maxLength: 50 }).filter((s) => s.trim().length > 0),
         (amount, childName) => {
           alertMock.alert.mockReset();
-
-          const renderer = render(
-            <PenaltyModal
-              visible={true}
-              childName={childName}
-              onClose={onCloseMock}
-              onApply={onApplyMock}
-            />,
-          );
-
-          // Fill in amount and description fields
-          const inputs = findTextInputs(renderer);
-          const amountInput = inputs.find((i) => i.props.keyboardType === 'number-pad');
-          const descInput = inputs.find((i) => i.props.multiline === true);
-
-          act(() => {
-            amountInput!.props.onChangeText(String(amount));
-          });
-          act(() => {
-            descInput!.props.onChangeText('Motivo de teste');
-          });
-
-          // Press the "Penalizar" button
-          const penalizeBtn = findPenalizeButton(renderer);
-          act(() => {
-            penalizeBtn.props.onPress();
-          });
-
-          expect(alertMock.alert).toHaveBeenCalledTimes(1);
-          const message = alertMock.alert.mock.calls[0][1] as string;
+          const [, message] = fillAndSubmit(childName, amount);
           expect(message).toContain(String(amount));
           expect(message).toContain(childName);
         },
@@ -137,39 +135,7 @@ describe('PenaltyModal — confirmation dialog property tests', () => {
           alertMock.alert.mockReset();
           onApplyMock.mockReset();
           onApplyMock.mockResolvedValue({ error: null });
-
-          const renderer = render(
-            <PenaltyModal
-              visible={true}
-              childName={childName}
-              onClose={onCloseMock}
-              onApply={onApplyMock}
-            />,
-          );
-
-          const inputs = findTextInputs(renderer);
-          const amountInput = inputs.find((i) => i.props.keyboardType === 'number-pad');
-          const descInput = inputs.find((i) => i.props.multiline === true);
-
-          act(() => {
-            amountInput!.props.onChangeText(String(amount));
-          });
-          act(() => {
-            descInput!.props.onChangeText('Motivo de teste');
-          });
-
-          const penalizeBtn = findPenalizeButton(renderer);
-          act(() => {
-            penalizeBtn.props.onPress();
-          });
-
-          expect(alertMock.alert).toHaveBeenCalledTimes(1);
-          const buttons = alertMock.alert.mock.calls[0][2] as {
-            text: string;
-            style: string;
-            onPress?: () => void;
-          }[];
-
+          const [, , buttons] = fillAndSubmit(childName, amount);
           if (userConfirms) {
             const confirmBtn = buttons.find((b) => b.style === 'destructive');
             act(() => {
