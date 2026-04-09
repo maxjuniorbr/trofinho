@@ -13,10 +13,9 @@ export const useTasksLiveSync = (familiaId: string | undefined) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
     };
 
-    // Only subscribe to tarefas (filtered by familia_id). The atribuicoes
-    // table lacks a familia_id column, so an unfiltered subscription would
-    // broadcast events from ALL families — a cross-family data leak (S2).
-    // Task-level changes are sufficient to trigger cache invalidation.
+    // Subscribe to both tarefas and atribuicoes, filtered by familia_id.
+    // Migration 20260426200000 added familia_id to atribuicoes, enabling
+    // safe family-scoped subscriptions (previously blocked — S2 risk).
     const channel = supabase
       .channel(`tasks-live-sync-${Date.now()}-${Math.random().toString(36).slice(2)}`) // NOSONAR — not security-sensitive, just channel uniqueness
       .on(
@@ -25,6 +24,16 @@ export const useTasksLiveSync = (familiaId: string | undefined) => {
           event: '*',
           schema: 'public',
           table: 'tarefas',
+          filter: `familia_id=eq.${familiaId}`,
+        },
+        invalidateTasks,
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'atribuicoes',
           filter: `familia_id=eq.${familiaId}`,
         },
         invalidateTasks,
