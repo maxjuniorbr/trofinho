@@ -191,6 +191,8 @@ export default function AdminHomeScreen() {
       <ScrollView
         style={{ backgroundColor: colors.bg.canvas }}
         overScrollMode="never"
+        bounces={false}
+        alwaysBounceVertical={false}
         contentContainerStyle={[
           styles.container,
           {

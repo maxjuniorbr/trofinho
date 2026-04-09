@@ -126,7 +126,7 @@ export const lightColors = createThemeColors({
   },
   border: {
     subtle: '#E0E5EB',
-    default: '#E0E5EB',
+    default: '#C5CDD8',
   },
   shadow: {
     low: '0 1px 2px rgba(3, 7, 17, 0.04)',
@@ -173,7 +173,7 @@ export const darkColors = createThemeColors({
   },
   border: {
     subtle: '#303541',
-    default: '#303541',
+    default: '#48505F',
   },
   shadow: {
     low: '0 1px 2px rgba(0, 0, 0, 0.20)',

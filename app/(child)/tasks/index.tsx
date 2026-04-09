@@ -286,11 +286,14 @@ function makeStyles(colors: ThemeColors) {
     card: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,
+      borderCurve: 'continuous',
+      borderWidth: 1,
+      borderColor: colors.border.subtle,
       padding: spacing['4'],
       marginBottom: spacing['3'],
       ...shadows.card,
     },
-    inactiveCard: { opacity: 0.72 },
+    inactiveCard: { opacity: 0.5 },
     cardTop: {
       flexDirection: 'row',
       alignItems: 'flex-start',
@@ -305,15 +308,15 @@ function makeStyles(colors: ThemeColors) {
       marginRight: spacing['2'],
     },
     pointsTag: {
-      backgroundColor: colors.accent.filhoBg,
-      borderRadius: radii.sm,
+      backgroundColor: colors.brand.subtle,
+      borderRadius: radii.full,
       paddingVertical: spacing['1'],
       paddingHorizontal: spacing['2'],
     },
     pointsText: {
       fontSize: typography.size.xs,
       fontFamily: typography.family.bold,
-      color: colors.accent.filho,
+      color: colors.brand.dim,
     },
     inactiveTag: {
       alignSelf: 'flex-start',
@@ -332,7 +335,7 @@ function makeStyles(colors: ThemeColors) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing['1'],
-      marginBottom: spacing['1'],
+      marginBottom: spacing['2'],
     },
     cardDeadline: {
       fontSize: typography.size.xs,

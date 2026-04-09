@@ -42,6 +42,14 @@ export default function ChildRedemptionsScreen() {
     isFetchingNextPage,
   } = useChildRedemptions();
   const redemptions = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
+  const pendingRedemptions = useMemo(
+    () => redemptions.filter((r) => r.status === 'pendente'),
+    [redemptions],
+  );
+  const historicalRedemptions = useMemo(
+    () => redemptions.filter((r) => r.status !== 'pendente'),
+    [redemptions],
+  );
 
   const errorMessage = error?.message ?? null;
   const hasError = Boolean(errorMessage);
@@ -89,7 +97,7 @@ export default function ChildRedemptionsScreen() {
         </View>
       ) : (
         <FlashList
-          data={redemptions}
+          data={historicalRedemptions}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           refreshControl={
@@ -99,7 +107,61 @@ export default function ChildRedemptionsScreen() {
               tintColor={colors.brand.vivid}
             />
           }
-          ListHeaderComponent={<View style={{ height: spacing['4'] }} />}
+          ListHeaderComponent={
+            <>
+              <View style={{ height: spacing['4'] }} />
+              {pendingRedemptions.length > 0 ? (
+                <>
+                  <View style={[styles.sectionHeader, { borderBottomColor: colors.border.subtle }]}>
+                    <View style={styles.sectionTitleRow}>
+                      <Clock size={14} color={colors.text.primary} strokeWidth={2} />
+                      <Text style={styles.sectionTitle}>
+                        Pendentes ({pendingRedemptions.length})
+                      </Text>
+                    </View>
+                  </View>
+                  {pendingRedemptions.map((item, index) => {
+                    const statusColor = getRedemptionStatusColor(item.status, colors);
+                    const isLast = index === pendingRedemptions.length - 1;
+                    return (
+                      <View
+                        key={item.id}
+                        style={[
+                          styles.row,
+                          !isLast && {
+                            borderBottomWidth: StyleSheet.hairlineWidth,
+                            borderBottomColor: colors.border.subtle,
+                          },
+                        ]}
+                      >
+                        <View style={[styles.rowIcon, { backgroundColor: statusColor + '20' }]}>
+                          <Clock size={14} color={statusColor} strokeWidth={2} />
+                        </View>
+                        <View style={styles.rowInfo}>
+                          <Text style={styles.rowNome}>{item.premios?.nome ?? 'Prêmio removido'}</Text>
+                          <Text style={styles.rowHint}>Aguardando confirmação</Text>
+                        </View>
+                        <View style={styles.rowRight}>
+                          <Text style={[styles.rowStatus, { color: statusColor }]}>
+                            {getRedemptionStatusLabel(item.status)}
+                          </Text>
+                          <Text style={styles.rowData}>{formatDate(new Date(item.created_at))}</Text>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </>
+              ) : null}
+              {historicalRedemptions.length > 0 ? (
+                <View style={[styles.sectionHeader, { borderBottomColor: colors.border.subtle }]}>
+                  <Text style={styles.sectionTitle}>Histórico</Text>
+                </View>
+              ) : null}
+              {redemptions.length > 0 && historicalRedemptions.length === 0 && !isFetching ? (
+                <Text style={styles.noHistory}>Nenhum histórico de resgates.</Text>
+              ) : null}
+            </>
+          }
           renderItem={({ item, index }) => {
             const statusColor = getRedemptionStatusColor(item.status, colors);
             const StatusIcon =
@@ -108,7 +170,7 @@ export default function ChildRedemptionsScreen() {
                 : item.status === 'cancelado'
                   ? XCircle
                   : Clock;
-            const isLast = index === redemptions.length - 1;
+            const isLast = index === historicalRedemptions.length - 1;
             return (
               <View
                 style={[
@@ -124,9 +186,6 @@ export default function ChildRedemptionsScreen() {
                 </View>
                 <View style={styles.rowInfo}>
                   <Text style={styles.rowNome}>{item.premios?.nome ?? 'Prêmio removido'}</Text>
-                  {item.status === 'pendente' ? (
-                    <Text style={styles.rowHint}>Aguardando confirmação</Text>
-                  ) : null}
                 </View>
                 <View style={styles.rowRight}>
                   <Text style={[styles.rowStatus, { color: statusColor }]}>
@@ -154,6 +213,28 @@ function makeStyles(colors: ThemeColors) {
     container: { flex: 1 },
     emptyContainer: { flex: 1, alignItems: 'center' },
     list: { paddingHorizontal: spacing['4'] },
+    sectionHeader: {
+      borderBottomWidth: 1,
+      paddingBottom: spacing['2'],
+      marginBottom: spacing['2'],
+      marginTop: spacing['3'],
+    },
+    sectionTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1.5'],
+    },
+    sectionTitle: {
+      fontFamily: typography.family.bold,
+      fontSize: typography.size.md,
+      color: colors.text.primary,
+    },
+    noHistory: {
+      fontSize: typography.size.sm,
+      color: colors.text.muted,
+      textAlign: 'center',
+      paddingVertical: spacing['4'],
+    },
     row: {
       flexDirection: 'row',
       alignItems: 'center',

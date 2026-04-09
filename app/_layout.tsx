@@ -184,6 +184,8 @@ function RootNavigator({
     };
   }, [profile?.id, pushToken]);
 
+  const roleHome = profile?.papel === 'admin' ? '/(admin)/' : '/(child)/';
+
   useEffect(() => {
     if (!ready) return;
 
@@ -191,30 +193,33 @@ function RootNavigator({
     const seg1 = segments[1 as keyof typeof segments] as string | undefined;
 
     if (profile === null) {
-      if (inAuth) return;
-      router.replace('/(auth)/login');
+      if (!inAuth) router.replace('/(auth)/login');
       return;
     }
 
     if (profile === undefined) return;
 
-    const hasFamily = Boolean(profile.familia_id);
-
-    if (!hasFamily) {
-      if (seg1 !== 'onboarding') {
-        router.replace('/(auth)/onboarding');
-      }
+    if (!profile.familia_id) {
+      if (seg1 !== 'onboarding') router.replace('/(auth)/onboarding');
       return;
     }
 
     if (inAuth) {
-      router.replace(profile.papel === 'admin' ? '/(admin)/' : '/(child)/');
+      router.replace(roleHome);
+      return;
     }
 
-    // Also redirect when still on the blank index route (initial load).
-    const inApp = segments[0] === '(admin)' || segments[0] === '(child)';
-    if (!inAuth && !inApp) {
-      router.replace(profile.papel === 'admin' ? '/(admin)/' : '/(child)/');
+    // Enforce role-based route access — redirect if current group doesn't match role.
+    const inAdmin = segments[0] === '(admin)';
+    const inChild = segments[0] === '(child)';
+    if ((inAdmin && profile.papel !== 'admin') || (inChild && profile.papel !== 'filho')) {
+      router.replace(roleHome);
+      return;
+    }
+
+    // Redirect when still on the blank index route (initial load).
+    if (!inAdmin && !inChild) {
+      router.replace(roleHome);
     }
   }, [ready, profile, router, segments]);
 

@@ -101,7 +101,7 @@ vi.mock('@/context/theme-context', () => ({
     colors: {
       statusBar: 'dark',
       bg: { canvas: '#fff', surface: '#fafafa' },
-      brand: { vivid: '#FAC114' },
+      brand: { vivid: '#FAC114', subtle: 'rgba(250, 193, 20, 0.10)', dim: '#C57B0D' },
       text: {
         primary: '#111',
         muted: '#666',
@@ -113,6 +113,10 @@ vi.mock('@/context/theme-context', () => ({
       semantic: {
         warningBg: '#FFF3C4',
         warningText: '#7A5200',
+      },
+      border: {
+        subtle: '#E0E5EB',
+        default: '#C5CDD8',
       },
     },
   }),

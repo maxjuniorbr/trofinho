@@ -145,6 +145,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   listContainer: {
+    flex: 1,
     padding: spacing['4'],
     gap: spacing['3'],
   },

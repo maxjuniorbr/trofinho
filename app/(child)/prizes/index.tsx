@@ -244,7 +244,7 @@ function PrizeCard({ item, freeBalance, redeeming, onRedeem }: PrizeCardProps) {
   }, [progress, progressAnim]);
 
   return (
-    <View style={[cardStyles.card, shadows.card, { backgroundColor: colors.bg.surface }]}>
+    <View style={[cardStyles.card, shadows.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
       {item.imagem_url ? (
         <Image
           source={item.imagem_url}
@@ -326,6 +326,7 @@ const cardStyles = StyleSheet.create({
     flex: 1,
     borderRadius: radii.xl,
     borderCurve: 'continuous',
+    borderWidth: 1,
     padding: spacing['3'],
     gap: spacing['2'],
     marginHorizontal: spacing['1'],
