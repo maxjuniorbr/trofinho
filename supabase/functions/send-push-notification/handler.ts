@@ -277,14 +277,8 @@ function getTodaySP(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 }
 
-async function fetchFilhoId(
-  supabase: SupabaseClientLike,
-  userId: string,
-): Promise<string | null> {
-  const { data: filhos } = await supabase
-    .from('filhos')
-    .select('id')
-    .eq('usuario_id', userId);
+async function fetchFilhoId(supabase: SupabaseClientLike, userId: string): Promise<string | null> {
+  const { data: filhos } = await supabase.from('filhos').select('id').eq('usuario_id', userId);
   return (filhos?.[0]?.id as string) ?? null;
 }
 

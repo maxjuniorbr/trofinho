@@ -289,7 +289,10 @@ describe('createAuthStateHandler', () => {
       onReadyChange,
     });
 
-    handler.handleAuthStateChange('SIGNED_IN', { access_token: 'token', user: { id: 'user-1' } } as never);
+    handler.handleAuthStateChange('SIGNED_IN', {
+      access_token: 'token',
+      user: { id: 'user-1' },
+    } as never);
     await vi.runAllTimersAsync();
 
     expect(Sentry.addBreadcrumb).toHaveBeenCalledWith({
@@ -341,7 +344,10 @@ describe('createAuthStateHandler', () => {
       onReadyChange,
     });
 
-    handler.handleAuthStateChange('SIGNED_IN', { access_token: 'token', user: { id: 'user-1' } } as never);
+    handler.handleAuthStateChange('SIGNED_IN', {
+      access_token: 'token',
+      user: { id: 'user-1' },
+    } as never);
     await vi.runAllTimersAsync();
 
     expect(Sentry.addBreadcrumb).toHaveBeenCalledWith({
