@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, create } from 'react-test-renderer';
+import { act, create } from '../../../../test/helpers/test-renderer-compat';
 import { describe, expect, it, vi } from 'vitest';
 
 import { SegmentedBar, type SegmentOption } from '../segmented-bar';

@@ -1,6 +1,6 @@
 // Feature: ux-polish-fase4a, Property 3: RouteErrorFallback logs errors via console.error
 import React from 'react';
-import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import {act, create, type ReactTestRenderer} from '../../../test/helpers/test-renderer-compat';
 import { Pressable, Text } from 'react-native';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as fc from 'fast-check';

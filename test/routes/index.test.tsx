@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { act, create, type ReactTestRenderer } from '../../test/helpers/test-renderer-compat';
 import { describe, expect, it } from 'vitest';
 
 import Index from '../../app/index';

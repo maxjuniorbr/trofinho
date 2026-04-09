@@ -16,6 +16,14 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     setupFiles: ['./test/setup.ts'],
+    server: {
+      deps: {
+        // test-renderer's ESM build uses extensionless sub-path imports
+        // (e.g. "react-reconciler/constants") which fail in strict ESM.
+        // Inlining lets Vite resolve them correctly.
+        inline: ['test-renderer'],
+      },
+    },
      
     coverage: {
       all: true,

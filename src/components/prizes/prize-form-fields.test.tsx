@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import {act, create, type ReactTestRenderer} from '../../../test/helpers/test-renderer-compat';
 import { StyleSheet, Text, TextInput } from 'react-native';
 import { describe, expect, it, vi } from 'vitest';
 import { lightColors } from '@/constants/theme';

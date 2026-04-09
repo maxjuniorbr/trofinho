@@ -1,6 +1,6 @@
 // Feature: ux-polish-fase4a, Property 1: loadingLabel é exibido quando loading=true
 import React from 'react';
-import { act, create } from 'react-test-renderer';
+import {act, create} from '../../../test/helpers/test-renderer-compat';
 import { Text } from 'react-native';
 import { describe, expect, it } from 'vitest';
 import * as fc from 'fast-check';

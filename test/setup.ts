@@ -22,9 +22,11 @@ function createIcon(name: string) {
 }
 
 function createHostComponent(name: string) {
-  return React.forwardRef(function HostComponent(props: Props, ref: React.ForwardedRef<unknown>) {
+  const Component = React.forwardRef(function HostComponent(props: Props, ref: React.ForwardedRef<unknown>) {
     return React.createElement(name, { ...props, ref }, props.children);
   });
+  Component.displayName = name;
+  return Component;
 }
 
 function flattenStyle(style: unknown): Record<string, unknown> {

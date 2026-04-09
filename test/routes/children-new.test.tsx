@@ -1,6 +1,6 @@
 // Feature: ux-polish-fase4a, Property 2: Clipboard round-trip da senha
 import React from 'react';
-import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import {act, create, type ReactTestRenderer} from '../helpers/test-renderer-compat';
 import { TextInput } from 'react-native';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as fc from 'fast-check';
