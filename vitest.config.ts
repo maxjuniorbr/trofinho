@@ -13,6 +13,9 @@ export default defineConfig({
     },
   },
   test: {
+    env: {
+      TZ: 'America/Sao_Paulo',
+    },
     environment: 'node',
     globals: true,
     setupFiles: ['./test/setup.ts'],
