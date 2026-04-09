@@ -37,6 +37,7 @@ yarn-error.*
 .github/copilot-instructions.md
 .github/instructions/
 .github/prompts/
+.github/mcp.json
 
 # Supabase
 supabase/.branches/
