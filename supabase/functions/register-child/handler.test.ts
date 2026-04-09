@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   handleRequest,
   validateRequest,
@@ -59,10 +59,9 @@ function makeRequest(
   if (options?.contentLength !== undefined) {
     headers['content-length'] = String(options.contentLength);
   }
+  const requestInit = method === 'GET' ? { method, headers } : { method, headers, body: bodyStr };
   return new Request('https://test.supabase.co/functions/v1/register-child', {
-    method,
-    headers,
-    ...(method !== 'GET' ? { body: bodyStr } : {}),
+    ...requestInit,
   }) as unknown as Request;
 }
 

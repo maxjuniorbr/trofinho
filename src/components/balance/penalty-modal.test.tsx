@@ -1,7 +1,7 @@
 // Feature: ux-polish-fase4b, Property 7: Penalty dialog includes dynamic values
 // Feature: ux-polish-fase4b, Property 8: Destructive action executes if and only if user confirms
 import React from 'react';
-import {act, create, type ReactTestRenderer} from '../../../test/helpers/test-renderer-compat';
+import { act, create, type ReactTestRenderer } from '../../../test/helpers/test-renderer-compat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 
@@ -53,15 +53,15 @@ function render(element: React.ReactElement) {
 }
 
 function findTextInputs(renderer: ReactTestRenderer) {
-  return renderer.root.findAll((node) => (node.type as string) === 'TextInput');
+  return renderer.root.findAll((node) => node.type === 'TextInput');
 }
 
 function findPenalizeButton(renderer: ReactTestRenderer) {
   // The "Penalizar" button is the Pressable inside the confirm area
   return renderer.root.findAll((node) => {
-    if ((node.type as string) !== 'Pressable') return false;
+    if (node.type !== 'Pressable') return false;
     try {
-      const texts = node.findAll((n) => (n.type as string) === 'Text');
+      const texts = node.findAll((n) => n.type === 'Text');
       return texts.some((t) => t.props.children === 'Penalizar');
     } catch {
       return false;
@@ -73,11 +73,15 @@ describe('PenaltyModal — confirmation dialog property tests', () => {
   const onCloseMock = vi.fn();
   const onApplyMock = vi.fn();
 
-  type AlertButton = { text: string; style: string; onPress?: () => void };
+  type AlertButton = { text: string; style: string; onPress?: () => void | Promise<void> };
   type AlertCall = [title: string, message: string, buttons: AlertButton[]];
+  type SubmittedAlert = {
+    alertCall: AlertCall;
+    unmount: () => void;
+  };
 
   /** Renders the modal, fills inputs, presses Penalizar, and asserts the alert fired. */
-  function fillAndSubmit(childName: string, amount: number): AlertCall {
+  function fillAndSubmit(childName: string, amount: number): SubmittedAlert {
     const renderer = render(
       <PenaltyModal
         visible={true}
@@ -97,7 +101,14 @@ describe('PenaltyModal — confirmation dialog property tests', () => {
       findPenalizeButton(renderer).props.onPress();
     });
     expect(alertMock.alert).toHaveBeenCalledTimes(1);
-    return alertMock.alert.mock.calls[0] as AlertCall;
+    return {
+      alertCall: alertMock.alert.mock.calls[0] as AlertCall,
+      unmount: () => {
+        act(() => {
+          renderer.unmount();
+        });
+      },
+    };
   }
 
   beforeEach(() => {
@@ -115,9 +126,14 @@ describe('PenaltyModal — confirmation dialog property tests', () => {
         fc.string({ minLength: 1, maxLength: 50 }).filter((s) => s.trim().length > 0),
         (amount, childName) => {
           alertMock.alert.mockReset();
-          const [, message] = fillAndSubmit(childName, amount);
-          expect(message).toContain(String(amount));
-          expect(message).toContain(childName);
+          const submission = fillAndSubmit(childName, amount);
+          try {
+            const [, message] = submission.alertCall;
+            expect(message).toContain(String(amount));
+            expect(message).toContain(childName);
+          } finally {
+            submission.unmount();
+          }
         },
       ),
       { numRuns: 100 },
@@ -125,26 +141,31 @@ describe('PenaltyModal — confirmation dialog property tests', () => {
   });
 
   // **Validates: Requirements 3.4, 3.5**
-  it('P8-penalty: onApply is called only when confirm button is pressed, not on cancel', () => {
-    fc.assert(
-      fc.property(
+  it('P8-penalty: onApply is called only when confirm button is pressed, not on cancel', async () => {
+    await fc.assert(
+      fc.asyncProperty(
         fc.integer({ min: 1, max: 99999 }),
         fc.string({ minLength: 1, maxLength: 50 }).filter((s) => s.trim().length > 0),
         fc.boolean(),
-        (amount, childName, userConfirms) => {
+        async (amount, childName, userConfirms) => {
           alertMock.alert.mockReset();
           onApplyMock.mockReset();
           onApplyMock.mockResolvedValue({ error: null });
-          const [, , buttons] = fillAndSubmit(childName, amount);
-          if (userConfirms) {
-            const confirmBtn = buttons.find((b) => b.style === 'destructive');
-            act(() => {
-              confirmBtn!.onPress!();
-            });
-            expect(onApplyMock).toHaveBeenCalledTimes(1);
-          } else {
-            // User cancels — do not press the destructive button
-            expect(onApplyMock).not.toHaveBeenCalled();
+          const submission = fillAndSubmit(childName, amount);
+          try {
+            const [, , buttons] = submission.alertCall;
+            if (userConfirms) {
+              const confirmBtn = buttons.find((b) => b.style === 'destructive');
+              await act(async () => {
+                await confirmBtn?.onPress?.();
+              });
+              expect(onApplyMock).toHaveBeenCalledTimes(1);
+            } else {
+              // User cancels — do not press the destructive button
+              expect(onApplyMock).not.toHaveBeenCalled();
+            }
+          } finally {
+            submission.unmount();
           }
         },
       ),
