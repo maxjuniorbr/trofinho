@@ -147,6 +147,48 @@ export default function AdminTasksScreen() {
     }, []),
   );
 
+  const renderContent = () => {
+    if (isLoading) return <ListScreenSkeleton />;
+    if (shouldShowEmptyState) {
+      return (
+        <EmptyState
+          error={error?.message ?? null}
+          empty={tasks.length === 0}
+          emptyMessage={'Nenhuma tarefa criada ainda.\nToque em "+" para criar a primeira tarefa.'}
+          onRetry={() => refetch()}
+        />
+      );
+    }
+    return (
+      <FlashList
+        data={sortedTasks}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.lista}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching && !isLoading}
+            onRefresh={() => refetch()}
+            tintColor={colors.brand.vivid}
+          />
+        }
+        onEndReached={() => {
+          if (hasNextPage) fetchNextPage();
+        }}
+        onEndReachedThreshold={0.3}
+        ListHeaderComponent={<View style={{ height: spacing['4'] }} />}
+        ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
+        renderItem={({ item }) => (
+          <AdminTaskCard
+            item={item}
+            colors={colors}
+            styles={styles}
+            onPress={() => router.push(`/(admin)/tasks/${item.id}` as never)}
+          />
+        )}
+      />
+    );
+  };
+
   return (
     <SafeScreenFrame bottomInset={false}>
       <StatusBar style={colors.statusBar} />
@@ -169,43 +211,7 @@ export default function AdminTasksScreen() {
         </View>
       ) : null}
 
-      {isLoading ? (
-        <ListScreenSkeleton />
-      ) : shouldShowEmptyState ? (
-        <EmptyState
-          error={error?.message ?? null}
-          empty={tasks.length === 0}
-          emptyMessage={'Nenhuma tarefa criada ainda.\nToque em "+" para criar a primeira tarefa.'}
-          onRetry={() => refetch()}
-        />
-      ) : (
-        <FlashList
-          data={sortedTasks}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.lista}
-          refreshControl={
-            <RefreshControl
-              refreshing={isFetching && !isLoading}
-              onRefresh={() => refetch()}
-              tintColor={colors.brand.vivid}
-            />
-          }
-          onEndReached={() => {
-            if (hasNextPage) fetchNextPage();
-          }}
-          onEndReachedThreshold={0.3}
-          ListHeaderComponent={<View style={{ height: spacing['4'] }} />}
-          ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
-          renderItem={({ item }) => (
-            <AdminTaskCard
-              item={item}
-              colors={colors}
-              styles={styles}
-              onPress={() => router.push(`/(admin)/tasks/${item.id}` as never)}
-            />
-          )}
-        />
-      )}
+      {renderContent()}
       <HomeFooterBar items={footerItems} activeRoute="/(admin)/tasks" onNavigate={handleFooterNavigate} />
     </SafeScreenFrame>
   );

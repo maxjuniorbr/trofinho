@@ -88,7 +88,11 @@ vi.mock('expo-router', () => ({
 vi.mock('@lib/tasks', () => ({
   sortAdminTasks: (tasks: unknown[]) => tasks,
   isRecurring: (dias: number) => dias > 0,
-  formatWeekdays: (dias: number) => (dias === 0 ? 'Pontual' : dias === 127 ? 'Todos os dias' : 'Parcial'),
+  formatWeekdays: (dias: number) => {
+    if (dias === 0) return 'Pontual';
+    if (dias === 127) return 'Todos os dias';
+    return 'Parcial';
+  },
 }));
 
 vi.mock('@lib/utils', () => ({

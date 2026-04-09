@@ -639,16 +639,22 @@ export default function TaskDetailAdminScreen() {
               <Text style={styles.secaoTitulo}>Histórico</Text>
             </View>
 
-            {assignmentsQuery.error ? (
-              <View style={styles.feedbackWrapper}>
-                <InlineMessage
-                  message={assignmentsQuery.error.message}
-                  variant="error"
-                />
-              </View>
-            ) : paginatedAssignments.length === 0 && !assignmentsQuery.isLoading ? (
-              <Text style={styles.semHistorico}>Nenhum registro no histórico.</Text>
-            ) : null}
+            {(() => {
+              if (assignmentsQuery.error) {
+                return (
+                  <View style={styles.feedbackWrapper}>
+                    <InlineMessage
+                      message={assignmentsQuery.error.message}
+                      variant="error"
+                    />
+                  </View>
+                );
+              }
+              if (paginatedAssignments.length === 0 && !assignmentsQuery.isLoading) {
+                return <Text style={styles.semHistorico}>Nenhum registro no histórico.</Text>;
+              }
+              return null;
+            })()}
           </>
         }
         renderItem={({ item, index }) => (

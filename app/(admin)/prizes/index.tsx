@@ -68,6 +68,96 @@ export default function AdminPrizesScreen() {
     [router],
   );
 
+  const renderContent = () => {
+    if (isLoading) return <ListScreenSkeleton />;
+    if (shouldShowEmptyState) {
+      return (
+        <EmptyState
+          error={error?.message ?? null}
+          empty={!error}
+          emptyMessage={emptyStateMessage}
+          onRetry={() => refetch()}
+        />
+      );
+    }
+    return (
+      <FlashList
+        data={prizes}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.lista}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching && !isLoading}
+            onRefresh={() => refetch()}
+            tintColor={colors.brand.vivid}
+          />
+        }
+        ListHeaderComponent={
+          <>
+            <View style={{ height: spacing['4'] }} />
+            <Text style={styles.resumo}>
+              {active.length} ativo{active.length === 1 ? '' : 's'}
+              {inactiveSummary}
+            </Text>
+          </>
+        }
+        renderItem={({ item }) => (
+          <View style={[styles.card, !item.ativo && styles.cardInativo]}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.cardMain,
+                pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+              ]}
+              onPress={() => router.push(`/(admin)/prizes/${item.id}` as never)}
+              accessibilityRole="button"
+              accessibilityLabel={`${item.nome}, ${item.custo_pontos} pontos${item.ativo ? '' : ', inativo'}`}
+            >
+              <View style={styles.cardTopo}>
+                <Text style={[styles.cardNome, !item.ativo && styles.textoInativo]}>
+                  {item.nome}
+                </Text>
+                {!item.ativo && (
+                  <View style={styles.badgeInativo}>
+                    <Text style={styles.badgeInativoTexto}>inativo</Text>
+                  </View>
+                )}
+              </View>
+              {item.descricao ? (
+                <Text
+                  style={[styles.cardDescricao, !item.ativo && styles.textoInativo]}
+                  numberOfLines={2}
+                >
+                  {item.descricao}
+                </Text>
+              ) : null}
+              <View style={styles.cardCustoRow}>
+                <Trophy
+                  size={12}
+                  color={item.ativo ? colors.accent.admin : colors.text.muted}
+                  strokeWidth={2}
+                />
+                <Text style={[styles.cardCusto, !item.ativo && styles.textoInativo]}>
+                  {item.custo_pontos} pts
+                </Text>
+              </View>
+            </Pressable>
+
+            <HeaderIconButton
+              icon={Pencil}
+              onPress={() => router.push(`/(admin)/prizes/${item.id}` as never)}
+              accessibilityLabel={`Editar prêmio ${item.nome}`}
+            />
+          </View>
+        )}
+        onEndReached={() => {
+          if (hasNextPage) fetchNextPage();
+        }}
+        onEndReachedThreshold={0.3}
+        ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
+      />
+    );
+  };
+
   return (
     <SafeScreenFrame bottomInset={false}>
       <StatusBar style={colors.statusBar} />
@@ -88,91 +178,7 @@ export default function AdminPrizesScreen() {
         </View>
       ) : null}
 
-      {isLoading ? (
-        <ListScreenSkeleton />
-      ) : shouldShowEmptyState ? (
-        <EmptyState
-          error={error?.message ?? null}
-          empty={!error}
-          emptyMessage={emptyStateMessage}
-          onRetry={() => refetch()}
-        />
-      ) : (
-        <FlashList
-          data={prizes}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.lista}
-          refreshControl={
-            <RefreshControl
-              refreshing={isFetching && !isLoading}
-              onRefresh={() => refetch()}
-              tintColor={colors.brand.vivid}
-            />
-          }
-          ListHeaderComponent={
-            <>
-              <View style={{ height: spacing['4'] }} />
-              <Text style={styles.resumo}>
-                {active.length} ativo{active.length === 1 ? '' : 's'}
-                {inactiveSummary}
-              </Text>
-            </>
-          }
-          renderItem={({ item }) => (
-            <View style={[styles.card, !item.ativo && styles.cardInativo]}>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.cardMain,
-                  pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
-                ]}
-                onPress={() => router.push(`/(admin)/prizes/${item.id}` as never)}
-                accessibilityRole="button"
-                accessibilityLabel={`${item.nome}, ${item.custo_pontos} pontos${item.ativo ? '' : ', inativo'}`}
-              >
-                <View style={styles.cardTopo}>
-                  <Text style={[styles.cardNome, !item.ativo && styles.textoInativo]}>
-                    {item.nome}
-                  </Text>
-                  {!item.ativo && (
-                    <View style={styles.badgeInativo}>
-                      <Text style={styles.badgeInativoTexto}>inativo</Text>
-                    </View>
-                  )}
-                </View>
-                {item.descricao ? (
-                  <Text
-                    style={[styles.cardDescricao, !item.ativo && styles.textoInativo]}
-                    numberOfLines={2}
-                  >
-                    {item.descricao}
-                  </Text>
-                ) : null}
-                <View style={styles.cardCustoRow}>
-                  <Trophy
-                    size={12}
-                    color={item.ativo ? colors.accent.admin : colors.text.muted}
-                    strokeWidth={2}
-                  />
-                  <Text style={[styles.cardCusto, !item.ativo && styles.textoInativo]}>
-                    {item.custo_pontos} pts
-                  </Text>
-                </View>
-              </Pressable>
-
-              <HeaderIconButton
-                icon={Pencil}
-                onPress={() => router.push(`/(admin)/prizes/${item.id}` as never)}
-                accessibilityLabel={`Editar prêmio ${item.nome}`}
-              />
-            </View>
-          )}
-          onEndReached={() => {
-            if (hasNextPage) fetchNextPage();
-          }}
-          onEndReachedThreshold={0.3}
-          ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
-        />
-      )}
+      {renderContent()}
       <HomeFooterBar items={footerItems} activeRoute="/(admin)/prizes" onNavigate={handleFooterNavigate} />
     </SafeScreenFrame>
   );

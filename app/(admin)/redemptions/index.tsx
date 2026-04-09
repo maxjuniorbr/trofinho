@@ -236,156 +236,162 @@ export default function AdminRedemptionsScreen() {
     executeModalAction(redemptionId, type);
   };
 
-  return (
-    <SafeScreenFrame bottomInset={false}>
-      <StatusBar style={colors.statusBar} />
-      <ScreenHeader title="Resgates" />
-
-      {isLoading ? (
-        <ListScreenSkeleton />
-      ) : shouldShowEmptyState ? (
+  const renderContent = () => {
+    if (isLoading) return <ListScreenSkeleton />;
+    if (shouldShowEmptyState) {
+      return (
         <EmptyState
           error={error?.message ?? null}
           empty={!error}
           emptyMessage="Nenhum resgate registrado ainda."
           onRetry={() => refetch()}
         />
-      ) : (
-        <FlashList
-          data={historicalRedemptions}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.lista}
-          refreshControl={
-            <RefreshControl
-              refreshing={isFetching && !isLoading}
-              onRefresh={() => refetch()}
-              tintColor={colors.brand.vivid}
-            />
-          }
-          ListHeaderComponent={
-            <>
-              <View style={{ height: spacing['4'] }} />
-              {visibleSuccess ? <InlineMessage message={visibleSuccess} variant="success" /> : null}
-              {actionError ? <InlineMessage message={actionError} variant="error" /> : null}
-              {pendingRedemptions.length > 0 && (
-                <>
-                  <View style={[styles.historicoHeader, { borderBottomColor: colors.border.subtle }]}>
-                    <View style={styles.secaoTituloRow}>
-                      <Clock size={14} color={colors.text.primary} strokeWidth={2} />
-                      <Text style={styles.secaoTitulo}>
-                        Pendentes ({pendingRedemptions.length})
-                      </Text>
-                    </View>
+      );
+    }
+    return (
+      <FlashList
+        data={historicalRedemptions}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.lista}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching && !isLoading}
+            onRefresh={() => refetch()}
+            tintColor={colors.brand.vivid}
+          />
+        }
+        ListHeaderComponent={
+          <>
+            <View style={{ height: spacing['4'] }} />
+            {visibleSuccess ? <InlineMessage message={visibleSuccess} variant="success" /> : null}
+            {actionError ? <InlineMessage message={actionError} variant="error" /> : null}
+            {pendingRedemptions.length > 0 && (
+              <>
+                <View style={[styles.historicoHeader, { borderBottomColor: colors.border.subtle }]}>
+                  <View style={styles.secaoTituloRow}>
+                    <Clock size={14} color={colors.text.primary} strokeWidth={2} />
+                    <Text style={styles.secaoTitulo}>
+                      Pendentes ({pendingRedemptions.length})
+                    </Text>
                   </View>
-                  {pendingRedemptions.map((item) => {
-                    const isProcessing = processingId === item.id;
-                    return (
-                      <View key={item.id} style={[styles.card, styles.cardPendente]}>
-                        <View style={styles.cardTopo}>
-                          <View style={{ flex: 1, gap: spacing['1'] }}>
-                            <Text style={[styles.premioNome, { color: colors.text.primary }]}>
-                              {item.premios.nome}
-                            </Text>
-                            <View style={styles.cardFilhoRow}>
-                              <User size={12} color={colors.text.secondary} strokeWidth={2} />
-                              <Text style={styles.cardFilho}>{item.filhos.nome}</Text>
-                            </View>
+                </View>
+                {pendingRedemptions.map((item) => {
+                  const isProcessing = processingId === item.id;
+                  return (
+                    <View key={item.id} style={[styles.card, styles.cardPendente]}>
+                      <View style={styles.cardTopo}>
+                        <View style={{ flex: 1, gap: spacing['1'] }}>
+                          <Text style={[styles.premioNome, { color: colors.text.primary }]}>
+                            {item.premios.nome}
+                          </Text>
+                          <View style={styles.cardFilhoRow}>
+                            <User size={12} color={colors.text.secondary} strokeWidth={2} />
+                            <Text style={styles.cardFilho}>{item.filhos.nome}</Text>
                           </View>
-                          <View style={{ alignItems: 'flex-end' }}>
-                            <View
+                        </View>
+                        <View style={{ alignItems: 'flex-end' }}>
+                          <View
+                            style={[
+                              styles.statusBadge,
+                              {
+                                backgroundColor:
+                                  getRedemptionStatusColor(item.status, colors) + '22',
+                              },
+                            ]}
+                          >
+                            <Text
                               style={[
-                                styles.statusBadge,
-                                {
-                                  backgroundColor:
-                                    getRedemptionStatusColor(item.status, colors) + '22',
-                                },
+                                styles.statusTexto,
+                                { color: getRedemptionStatusColor(item.status, colors) },
                               ]}
                             >
-                              <Text
-                                style={[
-                                  styles.statusTexto,
-                                  { color: getRedemptionStatusColor(item.status, colors) },
-                                ]}
-                              >
-                                {getRedemptionStatusLabel(item.status)}
-                              </Text>
-                            </View>
-                            <Text style={styles.cardData}>
-                              {formatDate(new Date(item.created_at))}
+                              {getRedemptionStatusLabel(item.status)}
                             </Text>
                           </View>
-                        </View>
-                        <View style={styles.cardPontosRow}>
-                          <Trophy size={12} color={colors.accent.admin} strokeWidth={2} />
-                          <Text style={styles.cardPontos}>{item.pontos_debitados} pts</Text>
-                        </View>
-                        <View style={styles.acoesRow}>
-                          <View style={{ flex: 1 }}>
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              label="Confirmar"
-                              loading={isProcessing}
-                              disabled={isProcessing}
-                              onPress={() =>
-                                handleConfirm(
-                                  item.id,
-                                  item.filhos.nome,
-                                  item.filhos.usuario_id,
-                                  item.premios.nome,
-                                )
-                              }
-                            />
-                          </View>
-                          <View style={{ flex: 1 }}>
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              label="Cancelar"
-                              disabled={isProcessing}
-                              onPress={() =>
-                                handleCancel(
-                                  item.id,
-                                  item.filhos.nome,
-                                  item.premios.nome,
-                                  item.pontos_debitados,
-                                )
-                              }
-                            />
-                          </View>
+                          <Text style={styles.cardData}>
+                            {formatDate(new Date(item.created_at))}
+                          </Text>
                         </View>
                       </View>
-                    );
-                  })}
-                </>
-              )}
-              {historicalRedemptions.length > 0 && (
-                <View style={[styles.historicoHeader, { borderBottomColor: colors.border.subtle }]}>
-                  <Text style={styles.secaoTitulo}>Histórico</Text>
-                </View>
-              )}
-              {redemptions.length > 0 &&
-              historicalRedemptions.length === 0 &&
-              !isFetching ? (
-                <Text style={styles.semHistorico}>Nenhum histórico de resgates.</Text>
-              ) : null}
-            </>
-          }
-          renderItem={({ item, index }) => (
-            <RedemptionRow
-              item={item}
-              colors={colors}
-              styles={styles}
-              isLast={index === historicalRedemptions.length - 1}
-            />
-          )}
-          onEndReached={() => {
-            if (hasNextPage && !isFetchingNextPage) fetchNextPage();
-          }}
-          onEndReachedThreshold={0.3}
-          ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
-        />
-      )}
+                      <View style={styles.cardPontosRow}>
+                        <Trophy size={12} color={colors.accent.admin} strokeWidth={2} />
+                        <Text style={styles.cardPontos}>{item.pontos_debitados} pts</Text>
+                      </View>
+                      <View style={styles.acoesRow}>
+                        <View style={{ flex: 1 }}>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            label="Confirmar"
+                            loading={isProcessing}
+                            disabled={isProcessing}
+                            onPress={() =>
+                              handleConfirm(
+                                item.id,
+                                item.filhos.nome,
+                                item.filhos.usuario_id,
+                                item.premios.nome,
+                              )
+                            }
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            label="Cancelar"
+                            disabled={isProcessing}
+                            onPress={() =>
+                              handleCancel(
+                                item.id,
+                                item.filhos.nome,
+                                item.premios.nome,
+                                item.pontos_debitados,
+                              )
+                            }
+                          />
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })}
+              </>
+            )}
+            {historicalRedemptions.length > 0 && (
+              <View style={[styles.historicoHeader, { borderBottomColor: colors.border.subtle }]}>
+                <Text style={styles.secaoTitulo}>Histórico</Text>
+              </View>
+            )}
+            {redemptions.length > 0 &&
+            historicalRedemptions.length === 0 &&
+            !isFetching ? (
+              <Text style={styles.semHistorico}>Nenhum histórico de resgates.</Text>
+            ) : null}
+          </>
+        }
+        renderItem={({ item, index }) => (
+          <RedemptionRow
+            item={item}
+            colors={colors}
+            styles={styles}
+            isLast={index === historicalRedemptions.length - 1}
+          />
+        )}
+        onEndReached={() => {
+          if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+        }}
+        onEndReachedThreshold={0.3}
+        ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
+      />
+    );
+  };
+
+  return (
+    <SafeScreenFrame bottomInset={false}>
+      <StatusBar style={colors.statusBar} />
+      <ScreenHeader title="Resgates" />
+
+      {renderContent()}
 
       <Modal visible={modal.visible} transparent animationType="fade" onRequestClose={() => setModal(MODAL_INITIAL)}>
         <View style={styles.modalOverlay}>

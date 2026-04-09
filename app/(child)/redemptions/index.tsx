@@ -70,17 +70,16 @@ export default function ChildRedemptionsScreen() {
     }
   };
 
-  return (
-    <SafeScreenFrame bottomInset={false}>
-      <StatusBar style={colors.statusBar} />
-      <ScreenHeader
-        title="Meus Resgates"
-        role="filho"
-      />
+  const getStatusIcon = (status: string) => {
+    if (status === 'confirmado') return CheckCircle2;
+    if (status === 'cancelado') return XCircle;
+    return Clock;
+  };
 
-      {isLoading ? (
-        <ListScreenSkeleton />
-      ) : shouldShowEmptyState ? (
+  const renderContent = () => {
+    if (isLoading) return <ListScreenSkeleton />;
+    if (shouldShowEmptyState) {
+      return (
         <View style={styles.emptyContainer}>
           <EmptyState
             error={errorMessage}
@@ -89,114 +88,122 @@ export default function ChildRedemptionsScreen() {
             onRetry={handleRefresh}
           />
         </View>
-      ) : (
-        <FlashList
-          data={historicalRedemptions}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl
-              refreshing={isFetching && !isLoading}
-              onRefresh={handleRefresh}
-              tintColor={colors.brand.vivid}
-            />
-          }
-          ListHeaderComponent={
-            <>
-              <View style={{ height: spacing['4'] }} />
-              {pendingRedemptions.length > 0 ? (
-                <>
-                  <View style={[styles.sectionHeader, { borderBottomColor: colors.border.subtle }]}>
-                    <View style={styles.sectionTitleRow}>
-                      <Clock size={14} color={colors.text.primary} strokeWidth={2} />
-                      <Text style={styles.sectionTitle}>
-                        Pendentes ({pendingRedemptions.length})
-                      </Text>
-                    </View>
-                  </View>
-                  {pendingRedemptions.map((item, index) => {
-                    const statusColor = getRedemptionStatusColor(item.status, colors);
-                    const isLast = index === pendingRedemptions.length - 1;
-                    return (
-                      <View
-                        key={item.id}
-                        style={[
-                          styles.row,
-                          !isLast && {
-                            borderBottomWidth: StyleSheet.hairlineWidth,
-                            borderBottomColor: colors.border.subtle,
-                          },
-                        ]}
-                      >
-                        <View style={[styles.rowIcon, { backgroundColor: statusColor + '20' }]}>
-                          <Clock size={14} color={statusColor} strokeWidth={2} />
-                        </View>
-                        <View style={styles.rowInfo}>
-                          <Text style={styles.rowNome}>{item.premios?.nome ?? 'Prêmio removido'}</Text>
-                          <Text style={styles.rowHint}>Aguardando confirmação</Text>
-                        </View>
-                        <View style={styles.rowRight}>
-                          <Text style={[styles.rowStatus, { color: statusColor }]}>
-                            {getRedemptionStatusLabel(item.status)}
-                          </Text>
-                          <Text style={styles.rowData}>{formatDate(new Date(item.created_at))}</Text>
-                        </View>
-                      </View>
-                    );
-                  })}
-                </>
-              ) : null}
-              {historicalRedemptions.length > 0 ? (
+      );
+    }
+    return (
+      <FlashList
+        data={historicalRedemptions}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching && !isLoading}
+            onRefresh={handleRefresh}
+            tintColor={colors.brand.vivid}
+          />
+        }
+        ListHeaderComponent={
+          <>
+            <View style={{ height: spacing['4'] }} />
+            {pendingRedemptions.length > 0 ? (
+              <>
                 <View style={[styles.sectionHeader, { borderBottomColor: colors.border.subtle }]}>
-                  <Text style={styles.sectionTitle}>Histórico</Text>
+                  <View style={styles.sectionTitleRow}>
+                    <Clock size={14} color={colors.text.primary} strokeWidth={2} />
+                    <Text style={styles.sectionTitle}>
+                      Pendentes ({pendingRedemptions.length})
+                    </Text>
+                  </View>
                 </View>
-              ) : null}
-              {redemptions.length > 0 && historicalRedemptions.length === 0 && !isFetching ? (
-                <Text style={styles.noHistory}>Nenhum histórico de resgates.</Text>
-              ) : null}
-            </>
-          }
-          renderItem={({ item, index }) => {
-            const statusColor = getRedemptionStatusColor(item.status, colors);
-            const StatusIcon =
-              item.status === 'confirmado'
-                ? CheckCircle2
-                : item.status === 'cancelado'
-                  ? XCircle
-                  : Clock;
-            const isLast = index === historicalRedemptions.length - 1;
-            return (
-              <View
-                style={[
-                  styles.row,
-                  !isLast && {
-                    borderBottomWidth: StyleSheet.hairlineWidth,
-                    borderBottomColor: colors.border.subtle,
-                  },
-                ]}
-              >
-                <View style={[styles.rowIcon, { backgroundColor: statusColor + '20' }]}>
-                  <StatusIcon size={14} color={statusColor} strokeWidth={2} />
-                </View>
-                <View style={styles.rowInfo}>
-                  <Text style={styles.rowNome}>{item.premios?.nome ?? 'Prêmio removido'}</Text>
-                </View>
-                <View style={styles.rowRight}>
-                  <Text style={[styles.rowStatus, { color: statusColor }]}>
-                    {getRedemptionStatusLabel(item.status)}
-                  </Text>
-                  <Text style={styles.rowData}>{formatDate(new Date(item.created_at))}</Text>
-                </View>
+                {pendingRedemptions.map((item, index) => {
+                  const statusColor = getRedemptionStatusColor(item.status, colors);
+                  const isLast = index === pendingRedemptions.length - 1;
+                  return (
+                    <View
+                      key={item.id}
+                      style={[
+                        styles.row,
+                        !isLast && {
+                          borderBottomWidth: StyleSheet.hairlineWidth,
+                          borderBottomColor: colors.border.subtle,
+                        },
+                      ]}
+                    >
+                      <View style={[styles.rowIcon, { backgroundColor: statusColor + '20' }]}>
+                        <Clock size={14} color={statusColor} strokeWidth={2} />
+                      </View>
+                      <View style={styles.rowInfo}>
+                        <Text style={styles.rowNome}>{item.premios?.nome ?? 'Prêmio removido'}</Text>
+                        <Text style={styles.rowHint}>Aguardando confirmação</Text>
+                      </View>
+                      <View style={styles.rowRight}>
+                        <Text style={[styles.rowStatus, { color: statusColor }]}>
+                          {getRedemptionStatusLabel(item.status)}
+                        </Text>
+                        <Text style={styles.rowData}>{formatDate(new Date(item.created_at))}</Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </>
+            ) : null}
+            {historicalRedemptions.length > 0 ? (
+              <View style={[styles.sectionHeader, { borderBottomColor: colors.border.subtle }]}>
+                <Text style={styles.sectionTitle}>Histórico</Text>
               </View>
-            );
-          }}
-          onEndReached={() => {
-            if (hasNextPage && !isFetchingNextPage) fetchNextPage();
-          }}
-          onEndReachedThreshold={0.3}
-          ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
-        />
-      )}
+            ) : null}
+            {redemptions.length > 0 && historicalRedemptions.length === 0 && !isFetching ? (
+              <Text style={styles.noHistory}>Nenhum histórico de resgates.</Text>
+            ) : null}
+          </>
+        }
+        renderItem={({ item, index }) => {
+          const statusColor = getRedemptionStatusColor(item.status, colors);
+          const StatusIcon = getStatusIcon(item.status);
+          const isLast = index === historicalRedemptions.length - 1;
+          return (
+            <View
+              style={[
+                styles.row,
+                !isLast && {
+                  borderBottomWidth: StyleSheet.hairlineWidth,
+                  borderBottomColor: colors.border.subtle,
+                },
+              ]}
+            >
+              <View style={[styles.rowIcon, { backgroundColor: statusColor + '20' }]}>
+                <StatusIcon size={14} color={statusColor} strokeWidth={2} />
+              </View>
+              <View style={styles.rowInfo}>
+                <Text style={styles.rowNome}>{item.premios?.nome ?? 'Prêmio removido'}</Text>
+              </View>
+              <View style={styles.rowRight}>
+                <Text style={[styles.rowStatus, { color: statusColor }]}>
+                  {getRedemptionStatusLabel(item.status)}
+                </Text>
+                <Text style={styles.rowData}>{formatDate(new Date(item.created_at))}</Text>
+              </View>
+            </View>
+          );
+        }}
+        onEndReached={() => {
+          if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+        }}
+        onEndReachedThreshold={0.3}
+        ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
+      />
+    );
+  };
+
+  return (
+    <SafeScreenFrame bottomInset={false}>
+      <StatusBar style={colors.statusBar} />
+      <ScreenHeader
+        title="Meus Resgates"
+        role="filho"
+      />
+
+      {renderContent()}
       <HomeFooterBar items={footerItems} activeRoute="/(child)/redemptions" onNavigate={handleFooterNavigate} />
     </SafeScreenFrame>
   );

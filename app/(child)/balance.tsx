@@ -231,6 +231,264 @@ export default function ChildBalanceScreen() {
   const showWithdrawInsufficientHint = showWithdrawButton && !canWithdraw;
   const header = getBalanceHeaderColors(colors);
 
+  const progressBar = totalPts > 0 ? (
+    <View style={styles.balanceHeaderProgress}>
+      <View style={[styles.progressTrack, { backgroundColor: header.boxBg }]}>
+        <View
+          style={[
+            styles.progressFillLeft,
+            { flex: 100 - cofrinhoPercent, backgroundColor: colors.accent.filho },
+          ]}
+        />
+        <View
+          style={[
+            styles.progressFillRight,
+            { flex: cofrinhoPercent, backgroundColor: colors.semantic.warning },
+          ]}
+        />
+      </View>
+      <View style={styles.progressLabels}>
+        <Text style={[styles.progressLabel, { color: header.textMuted }]}>
+          {100 - cofrinhoPercent}% livre
+        </Text>
+        <Text style={[styles.progressLabel, { color: header.textMuted }]}>
+          {cofrinhoPercent}% cofrinho
+        </Text>
+      </View>
+    </View>
+  ) : null;
+
+  const appreciationBox = showAppreciation ? (
+    <View
+      style={[
+        styles.boxConfig,
+        { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+      ]}
+    >
+      <View style={styles.boxConfigTituloRow}>
+        <TrendingUp size={16} color={colors.semantic.success} strokeWidth={2} />
+        <Text style={styles.boxConfigTitulo}>
+          Cofrinho rendendo {balance!.indice_valorizacao}% ao mês 🌱
+        </Text>
+      </View>
+      <Text style={styles.boxConfigSub}>{appreciationHint}</Text>
+    </View>
+  ) : null;
+
+  const pendingWithdrawalBox = showPendingWithdrawal ? (
+    <View style={styles.pendingWithdrawalBox}>
+      <InlineMessage
+        message={`Resgate pendente: ${pendingWithdrawal.valor_solicitado} pts (receberá ${pendingWithdrawal.valor_liquido} pts). Aguardando aprovação.`}
+        variant="warning"
+      />
+      <View style={{ marginTop: spacing['2'] }}>
+        <Button
+          variant="outline"
+          label="Cancelar resgate"
+          loading={cancelWithdrawalMutation.isPending}
+          loadingLabel="Cancelando…"
+          onPress={handleCancelWithdrawal}
+          accessibilityLabel="Cancelar solicitação de resgate do cofrinho"
+        />
+      </View>
+    </View>
+  ) : null;
+
+  const withdrawInsufficientHint = showWithdrawInsufficientHint ? (
+    <View style={{ marginBottom: spacing['3'] }}>
+      <InlineMessage
+        message={`Saldo mínimo para resgate: ${minimumWithdrawal} pts (taxa de ${withdrawalRate}%).`}
+        variant="info"
+      />
+    </View>
+  ) : null;
+
+  const withdrawButton = showWithdrawButton && canWithdraw ? (
+    <View style={{ marginBottom: spacing['3'] }}>
+      <Button
+        variant="secondary"
+        label="Retirar do cofrinho"
+        onPress={() => {
+          setWithdrawModalVisible(true);
+          setAmountStr('');
+          setModalError(null);
+        }}
+        accessibilityLabel="Solicitar resgate de pontos do cofrinho"
+      />
+    </View>
+  ) : null;
+
+  const renderTransferModal = () => (
+    <Modal visible={modalVisible} transparent animationType="slide">
+      <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
+        <View
+          style={[
+            styles.modalBox,
+            { paddingBottom: getSafeBottomPadding(insets, spacing['12']) },
+          ]}
+        >
+          <Text style={styles.modalTitle}>Guardar no cofrinho</Text>
+          <Text style={styles.modalSub}>
+            Saldo disponível:{' '}
+            <Text style={{ fontFamily: typography.family.bold }}>{freeBalance}</Text> pts
+          </Text>
+          <Text style={styles.modalHint}>
+            Pontos guardados no cofrinho ficam seguros e rendem valorização.
+          </Text>
+          <View style={styles.quickAmountRow}>
+            {[Math.floor(freeBalance / 2), freeBalance].filter((v, i, arr) => v > 0 && arr.indexOf(v) === i).map((v) => {
+              const label = v === freeBalance ? 'Tudo' : `${v}`;
+              const isSelected = amountStr === String(v);
+              return (
+                <Pressable
+                  key={label}
+                  style={[
+                    styles.quickAmountPill,
+                    {
+                      backgroundColor: isSelected ? colors.accent.filho : colors.bg.muted,
+                    },
+                  ]}
+                  onPress={() => setAmountStr(String(v))}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${label} pontos`}
+                >
+                  <Text
+                    style={[
+                      styles.quickAmountText,
+                      { color: isSelected ? colors.text.inverse : colors.text.primary },
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <TextInput
+            style={styles.modalInput}
+            value={amountStr}
+            onChangeText={setAmountStr}
+            placeholder="Ou digite o valor"
+            placeholderTextColor={colors.text.muted}
+            keyboardType="number-pad"
+            maxLength={6}
+            autoFocus
+          />
+          {modalError ? <InlineMessage message={modalError} variant="error" /> : null}
+          <View style={styles.modalBtns}>
+            <View style={styles.modalBtnFlex}>
+              <Button
+                variant="secondary"
+                label="Cancelar"
+                onPress={() => setModalVisible(false)}
+                accessibilityLabel="Cancelar transferência"
+              />
+            </View>
+            <View style={styles.modalBtnFlex}>
+              <Button
+                variant="primary"
+                label="Guardar"
+                loading={transferMutation.isPending}
+                loadingLabel="Guardando…"
+                onPress={handleTransfer}
+                accessibilityLabel="Confirmar transferência para cofrinho"
+              />
+            </View>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+
+  const renderWithdrawModal = () => (
+    <Modal visible={withdrawModalVisible} transparent animationType="slide">
+      <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
+        <View
+          style={[
+            styles.modalBox,
+            { paddingBottom: getSafeBottomPadding(insets, spacing['12']) },
+          ]}
+        >
+          <Text style={styles.modalTitle}>Retirar do cofrinho</Text>
+          <Text style={styles.modalSub}>
+            Cofrinho:{' '}
+            <Text style={{ fontFamily: typography.family.bold }}>{piggyBank}</Text> pts
+          </Text>
+          {withdrawalRate > 0 ? (
+            <Text style={styles.modalHint}>
+              Taxa de resgate: {withdrawalRate}% · mínimo {minimumWithdrawal} pts{withdrawFeeText}
+            </Text>
+          ) : null}
+          {withdrawFeeText ? (
+            <Text style={[styles.modalHint, { fontStyle: 'italic', marginTop: -spacing['1'] }]}>
+              Valor final pode variar se a taxa for alterada antes da aprovação.
+            </Text>
+          ) : null}
+          <View style={styles.quickAmountRow}>
+            {[minimumWithdrawal, Math.floor(piggyBank / 2), piggyBank].filter((v, i, arr) => v >= minimumWithdrawal && v <= piggyBank && arr.indexOf(v) === i).map((v) => {
+              const label = v === piggyBank ? 'Tudo' : `${v}`;
+              const isSelected = amountStr === String(v);
+              return (
+                <Pressable
+                  key={label}
+                  style={[
+                    styles.quickAmountPill,
+                    {
+                      backgroundColor: isSelected ? colors.accent.filho : colors.bg.muted,
+                    },
+                  ]}
+                  onPress={() => setAmountStr(String(v))}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${label} pontos`}
+                >
+                  <Text
+                    style={[
+                      styles.quickAmountText,
+                      { color: isSelected ? colors.text.inverse : colors.text.primary },
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <TextInput
+            style={styles.modalInput}
+            value={amountStr}
+            onChangeText={setAmountStr}
+            placeholder="Ou digite o valor"
+            placeholderTextColor={colors.text.muted}
+            keyboardType="number-pad"
+            maxLength={6}
+            autoFocus
+          />
+          {modalError ? <InlineMessage message={modalError} variant="error" /> : null}
+          <View style={styles.modalBtns}>
+            <View style={styles.modalBtnFlex}>
+              <Button
+                variant="secondary"
+                label="Cancelar"
+                onPress={() => setWithdrawModalVisible(false)}
+                accessibilityLabel="Cancelar resgate"
+              />
+            </View>
+            <View style={styles.modalBtnFlex}>
+              <Button
+                variant="primary"
+                label="Solicitar"
+                loading={withdrawalMutation.isPending}
+                loadingLabel="Solicitando…"
+                onPress={handleWithdrawal}
+                accessibilityLabel="Confirmar solicitação de resgate do cofrinho"
+              />
+            </View>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+
   return (
     <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
@@ -308,50 +566,10 @@ export default function ChildBalanceScreen() {
                   </Text>
                 </View>
               </View>
-              {totalPts > 0 ? (
-                <View style={styles.balanceHeaderProgress}>
-                  <View style={[styles.progressTrack, { backgroundColor: header.boxBg }]}>
-                    <View
-                      style={[
-                        styles.progressFillLeft,
-                        { flex: 100 - cofrinhoPercent, backgroundColor: colors.accent.filho },
-                      ]}
-                    />
-                    <View
-                      style={[
-                        styles.progressFillRight,
-                        { flex: cofrinhoPercent, backgroundColor: colors.semantic.warning },
-                      ]}
-                    />
-                  </View>
-                  <View style={styles.progressLabels}>
-                    <Text style={[styles.progressLabel, { color: header.textMuted }]}>
-                      {100 - cofrinhoPercent}% livre
-                    </Text>
-                    <Text style={[styles.progressLabel, { color: header.textMuted }]}>
-                      {cofrinhoPercent}% cofrinho
-                    </Text>
-                  </View>
-                </View>
-              ) : null}
+              {progressBar}
             </View>
 
-            {showAppreciation ? (
-              <View
-                style={[
-                  styles.boxConfig,
-                  { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-                ]}
-              >
-                <View style={styles.boxConfigTituloRow}>
-                  <TrendingUp size={16} color={colors.semantic.success} strokeWidth={2} />
-                  <Text style={styles.boxConfigTitulo}>
-                    Cofrinho rendendo {balance!.indice_valorizacao}% ao mês 🌱
-                  </Text>
-                </View>
-                <Text style={styles.boxConfigSub}>{appreciationHint}</Text>
-              </View>
-            ) : null}
+            {appreciationBox}
 
             <View style={{ marginBottom: spacing['3'] }}>
               <Button
@@ -367,48 +585,9 @@ export default function ChildBalanceScreen() {
               />
             </View>
 
-            {showPendingWithdrawal ? (
-              <View style={styles.pendingWithdrawalBox}>
-                <InlineMessage
-                  message={`Resgate pendente: ${pendingWithdrawal.valor_solicitado} pts (receberá ${pendingWithdrawal.valor_liquido} pts). Aguardando aprovação.`}
-                  variant="warning"
-                />
-                <View style={{ marginTop: spacing['2'] }}>
-                  <Button
-                    variant="outline"
-                    label="Cancelar resgate"
-                    loading={cancelWithdrawalMutation.isPending}
-                    loadingLabel="Cancelando…"
-                    onPress={handleCancelWithdrawal}
-                    accessibilityLabel="Cancelar solicitação de resgate do cofrinho"
-                  />
-                </View>
-              </View>
-            ) : null}
-
-            {showWithdrawInsufficientHint ? (
-              <View style={{ marginBottom: spacing['3'] }}>
-                <InlineMessage
-                  message={`Saldo mínimo para resgate: ${minimumWithdrawal} pts (taxa de ${withdrawalRate}%).`}
-                  variant="info"
-                />
-              </View>
-            ) : null}
-
-            {showWithdrawButton && canWithdraw ? (
-              <View style={{ marginBottom: spacing['3'] }}>
-                <Button
-                  variant="secondary"
-                  label="Retirar do cofrinho"
-                  onPress={() => {
-                    setWithdrawModalVisible(true);
-                    setAmountStr('');
-                    setModalError(null);
-                  }}
-                  accessibilityLabel="Solicitar resgate de pontos do cofrinho"
-                />
-              </View>
-            ) : null}
+            {pendingWithdrawalBox}
+            {withdrawInsufficientHint}
+            {withdrawButton}
 
             <View
               style={[styles.historicoHeader, { borderBottomColor: colors.border.subtle }]}
@@ -457,172 +636,8 @@ export default function ChildBalanceScreen() {
         ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
       />
 
-      <Modal visible={modalVisible} transparent animationType="slide">
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
-          <View
-            style={[
-              styles.modalBox,
-              { paddingBottom: getSafeBottomPadding(insets, spacing['12']) },
-            ]}
-          >
-            <Text style={styles.modalTitle}>Guardar no cofrinho</Text>
-            <Text style={styles.modalSub}>
-              Saldo disponível:{' '}
-              <Text style={{ fontFamily: typography.family.bold }}>{freeBalance}</Text> pts
-            </Text>
-            <Text style={styles.modalHint}>
-              Pontos guardados no cofrinho ficam seguros e rendem valorização.
-            </Text>
-            <View style={styles.quickAmountRow}>
-              {[Math.floor(freeBalance / 2), freeBalance].filter((v, i, arr) => v > 0 && arr.indexOf(v) === i).map((v) => {
-                const label = v === freeBalance ? 'Tudo' : `${v}`;
-                const isSelected = amountStr === String(v);
-                return (
-                  <Pressable
-                    key={label}
-                    style={[
-                      styles.quickAmountPill,
-                      {
-                        backgroundColor: isSelected ? colors.accent.filho : colors.bg.muted,
-                      },
-                    ]}
-                    onPress={() => setAmountStr(String(v))}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${label} pontos`}
-                  >
-                    <Text
-                      style={[
-                        styles.quickAmountText,
-                        { color: isSelected ? colors.text.inverse : colors.text.primary },
-                      ]}
-                    >
-                      {label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <TextInput
-              style={styles.modalInput}
-              value={amountStr}
-              onChangeText={setAmountStr}
-              placeholder="Ou digite o valor"
-              placeholderTextColor={colors.text.muted}
-              keyboardType="number-pad"
-              maxLength={6}
-              autoFocus
-            />
-            {modalError ? <InlineMessage message={modalError} variant="error" /> : null}
-            <View style={styles.modalBtns}>
-              <View style={styles.modalBtnFlex}>
-                <Button
-                  variant="secondary"
-                  label="Cancelar"
-                  onPress={() => setModalVisible(false)}
-                  accessibilityLabel="Cancelar transferência"
-                />
-              </View>
-              <View style={styles.modalBtnFlex}>
-                <Button
-                  variant="primary"
-                  label="Guardar"
-                  loading={transferMutation.isPending}
-                  loadingLabel="Guardando…"
-                  onPress={handleTransfer}
-                  accessibilityLabel="Confirmar transferência para cofrinho"
-                />
-              </View>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      <Modal visible={withdrawModalVisible} transparent animationType="slide">
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
-          <View
-            style={[
-              styles.modalBox,
-              { paddingBottom: getSafeBottomPadding(insets, spacing['12']) },
-            ]}
-          >
-            <Text style={styles.modalTitle}>Retirar do cofrinho</Text>
-            <Text style={styles.modalSub}>
-              Cofrinho:{' '}
-              <Text style={{ fontFamily: typography.family.bold }}>{piggyBank}</Text> pts
-            </Text>
-            {withdrawalRate > 0 ? (
-              <Text style={styles.modalHint}>
-                Taxa de resgate: {withdrawalRate}% · mínimo {minimumWithdrawal} pts{withdrawFeeText}
-              </Text>
-            ) : null}
-            {withdrawFeeText ? (
-              <Text style={[styles.modalHint, { fontStyle: 'italic', marginTop: -spacing['1'] }]}>
-                Valor final pode variar se a taxa for alterada antes da aprovação.
-              </Text>
-            ) : null}
-            <View style={styles.quickAmountRow}>
-              {[minimumWithdrawal, Math.floor(piggyBank / 2), piggyBank].filter((v, i, arr) => v >= minimumWithdrawal && v <= piggyBank && arr.indexOf(v) === i).map((v) => {
-                const label = v === piggyBank ? 'Tudo' : `${v}`;
-                const isSelected = amountStr === String(v);
-                return (
-                  <Pressable
-                    key={label}
-                    style={[
-                      styles.quickAmountPill,
-                      {
-                        backgroundColor: isSelected ? colors.accent.filho : colors.bg.muted,
-                      },
-                    ]}
-                    onPress={() => setAmountStr(String(v))}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${label} pontos`}
-                  >
-                    <Text
-                      style={[
-                        styles.quickAmountText,
-                        { color: isSelected ? colors.text.inverse : colors.text.primary },
-                      ]}
-                    >
-                      {label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <TextInput
-              style={styles.modalInput}
-              value={amountStr}
-              onChangeText={setAmountStr}
-              placeholder="Ou digite o valor"
-              placeholderTextColor={colors.text.muted}
-              keyboardType="number-pad"
-              maxLength={6}
-              autoFocus
-            />
-            {modalError ? <InlineMessage message={modalError} variant="error" /> : null}
-            <View style={styles.modalBtns}>
-              <View style={styles.modalBtnFlex}>
-                <Button
-                  variant="secondary"
-                  label="Cancelar"
-                  onPress={() => setWithdrawModalVisible(false)}
-                  accessibilityLabel="Cancelar resgate"
-                />
-              </View>
-              <View style={styles.modalBtnFlex}>
-                <Button
-                  variant="primary"
-                  label="Solicitar"
-                  loading={withdrawalMutation.isPending}
-                  loadingLabel="Solicitando…"
-                  onPress={handleWithdrawal}
-                  accessibilityLabel="Confirmar solicitação de resgate do cofrinho"
-                />
-              </View>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      {renderTransferModal()}
+      {renderWithdrawModal()}
     </SafeScreenFrame>
   );
 }

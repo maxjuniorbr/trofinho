@@ -123,6 +123,59 @@ export default function ChildPrizesScreen() {
     }
   };
 
+  const renderContent = () => {
+    if (isLoading) return <ListScreenSkeleton />;
+    if (shouldShowEmptyState) {
+      return (
+        <EmptyState
+          error={error?.message ?? null}
+          empty={!error}
+          emptyMessage={emptyStateMessage}
+          onRetry={handleRefresh}
+        />
+      );
+    }
+    return (
+      <FlashList
+        data={prizes}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.brand.vivid}
+          />
+        }
+        numColumns={2}
+        ListHeaderComponent={
+          <>
+            <LinearGradient
+              colors={gradients.goldHorizontal.colors}
+              start={gradients.goldHorizontal.start}
+              end={gradients.goldHorizontal.end}
+              style={styles.balanceBanner}
+            >
+              <Text style={styles.balanceLabel}>Saldo disponível</Text>
+              <Text style={styles.balanceValue}>{freeBalance}</Text>
+              <Text style={styles.balancePts}>pontos</Text>
+            </LinearGradient>
+            {redemptionError ? <InlineMessage message={redemptionError} variant="error" /> : null}
+            {success ? <InlineMessage message={success} variant="success" /> : null}
+          </>
+        }
+        renderItem={({ item }) => (
+          <PrizeCard
+            item={item}
+            freeBalance={freeBalance}
+            redeeming={redeeming}
+            onRedeem={handleRedeem}
+          />
+        )}
+      />
+    );
+  };
+
   return (
     <SafeScreenFrame bottomInset={false}>
       <StatusBar style={colors.statusBar} />
@@ -131,54 +184,7 @@ export default function ChildPrizesScreen() {
         role="filho"
       />
 
-      {isLoading ? (
-        <ListScreenSkeleton />
-      ) : shouldShowEmptyState ? (
-        <EmptyState
-          error={error?.message ?? null}
-          empty={!error}
-          emptyMessage={emptyStateMessage}
-          onRetry={handleRefresh}
-        />
-      ) : (
-        <FlashList
-          data={prizes}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor={colors.brand.vivid}
-            />
-          }
-          numColumns={2}
-          ListHeaderComponent={
-            <>
-              <LinearGradient
-                colors={gradients.goldHorizontal.colors}
-                start={gradients.goldHorizontal.start}
-                end={gradients.goldHorizontal.end}
-                style={styles.balanceBanner}
-              >
-                <Text style={styles.balanceLabel}>Saldo disponível</Text>
-                <Text style={styles.balanceValue}>{freeBalance}</Text>
-                <Text style={styles.balancePts}>pontos</Text>
-              </LinearGradient>
-              {redemptionError ? <InlineMessage message={redemptionError} variant="error" /> : null}
-              {success ? <InlineMessage message={success} variant="success" /> : null}
-            </>
-          }
-          renderItem={({ item }) => (
-            <PrizeCard
-              item={item}
-              freeBalance={freeBalance}
-              redeeming={redeeming}
-              onRedeem={handleRedeem}
-            />
-          )}
-        />
-      )}
+      {renderContent()}
       <HomeFooterBar items={footerItems} activeRoute="/(child)/prizes" onNavigate={handleFooterNavigate} />
     </SafeScreenFrame>
   );

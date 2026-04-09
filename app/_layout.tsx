@@ -221,7 +221,7 @@ function RootNavigator({
     if (!inAdmin && !inChild) {
       router.replace(roleHome);
     }
-  }, [ready, profile, router, segments]);
+  }, [ready, profile, router, segments, roleHome]);
 
   useEffect(() => {
     let active = true;

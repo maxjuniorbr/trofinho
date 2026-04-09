@@ -204,6 +204,60 @@ export default function ChildBalanceAdminScreen() {
     ? `Próxima: ${formatDate(balance.proxima_valorizacao_em)}`
     : '';
 
+  const pendingWithdrawalBanner = (() => {
+    if (!pendingWithdrawal) return null;
+    const currentRate = balance?.taxa_resgate_cofrinho ?? 0;
+    const storedRate = pendingWithdrawal.taxa_aplicada;
+    const rateChanged = storedRate !== currentRate;
+    const { net: expectedNet } = calculateNetAmount(pendingWithdrawal.valor_solicitado, currentRate);
+    return (
+      <View style={styles.pendingBanner}>
+        <View style={styles.pendingBannerHeader}>
+          <PiggyBank size={16} color={colors.semantic.warning} strokeWidth={2} />
+          <Text style={styles.pendingBannerTitle}>Resgate do cofrinho pendente</Text>
+        </View>
+        <Text style={styles.pendingBannerText}>
+          {nome ?? 'Filho'} quer retirar{' '}
+          <Text style={{ fontFamily: typography.family.bold }}>
+            {pendingWithdrawal.valor_solicitado}
+          </Text>{' '}
+          pts do cofrinho. Taxa atual: {currentRate}% → receberá{' '}
+          <Text style={{ fontFamily: typography.family.bold }}>
+            ~{expectedNet}
+          </Text>{' '}
+          pts.
+        </Text>
+        {rateChanged ? (
+          <Text style={[styles.pendingBannerText, { fontStyle: 'italic', marginTop: spacing['1'] }]}>
+            A taxa mudou de {storedRate}% para {currentRate}% desde a solicitação.
+          </Text>
+        ) : null}
+        <View style={styles.pendingBtns}>
+          <View style={{ flex: 1 }}>
+            <Button
+              variant="outline"
+              label="Rejeitar"
+              loading={cancelWithdrawalMutation.isPending}
+              loadingLabel="Rejeitando…"
+              onPress={handleRejectWithdrawal}
+              accessibilityLabel="Rejeitar resgate do cofrinho"
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button
+              variant="primary"
+              label="Aprovar"
+              loading={confirmWithdrawalMutation.isPending}
+              loadingLabel="Aprovando…"
+              onPress={handleConfirmWithdrawal}
+              accessibilityLabel="Aprovar resgate do cofrinho"
+            />
+          </View>
+        </View>
+      </View>
+    );
+  })();
+
   return (
     <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
@@ -329,58 +383,7 @@ export default function ChildBalanceAdminScreen() {
               ) : null}
             </View>
 
-            {pendingWithdrawal ? (() => {
-              const currentRate = balance?.taxa_resgate_cofrinho ?? 0;
-              const storedRate = pendingWithdrawal.taxa_aplicada;
-              const rateChanged = storedRate !== currentRate;
-              const { net: expectedNet } = calculateNetAmount(pendingWithdrawal.valor_solicitado, currentRate);
-              return (
-              <View style={styles.pendingBanner}>
-                <View style={styles.pendingBannerHeader}>
-                  <PiggyBank size={16} color={colors.semantic.warning} strokeWidth={2} />
-                  <Text style={styles.pendingBannerTitle}>Resgate do cofrinho pendente</Text>
-                </View>
-                <Text style={styles.pendingBannerText}>
-                  {nome ?? 'Filho'} quer retirar{' '}
-                  <Text style={{ fontFamily: typography.family.bold }}>
-                    {pendingWithdrawal.valor_solicitado}
-                  </Text>{' '}
-                  pts do cofrinho. Taxa atual: {currentRate}% → receberá{' '}
-                  <Text style={{ fontFamily: typography.family.bold }}>
-                    ~{expectedNet}
-                  </Text>{' '}
-                  pts.
-                </Text>
-                {rateChanged ? (
-                  <Text style={[styles.pendingBannerText, { fontStyle: 'italic', marginTop: spacing['1'] }]}>
-                    A taxa mudou de {storedRate}% para {currentRate}% desde a solicitação.
-                  </Text>
-                ) : null}
-                <View style={styles.pendingBtns}>
-                  <View style={{ flex: 1 }}>
-                    <Button
-                      variant="outline"
-                      label="Rejeitar"
-                      loading={cancelWithdrawalMutation.isPending}
-                      loadingLabel="Rejeitando…"
-                      onPress={handleRejectWithdrawal}
-                      accessibilityLabel="Rejeitar resgate do cofrinho"
-                    />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Button
-                      variant="primary"
-                      label="Aprovar"
-                      loading={confirmWithdrawalMutation.isPending}
-                      loadingLabel="Aprovando…"
-                      onPress={handleConfirmWithdrawal}
-                      accessibilityLabel="Aprovar resgate do cofrinho"
-                    />
-                  </View>
-                </View>
-              </View>
-              );
-            })() : null}
+            {pendingWithdrawalBanner}
 
             <View style={styles.boxConfig}>
               <View style={styles.boxConfigTituloRow}>

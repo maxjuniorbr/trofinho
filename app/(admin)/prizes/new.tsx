@@ -97,6 +97,12 @@ export default function NewPrizeScreen() {
     </View>
   );
 
+  const getPickerLabel = () => {
+    if (pickingImage) return 'Abrindo galeria…';
+    if (selectedImageUri) return 'Trocar capa';
+    return 'Escolher capa';
+  };
+
   return (
     <StickyFooterScreen
       title="Novo Prêmio"
@@ -122,7 +128,7 @@ export default function NewPrizeScreen() {
         {mediaPreviewContent}
 
         <Button
-          label={pickingImage ? 'Abrindo galeria…' : selectedImageUri ? 'Trocar capa' : 'Escolher capa'}
+          label={getPickerLabel()}
           variant="secondary"
           onPress={handlePickImage}
           disabled={pickingImage}

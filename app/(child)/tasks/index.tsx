@@ -99,6 +99,44 @@ function TaskCard({ item, filter, colors, styles, router }: Readonly<TaskCardPro
     ? `Tarefa ${item.tarefas.titulo} desativada`
     : `Ver detalhes da tarefa ${item.tarefas.titulo}`;
 
+  const inactiveTag = isInactive ? (
+    <View style={styles.inactiveTag}>
+      <Text style={styles.inactiveTagText}>Desativada</Text>
+    </View>
+  ) : null;
+
+  const dateLineElement = dateLine ? (
+    <Text style={styles.cardDeadline}>
+      {dateLine.label}
+      {dateLine.value}
+    </Text>
+  ) : null;
+
+  const evidenceHintElement = showEvidenceHint ? (
+    <View style={styles.evidenceHint}>
+      <Camera size={12} color={colors.text.muted} strokeWidth={2} />
+      <Text style={styles.evidenceHintText}>Requer foto</Text>
+    </View>
+  ) : null;
+
+  const statusTag = filter === 'historico' ? (
+    <View
+      style={[
+        styles.statusTag,
+        { backgroundColor: getAssignmentStatusColor(item.status, colors) + '20' },
+      ]}
+    >
+      <Text
+        style={[
+          styles.statusText,
+          { color: getAssignmentStatusColor(item.status, colors) },
+        ]}
+      >
+        {getAssignmentStatusLabel(item.status)}
+      </Text>
+    </View>
+  ) : null;
+
   return (
     <Pressable
       style={[styles.card, isInactive && styles.inactiveCard]}
@@ -114,44 +152,14 @@ function TaskCard({ item, filter, colors, styles, router }: Readonly<TaskCardPro
           <Text style={styles.pointsText}>{getAssignmentPoints(item)} pts</Text>
         </View>
       </View>
-      {isInactive ? (
-        <View style={styles.inactiveTag}>
-          <Text style={styles.inactiveTagText}>Desativada</Text>
-        </View>
-      ) : null}
+      {inactiveTag}
       <View style={styles.freqRow}>
         {recurring ? <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} /> : null}
         <Text style={[styles.cardDeadline, { marginBottom: 0 }]}>{formatWeekdays(item.tarefas.dias_semana)}</Text>
       </View>
-      {dateLine ? (
-        <Text style={styles.cardDeadline}>
-          {dateLine.label}
-          {dateLine.value}
-        </Text>
-      ) : null}
-      {showEvidenceHint ? (
-        <View style={styles.evidenceHint}>
-          <Camera size={12} color={colors.text.muted} strokeWidth={2} />
-          <Text style={styles.evidenceHintText}>Requer foto</Text>
-        </View>
-      ) : null}
-      {filter === 'historico' ? (
-        <View
-          style={[
-            styles.statusTag,
-            { backgroundColor: getAssignmentStatusColor(item.status, colors) + '20' },
-          ]}
-        >
-          <Text
-            style={[
-              styles.statusText,
-              { color: getAssignmentStatusColor(item.status, colors) },
-            ]}
-          >
-            {getAssignmentStatusLabel(item.status)}
-          </Text>
-        </View>
-      ) : null}
+      {dateLineElement}
+      {evidenceHintElement}
+      {statusTag}
     </Pressable>
   );
 }

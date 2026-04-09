@@ -32,10 +32,11 @@ export default function EditTaskScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
 
-  const editState = useMemo(
-    () => (task ? getTaskEditState(task, initialized ? diasSemana : undefined) : null),
-    [task, diasSemana, initialized],
-  );
+  const editState = useMemo(() => {
+    if (!task) return null;
+    const weekdays = initialized ? diasSemana : undefined;
+    return getTaskEditState(task, weekdays);
+  }, [task, diasSemana, initialized]);
 
   // Populate form fields when task data first loads
   useEffect(() => {

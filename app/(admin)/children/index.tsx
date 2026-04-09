@@ -50,6 +50,96 @@ export default function AdminChildrenScreen() {
     [router],
   );
 
+  const renderContent = () => {
+    if (isLoading) {
+      return <ListScreenSkeleton />;
+    }
+    if (error || children.length === 0) {
+      return (
+        <EmptyState
+          error={error?.message}
+          empty={children.length === 0}
+          emptyMessage={'Nenhum filho cadastrado.\nToque em "+" para cadastrar o primeiro filho.'}
+          onRetry={handleRefresh}
+        />
+      );
+    }
+    return (
+      <FlashList
+        data={children}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.lista}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching && !isLoading}
+            onRefresh={handleRefresh}
+            tintColor={colors.brand.vivid}
+          />
+        }
+        ListHeaderComponent={<View style={{ height: spacing['4'] }} />}
+        ListFooterComponent={<View style={{ height: spacing['12'] }} />}
+        renderItem={({ item }) => {
+          const balance = balancesMap.get(item.id);
+          return (
+            <View
+              style={[
+                styles.card,
+                shadows.card,
+                {
+                  backgroundColor: colors.bg.surface,
+                  borderColor: colors.border.subtle,
+                  opacity: item.ativo === false ? 0.5 : 1,
+                },
+              ]}
+            >
+              <Pressable
+                style={styles.cardMain}
+                onPress={() => router.push(`/(admin)/children/${item.id}` as never)}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.nome}, ver nome e e-mail`}
+              >
+                <Avatar name={item.nome} size={44} imageUri={item.avatar_url} />
+                <View style={styles.cardInfo}>
+                  <Text style={[styles.cardNome, { color: colors.text.primary }]}>
+                    {item.nome}
+                  </Text>
+                  {item.ativo === false && (
+                    <Text style={[styles.inactiveBadge, { color: colors.semantic.warningText }]}>
+                      Desativado
+                    </Text>
+                  )}
+                  <Text
+                    style={[
+                      styles.cardStatus,
+                      {
+                        color: item.usuario_id
+                          ? colors.semantic.success
+                          : colors.semantic.warning,
+                      },
+                    ]}
+                  >
+                    {item.usuario_id ? 'Conta vinculada' : 'Sem conta'}
+                  </Text>
+                  {balance ? (
+                    <Text style={[styles.cardSaldo, { color: colors.text.secondary }]}>
+                      {balance.saldo_livre} livre · {balance.cofrinho} cofrinho
+                    </Text>
+                  ) : null}
+                </View>
+              </Pressable>
+
+              <HeaderIconButton
+                icon={Eye}
+                onPress={() => router.push(`/(admin)/children/${item.id}` as never)}
+                accessibilityLabel={`Ver dados de ${item.nome}`}
+              />
+            </View>
+          );
+        }}
+      />
+    );
+  };
+
   return (
     <SafeScreenFrame bottomInset={false}>
       <StatusBar style={colors.statusBar} />
@@ -64,89 +154,7 @@ export default function AdminChildrenScreen() {
         }
       />
 
-      {isLoading ? (
-        <ListScreenSkeleton />
-      ) : error || children.length === 0 ? (
-        <EmptyState
-          error={error?.message}
-          empty={children.length === 0}
-          emptyMessage={'Nenhum filho cadastrado.\nToque em "+" para cadastrar o primeiro filho.'}
-          onRetry={handleRefresh}
-        />
-      ) : (
-        <FlashList
-          data={children}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.lista}
-          refreshControl={
-            <RefreshControl
-              refreshing={isFetching && !isLoading}
-              onRefresh={handleRefresh}
-              tintColor={colors.brand.vivid}
-            />
-          }
-          ListHeaderComponent={<View style={{ height: spacing['4'] }} />}
-          ListFooterComponent={<View style={{ height: spacing['12'] }} />}
-          renderItem={({ item }) => {
-            const balance = balancesMap.get(item.id);
-            return (
-              <View
-                style={[
-                  styles.card,
-                  shadows.card,
-                  {
-                    backgroundColor: colors.bg.surface,
-                    borderColor: colors.border.subtle,
-                    opacity: item.ativo === false ? 0.5 : 1,
-                  },
-                ]}
-              >
-                <Pressable
-                  style={styles.cardMain}
-                  onPress={() => router.push(`/(admin)/children/${item.id}` as never)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${item.nome}, ver nome e e-mail`}
-                >
-                  <Avatar name={item.nome} size={44} imageUri={item.avatar_url} />
-                  <View style={styles.cardInfo}>
-                    <Text style={[styles.cardNome, { color: colors.text.primary }]}>
-                      {item.nome}
-                    </Text>
-                    {item.ativo === false && (
-                      <Text style={[styles.inactiveBadge, { color: colors.semantic.warningText }]}>
-                        Desativado
-                      </Text>
-                    )}
-                    <Text
-                      style={[
-                        styles.cardStatus,
-                        {
-                          color: item.usuario_id
-                            ? colors.semantic.success
-                            : colors.semantic.warning,
-                        },
-                      ]}
-                    >
-                      {item.usuario_id ? 'Conta vinculada' : 'Sem conta'}
-                    </Text>
-                    {balance ? (
-                      <Text style={[styles.cardSaldo, { color: colors.text.secondary }]}>
-                        {balance.saldo_livre} livre · {balance.cofrinho} cofrinho
-                      </Text>
-                    ) : null}
-                  </View>
-                </Pressable>
-
-                <HeaderIconButton
-                  icon={Eye}
-                  onPress={() => router.push(`/(admin)/children/${item.id}` as never)}
-                  accessibilityLabel={`Ver dados de ${item.nome}`}
-                />
-              </View>
-            );
-          }}
-        />
-      )}
+      {renderContent()}
       <HomeFooterBar items={footerItems} activeRoute="/(admin)/children" onNavigate={handleFooterNavigate} />
     </SafeScreenFrame>
   );
