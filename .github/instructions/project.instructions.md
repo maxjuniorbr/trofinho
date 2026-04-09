@@ -1,5 +1,5 @@
 ---
-applyTo: 'app/**/*.ts,app/**/*.tsx,lib/**/*.ts,lib/**/*.tsx,src/**/*.ts,src/**/*.tsx'
+applyTo: "app/**/*.ts,app/**/*.tsx,lib/**/*.ts,lib/**/*.tsx,src/**/*.ts,src/**/*.tsx"
 ---
 
 # Code & Component Instructions
