@@ -79,8 +79,6 @@ export default function ChildRedemptionsScreen() {
       <StatusBar style={colors.statusBar} />
       <ScreenHeader
         title="Meus Resgates"
-        onBack={() => router.back()}
-        backLabel="Início"
         role="filho"
       />
 

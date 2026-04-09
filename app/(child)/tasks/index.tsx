@@ -267,8 +267,6 @@ export default function ChildTasksScreen() {
       <StatusBar style={colors.statusBar} />
       <ScreenHeader
         title="Minhas Tarefas"
-        onBack={() => router.back()}
-        backLabel="Início"
         role="filho"
       />
 

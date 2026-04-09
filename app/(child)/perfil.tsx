@@ -1,8 +1,9 @@
 import * as Sentry from '@sentry/react-native';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, ScrollView, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'expo-router';
+import { ClipboardList, Gift, House, ShoppingBag, UserCircle } from 'lucide-react-native';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { LogoutButton } from '@/components/ui/logout-button';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
@@ -10,6 +11,7 @@ import { AvatarSection } from '@/components/profile/avatar-section';
 import { ThemeCard } from '@/components/profile/theme-card';
 import { NotificationCard } from '@/components/profile/notification-card';
 import { Button } from '@/components/ui/button';
+import { HomeFooterBar, FOOTER_BAR_HEIGHT, type FooterItem } from '@/components/ui/home-footer-bar';
 import { useTheme } from '@/context/theme-context';
 import { spacing } from '@/constants/theme';
 import { signOut } from '@lib/auth';
@@ -21,6 +23,14 @@ import {
   useDeleteAccount,
   combineQueryStates,
 } from '@/hooks/queries';
+
+const FOOTER_ITEMS: readonly FooterItem[] = [
+  { icon: House, label: 'Início', rota: 'index' },
+  { icon: ClipboardList, label: 'Tarefas', rota: '/(child)/tasks' },
+  { icon: Gift, label: 'Prêmios', rota: '/(child)/prizes' },
+  { icon: ShoppingBag, label: 'Resgates', rota: '/(child)/redemptions' },
+  { icon: UserCircle, label: 'Perfil', rota: '/(child)/perfil' },
+];
 
 export default function ChildProfileScreen() {
   const router = useRouter();
@@ -49,6 +59,15 @@ export default function ChildProfileScreen() {
   const effectivePrefs = notificationPreferences ?? notificationPrefsQuery.data ?? null;
   const effectiveAvatarUri = localAvatarUri ?? avatarUri;
   const effectiveName = profile?.nome ?? 'Campeão';
+
+  const handleFooterNavigate = useCallback(
+    (rota: string) => {
+      if (rota === '/(child)/perfil') return;
+      if (rota === 'index') router.back();
+      else router.replace(rota as never);
+    },
+    [router],
+  );
 
   const handleDeleteAccount = () => {
     Alert.alert(
@@ -111,19 +130,17 @@ export default function ChildProfileScreen() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg.canvas }} behavior="padding">
-      <SafeScreenFrame bottomInset>
+      <SafeScreenFrame bottomInset={false}>
         <StatusBar style={colors.statusBar} />
         <ScreenHeader
           title="Meu Perfil"
-          onBack={() => router.back()}
-          backLabel="Início"
           role="filho"
         />
 
         <ScrollView
           style={{ backgroundColor: colors.bg.canvas }}
           overScrollMode="never"
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: FOOTER_BAR_HEIGHT + spacing['6'] }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -157,6 +174,7 @@ export default function ChildProfileScreen() {
             accessibilityLabel="Excluir minha conta"
           />
         </ScrollView>
+        <HomeFooterBar items={FOOTER_ITEMS} activeRoute="/(child)/perfil" onNavigate={handleFooterNavigate} />
       </SafeScreenFrame>
     </KeyboardAvoidingView>
   );

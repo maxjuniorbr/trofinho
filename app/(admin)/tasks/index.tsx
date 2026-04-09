@@ -155,8 +155,6 @@ export default function AdminTasksScreen() {
       <StatusBar style={colors.statusBar} />
       <ScreenHeader
         title="Tarefas"
-        onBack={() => router.back()}
-        backLabel="Início"
         rightAction={
           <HeaderIconButton
             icon={Plus}

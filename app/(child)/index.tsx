@@ -301,7 +301,7 @@ export default function FilhoHomeScreen() {
 
 function makeStyles() {
   return StyleSheet.create({
-    container: { flexGrow: 1, alignItems: 'center', paddingHorizontal: spacing.screen },
+    container: { alignItems: 'center', paddingHorizontal: spacing.screen },
 
     hero: { alignItems: 'center', width: '100%', marginBottom: spacing['4'] },
     heroSub: { fontFamily: typography.family.bold, fontSize: typography.size.sm },

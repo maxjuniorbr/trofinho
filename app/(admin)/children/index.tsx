@@ -58,8 +58,6 @@ export default function AdminChildrenScreen() {
       <StatusBar style={colors.statusBar} />
       <ScreenHeader
         title="Filhos"
-        onBack={() => router.back()}
-        backLabel="Início"
         rightAction={
           <HeaderIconButton
             icon={Plus}

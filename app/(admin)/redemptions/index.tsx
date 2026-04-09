@@ -243,7 +243,7 @@ export default function AdminRedemptionsScreen() {
   return (
     <SafeScreenFrame bottomInset={false}>
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader title="Resgates" onBack={() => router.back()} backLabel="Início" />
+      <ScreenHeader title="Resgates" />
 
       {isLoading ? (
         <ListScreenSkeleton />

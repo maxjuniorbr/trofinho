@@ -77,8 +77,6 @@ export default function AdminPrizesScreen() {
       <StatusBar style={colors.statusBar} />
       <ScreenHeader
         title="Prêmios"
-        onBack={() => router.back()}
-        backLabel="Início"
         rightAction={
           <HeaderIconButton
             icon={Plus}

@@ -349,7 +349,7 @@ export default function AdminHomeScreen() {
 
 function makeStyles() {
   return StyleSheet.create({
-    container: { flexGrow: 1, paddingHorizontal: spacing.screen },
+    container: { paddingHorizontal: spacing.screen },
 
     hero: {
       flexDirection: 'row',

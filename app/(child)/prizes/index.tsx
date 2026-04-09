@@ -132,8 +132,6 @@ export default function ChildPrizesScreen() {
       <StatusBar style={colors.statusBar} />
       <ScreenHeader
         title="Meus Prêmios"
-        onBack={() => router.back()}
-        backLabel="Início"
         role="filho"
       />
 

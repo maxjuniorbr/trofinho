@@ -6,7 +6,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { useUpdateUserAvatar } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
-import { darkColors, radii, spacing, typography, withAlpha } from '@/constants/theme';
+import { radii, spacing, typography } from '@/constants/theme';
 
 type AvatarSectionProps = Readonly<{
   name: string;
@@ -17,11 +17,10 @@ type AvatarSectionProps = Readonly<{
 
 export const AvatarSection = ({ name, avatarUri, role = 'admin', onAvatarChange }: AvatarSectionProps) => {
   const { colors } = useTheme();
-  const isLight = colors.statusBar === 'dark';
-  const bg = isLight ? darkColors.bg.surface : colors.bg.elevated;
-  const border = isLight ? withAlpha('#FFFFFF', 0.25) : colors.border.subtle;
-  const textColor = '#FFFFFF';
-  const textMuted = 'rgba(255, 255, 255, 0.7)';
+  const bg = colors.bg.surface;
+  const border = colors.border.subtle;
+  const textColor = colors.text.primary;
+  const textMuted = colors.text.secondary;
   const accentColor = role === 'filho' ? colors.accent.filhoDim : colors.accent.adminDim;
   const RoleIcon = role === 'filho' ? User : ShieldCheck;
   const roleLabel = role === 'filho' ? 'Filho' : 'Administrador';
@@ -66,9 +65,9 @@ export const AvatarSection = ({ name, avatarUri, role = 'admin', onAvatarChange 
           <Avatar name={name} size={80} imageUri={avatarUri} />
           <View style={[styles.cameraBtn, { backgroundColor: accentColor }]}>
             {updateAvatarMutation.isPending ? (
-              <ActivityIndicator size="small" color={textColor} />
+              <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Camera size={12} color={textColor} strokeWidth={2.5} />
+              <Camera size={12} color="#FFFFFF" strokeWidth={2.5} />
             )}
           </View>
         </Pressable>
