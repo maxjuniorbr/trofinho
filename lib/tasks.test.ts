@@ -264,9 +264,7 @@ describe('tasks', () => {
 
   it('lists task assignments with pagination', async () => {
     const assignments = Array.from({ length: 11 }, (_, i) => ({ id: `a-${i}` }));
-    supabaseMock.from.mockReturnValueOnce(
-      createOrderQuery({ data: assignments, error: null }),
-    );
+    supabaseMock.from.mockReturnValueOnce(createOrderQuery({ data: assignments, error: null }));
     storageBucketMock.createSignedUrls.mockResolvedValueOnce({ data: [], error: null });
 
     const result = await listTaskAssignments('task-1', 0, 10);
@@ -277,9 +275,7 @@ describe('tasks', () => {
   });
 
   it('returns hasMore false when fewer items than pageSize', async () => {
-    supabaseMock.from.mockReturnValueOnce(
-      createOrderQuery({ data: [{ id: 'a-1' }], error: null }),
-    );
+    supabaseMock.from.mockReturnValueOnce(createOrderQuery({ data: [{ id: 'a-1' }], error: null }));
 
     const result = await listTaskAssignments('task-1', 0, 10);
 
@@ -440,9 +436,7 @@ describe('tasks', () => {
         {
           dias_semana: 0,
           ativo: true,
-          atribuicoes: [
-            createAssignmentWithChild({ status: 'pendente', concluida_em: null }),
-          ],
+          atribuicoes: [createAssignmentWithChild({ status: 'pendente', concluida_em: null })],
         },
         127,
       ),
@@ -460,9 +454,7 @@ describe('tasks', () => {
         {
           dias_semana: 127,
           ativo: true,
-          atribuicoes: [
-            createAssignmentWithChild({ status: 'pendente', concluida_em: null }),
-          ],
+          atribuicoes: [createAssignmentWithChild({ status: 'pendente', concluida_em: null })],
         },
         0,
       ),
@@ -626,11 +618,7 @@ describe('tasks', () => {
     const result = await getTaskWithAssignments('task-1');
 
     expect(storageBucketMock.createSignedUrls).toHaveBeenCalledWith(
-      [
-        'family/child/evidence-one.jpg',
-        'family/child/file two.jpg',
-        'family/child/file-three.jpg',
-      ],
+      ['family/child/evidence-one.jpg', 'family/child/file two.jpg', 'family/child/file-three.jpg'],
       3600,
     );
     expect(result).toEqual({
@@ -672,11 +660,9 @@ describe('tasks', () => {
   });
 
   it('rejects assignments via RPC', async () => {
-    supabaseMock.rpc
-      .mockResolvedValueOnce({ error: null })
-      .mockResolvedValueOnce({
-        error: { message: 'Atribuição não encontrada ou não está aguardando validação' },
-      });
+    supabaseMock.rpc.mockResolvedValueOnce({ error: null }).mockResolvedValueOnce({
+      error: { message: 'Atribuição não encontrada ou não está aguardando validação' },
+    });
 
     await expect(
       rejectAssignment('assignment-1', 'Refazer', {
@@ -713,7 +699,7 @@ describe('tasks', () => {
       })
       .mockResolvedValueOnce({ error: { message: 'Esta tarefa está desativada' } })
       .mockResolvedValueOnce({
-        error: { message: 'Não é possível cancelar envio de tarefa diária de data anterior' },
+        error: { message: 'Não é possível cancelar envio de tarefa recorrente de data anterior' },
       })
       .mockResolvedValueOnce({
         error: { message: 'Apenas filhos podem cancelar o próprio envio' },
@@ -726,7 +712,7 @@ describe('tasks', () => {
       error: 'Esta tarefa está desativada e não permite cancelar o envio.',
     });
     await expect(cancelAssignmentSubmission('assignment-3')).resolves.toEqual({
-      error: 'Não é possível cancelar o envio de uma tarefa diária de data anterior.',
+      error: 'Não é possível cancelar o envio de uma tarefa recorrente de data anterior.',
     });
     await expect(cancelAssignmentSubmission('assignment-4')).resolves.toEqual({
       error: 'Acesso negado.',

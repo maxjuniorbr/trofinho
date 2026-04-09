@@ -27,7 +27,6 @@ const rpcErrorMatchers = [
   ['Pontos devem ser maiores', 'Pontos devem ser maiores que zero.'],
   ['Valor deve ser maior que zero', 'Valor deve ser maior que zero.'],
   ['Descrição obrigatória', 'Descrição obrigatória.'],
-  ['Frequência obrigatória', 'Frequência obrigatória.'],
   ['Índice deve estar entre', 'Índice deve estar entre 0 e 100.'],
   ['não encontrad', 'Registro não encontrado.'],
   ['não está aguardando', 'Esta ação não pode ser realizada no momento.'],
@@ -47,8 +46,8 @@ const rpcErrorMatchers = [
     'Este filho está desativado e não pode ser editado.',
   ],
   [
-    'tarefa diária de data anterior',
-    'Não é possível cancelar o envio de uma tarefa diária de data anterior.',
+    'tarefa recorrente de data anterior',
+    'Não é possível cancelar o envio de uma tarefa recorrente de data anterior.',
   ],
   ['Sua conta foi desativada', 'Sua conta foi desativada. Entre em contato com o responsável.'],
   ['já foi concluída', 'Esta tarefa já foi concluída e não pode ser editada.'],

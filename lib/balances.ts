@@ -12,7 +12,8 @@ export type TransactionType =
   | 'estorno_resgate'
   | 'resgate_cofrinho';
 
-export type AppreciationPeriod = 'diario' | 'semanal' | 'mensal';
+// Locked to 'mensal' by migration 20260419200000. DB enum retains all values for backward compat.
+export type AppreciationPeriod = 'mensal';
 
 export interface Balance {
   filho_id: string;
@@ -60,8 +61,6 @@ export function isCredit(type: TransactionType): boolean {
 
 export function getAppreciationPeriodLabel(period: AppreciationPeriod): string {
   const map: Record<AppreciationPeriod, string> = {
-    diario: 'dia',
-    semanal: 'semana',
     mensal: 'mês',
   };
   return map[period];

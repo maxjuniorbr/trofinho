@@ -13,7 +13,7 @@ vi.mock('@tanstack/react-query', async () => {
 vi.mock('../../../../lib/prizes', () => ({
   listPrizes: vi.fn().mockResolvedValue({ data: [], error: null }),
   getPrize: vi.fn().mockResolvedValue({ data: { id: 'x', nome: 'Test' }, error: null }),
-  listActivePrizes: vi.fn().mockResolvedValue({ data: [], error: null }),
+  listActivePrizes: vi.fn().mockResolvedValue({ data: [], hasMore: false, error: null }),
   createPrize: vi.fn().mockResolvedValue({ data: { id: 'new' }, error: null }),
   updatePrize: vi.fn().mockResolvedValue({ error: null, imageUrl: null, pointsMessage: null }),
   deactivatePrize: vi.fn().mockResolvedValue({ error: null }),

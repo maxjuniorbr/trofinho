@@ -142,6 +142,7 @@ export async function updatePrize(
   input: UpdatePrizeInput,
 ): Promise<{ error: string | null; imageUrl: string | null; pointsMessage: string | null }> {
   let nextImageUrl = input.imagem_url ?? null;
+  let uploadedPath: string | null = null;
 
   if (input.imageUri) {
     const uploadResult = await uploadImageToPublicBucket({
@@ -160,6 +161,7 @@ export async function updatePrize(
     }
 
     nextImageUrl = uploadResult.publicUrl;
+    uploadedPath = uploadResult.path;
   }
 
   const { data, error } = await supabase.rpc('editar_premio', {
@@ -172,9 +174,11 @@ export async function updatePrize(
   });
 
   if (error) {
-    if (input.imageUri && nextImageUrl) {
-      const path = `${id}/capa`;
-      supabase.storage.from('premios').remove([path]).catch(() => {});
+    if (input.imageUri && nextImageUrl && uploadedPath) {
+      supabase.storage
+        .from('premios')
+        .remove([uploadedPath])
+        .catch(() => {});
     }
     return {
       error: localizeRpcError(error.message),
@@ -218,18 +222,29 @@ export async function reactivatePrize(id: string): Promise<{ error: string | nul
   return { error: null };
 }
 
-export async function listActivePrizes(): Promise<{
+export async function listActivePrizes(
+  page = 0,
+  pageSize = 20,
+): Promise<{
   data: Prize[];
+  hasMore: boolean;
   error: string | null;
 }> {
+  const from = page * pageSize;
+  const to = from + pageSize;
+
   const { data, error } = await supabase
     .from('premios')
     .select('*')
     .eq('ativo', true)
     .order('custo_pontos')
-    .limit(50)
+    .range(from, to)
     .overrideTypes<Prize[], { merge: false }>();
 
-  if (error) return { data: [], error: localizeRpcError(error.message) };
-  return { data: data ?? [], error: null };
+  if (error) return { data: [], hasMore: false, error: localizeRpcError(error.message) };
+  const items = data ?? [];
+  const hasMore = items.length > pageSize;
+  const page_items = hasMore ? items.slice(0, pageSize) : items;
+
+  return { data: page_items, hasMore, error: null };
 }

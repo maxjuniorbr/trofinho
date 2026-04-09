@@ -32,6 +32,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ListScreenSkeleton } from '@/components/ui/skeleton';
 import { InlineMessage } from '@/components/ui/inline-message';
+import { ListFooter } from '@/components/ui/list-footer';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 
@@ -44,7 +45,10 @@ export default function ChildPrizesScreen() {
   const footerItems = useChildFooterItems();
 
   const prizesQuery = useActivePrizes();
-  const prizes = prizesQuery.data ?? [];
+  const prizes = useMemo(
+    () => prizesQuery.data?.pages.flatMap((p) => p.data) ?? [],
+    [prizesQuery.data],
+  );
 
   const balanceQuery = useBalance();
   const freeBalance = balanceQuery.data?.saldo_livre ?? 0;
@@ -107,11 +111,11 @@ export default function ChildPrizesScreen() {
         prizeId: prize.id,
         opts: profile?.familia_id
           ? {
-              familiaId: profile.familia_id,
-              childName: profile.nome ?? '',
-              prizeName: prize.nome,
-              childUserId: profile.id,
-            }
+            familiaId: profile.familia_id,
+            childName: profile.nome ?? '',
+            prizeName: prize.nome,
+            childUserId: profile.id,
+          }
           : undefined,
       });
       hapticSuccess();
@@ -173,6 +177,11 @@ export default function ChildPrizesScreen() {
             onRedeem={handleRedeem}
           />
         )}
+        onEndReached={() => {
+          if (prizesQuery.hasNextPage) prizesQuery.fetchNextPage();
+        }}
+        onEndReachedThreshold={0.3}
+        ListFooterComponent={<ListFooter loading={prizesQuery.isFetchingNextPage} />}
       />
     );
   };

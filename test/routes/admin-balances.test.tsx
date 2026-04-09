@@ -1,5 +1,5 @@
 import React from 'react';
-import {act, create, type ReactTestRenderer} from '../helpers/test-renderer-compat';
+import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-compat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import BalancesAdminScreen from '../../app/(admin)/balances/index';
@@ -59,8 +59,8 @@ vi.mock('@shopify/flash-list', () => ({
       props,
       data && data.length > 0
         ? data.map((item) =>
-            React.createElement(React.Fragment, { key: item.filho_id as string }, renderItem({ item })),
-          )
+          React.createElement(React.Fragment, { key: item.filho_id as string }, renderItem({ item })),
+        )
         : ListEmptyComponent,
     ),
 }));
@@ -138,7 +138,7 @@ describe('BalancesAdminScreen', () => {
         saldo_livre: 100,
         cofrinho: 50,
         indice_valorizacao: 5,
-        periodo_valorizacao: 'semanal',
+        periodo_valorizacao: 'mensal',
         filhos: { nome: 'Alice', ativo: true, avatar_url: null },
       },
       {
@@ -190,7 +190,7 @@ describe('BalancesAdminScreen', () => {
   it('shows appreciation info when positive', () => {
     const renderer = render(<BalancesAdminScreen />);
     const text = allText(renderer);
-    expect(text).toContain('5%/semanal');
+    expect(text).toContain('5%/mensal');
   });
 
   it('navigates to child balance detail on press', () => {

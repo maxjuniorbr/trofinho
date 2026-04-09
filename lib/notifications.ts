@@ -433,8 +433,10 @@ export function getNotificationRoute(data: unknown): NotificationNavTarget | nul
   switch (data.route) {
     case '/(admin)/tasks':
     case '/(admin)/redemptions':
+    case '/(admin)/balances':
     case '/(child)/redemptions':
-    case '/(child)/tasks': {
+    case '/(child)/tasks':
+    case '/(child)/balance': {
       const entityId =
         typeof data.entityId === 'string' && data.entityId ? data.entityId : undefined;
       return { route: data.route, entityId };
@@ -474,16 +476,15 @@ export async function subscribeToNotificationNavigation(
     );
   }
 
-  const receivedSubscription: NotificationSubscription =
-    N.addNotificationReceivedListener(() => undefined);
+  const receivedSubscription: NotificationSubscription = N.addNotificationReceivedListener(
+    () => undefined,
+  );
 
-  const responseSubscription: NotificationSubscription =
-    N.addNotificationResponseReceivedListener((response) => {
-      handleResponse(
-        response.actionIdentifier,
-        response.notification.request.content.data,
-      );
-    });
+  const responseSubscription: NotificationSubscription = N.addNotificationResponseReceivedListener(
+    (response) => {
+      handleResponse(response.actionIdentifier, response.notification.request.content.data);
+    },
+  );
 
   return () => {
     receivedSubscription.remove();

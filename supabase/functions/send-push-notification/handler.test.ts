@@ -14,6 +14,8 @@ import {
   ADMIN_ONLY_EVENTS,
   FILHO_ONLY_EVENTS,
   MESSAGE_TEMPLATES,
+  VALID_EVENTS,
+  PREFERENCE_KEY_MAP,
   type SupabaseClientLike,
   type ExpoTicketResult,
   type ExpoPushMessage,
@@ -74,14 +76,12 @@ function createMockSupabase(overrides?: {
       return {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnThis(),
-          in: vi
-            .fn()
-            .mockResolvedValue(
-              overrides?.selectTokensResult ?? {
-                data: [{ token: 'ExponentPushToken[abc]' }],
-                error: null,
-              },
-            ),
+          in: vi.fn().mockResolvedValue(
+            overrides?.selectTokensResult ?? {
+              data: [{ token: 'ExponentPushToken[abc]' }],
+              error: null,
+            },
+          ),
         }),
         delete: deleteMock,
       };
@@ -95,7 +95,10 @@ function createMockSupabase(overrides?: {
             data: [{ id: 'user-1' }],
             error: null,
           };
-          const firstEqResult = { data: [{ familia_id: callerFamiliaId, papel: callerPapel }], error: null };
+          const firstEqResult = {
+            data: [{ familia_id: callerFamiliaId, papel: callerPapel }],
+            error: null,
+          };
           // Wrap in a real Promise so the object is a proper thenable
           // (avoids S7739: "Do not add then to an object").
           const promise = Promise.resolve(firstEqResult);
@@ -103,14 +106,18 @@ function createMockSupabase(overrides?: {
             eq: vi.fn().mockResolvedValue(secondEqResult),
           });
         }),
-        in: vi.fn().mockResolvedValue(
-          overrides?.selectUsuariosResult ?? {
+        in: vi.fn().mockImplementation(() => {
+          const inResult = overrides?.selectUsuariosResult ?? {
             data: [
               { id: 'user-1', notif_prefs: { tarefaConcluida: true, resgatesSolicitado: true } },
             ],
             error: null,
-          },
-        ),
+          };
+          const promise = Promise.resolve(inResult);
+          return Object.assign(promise, {
+            eq: vi.fn().mockResolvedValue(inResult),
+          });
+        }),
       }),
     };
   });
@@ -646,7 +653,9 @@ describe('resolveRecipientUserIds — error paths', () => {
     const supabase = createMockSupabase();
     supabase.from = vi.fn().mockReturnValue({
       select: vi.fn().mockReturnValue({
-        in: vi.fn().mockResolvedValue({ data: null, error: { message: 'DB error' } }),
+        in: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ data: null, error: { message: 'DB error' } }),
+        }),
       }),
     }) as SupabaseClientLike['from'];
 
@@ -661,9 +670,11 @@ describe('resolveRecipientUserIds — error paths', () => {
     const supabase = createMockSupabase();
     supabase.from = vi.fn().mockReturnValue({
       select: vi.fn().mockReturnValue({
-        in: vi.fn().mockResolvedValue({
-          data: [{ usuario_id: 'u-1' }, { usuario_id: null }, { usuario_id: 'u-3' }],
-          error: null,
+        in: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({
+            data: [{ usuario_id: 'u-1' }, { usuario_id: null }, { usuario_id: 'u-3' }],
+            error: null,
+          }),
         }),
       }),
     }) as SupabaseClientLike['from'];
@@ -937,6 +948,9 @@ describe('Property 2: Disabled preference prevents ticket generation', () => {
       resgate_solicitado: 'resgatesSolicitado',
       resgate_confirmado: 'resgateConfirmado',
       resgate_cancelado: 'resgateCancelado',
+      resgate_cofrinho_solicitado: 'resgateCofrinhoSolicitado',
+      resgate_cofrinho_confirmado: 'resgateCofrinhoConfirmado',
+      resgate_cofrinho_cancelado: 'resgateCofrinhoCancelado',
     };
 
     const eventArb = fc.constantFrom<PushEvent>(
@@ -947,6 +961,9 @@ describe('Property 2: Disabled preference prevents ticket generation', () => {
       'resgate_solicitado',
       'resgate_confirmado',
       'resgate_cancelado',
+      'resgate_cofrinho_solicitado',
+      'resgate_cofrinho_confirmado',
+      'resgate_cofrinho_cancelado',
     );
 
     fc.assert(
@@ -1324,53 +1341,77 @@ describe('Property 6: Message template correctness', () => {
   });
 
   it('data.entityId is included when payload contains entityId', () => {
-    const msg = buildMessage('tarefa_aprovada', {
-      userId: 'u-1',
-      taskTitle: 'Clean room',
-      entityId: 'assignment-123',
-    }, 'fam-test');
+    const msg = buildMessage(
+      'tarefa_aprovada',
+      {
+        userId: 'u-1',
+        taskTitle: 'Clean room',
+        entityId: 'assignment-123',
+      },
+      'fam-test',
+    );
     expect(msg.data.entityId).toBe('assignment-123');
   });
 
   it('data.entityId is omitted when payload has no entityId', () => {
-    const msg = buildMessage('resgate_confirmado', {
-      userId: 'u-1',
-      prizeName: 'Bike',
-    }, 'fam-test');
+    const msg = buildMessage(
+      'resgate_confirmado',
+      {
+        userId: 'u-1',
+        prizeName: 'Bike',
+      },
+      'fam-test',
+    );
     expect(msg.data.entityId).toBeUndefined();
   });
 
   it('categoryId is set for tarefa_concluida', () => {
-    const msg = buildMessage('tarefa_concluida', {
-      childName: 'Luna',
-      taskTitle: 'Clean room',
-    }, 'fam-1');
+    const msg = buildMessage(
+      'tarefa_concluida',
+      {
+        childName: 'Luna',
+        taskTitle: 'Clean room',
+      },
+      'fam-1',
+    );
     expect(msg.categoryId).toBe('TASK_REVIEW');
   });
 
   it('categoryId is set for resgate_solicitado', () => {
-    const msg = buildMessage('resgate_solicitado', {
-      childName: 'Luna',
-      prizeName: 'Bike',
-    }, 'fam-1');
+    const msg = buildMessage(
+      'resgate_solicitado',
+      {
+        childName: 'Luna',
+        prizeName: 'Bike',
+      },
+      'fam-1',
+    );
     expect(msg.categoryId).toBe('REDEMPTION_REVIEW');
   });
 
   it('categoryId is omitted for other events', () => {
-    const msg = buildMessage('tarefa_aprovada', {
-      userId: 'u-1',
-      taskTitle: 'Clean room',
-    }, 'fam-1');
+    const msg = buildMessage(
+      'tarefa_aprovada',
+      {
+        userId: 'u-1',
+        taskTitle: 'Clean room',
+      },
+      'fam-1',
+    );
     expect(msg.categoryId).toBeUndefined();
   });
 
   it('action data is included for tarefa_concluida', () => {
-    const msg = buildMessage('tarefa_concluida', {
-      childName: 'Luna',
-      taskTitle: 'Arrumar quarto',
-      assignmentId: 'a-1',
-      childUserId: 'u-child',
-    }, 'fam-1');
+    const msg = buildMessage(
+      'tarefa_concluida',
+      {
+        childName: 'Luna',
+        taskTitle: 'Arrumar quarto',
+        assignmentId: 'a-1',
+        childUserId: 'u-child',
+      },
+      'fam-1',
+    );
     expect(msg.data.assignmentId).toBe('a-1');
     expect(msg.data.childUserId).toBe('u-child');
     expect(msg.data.taskTitle).toBe('Arrumar quarto');
@@ -1378,12 +1419,16 @@ describe('Property 6: Message template correctness', () => {
   });
 
   it('action data is included for resgate_solicitado', () => {
-    const msg = buildMessage('resgate_solicitado', {
-      childName: 'Luna',
-      prizeName: 'Lego',
-      redemptionId: 'r-1',
-      childUserId: 'u-child',
-    }, 'fam-1');
+    const msg = buildMessage(
+      'resgate_solicitado',
+      {
+        childName: 'Luna',
+        prizeName: 'Lego',
+        redemptionId: 'r-1',
+        childUserId: 'u-child',
+      },
+      'fam-1',
+    );
     expect(msg.data.redemptionId).toBe('r-1');
     expect(msg.data.childUserId).toBe('u-child');
     expect(msg.data.prizeName).toBe('Lego');

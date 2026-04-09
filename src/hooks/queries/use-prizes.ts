@@ -40,9 +40,15 @@ export const usePrizeDetail = (prizeId: string | undefined) =>
   });
 
 export const useActivePrizes = () =>
-  useQuery({
+  useInfiniteQuery({
     queryKey: queryKeys.prizes.active(),
-    queryFn: queryFnAdapter(() => listActivePrizes()),
+    queryFn: paginatedQueryFnAdapter(listActivePrizes, PAGE_SIZES.prizes),
+    initialPageParam: 0,
+    getNextPageParam: (
+      lastPage: PaginatedPage<unknown>,
+      _allPages: unknown[],
+      lastPageParam: number,
+    ) => (lastPage.hasMore ? lastPageParam + 1 : undefined),
     staleTime: STALE_TIMES.prizes,
   });
 

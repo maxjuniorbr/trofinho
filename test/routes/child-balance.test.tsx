@@ -1,5 +1,5 @@
 import React from 'react';
-import {act, create, type ReactTestRenderer} from '../helpers/test-renderer-compat';
+import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-compat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import ChildBalanceScreen from '../../app/(child)/balance';
@@ -22,7 +22,7 @@ const balanceMock = vi.hoisted(() => ({
     saldo_livre: 200,
     cofrinho: 80,
     indice_valorizacao: 5,
-    periodo_valorizacao: 'semanal',
+    periodo_valorizacao: 'mensal',
     proxima_valorizacao_em: '2025-07-01',
     taxa_resgate_cofrinho: 10,
   } as Record<string, unknown> | null,
@@ -124,8 +124,8 @@ vi.mock('@shopify/flash-list', () => ({
       ListHeaderComponent,
       data && data.length > 0
         ? data.map((item) =>
-            React.createElement(React.Fragment, { key: item.id as string }, renderItem({ item })),
-          )
+          React.createElement(React.Fragment, { key: item.id as string }, renderItem({ item })),
+        )
         : ListEmptyComponent,
       ListFooterComponent,
     ),
@@ -267,7 +267,7 @@ describe('ChildBalanceScreen', () => {
       saldo_livre: 200,
       cofrinho: 80,
       indice_valorizacao: 5,
-      periodo_valorizacao: 'semanal',
+      periodo_valorizacao: 'mensal',
       proxima_valorizacao_em: '2025-07-01',
       taxa_resgate_cofrinho: 10,
     };

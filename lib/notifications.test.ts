@@ -8,6 +8,12 @@ import {
   setNotificationPrefs,
 } from './notifications';
 import type { NotificationPrefs } from './notifications';
+import {
+  MESSAGE_TEMPLATES,
+  VALID_EVENTS,
+  PREFERENCE_KEY_MAP,
+  type PushEvent,
+} from '../supabase/functions/send-push-notification/handler';
 
 const scheduleNotificationAsyncMock = vi.hoisted(() => vi.fn());
 const deviceStorageGetMock = vi.hoisted(() => vi.fn());
@@ -379,5 +385,34 @@ describe('Property 3: Preference round trip (server-first)', () => {
       }),
       { numRuns: 100 },
     );
+  });
+});
+
+// ─── Contract parity: Edge Function ↔ Client ────────────────────────────────
+
+describe('Contract parity: push events & notification prefs', () => {
+  const handlerEvents = Object.keys(MESSAGE_TEMPLATES) as PushEvent[];
+  const handlerPrefKeys = Object.values(PREFERENCE_KEY_MAP);
+  const clientPrefKeys = Object.keys(DEFAULT_NOTIFICATION_PREFS);
+
+  it('VALID_EVENTS matches MESSAGE_TEMPLATES keys', () => {
+    expect([...VALID_EVENTS].sort()).toEqual(handlerEvents.sort());
+  });
+
+  it('every handler event has a preference key mapping', () => {
+    for (const event of handlerEvents) {
+      expect(PREFERENCE_KEY_MAP).toHaveProperty(event);
+    }
+  });
+
+  it('PREFERENCE_KEY_MAP values cover all client NotificationPrefs keys', () => {
+    expect(handlerPrefKeys.sort()).toEqual(clientPrefKeys.sort());
+  });
+
+  it('every MESSAGE_TEMPLATES route is handled by getNotificationRoute', () => {
+    const routes = new Set(handlerEvents.map((e) => MESSAGE_TEMPLATES[e].route));
+    for (const route of routes) {
+      expect(getNotificationRoute({ route })).not.toBeNull();
+    }
   });
 });

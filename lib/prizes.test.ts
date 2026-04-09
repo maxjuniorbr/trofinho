@@ -270,7 +270,11 @@ describe('prizes', () => {
       hasMore: false,
       error: null,
     });
-    await expect(listActivePrizes()).resolves.toEqual({ data: [{ id: 'active-1' }], error: null });
+    await expect(listActivePrizes()).resolves.toEqual({
+      data: [{ id: 'active-1' }],
+      hasMore: false,
+      error: null,
+    });
     await expect(listChildRedemptions()).resolves.toEqual({
       data: [{ id: 'child-red-1' }],
       hasMore: false,
@@ -344,6 +348,7 @@ describe('prizes', () => {
     });
     await expect(listActivePrizes()).resolves.toEqual({
       data: [],
+      hasMore: false,
       error: 'Algo deu errado. Tente novamente.',
     });
     await expect(listChildRedemptions()).resolves.toEqual({
@@ -411,7 +416,7 @@ describe('prizes', () => {
       error: 'Algo deu errado. Tente novamente.',
     });
     await expect(listPrizes()).resolves.toEqual({ data: [], hasMore: false, error: null });
-    await expect(listActivePrizes()).resolves.toEqual({ data: [], error: null });
+    await expect(listActivePrizes()).resolves.toEqual({ data: [], hasMore: false, error: null });
     await expect(listChildRedemptions()).resolves.toEqual({
       data: [],
       hasMore: false,

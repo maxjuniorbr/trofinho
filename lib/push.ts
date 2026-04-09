@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react-native';
 import { supabase } from './supabase';
 
-type PushEvent =
+export type PushEvent =
   | 'tarefa_aprovada'
   | 'tarefa_rejeitada'
   | 'tarefa_criada'

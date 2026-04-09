@@ -61,8 +61,6 @@ describe('balances', () => {
   });
 
   it('returns the appreciation period label', () => {
-    expect(getAppreciationPeriodLabel('diario')).toBe('dia');
-    expect(getAppreciationPeriodLabel('semanal')).toBe('semana');
     expect(getAppreciationPeriodLabel('mensal')).toBe('mês');
   });
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import {act, create, type ReactTestRenderer} from '../helpers/test-renderer-compat';
+import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-compat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import ChildPrizesScreen from '../../app/(child)/prizes/index';
@@ -14,13 +14,23 @@ const alertMock = vi.hoisted(() => ({
 }));
 
 const prizesMock = vi.hoisted(() => ({
-  data: [
-    { id: 'p1', nome: 'Bicicleta', descricao: 'MTB legal', custo_pontos: 100, imagem_url: null, ativo: true },
-    { id: 'p2', nome: 'Livro', descricao: null, custo_pontos: 30, imagem_url: 'https://img.test/book.jpg', ativo: true },
-  ] as Record<string, unknown>[] | undefined,
+  data: {
+    pages: [
+      {
+        data: [
+          { id: 'p1', nome: 'Bicicleta', descricao: 'MTB legal', custo_pontos: 100, imagem_url: null, ativo: true },
+          { id: 'p2', nome: 'Livro', descricao: null, custo_pontos: 30, imagem_url: 'https://img.test/book.jpg', ativo: true },
+        ],
+        hasMore: false,
+      },
+    ],
+  } as { pages: { data: Record<string, unknown>[]; hasMore: boolean }[] } | undefined,
   isLoading: false,
   error: null as Error | null,
   refetch: vi.fn(),
+  hasNextPage: false,
+  fetchNextPage: vi.fn(),
+  isFetchingNextPage: false,
 }));
 
 const balanceMock = vi.hoisted(() => ({
@@ -101,8 +111,8 @@ vi.mock('@shopify/flash-list', () => ({
       ListHeaderComponent,
       data && data.length > 0
         ? data.map((item) =>
-            React.createElement(React.Fragment, { key: item.id as string }, renderItem({ item })),
-          )
+          React.createElement(React.Fragment, { key: item.id as string }, renderItem({ item })),
+        )
         : null,
     ),
 }));
@@ -228,10 +238,17 @@ describe('ChildPrizesScreen', () => {
     routerMock.back.mockReset();
     alertMock.alert.mockReset();
     redeemMutationMock.mutateAsync.mockReset().mockResolvedValue(undefined);
-    prizesMock.data = [
-      { id: 'p1', nome: 'Bicicleta', descricao: 'MTB legal', custo_pontos: 100, imagem_url: null, ativo: true },
-      { id: 'p2', nome: 'Livro', descricao: null, custo_pontos: 30, imagem_url: 'https://img.test/book.jpg', ativo: true },
-    ];
+    prizesMock.data = {
+      pages: [
+        {
+          data: [
+            { id: 'p1', nome: 'Bicicleta', descricao: 'MTB legal', custo_pontos: 100, imagem_url: null, ativo: true },
+            { id: 'p2', nome: 'Livro', descricao: null, custo_pontos: 30, imagem_url: 'https://img.test/book.jpg', ativo: true },
+          ],
+          hasMore: false,
+        },
+      ],
+    };
     prizesMock.isLoading = false;
     prizesMock.error = null;
     balanceMock.data = { saldo_livre: 50 };
@@ -247,7 +264,7 @@ describe('ChildPrizesScreen', () => {
   });
 
   it('shows empty state when no prizes', () => {
-    prizesMock.data = [];
+    prizesMock.data = { pages: [] };
     const renderer = render(<ChildPrizesScreen />);
     const empty = renderer.root.findByType('EmptyState' as never);
     expect(empty.props.empty).toBe(true);

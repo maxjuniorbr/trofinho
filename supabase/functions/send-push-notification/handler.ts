@@ -10,7 +10,10 @@ export type PushEvent =
   | 'resgate_confirmado'
   | 'resgate_solicitado'
   | 'resgate_cancelado'
-  | 'tarefa_concluida';
+  | 'tarefa_concluida'
+  | 'resgate_cofrinho_solicitado'
+  | 'resgate_cofrinho_confirmado'
+  | 'resgate_cofrinho_cancelado';
 
 export type EventPayload =
   | { userId: string; taskTitle: string; entityId?: string }
@@ -33,6 +36,9 @@ export type NotificationPrefs = {
   resgatesSolicitado?: boolean;
   resgateConfirmado?: boolean;
   resgateCancelado?: boolean;
+  resgateCofrinhoSolicitado?: boolean;
+  resgateCofrinhoConfirmado?: boolean;
+  resgateCofrinhoCancelado?: boolean;
 };
 
 export type PushNotificationRequest = {
@@ -101,7 +107,12 @@ export interface SupabaseClientLike {
       in(
         column: string,
         values: string[],
-      ): PromiseLike<{ data: Record<string, unknown>[] | null; error: unknown }>;
+      ): {
+        eq(
+          column: string,
+          value: string,
+        ): PromiseLike<{ data: Record<string, unknown>[] | null; error: unknown }>;
+      } & PromiseLike<{ data: Record<string, unknown>[] | null; error: unknown }>;
     };
     delete(): {
       in(column: string, values: string[]): PromiseLike<{ error: unknown }>;
@@ -114,11 +125,14 @@ export const ADMIN_ONLY_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>([
   'tarefa_aprovada',
   'tarefa_rejeitada',
   'resgate_confirmado',
+  'resgate_cofrinho_confirmado',
+  'resgate_cofrinho_cancelado',
 ]);
 
 export const FILHO_ONLY_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>([
   'tarefa_concluida',
   'resgate_solicitado',
+  'resgate_cofrinho_solicitado',
 ]);
 
 // resgate_cancelado is allowed for both roles (admin and filho can cancel pending redemptions)
@@ -131,7 +145,7 @@ export function isEventAllowedForRole(event: PushEvent, papel: string): boolean 
 
 // ─── Validation helpers ──────────────────────────────────────────────────────
 
-const VALID_EVENTS: ReadonlySet<string> = new Set<PushEvent>([
+export const VALID_EVENTS: ReadonlySet<string> = new Set<PushEvent>([
   'tarefa_aprovada',
   'tarefa_rejeitada',
   'tarefa_criada',
@@ -139,6 +153,9 @@ const VALID_EVENTS: ReadonlySet<string> = new Set<PushEvent>([
   'resgate_solicitado',
   'resgate_cancelado',
   'tarefa_concluida',
+  'resgate_cofrinho_solicitado',
+  'resgate_cofrinho_confirmado',
+  'resgate_cofrinho_cancelado',
 ]);
 
 export function validateRequest(body: unknown):
@@ -268,6 +285,45 @@ export const MESSAGE_TEMPLATES: Record<PushEvent, MessageTemplateConfig> = {
       },
     ],
     route: '/(admin)/tasks',
+  },
+  resgate_cofrinho_solicitado: {
+    variants: [
+      {
+        title: 'Resgate do cofrinho 🐷',
+        bodyTemplate: '{childName} quer resgatar do cofrinho.',
+      },
+      {
+        title: 'Pedido de resgate 📬',
+        bodyTemplate: '{childName} solicitou resgate do cofrinho. Confira!',
+      },
+    ],
+    route: '/(admin)/balances',
+  },
+  resgate_cofrinho_confirmado: {
+    variants: [
+      {
+        title: 'Resgate do cofrinho confirmado 🎉',
+        bodyTemplate: 'Seu resgate do cofrinho foi confirmado!',
+      },
+      {
+        title: 'Cofrinho liberado! 🐷',
+        bodyTemplate: 'O resgate do seu cofrinho foi aprovado!',
+      },
+    ],
+    route: '/(child)/balance',
+  },
+  resgate_cofrinho_cancelado: {
+    variants: [
+      {
+        title: 'Resgate do cofrinho cancelado ❌',
+        bodyTemplate: 'Seu resgate do cofrinho foi cancelado.',
+      },
+      {
+        title: 'Cofrinho mantido 🐷',
+        bodyTemplate: 'O resgate do cofrinho não foi aprovado.',
+      },
+    ],
+    route: '/(child)/balance',
   },
 };
 
@@ -416,17 +472,20 @@ const CHILD_TARGETED_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>([
   'tarefa_rejeitada',
   'resgate_confirmado',
   'resgate_cancelado',
+  'resgate_cofrinho_confirmado',
+  'resgate_cofrinho_cancelado',
 ]);
 
 const ADMIN_TARGETED_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>([
   'resgate_solicitado',
   'tarefa_concluida',
+  'resgate_cofrinho_solicitado',
 ]);
 
 /** Events targeting multiple children via filhoIds. */
 const MULTI_CHILD_TARGETED_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>(['tarefa_criada']);
 
-const PREFERENCE_KEY_MAP: Record<PushEvent, keyof NotificationPrefs> = {
+export const PREFERENCE_KEY_MAP: Record<PushEvent, keyof NotificationPrefs> = {
   tarefa_aprovada: 'tarefaAprovada',
   tarefa_rejeitada: 'tarefaRejeitada',
   tarefa_criada: 'tarefasPendentes',
@@ -434,6 +493,9 @@ const PREFERENCE_KEY_MAP: Record<PushEvent, keyof NotificationPrefs> = {
   resgate_solicitado: 'resgatesSolicitado',
   resgate_confirmado: 'resgateConfirmado',
   resgate_cancelado: 'resgateCancelado',
+  resgate_cofrinho_solicitado: 'resgateCofrinhoSolicitado',
+  resgate_cofrinho_confirmado: 'resgateCofrinhoConfirmado',
+  resgate_cofrinho_cancelado: 'resgateCofrinhoCancelado',
 };
 
 export function getPreferenceKey(event: PushEvent): keyof NotificationPrefs {
@@ -456,7 +518,11 @@ export async function resolveRecipientUserIds(
     const filhoIds = (payload as { filhoIds: string[] }).filhoIds;
     if (!filhoIds || filhoIds.length === 0) return [];
 
-    const { data, error } = await supabase.from('filhos').select('usuario_id').in('id', filhoIds);
+    const { data, error } = await supabase
+      .from('filhos')
+      .select('usuario_id')
+      .in('id', filhoIds)
+      .eq('familia_id', familiaId);
 
     if (error) {
       console.error('[send-push-notification] Error resolving filhoIds to user IDs:', error);
