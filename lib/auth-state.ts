@@ -24,7 +24,6 @@ export function createAuthStateHandler({
   let requestId = 0;
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
   let lastUserId: string | null = null;
-  let lastUserId: string | null = null;
 
   function clearPendingTimeout() {
     if (timeoutId === null) return;

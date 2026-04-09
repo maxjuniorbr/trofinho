@@ -82,6 +82,38 @@ function parseAmountValue(
   return v;
 }
 
+const extractErrorMessage = (e: unknown, fallback: string) =>
+  e instanceof Error ? e.message : fallback;
+
+const pluralS = (n: number) => (n === 1 ? '' : 's');
+
+const resolveAmount = (
+  amountStr: string,
+  max: number,
+  freeBalance: number,
+  min: number,
+  setError: (msg: string | null) => void,
+): number | null => {
+  const result = parseAmountValue(amountStr, max, freeBalance, min);
+  if (typeof result === 'string') {
+    setError(result);
+    return null;
+  }
+  return result;
+};
+
+const buildWithdrawalOpts = (profile: { id: string; familia_id: string | null; nome: string | null } | null | undefined) =>
+  profile?.familia_id
+    ? { familiaId: profile.familia_id, childName: profile.nome ?? '', childUserId: profile.id }
+    : undefined;
+
+const formatAppreciationHint = (nextDate: string | null | undefined) => {
+  const suffix = nextDate
+    ? '\nPróximo rendimento em ' + formatDate(nextDate) + '.'
+    : '';
+  return 'Os pontos guardados rendem sozinhos com o tempo.' + suffix;
+};
+
 export default function ChildBalanceScreen() {
   const router = useRouter();
   const { colors } = useTheme();
@@ -102,7 +134,7 @@ export default function ChildBalanceScreen() {
   );
   const { fetchNextPage, hasNextPage, isFetchingNextPage } = transactionsQuery;
 
-  const { isLoading, error, refetchAll } = combineQueryStates(
+  const { isLoading, refetchAll } = combineQueryStates(
     balanceQuery,
     transactionsQuery,
   );
@@ -132,61 +164,44 @@ export default function ChildBalanceScreen() {
     setRefreshing(false);
   };
 
-  const parseAmount = (max: number, min = 1): number | null => {
-    const result = parseAmountValue(amountStr, max, balance?.saldo_livre ?? 0, min);
-    if (typeof result === 'string') {
-      setModalError(result);
-      return null;
-    }
-    return result;
-  };
-
   const handleTransfer = async () => {
     setModalError(null);
-    const v = parseAmount(balance?.saldo_livre ?? 0);
+    const v = resolveAmount(amountStr, balance?.saldo_livre ?? 0, balance?.saldo_livre ?? 0, 1, setModalError);
     if (v === null || !childId) return;
     try {
       await transferMutation.mutateAsync({ childId, amount: v });
       hapticSuccess();
       setModalVisible(false);
       setAmountStr('');
-      const s = v === 1 ? '' : 's';
+      const s = pluralS(v);
       setTransferSuccess(`${v} ponto${s} guardado${s} no cofrinho! 🐷`);
     } catch (e) {
-      setModalError(e instanceof Error ? e.message : 'Não foi possível transferir.');
+      setModalError(extractErrorMessage(e, 'Não foi possível transferir.'));
     }
   };
 
   const handleWithdrawal = async () => {
     setModalError(null);
-    const v = parseAmount(balance?.cofrinho ?? 0, minimumWithdrawal);
+    const v = resolveAmount(amountStr, balance?.cofrinho ?? 0, balance?.saldo_livre ?? 0, minimumWithdrawal, setModalError);
     if (v === null) return;
+    const opts = buildWithdrawalOpts(profile);
     try {
-      await withdrawalMutation.mutateAsync({
-        amount: v,
-        opts: profile?.familia_id
-          ? {
-              familiaId: profile.familia_id,
-              childName: profile.nome ?? '',
-              childUserId: profile.id,
-            }
-          : undefined,
-      });
+      await withdrawalMutation.mutateAsync({ amount: v, opts });
       hapticSuccess();
       setWithdrawModalVisible(false);
       setAmountStr('');
       setWithdrawSuccess('Solicitação de resgate enviada! O admin precisa aprovar.');
     } catch (e) {
-      setModalError(e instanceof Error ? e.message : 'Não foi possível solicitar o resgate.');
+      setModalError(extractErrorMessage(e, 'Não foi possível solicitar o resgate.'));
     }
   };
 
-  const handleCancelWithdrawal = async () => {
-    if (!pendingWithdrawal) return;
-    await cancelWithdrawalMutation.mutateAsync({
-      withdrawalId: pendingWithdrawal.id,
-    }).then(hapticSuccess).catch(Sentry.captureException);
-  };
+  const handleCancelWithdrawal = () =>
+    pendingWithdrawal &&
+    cancelWithdrawalMutation
+      .mutateAsync({ withdrawalId: pendingWithdrawal.id })
+      .then(hapticSuccess)
+      .catch(Sentry.captureException);
 
   if (childIdQuery.isError) {
     return (
@@ -209,20 +224,13 @@ export default function ChildBalanceScreen() {
     );
   }
 
-  if (error) {
-    console.error(error);
-  }
-
   const freeBalance = balance?.saldo_livre ?? 0;
   const piggyBank = balance?.cofrinho ?? 0;
   const totalPts = freeBalance + piggyBank;
   const cofrinhoPercent = totalPts > 0 ? Math.round((piggyBank / totalPts) * 100) : 0;
   const withdrawalRate = balance?.taxa_resgate_cofrinho ?? 0;
   const hasTransactions = transactions.length > 0;
-  const appreciationNextLine = balance?.proxima_valorizacao_em
-    ? '\nPróximo rendimento em ' + formatDate(balance.proxima_valorizacao_em) + '.'
-    : '';
-  const appreciationHint = 'Os pontos guardados rendem sozinhos com o tempo.' + appreciationNextLine;
+  const appreciationHint = formatAppreciationHint(balance?.proxima_valorizacao_em);
 
   const parsedWithdrawAmount = Number.parseInt(amountStr, 10) || 0;
   const minimumWithdrawal = getMinimumWithdrawalAmount(withdrawalRate);
