@@ -4,7 +4,8 @@ import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Plus, RefreshCw } from 'lucide-react-native';
+import { Plus, RefreshCw, House, ClipboardList, Users, Gift, ShoppingBag } from 'lucide-react-native';
+import { HomeFooterBar, type FooterItem } from '@/components/ui/home-footer-bar';
 import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +20,14 @@ import { formatDate } from '@lib/utils';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
+
+const FOOTER_ITEMS: readonly FooterItem[] = [
+  { icon: House, label: 'Início', rota: 'index' },
+  { icon: ClipboardList, label: 'Tarefas', rota: '/(admin)/tasks' },
+  { icon: Users, label: 'Filhos', rota: '/(admin)/children' },
+  { icon: Gift, label: 'Prêmios', rota: '/(admin)/prizes' },
+  { icon: ShoppingBag, label: 'Resgates', rota: '/(admin)/redemptions' },
+];
 
 const SORT_OPTIONS: SegmentOption<AdminTaskSort>[] = [
   { key: 'action_first', label: 'Por ação', accessibilityLabel: 'Ordenar por ação pendente' },
@@ -125,6 +134,15 @@ export default function AdminTasksScreen() {
   const sortedTasks = useMemo(() => sortAdminTasks(tasks, sort), [tasks, sort]);
   const shouldShowEmptyState = isLoading || Boolean(error) || tasks.length === 0;
 
+  const handleFooterNavigate = useCallback(
+    (rota: string) => {
+      if (rota === '/(admin)/tasks') return;
+      if (rota === 'index') router.back();
+      else router.replace(rota as never);
+    },
+    [router],
+  );
+
   useFocusEffect(
     useCallback(() => {
       const feedback = consumeNavigationFeedback('admin-task-list');
@@ -133,7 +151,7 @@ export default function AdminTasksScreen() {
   );
 
   return (
-    <SafeScreenFrame bottomInset>
+    <SafeScreenFrame bottomInset={false}>
       <StatusBar style={colors.statusBar} />
       <ScreenHeader
         title="Tarefas"
@@ -179,7 +197,7 @@ export default function AdminTasksScreen() {
           onEndReached={() => {
             if (hasNextPage) fetchNextPage();
           }}
-          onEndReachedThreshold={0.5}
+          onEndReachedThreshold={0.3}
           ListHeaderComponent={<View style={{ height: spacing['4'] }} />}
           ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
           renderItem={({ item }) => (
@@ -192,6 +210,7 @@ export default function AdminTasksScreen() {
           )}
         />
       )}
+      <HomeFooterBar items={FOOTER_ITEMS} activeRoute="/(admin)/tasks" onNavigate={handleFooterNavigate} />
     </SafeScreenFrame>
   );
 }

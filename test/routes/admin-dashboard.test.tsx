@@ -131,6 +131,29 @@ vi.mock('@/components/ui/skeleton', () => ({
   AdminHomeScreenSkeleton: () => React.createElement('AdminHomeScreenSkeleton'),
 }));
 
+vi.mock('@/components/ui/home-footer-bar', () => ({
+  FOOTER_BAR_HEIGHT: 56,
+  HomeFooterBar: ({
+    items,
+    onNavigate,
+  }: {
+    items: { label: string; rota: string; badge?: number }[];
+    onNavigate: (rota: string) => void;
+  }) =>
+    React.createElement(
+      'HomeFooterBar',
+      null,
+      ...items.map((item) =>
+        React.createElement(
+          'Pressable',
+          { key: item.rota, accessibilityLabel: item.label, onPress: () => onNavigate(item.rota) },
+          React.createElement('Text', null, item.label),
+          item.badge ? React.createElement('Text', null, String(item.badge)) : null,
+        ),
+      ),
+    ),
+}));
+
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
   act(() => {
@@ -207,13 +230,14 @@ describe('AdminHomeScreen', () => {
     expect(text).toContain('COFRINHO');
   });
 
-  it('renders quick actions', () => {
+  it('renders footer bar actions', () => {
     const renderer = render(<AdminHomeScreen />);
     const text = allText(renderer);
+    expect(text).toContain('Início');
     expect(text).toContain('Tarefas');
+    expect(text).toContain('Filhos');
     expect(text).toContain('Prêmios');
     expect(text).toContain('Resgates');
-    expect(text).not.toContain('Saldos');
   });
 
   it('navigates to profile when avatar is pressed', () => {

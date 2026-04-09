@@ -26,7 +26,7 @@ import {
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { darkColors, radii, spacing, typography, withAlpha } from '@/constants/theme';
+import { radii, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -43,11 +43,21 @@ type ModalType = 'penalizar' | null;
 function getBalanceHeaderColors(colors: ThemeColors) {
   const isLight = colors.statusBar === 'dark';
   return {
-    bg: isLight ? darkColors.bg.surface : colors.bg.elevated,
-    boxBg: isLight ? darkColors.bg.elevated : colors.bg.muted,
-    border: isLight ? withAlpha('#FFFFFF', 0.25) : colors.border.subtle,
-    text: '#FFFFFF',
-    textMuted: 'rgba(255, 255, 255, 0.7)',
+    ...(isLight
+      ? {
+          bg: colors.bg.surface,
+          boxBg: colors.bg.muted,
+          border: colors.border.subtle,
+          text: colors.text.primary,
+          textMuted: colors.text.secondary,
+        }
+      : {
+          bg: colors.bg.elevated,
+          boxBg: colors.bg.muted,
+          border: colors.border.subtle,
+          text: '#FFFFFF',
+          textMuted: 'rgba(255, 255, 255, 0.7)',
+        }),
   };
 }
 
@@ -246,7 +256,7 @@ export default function ChildBalanceAdminScreen() {
               </View>
               {totalPts > 0 ? (
                 <View style={styles.balanceHeaderProgress}>
-                  <View style={styles.progressTrack}>
+                  <View style={[styles.progressTrack, { backgroundColor: header.boxBg }]}>
                     <View
                       style={[
                         styles.progressFillLeft,
@@ -441,7 +451,7 @@ export default function ChildBalanceAdminScreen() {
         onEndReached={() => {
           if (hasNextPage) fetchNextPage();
         }}
-        onEndReachedThreshold={0.5}
+        onEndReachedThreshold={0.3}
         ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
       />
 
@@ -546,7 +556,6 @@ function makeStyles(colors: ThemeColors) {
       height: 8,
       borderRadius: radii.full,
       overflow: 'hidden',
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
       gap: 2,
     },
     progressFillLeft: {

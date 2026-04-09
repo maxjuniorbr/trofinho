@@ -1,12 +1,13 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useMemo } from 'react';
+import { Mail, Lock } from 'lucide-react-native';
 import { signIn } from '@lib/auth';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
 import { useTheme } from '@/context/theme-context';
 import { spacing, typography } from '@/constants/theme';
 import { AuthShell } from '@/components/auth/auth-shell';
-import { AuthTextField } from '@/components/auth/auth-text-field';
+import { AuthTextField, PasswordToggle } from '@/components/auth/auth-text-field';
 import { Button } from '@/components/ui/button';
 import { FormFooter } from '@/components/ui/form-footer';
 
@@ -22,6 +23,7 @@ export default function LoginScreen() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<LoginField | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const shouldShowError = Boolean(error);
 
   const validate = (): string | null => {
@@ -76,6 +78,7 @@ export default function LoginScreen() {
         maxLength={MAX_EMAIL_LENGTH}
         editable={!loading}
         accessibilityLabel="Campo de e-mail"
+        leftIcon={Mail}
       />
 
       <AuthTextField
@@ -89,10 +92,17 @@ export default function LoginScreen() {
         }}
         onFocus={() => setFocusedField('password')}
         onBlur={() => setFocusedField(null)}
-        secureTextEntry
+        secureTextEntry={!showPassword}
         maxLength={128}
         editable={!loading}
         accessibilityLabel="Campo de senha"
+        leftIcon={Lock}
+        rightAction={
+          <PasswordToggle
+            visible={showPassword}
+            onToggle={() => setShowPassword(!showPassword)}
+          />
+        }
       />
       <FormFooter message={shouldShowError ? error : null}>
         <Button

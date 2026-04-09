@@ -139,6 +139,11 @@ vi.mock('@/components/ui/list-footer', () => ({
   ListFooter: (props: Record<string, unknown>) => React.createElement('ListFooter', props),
 }));
 
+vi.mock('@/components/ui/home-footer-bar', () => ({
+  FOOTER_BAR_HEIGHT: 56,
+  HomeFooterBar: () => React.createElement('HomeFooterBar'),
+}));
+
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
   act(() => {

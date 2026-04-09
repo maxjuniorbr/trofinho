@@ -2,29 +2,34 @@ import * as Sentry from '@sentry/react-native';
 import { StyleSheet, Text, View, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import { CheckCircle2, Clock, XCircle } from 'lucide-react-native';
+import { CheckCircle2, Clock, XCircle, House, ClipboardList, Gift, ShoppingBag, UserCircle } from 'lucide-react-native';
+import { HomeFooterBar, type FooterItem } from '@/components/ui/home-footer-bar';
 import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@lib/status';
 import { useChildRedemptions } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, spacing, typography } from '@/constants/theme';
-import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ListScreenSkeleton } from '@/components/ui/skeleton';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { ListFooter } from '@/components/ui/list-footer';
 import { formatDate } from '@lib/utils';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getSafeBottomPadding, getSafeHorizontalPadding } from '@lib/safe-area';
+
+const FOOTER_ITEMS: readonly FooterItem[] = [
+  { icon: House, label: 'Início', rota: 'index' },
+  { icon: ClipboardList, label: 'Tarefas', rota: '/(child)/tasks' },
+  { icon: Gift, label: 'Prêmios', rota: '/(child)/prizes' },
+  { icon: ShoppingBag, label: 'Resgates', rota: '/(child)/redemptions' },
+  { icon: UserCircle, label: 'Perfil', rota: '/(child)/perfil' },
+];
 
 export default function ChildRedemptionsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const insets = useSafeAreaInsets();
 
   const {
     data,
@@ -42,6 +47,15 @@ export default function ChildRedemptionsScreen() {
   const hasError = Boolean(errorMessage);
   const shouldShowEmptyState = hasError || redemptions.length === 0;
   const emptyStateMessage = 'Nenhum resgate realizado ainda.\nVá ao catálogo e troque seus pontos! 🎁';
+
+  const handleFooterNavigate = useCallback(
+    (rota: string) => {
+      if (rota === '/(child)/redemptions') return;
+      if (rota === 'index') router.back();
+      else router.replace(rota as never);
+    },
+    [router],
+  );
 
   const handleRefresh = async () => {
     try {
@@ -77,7 +91,7 @@ export default function ChildRedemptionsScreen() {
         <FlashList
           data={redemptions}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={[styles.list, { paddingBottom: getSafeBottomPadding(insets, spacing['4']) }]}
+          contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl
               refreshing={isFetching && !isLoading}
@@ -126,30 +140,11 @@ export default function ChildRedemptionsScreen() {
           onEndReached={() => {
             if (hasNextPage && !isFetchingNextPage) fetchNextPage();
           }}
-          onEndReachedThreshold={0.1}
+          onEndReachedThreshold={0.3}
           ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
         />
       )}
-      {!isLoading && !errorMessage && redemptions.length === 0 ? (
-        <View
-          style={[
-            styles.footer,
-            {
-              backgroundColor: colors.bg.canvas,
-              borderTopColor: colors.border.subtle,
-              paddingBottom: getSafeBottomPadding(insets, spacing['2']),
-              ...getSafeHorizontalPadding(insets, spacing['5']),
-            },
-          ]}
-        >
-          <Button
-            variant="primary"
-            label="Ver prêmios 🎁"
-            onPress={() => router.push('/(child)/prizes')}
-            accessibilityLabel="Ver prêmios disponíveis"
-          />
-        </View>
-      ) : null}
+      <HomeFooterBar items={FOOTER_ITEMS} activeRoute="/(child)/redemptions" onNavigate={handleFooterNavigate} />
     </SafeScreenFrame>
   );
 }
@@ -158,10 +153,6 @@ function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
     emptyContainer: { flex: 1, alignItems: 'center' },
-    footer: {
-      borderTopWidth: 1,
-      paddingTop: spacing['2'],
-    },
     list: { paddingHorizontal: spacing['4'] },
     row: {
       flexDirection: 'row',

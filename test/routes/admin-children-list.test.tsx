@@ -102,6 +102,11 @@ vi.mock('@/components/ui/avatar', () => ({
   Avatar: (props: Record<string, unknown>) => React.createElement('Avatar', props),
 }));
 
+vi.mock('@/components/ui/home-footer-bar', () => ({
+  FOOTER_BAR_HEIGHT: 56,
+  HomeFooterBar: () => React.createElement('HomeFooterBar'),
+}));
+
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
   act(() => {

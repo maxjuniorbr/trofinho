@@ -86,14 +86,14 @@ describe('auth components', () => {
         onChangeText={() => undefined}
       />,
     );
-    const focusedInput = focusedRenderer.root.findByType(TextInput);
-    expect(flattenStyle(focusedInput.props.style).borderColor).toBe(lightColors.border.focus);
+    const focusedWrapper = focusedRenderer.root.findByType(TextInput).parent!;
+    expect(flattenStyle(focusedWrapper.props.style).borderColor).toBe(lightColors.border.focus);
 
     const defaultRenderer = render(
       <AuthTextField label="Senha" focused={false} value="123456" onChangeText={() => undefined} />,
     );
-    const defaultInput = defaultRenderer.root.findByType(TextInput);
-    expect(flattenStyle(defaultInput.props.style).borderColor).toBe(lightColors.border.default);
+    const defaultWrapper = defaultRenderer.root.findByType(TextInput).parent!;
+    expect(flattenStyle(defaultWrapper.props.style).borderColor).toBe(lightColors.border.default);
   });
 
   it('renders the auth shell in hero mode and starts the entry animations', () => {

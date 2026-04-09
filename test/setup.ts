@@ -104,6 +104,9 @@ vi.mock('lucide-react-native', () => ({
   Maximize2: createIcon('Maximize2'),
   RotateCcw: createIcon('RotateCcw'),
   UserCircle: createIcon('UserCircle'),
+  House: createIcon('House'),
+  Mail: createIcon('Mail'),
+  EyeOff: createIcon('EyeOff'),
   X: createIcon('X'),
 }));
 

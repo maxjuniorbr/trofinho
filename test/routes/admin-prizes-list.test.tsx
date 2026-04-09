@@ -126,6 +126,11 @@ vi.mock('@/components/ui/skeleton', () => ({
   ListScreenSkeleton: () => React.createElement('ListScreenSkeleton'),
 }));
 
+vi.mock('@/components/ui/home-footer-bar', () => ({
+  FOOTER_BAR_HEIGHT: 56,
+  HomeFooterBar: () => React.createElement('HomeFooterBar'),
+}));
+
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
   act(() => {

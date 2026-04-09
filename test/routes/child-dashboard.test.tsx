@@ -81,6 +81,7 @@ vi.mock('expo-router', () => ({
 vi.mock('lucide-react-native', () => ({
   ClipboardList: (props: Record<string, unknown>) => React.createElement('ClipboardList', props),
   Gift: (props: Record<string, unknown>) => React.createElement('Gift', props),
+  House: (props: Record<string, unknown>) => React.createElement('House', props),
   ShoppingBag: (props: Record<string, unknown>) => React.createElement('ShoppingBag', props),
   UserCircle: (props: Record<string, unknown>) => React.createElement('UserCircle', props),
   PiggyBank: (props: Record<string, unknown>) => React.createElement('PiggyBank', props),
@@ -137,6 +138,29 @@ vi.mock('@/components/ui/skeleton', () => ({
 vi.mock('@/constants/assets', () => ({
   mascotImage: 'mascot.png',
   celebratingImage: 'celebrating.png',
+}));
+
+vi.mock('@/components/ui/home-footer-bar', () => ({
+  FOOTER_BAR_HEIGHT: 56,
+  HomeFooterBar: ({
+    items,
+    onNavigate,
+  }: {
+    items: { label: string; rota: string; badge?: number }[];
+    onNavigate: (rota: string) => void;
+  }) =>
+    React.createElement(
+      'HomeFooterBar',
+      null,
+      ...items.map((item) =>
+        React.createElement(
+          'Pressable',
+          { key: item.rota, accessibilityLabel: item.label, onPress: () => onNavigate(item.rota) },
+          React.createElement('Text', null, item.label),
+          item.badge ? React.createElement('Text', null, String(item.badge)) : null,
+        ),
+      ),
+    ),
 }));
 
 vi.mock('@/context/theme-context', () => ({
@@ -241,22 +265,24 @@ describe('FilhoHomeScreen', () => {
     expect(text).toContain('COFRINHO');
   });
 
-  it('renders quick action buttons', () => {
+  it('renders footer bar actions', () => {
     const renderer = render(<FilhoHomeScreen />);
     const text = allText(renderer);
+    expect(text).toContain('Início');
     expect(text).toContain('Tarefas');
     expect(text).toContain('Prêmios');
     expect(text).toContain('Resgates');
     expect(text).toContain('Perfil');
   });
 
-  it('navigates to tasks on quick action press', () => {
+  it('navigates to tasks on footer action press', () => {
     const renderer = render(<FilhoHomeScreen />);
-    const pressables = renderer.root.findAllByType('Pressable' as never);
-    const tasksCard = pressables.find((p) => p.props.accessibilityLabel?.includes('pendentes'));
-    expect(tasksCard).toBeDefined();
+    const tarefasButton = renderer.root.findAll(
+      (node) => node.props.accessibilityLabel === 'Tarefas',
+    )[0];
+    expect(tarefasButton).toBeDefined();
     act(() => {
-      tasksCard!.props.onPress();
+      tarefasButton.props.onPress();
     });
     expect(routerMock.push).toHaveBeenCalledWith('/(child)/tasks');
   });

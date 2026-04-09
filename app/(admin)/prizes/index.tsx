@@ -3,10 +3,11 @@ import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Pencil, Plus, Trophy } from 'lucide-react-native';
+import { Pencil, Plus, Trophy, House, ClipboardList, Users, Gift, ShoppingBag } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
+import { HomeFooterBar, type FooterItem } from '@/components/ui/home-footer-bar';
 import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ListScreenSkeleton } from '@/components/ui/skeleton';
@@ -16,6 +17,14 @@ import { ListFooter } from '@/components/ui/list-footer';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { consumeNavigationFeedback, type NavigationFeedback } from '@lib/navigation-feedback';
 import { usePrizes } from '@/hooks/queries';
+
+const FOOTER_ITEMS: readonly FooterItem[] = [
+  { icon: House, label: 'Início', rota: 'index' },
+  { icon: ClipboardList, label: 'Tarefas', rota: '/(admin)/tasks' },
+  { icon: Users, label: 'Filhos', rota: '/(admin)/children' },
+  { icon: Gift, label: 'Prêmios', rota: '/(admin)/prizes' },
+  { icon: ShoppingBag, label: 'Resgates', rota: '/(admin)/redemptions' },
+];
 
 export default function AdminPrizesScreen() {
   const router = useRouter();
@@ -54,8 +63,17 @@ export default function AdminPrizesScreen() {
   const inactiveSummary =
     inactive.length > 0 ? ` · ${inactive.length} inativo${inactivePlural}` : '';
 
+  const handleFooterNavigate = useCallback(
+    (rota: string) => {
+      if (rota === '/(admin)/prizes') return;
+      if (rota === 'index') router.back();
+      else router.replace(rota as never);
+    },
+    [router],
+  );
+
   return (
-    <SafeScreenFrame bottomInset>
+    <SafeScreenFrame bottomInset={false}>
       <StatusBar style={colors.statusBar} />
       <ScreenHeader
         title="Prêmios"
@@ -157,10 +175,11 @@ export default function AdminPrizesScreen() {
           onEndReached={() => {
             if (hasNextPage) fetchNextPage();
           }}
-          onEndReachedThreshold={0.5}
+          onEndReachedThreshold={0.3}
           ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
         />
       )}
+      <HomeFooterBar items={FOOTER_ITEMS} activeRoute="/(admin)/prizes" onNavigate={handleFooterNavigate} />
     </SafeScreenFrame>
   );
 }

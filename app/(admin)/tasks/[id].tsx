@@ -635,7 +635,9 @@ export default function TaskDetailAdminScreen() {
               />
             ))}
 
-            <Text style={styles.secaoTitulo}>Atribuições</Text>
+            <View style={[styles.historicoHeader, { borderBottomColor: colors.border.subtle }]}>
+              <Text style={styles.secaoTitulo}>Histórico</Text>
+            </View>
 
             {assignmentsQuery.error ? (
               <View style={styles.feedbackWrapper}>
@@ -645,7 +647,7 @@ export default function TaskDetailAdminScreen() {
                 />
               </View>
             ) : paginatedAssignments.length === 0 && !assignmentsQuery.isLoading ? (
-              <Text style={styles.semAtrib}>Nenhuma atribuição registrada.</Text>
+              <Text style={styles.semHistorico}>Nenhum registro no histórico.</Text>
             ) : null}
           </>
         }
@@ -662,7 +664,7 @@ export default function TaskDetailAdminScreen() {
             assignmentsQuery.fetchNextPage();
           }
         }}
-        onEndReachedThreshold={0.1}
+        onEndReachedThreshold={0.3}
         ListFooterComponent={<ListFooter loading={assignmentsQuery.isFetchingNextPage} />}
       />
 
@@ -790,14 +792,17 @@ function makeStyles(colors: ThemeColors) {
       fontFamily: typography.family.semibold,
     },
     secaoTitulo: {
-      fontSize: typography.size.xs,
+      fontSize: typography.size.md,
       fontFamily: typography.family.bold,
-      color: colors.text.secondary,
-      textTransform: 'uppercase',
-      letterSpacing: 0.6,
-      marginBottom: spacing['3'],
+      color: colors.text.primary,
     },
-    semAtrib: { fontSize: typography.size.sm, color: colors.text.muted, fontStyle: 'italic' },
+    historicoHeader: {
+      borderBottomWidth: 1,
+      paddingBottom: spacing['3'],
+      marginTop: spacing['2'],
+      marginBottom: spacing['1'],
+    },
+    semHistorico: { fontSize: typography.size.sm, color: colors.text.muted, fontStyle: 'italic' },
     atribCard: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.lg,

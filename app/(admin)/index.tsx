@@ -9,13 +9,14 @@ import {
   View,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import {
   ClipboardList,
   Users,
   Gift,
   ShoppingBag,
+  House,
   Pencil,
   ChevronRight,
   TrendingUp,
@@ -36,49 +37,48 @@ import { useTheme } from '@/context/theme-context';
 import { radii,
   spacing,
   typography,
-  withAlpha,
   type ThemeColors,
 } from '@/constants/theme';
-import { darkColors } from '@/constants/colors';
 import { Avatar } from '@/components/ui/avatar';
 import { NotificationPermissionBanner } from '@/components/ui/notification-permission-banner';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { AdminHomeScreenSkeleton } from '@/components/ui/skeleton';
+import { HomeFooterBar, FOOTER_BAR_HEIGHT, type FooterItem } from '@/components/ui/home-footer-bar';
 
-import type { LucideIcon } from 'lucide-react-native';
-
-const QUICK_ACTIONS: readonly {
-  icon: LucideIcon;
-  label: string;
-  rota: string;
-  badgeKey: 'tasks' | 'redemptions' | 'none';
-}[] = [
+const FOOTER_ITEMS: readonly FooterItem[] = [
+  { icon: House, label: 'Início', rota: 'index' },
   {
     icon: ClipboardList,
     label: 'Tarefas',
     rota: '/(admin)/tasks',
-    badgeKey: 'tasks',
   },
-  { icon: Users, label: 'Filhos', rota: '/(admin)/children', badgeKey: 'none' },
-  { icon: Gift, label: 'Prêmios', rota: '/(admin)/prizes', badgeKey: 'none' },
+  { icon: Users, label: 'Filhos', rota: '/(admin)/children' },
+  { icon: Gift, label: 'Prêmios', rota: '/(admin)/prizes' },
   {
     icon: ShoppingBag,
     label: 'Resgates',
     rota: '/(admin)/redemptions',
-    badgeKey: 'redemptions',
   },
 ];
 
 function getSummaryColors(colors: ThemeColors) {
   const isLight = colors.statusBar === 'dark';
-  return {
-    bg: isLight ? darkColors.bg.surface : colors.bg.elevated,
-    boxBg: isLight ? darkColors.bg.elevated : colors.bg.muted,
-    border: isLight ? withAlpha('#FFFFFF', 0.25) : colors.border.subtle,
-    text: '#FFFFFF',
-    textMuted: 'rgba(255, 255, 255, 0.7)',
-  };
+  return isLight
+    ? {
+        bg: colors.bg.surface,
+        boxBg: colors.bg.muted,
+        border: colors.border.subtle,
+        text: colors.text.primary,
+        textMuted: colors.text.secondary,
+      }
+    : {
+        bg: colors.bg.elevated,
+        boxBg: colors.bg.muted,
+        border: colors.border.subtle,
+        text: '#FFFFFF',
+        textMuted: 'rgba(255, 255, 255, 0.7)',
+      };
 }
 
 export default function AdminHomeScreen() {
@@ -150,6 +150,23 @@ export default function AdminHomeScreen() {
     }
   };
 
+  const footerItems = useMemo(
+    () =>
+      FOOTER_ITEMS.map((item) => {
+        if (item.rota === '/(admin)/tasks') return { ...item, badge: pendingValidationCount };
+        if (item.rota === '/(admin)/redemptions') return { ...item, badge: pendingRedemptionCount };
+        return item;
+      }),
+    [pendingValidationCount, pendingRedemptionCount],
+  );
+
+  const handleNavigate = useCallback(
+    (rota: string) => {
+      if (rota !== 'index') router.push(rota as never);
+    },
+    [router],
+  );
+
   if (isLoading) {
     return (
       <SafeScreenFrame topInset bottomInset>
@@ -169,7 +186,7 @@ export default function AdminHomeScreen() {
   const summary = getSummaryColors(colors);
 
   return (
-    <SafeScreenFrame topInset bottomInset>
+    <SafeScreenFrame topInset bottomInset={false}>
       <StatusBar style={colors.statusBar} />
       <ScrollView
         style={{ backgroundColor: colors.bg.canvas }}
@@ -178,7 +195,7 @@ export default function AdminHomeScreen() {
           styles.container,
           {
             paddingTop: spacing['6'],
-            paddingBottom: spacing['6'],
+            paddingBottom: FOOTER_BAR_HEIGHT + spacing['4'],
           },
         ]}
         showsVerticalScrollIndicator={false}
@@ -247,42 +264,6 @@ export default function AdminHomeScreen() {
           </View>
         </View>
 
-
-        <View style={styles.quickRow}>
-            {QUICK_ACTIONS.map(({ icon: Icon, label, rota, badgeKey }) => {
-              let badge = 0;
-              if (badgeKey === 'tasks') {
-                badge = pendingValidationCount;
-              } else if (badgeKey === 'redemptions') {
-                badge = pendingRedemptionCount;
-              }
-              return (
-                <Pressable
-                  key={rota}
-                  style={({ pressed }) => [
-                    styles.quickCard,
-                    { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-                    pressed && { opacity: 0.7 },
-                  ]}
-                  onPress={() => router.push(rota as never)}
-                  accessibilityRole="button"
-                  accessibilityLabel={label}
-                >
-                  <View style={[styles.quickIconBox, { backgroundColor: colors.bg.elevated }]}>
-                    <Icon size={22} color={colors.accent.admin} strokeWidth={1.5} />
-                  </View>
-                  <Text style={[styles.quickLabel, { color: colors.text.secondary }]}>{label}</Text>
-                  {badge > 0 ? (
-                    <View style={[styles.quickBadge, { backgroundColor: colors.semantic.error }]}>
-                      <Text style={[styles.quickBadgeText, { color: colors.text.inverse }]}>
-                        {badge}
-                      </Text>
-                    </View>
-                  ) : null}
-                </Pressable>
-              );
-            })}
-        </View>
 
         {children.length > 0 ? (
           <View style={styles.childrenList}>
@@ -359,6 +340,7 @@ export default function AdminHomeScreen() {
           </View>
         ) : null}
       </ScrollView>
+      <HomeFooterBar items={footerItems} activeRoute="index" onNavigate={handleNavigate} />
     </SafeScreenFrame>
   );
 }
@@ -496,41 +478,5 @@ function makeStyles() {
     },
 
 
-    quickRow: { flexDirection: 'row', gap: spacing['3'], marginBottom: spacing['6'] },
-    quickCard: {
-      flex: 1,
-      borderRadius: radii.inner,
-      borderCurve: 'continuous',
-      borderWidth: 1,
-      paddingVertical: spacing['3'],
-      paddingHorizontal: spacing['1'],
-      alignItems: 'center',
-      gap: spacing['1.5'],
-    },
-    quickIconBox: {
-      width: 44,
-      height: 44,
-      borderRadius: radii.lg,
-      borderCurve: 'continuous',
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-    },
-    quickLabel: {
-      fontFamily: typography.family.semibold,
-      fontSize: typography.size.xs,
-      textAlign: 'center',
-    },
-    quickBadge: {
-      position: 'absolute',
-      top: spacing['1'],
-      right: spacing['1'],
-      minWidth: 20,
-      height: 20,
-      borderRadius: radii.full,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: spacing['1'],
-    },
-    quickBadgeText: { fontFamily: typography.family.black, fontSize: typography.size.xxs },
   });
 }

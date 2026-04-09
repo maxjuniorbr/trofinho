@@ -3,7 +3,8 @@ import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useMemo } from 'react';
 import { useRouter } from 'expo-router';
-import { Eye, Plus } from 'lucide-react-native';
+import { Eye, Plus, House, ClipboardList, Users, Gift, ShoppingBag } from 'lucide-react-native';
+import { HomeFooterBar, type FooterItem } from '@/components/ui/home-footer-bar';
 import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
@@ -12,6 +13,14 @@ import { useChildrenList, useAdminBalances, combineQueryStates } from '@/hooks/q
 import type { BalanceWithChild } from '@lib/balances';
 import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
+
+const FOOTER_ITEMS: readonly FooterItem[] = [
+  { icon: House, label: 'Início', rota: 'index' },
+  { icon: ClipboardList, label: 'Tarefas', rota: '/(admin)/tasks' },
+  { icon: Users, label: 'Filhos', rota: '/(admin)/children' },
+  { icon: Gift, label: 'Prêmios', rota: '/(admin)/prizes' },
+  { icon: ShoppingBag, label: 'Resgates', rota: '/(admin)/redemptions' },
+];
 
 export default function AdminChildrenScreen() {
   const router = useRouter();
@@ -35,8 +44,17 @@ export default function AdminChildrenScreen() {
     await refetchAll();
   }, [refetchAll]);
 
+  const handleFooterNavigate = useCallback(
+    (rota: string) => {
+      if (rota === '/(admin)/children') return;
+      if (rota === 'index') router.back();
+      else router.replace(rota as never);
+    },
+    [router],
+  );
+
   return (
-    <SafeScreenFrame bottomInset>
+    <SafeScreenFrame bottomInset={false}>
       <StatusBar style={colors.statusBar} />
       <ScreenHeader
         title="Filhos"
@@ -133,6 +151,7 @@ export default function AdminChildrenScreen() {
           }}
         />
       )}
+      <HomeFooterBar items={FOOTER_ITEMS} activeRoute="/(admin)/children" onNavigate={handleFooterNavigate} />
     </SafeScreenFrame>
   );
 }

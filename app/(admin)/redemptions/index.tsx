@@ -1,9 +1,10 @@
 import { Alert, StyleSheet, Text, View, RefreshControl, Modal } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import { CheckCircle2, Clock, Trophy, User, XCircle } from 'lucide-react-native';
+import { CheckCircle2, Clock, Trophy, User, XCircle, House, ClipboardList, Users, Gift, ShoppingBag } from 'lucide-react-native';
+import { HomeFooterBar, type FooterItem } from '@/components/ui/home-footer-bar';
 import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@lib/status';
 import type { RedemptionWithChildAndPrize } from '@lib/redemptions';
 import { useTheme } from '@/context/theme-context';
@@ -25,6 +26,13 @@ import {
 } from '@/hooks/queries';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 
+const FOOTER_ITEMS: readonly FooterItem[] = [
+  { icon: House, label: 'Início', rota: 'index' },
+  { icon: ClipboardList, label: 'Tarefas', rota: '/(admin)/tasks' },
+  { icon: Users, label: 'Filhos', rota: '/(admin)/children' },
+  { icon: Gift, label: 'Prêmios', rota: '/(admin)/prizes' },
+  { icon: ShoppingBag, label: 'Resgates', rota: '/(admin)/redemptions' },
+];
 type ConfirmModalState = {
   visible: boolean;
   type: 'confirm' | 'cancel';
@@ -114,6 +122,15 @@ export default function AdminRedemptionsScreen() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const hasError = Boolean(error);
   const shouldShowEmptyState = hasError || redemptions.length === 0;
+
+  const handleFooterNavigate = useCallback(
+    (rota: string) => {
+      if (rota === '/(admin)/redemptions') return;
+      if (rota === 'index') router.back();
+      else router.replace(rota as never);
+    },
+    [router],
+  );
 
   const handleConfirm = (
     redemptionId: string,
@@ -224,7 +241,7 @@ export default function AdminRedemptionsScreen() {
   };
 
   return (
-    <SafeScreenFrame bottomInset>
+    <SafeScreenFrame bottomInset={false}>
       <StatusBar style={colors.statusBar} />
       <ScreenHeader title="Resgates" onBack={() => router.back()} backLabel="Início" />
 
@@ -256,9 +273,9 @@ export default function AdminRedemptionsScreen() {
               {actionError ? <InlineMessage message={actionError} variant="error" /> : null}
               {pendingRedemptions.length > 0 && (
                 <>
-                  <View style={styles.secaoHeader}>
+                  <View style={[styles.historicoHeader, { borderBottomColor: colors.border.subtle }]}>
                     <View style={styles.secaoTituloRow}>
-                      <Clock size={14} color={colors.text.muted} strokeWidth={2} />
+                      <Clock size={14} color={colors.text.primary} strokeWidth={2} />
                       <Text style={styles.secaoTitulo}>
                         Pendentes ({pendingRedemptions.length})
                       </Text>
@@ -347,7 +364,7 @@ export default function AdminRedemptionsScreen() {
                 </>
               )}
               {historicalRedemptions.length > 0 && (
-                <View style={styles.secaoHeader}>
+                <View style={[styles.historicoHeader, { borderBottomColor: colors.border.subtle }]}>
                   <Text style={styles.secaoTitulo}>Histórico</Text>
                 </View>
               )}
@@ -369,7 +386,7 @@ export default function AdminRedemptionsScreen() {
           onEndReached={() => {
             if (hasNextPage && !isFetchingNextPage) fetchNextPage();
           }}
-          onEndReachedThreshold={0.1}
+          onEndReachedThreshold={0.3}
           ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
         />
       )}
@@ -406,6 +423,7 @@ export default function AdminRedemptionsScreen() {
           </View>
         </View>
       </Modal>
+      <HomeFooterBar items={FOOTER_ITEMS} activeRoute="/(admin)/redemptions" onNavigate={handleFooterNavigate} />
     </SafeScreenFrame>
   );
 }
@@ -414,15 +432,18 @@ function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1 },
     lista: { paddingHorizontal: spacing['4'] },
-    secaoHeader: { paddingVertical: spacing['2'] },
-    secaoTituloRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     secaoTitulo: {
-      fontSize: typography.size.xs,
+      fontSize: typography.size.md,
       fontFamily: typography.family.bold,
-      color: colors.text.muted,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
+      color: colors.text.primary,
     },
+    historicoHeader: {
+      borderBottomWidth: 1,
+      paddingBottom: spacing['3'],
+      marginTop: spacing['2'],
+      marginBottom: spacing['1'],
+    },
+    secaoTituloRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     card: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,

@@ -9,12 +9,13 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
 import { hapticSuccess } from '@lib/haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Trophy, CheckCircle2 } from 'lucide-react-native';
+import { Trophy, CheckCircle2, House, ClipboardList, Gift, ShoppingBag, UserCircle } from 'lucide-react-native';
+import { HomeFooterBar, type FooterItem } from '@/components/ui/home-footer-bar';
 import type { Prize } from '@lib/prizes';
 import {
   useActivePrizes,
@@ -32,6 +33,14 @@ import { ListScreenSkeleton } from '@/components/ui/skeleton';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
+
+const FOOTER_ITEMS: readonly FooterItem[] = [
+  { icon: House, label: 'Início', rota: 'index' },
+  { icon: ClipboardList, label: 'Tarefas', rota: '/(child)/tasks' },
+  { icon: Gift, label: 'Prêmios', rota: '/(child)/prizes' },
+  { icon: ShoppingBag, label: 'Resgates', rota: '/(child)/redemptions' },
+  { icon: UserCircle, label: 'Perfil', rota: '/(child)/perfil' },
+];
 
 export default function ChildPrizesScreen() {
   const router = useRouter();
@@ -57,6 +66,15 @@ export default function ChildPrizesScreen() {
   const hasError = Boolean(error);
   const shouldShowEmptyState = hasError || prizes.length === 0;
   const emptyStateMessage = 'Nenhum prêmio disponível no momento.\nPergunte ao responsável! 🎯';
+
+  const handleFooterNavigate = useCallback(
+    (rota: string) => {
+      if (rota === '/(child)/prizes') return;
+      if (rota === 'index') router.back();
+      else router.replace(rota as never);
+    },
+    [router],
+  );
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -110,7 +128,7 @@ export default function ChildPrizesScreen() {
   };
 
   return (
-    <SafeScreenFrame bottomInset>
+    <SafeScreenFrame bottomInset={false}>
       <StatusBar style={colors.statusBar} />
       <ScreenHeader
         title="Meus Prêmios"
@@ -167,6 +185,7 @@ export default function ChildPrizesScreen() {
           )}
         />
       )}
+      <HomeFooterBar items={FOOTER_ITEMS} activeRoute="/(child)/prizes" onNavigate={handleFooterNavigate} />
     </SafeScreenFrame>
   );
 }

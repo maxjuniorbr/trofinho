@@ -110,6 +110,11 @@ vi.mock('@shopify/flash-list', () => ({
 vi.mock('lucide-react-native', () => ({
   Trophy: (props: Record<string, unknown>) => React.createElement('Trophy', props),
   CheckCircle2: (props: Record<string, unknown>) => React.createElement('CheckCircle2', props),
+  House: (props: Record<string, unknown>) => React.createElement('House', props),
+  ClipboardList: (props: Record<string, unknown>) => React.createElement('ClipboardList', props),
+  Gift: (props: Record<string, unknown>) => React.createElement('Gift', props),
+  ShoppingBag: (props: Record<string, unknown>) => React.createElement('ShoppingBag', props),
+  UserCircle: (props: Record<string, unknown>) => React.createElement('UserCircle', props),
 }));
 
 vi.mock('@sentry/react-native', () => ({
@@ -182,6 +187,11 @@ vi.mock('@/constants/theme', () => ({
     size: { xs: 12, sm: 14, md: 16, lg: 18, '2xl': 24, '3xl': 30 },
     family: { medium: 'medium', semibold: 'semibold', bold: 'bold', black: 'black' },
   },
+}));
+
+vi.mock('@/components/ui/home-footer-bar', () => ({
+  FOOTER_BAR_HEIGHT: 56,
+  HomeFooterBar: () => React.createElement('HomeFooterBar'),
 }));
 
 function render(element: React.ReactElement) {

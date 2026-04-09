@@ -10,9 +10,9 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import { ClipboardList, Gift, ShoppingBag, UserCircle, PiggyBank } from 'lucide-react-native';
+import { ClipboardList, Gift, House, ShoppingBag, UserCircle, PiggyBank } from 'lucide-react-native';
 import { getGreeting } from '@lib/utils';
 import { isNotificationPermissionDenied } from '@lib/notifications';
 import {
@@ -24,15 +24,13 @@ import {
   combineQueryStates,
 } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
-import { radii, spacing, typography, withAlpha, type ThemeColors } from '@/constants/theme';
-import { darkColors } from '@/constants/colors';
+import { radii, spacing, typography, type ThemeColors } from '@/constants/theme';
 import { NotificationPermissionBanner } from '@/components/ui/notification-permission-banner';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { HomeScreenSkeleton } from '@/components/ui/skeleton';
 import { mascotImage, celebratingImage } from '@/constants/assets';
-
-import type { LucideIcon } from 'lucide-react-native';
+import { HomeFooterBar, FOOTER_BAR_HEIGHT, type FooterItem } from '@/components/ui/home-footer-bar';
 
 const MASCOT_CELEBRATING_PHRASES = [
   'Troféu conquistado! 🎉',
@@ -42,27 +40,31 @@ const MASCOT_CELEBRATING_PHRASES = [
   'Missão cumprida! 💪',
 ] as const;
 
-const CHILD_QUICK_ACTIONS: readonly {
-  icon: LucideIcon;
-  label: string;
-  rota: string;
-  badgeKey: 'tasks' | 'none';
-}[] = [
-  { icon: ClipboardList, label: 'Tarefas', rota: '/(child)/tasks', badgeKey: 'tasks' },
-  { icon: Gift, label: 'Prêmios', rota: '/(child)/prizes', badgeKey: 'none' },
-  { icon: ShoppingBag, label: 'Resgates', rota: '/(child)/redemptions', badgeKey: 'none' },
-  { icon: UserCircle, label: 'Perfil', rota: '/(child)/perfil', badgeKey: 'none' },
+const FOOTER_ITEMS: readonly FooterItem[] = [
+  { icon: House, label: 'Início', rota: 'index' },
+  { icon: ClipboardList, label: 'Tarefas', rota: '/(child)/tasks' },
+  { icon: Gift, label: 'Prêmios', rota: '/(child)/prizes' },
+  { icon: ShoppingBag, label: 'Resgates', rota: '/(child)/redemptions' },
+  { icon: UserCircle, label: 'Perfil', rota: '/(child)/perfil' },
 ];
 
 function getSummaryColors(colors: ThemeColors) {
   const isLight = colors.statusBar === 'dark';
-  return {
-    bg: isLight ? darkColors.bg.surface : colors.bg.elevated,
-    boxBg: isLight ? darkColors.bg.elevated : colors.bg.muted,
-    border: isLight ? withAlpha('#FFFFFF', 0.25) : colors.border.subtle,
-    text: '#FFFFFF',
-    textMuted: 'rgba(255, 255, 255, 0.7)',
-  };
+  return isLight
+    ? {
+        bg: colors.bg.surface,
+        boxBg: colors.bg.muted,
+        border: colors.border.subtle,
+        text: colors.text.primary,
+        textMuted: colors.text.secondary,
+      }
+    : {
+        bg: colors.bg.elevated,
+        boxBg: colors.bg.muted,
+        border: colors.border.subtle,
+        text: '#FFFFFF',
+        textMuted: 'rgba(255, 255, 255, 0.7)',
+      };
 }
 
 export default function FilhoHomeScreen() {
@@ -130,6 +132,22 @@ export default function FilhoHomeScreen() {
     return () => sub.remove();
   }, []);
 
+  const footerItems = useMemo(
+    () =>
+      FOOTER_ITEMS.map((item) => ({
+        ...item,
+        badge: item.rota === '/(child)/tasks' ? pendingCount : undefined,
+      })),
+    [pendingCount],
+  );
+
+  const handleNavigate = useCallback(
+    (rota: string) => {
+      if (rota !== 'index') router.push(rota as never);
+    },
+    [router],
+  );
+
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
@@ -158,7 +176,7 @@ export default function FilhoHomeScreen() {
   }
 
   return (
-    <SafeScreenFrame topInset bottomInset>
+    <SafeScreenFrame topInset bottomInset={false}>
       <StatusBar style={colors.statusBar} />
       <ScrollView
         style={{ backgroundColor: colors.bg.canvas }}
@@ -167,7 +185,7 @@ export default function FilhoHomeScreen() {
           styles.container,
           {
             paddingTop: spacing['6'],
-            paddingBottom: spacing['6'],
+            paddingBottom: FOOTER_BAR_HEIGHT + spacing['4'],
           },
         ]}
         showsVerticalScrollIndicator={false}
@@ -273,39 +291,8 @@ export default function FilhoHomeScreen() {
           </Text>
         ) : null}
 
-        {/* Quick actions row */}
-        <View style={styles.quickRow}>
-          {CHILD_QUICK_ACTIONS.map(({ icon: Icon, label, rota, badgeKey }) => {
-            const badge = badgeKey === 'tasks' ? pendingCount : 0;
-            return (
-              <Pressable
-                key={rota}
-                style={({ pressed }) => [
-                  styles.quickCard,
-                  { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-                  pressed && { opacity: 0.7 },
-                ]}
-                onPress={() => router.push(rota as never)}
-                accessibilityRole="button"
-                accessibilityLabel={badge > 0 ? `${label}, ${badge} pendentes` : label}
-              >
-                <View style={[styles.quickIconBox, { backgroundColor: colors.accent.filhoBg }]}>
-                  <Icon size={22} color={colors.accent.filho} strokeWidth={1.5} />
-                </View>
-                <Text style={[styles.quickLabel, { color: colors.text.secondary }]}>{label}</Text>
-                {badge > 0 ? (
-                  <View style={[styles.quickBadge, { backgroundColor: colors.semantic.error }]}>
-                    <Text style={[styles.quickBadgeText, { color: colors.text.inverse }]}>
-                      {badge}
-                    </Text>
-                  </View>
-                ) : null}
-              </Pressable>
-            );
-          })}
-        </View>
-
       </ScrollView>
+      <HomeFooterBar items={footerItems} activeRoute="index" onNavigate={handleNavigate} />
     </SafeScreenFrame>
   );
 }
@@ -405,48 +392,5 @@ function makeStyles() {
       fontStyle: 'italic',
     },
 
-    quickRow: {
-      flexDirection: 'row',
-      gap: spacing['3'],
-      width: '100%',
-    },
-    quickCard: {
-      flex: 1,
-      borderRadius: radii.xl,
-      borderWidth: 1,
-      borderCurve: 'continuous',
-      paddingVertical: spacing['4'],
-      alignItems: 'center',
-      gap: spacing['1'],
-    },
-    quickIconBox: {
-      width: 44,
-      height: 44,
-      borderRadius: radii.md,
-      borderCurve: 'continuous',
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-    },
-    quickLabel: {
-      fontFamily: typography.family.bold,
-      fontSize: typography.size.xs,
-      textAlign: 'center',
-    },
-    quickBadge: {
-      position: 'absolute',
-      top: spacing['2'],
-      right: spacing['2'],
-      minWidth: 20,
-      height: 20,
-      borderRadius: radii.full,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: spacing['1'],
-    },
-    quickBadgeText: {
-      fontFamily: typography.family.black,
-      fontSize: typography.size.xs,
-      fontVariant: ['tabular-nums'],
-    },
   });
 }
