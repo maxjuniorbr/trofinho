@@ -34,6 +34,7 @@ const storageBucketMock = vi.hoisted(() => ({
     error: null,
   }),
   getPublicUrl: vi.fn(),
+  remove: vi.fn().mockResolvedValue({ error: null }),
   upload: vi.fn(),
 }));
 
@@ -117,6 +118,7 @@ describe('auth', () => {
     fileConstructorMock.mockClear();
     storageBucketMock.upload.mockReset();
     storageBucketMock.getPublicUrl.mockReset();
+    storageBucketMock.remove.mockReset().mockResolvedValue({ error: null });
 
     supabaseMock.auth.getUser.mockReset();
     supabaseMock.auth.signInWithPassword.mockReset();
@@ -410,7 +412,7 @@ describe('auth', () => {
     });
   });
 
-  it('falls back to fetch for remote avatars and preserves the url when metadata update fails', async () => {
+  it('falls back to fetch for remote avatars and cleans up uploaded file when metadata update fails', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(5678);
     const arrayBuffer = new ArrayBuffer(8);
     fetchMock.mockResolvedValue({
@@ -435,8 +437,9 @@ describe('auth', () => {
       contentType: 'image/webp',
       upsert: true,
     });
+    expect(storageBucketMock.remove).toHaveBeenCalledWith(['user-2/avatar.webp']);
     expect(result).toEqual({
-      url: 'https://cdn.example.com/user-2/avatar.webp?t=5678',
+      url: null,
       error: 'Algo deu errado. Tente novamente.',
     });
   });

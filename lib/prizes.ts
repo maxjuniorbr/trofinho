@@ -125,12 +125,21 @@ export async function createPrize(input: PrizeInput): Promise<{
     });
 
     if (uploadResult.publicUrl) {
-      await supabase
+      const { error: updateError } = await supabase
         .from('premios')
         .update({ imagem_url: uploadResult.publicUrl })
         .eq('id', data.id);
 
-      data.imagem_url = uploadResult.publicUrl;
+      if (updateError && uploadResult.path) {
+        supabase.storage
+          .from('premios')
+          .remove([uploadResult.path])
+          .catch(() => {});
+      }
+
+      if (!updateError) {
+        data.imagem_url = uploadResult.publicUrl;
+      }
     }
   }
 

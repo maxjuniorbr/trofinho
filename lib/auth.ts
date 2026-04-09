@@ -27,10 +27,7 @@ export async function signIn(
   return { profile, error: null };
 }
 
-export async function signUp(
-  email: string,
-  password: string,
-): Promise<{ error: string | null }> {
+export async function signUp(email: string, password: string): Promise<{ error: string | null }> {
   const { error } = await supabase.auth.signUp({ email, password });
 
   if (error) {
@@ -196,8 +193,14 @@ export async function updateUserAvatar(
   });
 
   if (metaError) {
+    if (uploadResult.path) {
+      supabase.storage
+        .from(AVATAR_BUCKET)
+        .remove([uploadResult.path])
+        .catch(() => {});
+    }
     return {
-      url: uploadResult.publicUrl,
+      url: null,
       error: localizeSupabaseError(metaError.message),
     };
   }

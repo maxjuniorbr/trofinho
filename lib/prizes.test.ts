@@ -23,11 +23,18 @@ import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@lib/status'
 const uploadImageToPublicBucketMock = vi.hoisted(() => vi.fn());
 const dispatchPushNotificationMock = vi.hoisted(() => vi.fn());
 
+const storageBucketMock = vi.hoisted(() => ({
+  remove: vi.fn().mockResolvedValue({ error: null }),
+}));
+
 const supabaseMock = vi.hoisted(() => ({
   from: vi.fn(),
   rpc: vi.fn(),
   auth: {
     getUser: vi.fn(),
+  },
+  storage: {
+    from: vi.fn(),
   },
 }));
 
@@ -94,9 +101,11 @@ describe('prizes', () => {
   beforeEach(() => {
     uploadImageToPublicBucketMock.mockReset();
     dispatchPushNotificationMock.mockReset();
+    storageBucketMock.remove.mockReset().mockResolvedValue({ error: null });
     supabaseMock.from.mockReset();
     supabaseMock.rpc.mockReset();
     supabaseMock.auth.getUser.mockReset();
+    supabaseMock.storage.from.mockReset().mockReturnValue(storageBucketMock);
   });
 
   it('returns redemption presentation helpers', () => {
@@ -139,6 +148,34 @@ describe('prizes', () => {
       custo_pontos: 50,
     });
     expect(result).toEqual({ data: { id: 'prize-1' }, error: null });
+  });
+
+  it('removes the uploaded image when the image url update fails during prize creation', async () => {
+    const profileQuery = createSingleQuery({ data: { familia_id: 'family-1' }, error: null });
+    const insertQuery = createSingleQuery({ data: { id: 'prize-new' }, error: null });
+    const updateQuery = createEqQuery({ data: null, error: { message: 'update failed' } });
+
+    supabaseMock.auth.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+    supabaseMock.from
+      .mockReturnValueOnce(profileQuery)
+      .mockReturnValueOnce(insertQuery)
+      .mockReturnValueOnce(updateQuery);
+
+    uploadImageToPublicBucketMock.mockResolvedValue({
+      error: null,
+      path: 'prize-new/capa.jpg',
+      publicUrl: 'https://cdn.example.com/prize-new/capa.jpg?t=1',
+    });
+
+    const result = await createPrize({
+      nome: 'Brinquedo',
+      descricao: null,
+      custo_pontos: 100,
+      imageUri: 'file:///img.jpg',
+    });
+
+    expect(storageBucketMock.remove).toHaveBeenCalledWith(['prize-new/capa.jpg']);
+    expect(result.data?.imagem_url).toBeFalsy();
   });
 
   it('returns translated failures while creating a prize', async () => {

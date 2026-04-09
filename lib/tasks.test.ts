@@ -749,6 +749,24 @@ describe('tasks', () => {
     vi.useRealTimers();
   });
 
+  it('uses the local (Brazil) date for competencia when UTC has already crossed midnight', async () => {
+    vi.useFakeTimers();
+    // 23:30 BRT = next day in UTC. The competencia filter must use the BRT date.
+    // Server-side: migration 20260410200000 pins CURRENT_DATE to America/Sao_Paulo.
+    // Client-side: toDateString(new Date()) uses the device-local date.
+    vi.setSystemTime(new Date('2026-04-10T23:30:00-03:00'));
+
+    const query = createOrderQuery({ data: [], error: null });
+    supabaseMock.from.mockReturnValueOnce(query);
+
+    await listChildAssignments();
+
+    const filterArg = query.or.mock.calls[0][0] as string;
+    expect(filterArg).toContain('competencia.eq.2026-04-10');
+
+    vi.useRealTimers();
+  });
+
   it('returns child assignment query errors', async () => {
     supabaseMock.from
       .mockReturnValueOnce(createOrderQuery({ data: null, error: { message: 'list failed' } }))

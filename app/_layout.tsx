@@ -14,7 +14,6 @@ import {
 } from '@expo-google-fonts/nunito';
 import { supabase } from '@lib/supabase';
 import { getProfile, type UserProfile } from '@lib/auth';
-import { syncAutomaticAppreciation } from '@lib/balances';
 import { resolveNavDecision } from '@lib/nav-guard';
 import { createAuthStateHandler } from '@lib/auth-state';
 import {
@@ -126,11 +125,6 @@ function RootNavigator({
   const { colors } = useTheme();
   const [pushToken, setPushToken] = useState<string | null>(null);
   const lastSavedPushTokenKeyRef = useRef<string | null>(null);
-  // Fire-and-forget sync of automatic appreciation on startup
-  useEffect(() => {
-    if (!profile?.familia_id) return;
-    syncAutomaticAppreciation().catch(console.error);
-  }, [profile?.familia_id]);
 
   // Register for push notifications only after the user is authenticated.
   // This avoids requesting notification permission on the login screen.
