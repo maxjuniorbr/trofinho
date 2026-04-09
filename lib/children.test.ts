@@ -11,18 +11,16 @@ import {
   registerChild,
 } from './children';
 
-const tempSignUpMock = vi.hoisted(() => vi.fn());
-const createClientMock = vi.hoisted(() => vi.fn());
 const supabaseMock = vi.hoisted(() => ({
   auth: {
     getUser: vi.fn(),
+    getSession: vi.fn(),
   },
   from: vi.fn(),
   rpc: vi.fn(),
-}));
-
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: createClientMock,
+  functions: {
+    invoke: vi.fn(),
+  },
 }));
 
 vi.mock('./supabase', () => ({
@@ -53,37 +51,41 @@ function createMaybeSingleQuery(result: { data?: unknown; error?: { message: str
 
 describe('children', () => {
   beforeEach(() => {
-    tempSignUpMock.mockReset();
-    createClientMock.mockReset();
     supabaseMock.auth.getUser.mockReset();
+    supabaseMock.auth.getSession.mockReset();
     supabaseMock.from.mockReset();
     supabaseMock.rpc.mockReset();
+    supabaseMock.functions.invoke.mockReset();
 
-    createClientMock.mockReturnValue({
-      auth: {
-        signUp: tempSignUpMock,
-      },
+    supabaseMock.auth.getSession.mockResolvedValue({
+      data: { session: { access_token: 'admin-jwt' } },
     });
   });
 
-  it('registers a child successfully', async () => {
-    tempSignUpMock.mockResolvedValue({
-      data: { user: { id: 'child-user-1' } },
+  it('registers a child successfully via edge function', async () => {
+    supabaseMock.functions.invoke.mockResolvedValue({
+      data: { childId: 'child-id-1' },
       error: null,
     });
-    supabaseMock.rpc.mockResolvedValue({ error: null });
 
     const result = await registerChild('Lia', 'lia@example.com', 'secret-123');
 
-    expect(tempSignUpMock).toHaveBeenCalledWith({
-      email: 'lia@example.com',
-      password: 'secret-123',
-    });
-    expect(supabaseMock.rpc).toHaveBeenCalledWith('criar_filho_na_familia', {
-      filho_user_id: 'child-user-1',
-      filho_nome: 'Lia',
+    expect(supabaseMock.functions.invoke).toHaveBeenCalledWith('register-child', {
+      body: { name: 'Lia', email: 'lia@example.com', tempPassword: 'secret-123' },
+      headers: { Authorization: 'Bearer admin-jwt' },
     });
     expect(result).toEqual({ error: null });
+  });
+
+  it('returns session expired error when no session exists', async () => {
+    supabaseMock.auth.getSession.mockResolvedValue({
+      data: { session: null },
+    });
+
+    const result = await registerChild('Lia', 'lia@example.com', 'secret-123');
+
+    expect(result).toEqual({ error: 'Sua sessão expirou. Faça login novamente.' });
+    expect(supabaseMock.functions.invoke).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -91,53 +93,18 @@ describe('children', () => {
     ['Password should be at least 6 characters', 'A senha deve ter ao menos 6 caracteres.'],
     ['Unable to validate email address', 'E-mail inválido.'],
     ['email rate limit exceeded', 'Limite de e-mails atingido. Aguarde alguns minutos.'],
-    ['unexpected', 'Não foi possível cadastrar o filho. Tente novamente.'],
-  ])('translates sign up error "%s"', async (message, expected) => {
-    tempSignUpMock.mockResolvedValue({
-      data: { user: null },
+    ['Usuário já pertence a uma família', 'Esta conta já está vinculada a uma família.'],
+    ['Usuário já está vinculado a um filho', 'Esta conta já está vinculada a um perfil de filho.'],
+    ['Apenas admins podem cadastrar filhos', 'Somente administradores podem cadastrar filhos.'],
+    ['unexpected error', 'Não foi possível cadastrar o filho. Tente novamente.'],
+  ])('translates edge function error "%s"', async (message, expected) => {
+    supabaseMock.functions.invoke.mockResolvedValue({
+      data: { error: message },
       error: { message },
     });
 
     await expect(registerChild('Lia', 'lia@example.com', 'secret-123')).resolves.toEqual({
       error: expected,
-    });
-  });
-
-  it('fails when sign up succeeds but does not return a user id', async () => {
-    tempSignUpMock.mockResolvedValue({
-      data: { user: null },
-      error: null,
-    });
-
-    await expect(registerChild('Lia', 'lia@example.com', 'secret-123')).resolves.toEqual({
-      error: 'Não foi possível criar a conta. Tente novamente.',
-    });
-  });
-
-  it.each([
-    ['Usuário já pertence a uma família', 'Esta conta já está vinculada a uma família.'],
-    ['Usuário já está vinculado a um filho', 'Esta conta já está vinculada a um perfil de filho.'],
-    ['Apenas admins podem cadastrar filhos', 'Somente administradores podem cadastrar filhos.'],
-    ['Usuário não autenticado', 'Sua sessão expirou. Faça login novamente.'],
-    [
-      'qualquer outra coisa',
-      'Não foi possível vincular a conta à família. Verifique o cadastro antes de tentar novamente.',
-    ],
-  ])('cleans orphan auth users and translates rpc failure "%s"', async (message, expected) => {
-    tempSignUpMock.mockResolvedValue({
-      data: { user: { id: 'child-user-1' } },
-      error: null,
-    });
-    supabaseMock.rpc
-      .mockResolvedValueOnce({ error: { message } })
-      .mockResolvedValueOnce({ error: null });
-
-    await expect(registerChild('Lia', 'lia@example.com', 'secret-123')).resolves.toEqual({
-      error: expected,
-    });
-
-    expect(supabaseMock.rpc).toHaveBeenNthCalledWith(2, 'limpar_auth_user_orfao', {
-      p_user_id: 'child-user-1',
     });
   });
 

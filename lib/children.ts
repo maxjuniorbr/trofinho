@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
 import { localizeRpcError } from './api-error';
 import { resolveStorageUrl, resolveStorageUrls } from './storage';
 import { supabase } from './supabase';
@@ -16,64 +15,27 @@ export type AdminChildProfile = Child & {
   email: string | null;
 };
 
-/**
- * Creates a throwaway Supabase client with `persistSession: false` so that
- * signing up a child account does NOT overwrite the admin's active session.
- *
- * Email confirmation is intentionally disabled for child accounts — they are
- * created by the admin (parent) and don't have real email access.
- */
-function createTempClient() {
-  const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !anonKey) {
-    throw new Error(
-      'Variáveis EXPO_PUBLIC_SUPABASE_URL e EXPO_PUBLIC_SUPABASE_ANON_KEY não configuradas.',
-    );
-  }
-
-  return createClient(url, anonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-  });
-}
-
 export async function registerChild(
   name: string,
   email: string,
   tempPassword: string,
 ): Promise<{ error: string | null }> {
-  const tempClient = createTempClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  const { data, error: signUpError } = await tempClient.auth.signUp({
-    email,
-    password: tempPassword,
-  });
-
-  if (signUpError) {
-    return { error: translateSignUpError(signUpError.message) };
+  if (!session?.access_token) {
+    return { error: 'Sua sessão expirou. Faça login novamente.' };
   }
 
-  const userId = data.user?.id;
-  if (!userId) {
-    return { error: 'Não foi possível criar a conta. Tente novamente.' };
-  }
-
-  const { error: rpcError } = await supabase.rpc('criar_filho_na_familia', {
-    filho_user_id: userId,
-    filho_nome: name,
+  const { data, error } = await supabase.functions.invoke('register-child', {
+    body: { name, email, tempPassword },
+    headers: { Authorization: `Bearer ${session.access_token}` },
   });
 
-  if (rpcError) {
-    await supabase.rpc('limpar_auth_user_orfao', {
-      p_user_id: userId,
-    });
-
-    return { error: translateChildRegistrationError(rpcError.message) };
+  if (error) {
+    const message = data?.error ?? error.message ?? '';
+    return { error: translateEdgeFunctionError(message) };
   }
 
   return { error: null };
@@ -132,21 +94,27 @@ export async function getMyChildId(userId?: string): Promise<string | null> {
     uid = user.id;
   }
 
-  const { data } = await supabase
-    .from('filhos')
-    .select('id')
-    .eq('usuario_id', uid)
-    .maybeSingle();
+  const { data } = await supabase.from('filhos').select('id').eq('usuario_id', uid).maybeSingle();
 
   return data?.id ?? null;
 }
 
-function translateSignUpError(msg: string): string {
+function translateEdgeFunctionError(msg: string): string {
+  // Auth / user creation errors
   if (msg.includes('User already registered')) return 'Este e-mail já possui uma conta.';
   if (msg.includes('Password should be at least')) return 'A senha deve ter ao menos 6 caracteres.';
   if (msg.includes('Unable to validate email')) return 'E-mail inválido.';
   if (msg.includes('email rate limit'))
     return 'Limite de e-mails atingido. Aguarde alguns minutos.';
+  // RPC / family linking errors
+  if (msg.includes('Usuário já pertence a uma família'))
+    return 'Esta conta já está vinculada a uma família.';
+  if (msg.includes('Usuário já está vinculado a um filho'))
+    return 'Esta conta já está vinculada a um perfil de filho.';
+  if (msg.includes('Apenas admins podem cadastrar filhos'))
+    return 'Somente administradores podem cadastrar filhos.';
+  if (msg.includes('Usuário não autenticado')) return 'Sua sessão expirou. Faça login novamente.';
+
   return 'Não foi possível cadastrar o filho. Tente novamente.';
 }
 
@@ -204,21 +172,4 @@ export function buildChildDeactivateMessage(
   }
 
   return parts.join('\n');
-}
-
-function translateChildRegistrationError(msg: string): string {
-  if (msg.includes('Usuário já pertence a uma família')) {
-    return 'Esta conta já está vinculada a uma família.';
-  }
-  if (msg.includes('Usuário já está vinculado a um filho')) {
-    return 'Esta conta já está vinculada a um perfil de filho.';
-  }
-  if (msg.includes('Apenas admins podem cadastrar filhos')) {
-    return 'Somente administradores podem cadastrar filhos.';
-  }
-  if (msg.includes('Usuário não autenticado')) {
-    return 'Sua sessão expirou. Faça login novamente.';
-  }
-
-  return 'Não foi possível vincular a conta à família. Verifique o cadastro antes de tentar novamente.';
 }
