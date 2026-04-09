@@ -16,12 +16,12 @@ export default function ChildLayout() {
       screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg.canvas } }}
     >
       <Stack.Screen name="index" />
-      <Stack.Screen name="tasks/index" />
+      <Stack.Screen name="tasks/index" options={{ animation: 'none' }} />
       <Stack.Screen name="tasks/[id]" />
       <Stack.Screen name="balance" />
-      <Stack.Screen name="prizes/index" />
-      <Stack.Screen name="redemptions/index" />
-      <Stack.Screen name="perfil" />
+      <Stack.Screen name="prizes/index" options={{ animation: 'none' }} />
+      <Stack.Screen name="redemptions/index" options={{ animation: 'none' }} />
+      <Stack.Screen name="perfil" options={{ animation: 'none' }} />
     </Stack>
   );
 }

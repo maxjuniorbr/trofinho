@@ -14,19 +14,19 @@ export default function AdminLayout() {
       screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg.canvas } }}
     >
       <Stack.Screen name="index" />
-      <Stack.Screen name="tasks/index" />
+      <Stack.Screen name="tasks/index" options={{ animation: 'none' }} />
       <Stack.Screen name="tasks/new" />
       <Stack.Screen name="tasks/[id]" />
       <Stack.Screen name="tasks/[id]/edit" />
-      <Stack.Screen name="children/index" />
+      <Stack.Screen name="children/index" options={{ animation: 'none' }} />
       <Stack.Screen name="children/new" />
       <Stack.Screen name="children/[id]" />
       <Stack.Screen name="balances/index" />
       <Stack.Screen name="balances/[filho_id]" />
-      <Stack.Screen name="prizes/index" />
+      <Stack.Screen name="prizes/index" options={{ animation: 'none' }} />
       <Stack.Screen name="prizes/new" />
       <Stack.Screen name="prizes/[id]" />
-      <Stack.Screen name="redemptions/index" />
+      <Stack.Screen name="redemptions/index" options={{ animation: 'none' }} />
       <Stack.Screen name="perfil" />
     </Stack>
   );
