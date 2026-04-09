@@ -3,39 +3,11 @@ import { queryKeys, STALE_TIMES } from '../query-keys';
 
 import * as prizesLib from '../../../../lib/prizes';
 import * as rq from '@tanstack/react-query';
+import { getQueryHelpers } from '../../../../test/helpers/query-test-utils';
 
-const mockInvalidateQueries = vi.fn();
-
-vi.mock('@tanstack/react-query', () => {
-  const capturedQuery: { options: Record<string, unknown>[] } = { options: [] };
-  const capturedMutation: { options: Record<string, unknown>[] } = { options: [] };
-
-  return {
-    useQuery: vi.fn((opts: Record<string, unknown>) => {
-      capturedQuery.options.push(opts);
-      return { data: undefined, isLoading: false, error: null };
-    }),
-    useInfiniteQuery: vi.fn((opts: Record<string, unknown>) => {
-      capturedQuery.options.push(opts);
-      return {
-        data: undefined,
-        isLoading: false,
-        error: null,
-        fetchNextPage: vi.fn(),
-        hasNextPage: false,
-        isFetchingNextPage: false,
-      };
-    }),
-    useMutation: vi.fn((opts: Record<string, unknown>) => {
-      capturedMutation.options.push(opts);
-      return { mutate: vi.fn(), isLoading: false };
-    }),
-    useQueryClient: vi.fn(() => ({ invalidateQueries: mockInvalidateQueries })),
-    QueryClient: vi.fn(),
-    QueryClientProvider: ({ children }: { children: unknown }) => children,
-    _capturedQuery: capturedQuery,
-    _capturedMutation: capturedMutation,
-  };
+vi.mock('@tanstack/react-query', async () => {
+  const { createReactQueryMock } = await import('../../../../test/helpers/query-test-utils');
+  return createReactQueryMock({ withInfiniteQuery: true });
 });
 
 vi.mock('../../../../lib/prizes', () => ({
@@ -48,24 +20,12 @@ vi.mock('../../../../lib/prizes', () => ({
   reactivatePrize: vi.fn().mockResolvedValue({ error: null }),
 }));
 
-type CapturedStore = { options: Record<string, unknown>[] };
-const getCapturedQuery = () => (rq as unknown as { _capturedQuery: CapturedStore })._capturedQuery;
-const getCapturedMutation = () =>
-  (rq as unknown as { _capturedMutation: CapturedStore })._capturedMutation;
-const lastQueryOpts = () => {
-  const o = getCapturedQuery().options;
-  return o.at(-1)!;
-};
-const lastMutationOpts = () => {
-  const o = getCapturedMutation().options;
-  return o.at(-1)!;
-};
+const qh = getQueryHelpers(rq as unknown as Record<string, unknown>);
+const lastQueryOpts = qh.lastQueryOpts;
+const lastMutationOpts = qh.lastMutationOpts;
+const mockInvalidateQueries = qh.mockInvalidateQueries;
 
-beforeEach(() => {
-  getCapturedQuery().options = [];
-  getCapturedMutation().options = [];
-  mockInvalidateQueries.mockClear();
-});
+beforeEach(() => qh.reset());
 
 const loadHooks = () => import('../use-prizes');
 
