@@ -71,6 +71,9 @@ const getCapturedQuery = () => (rq as unknown as { _capturedQuery: CapturedStore
 const getCapturedMutation = () =>
   (rq as unknown as { _capturedMutation: CapturedStore })._capturedMutation;
 
+type MockFn = ReturnType<typeof vi.fn>;
+const useQueryMock = rq.useQuery as unknown as MockFn;
+
 const lastQueryOpts = () => {
   const opts = getCapturedQuery().options;
   return opts.at(-1)!;
@@ -201,8 +204,7 @@ describe('use-tasks mutation hooks', () => {
 
     it('useRenewRecurringTasks invalidates childAssignments when data is truthy', async () => {
       // Override useQuery to return data: true to trigger the useEffect invalidation
-      const origUseQuery = rq.useQuery as ReturnType<typeof vi.fn>;
-      origUseQuery.mockImplementationOnce((opts: Record<string, unknown>) => {
+      useQueryMock.mockImplementationOnce((opts: Record<string, unknown>) => {
         getCapturedQuery().options.push(opts);
         return { data: true, isLoading: false, error: null };
       });
@@ -215,8 +217,7 @@ describe('use-tasks mutation hooks', () => {
 
     it('useRenewRecurringTasks does not invalidate when query has no data', async () => {
       mockInvalidateQueries.mockClear();
-      const origUseQuery = rq.useQuery as ReturnType<typeof vi.fn>;
-      origUseQuery.mockImplementationOnce((opts: Record<string, unknown>) => {
+      useQueryMock.mockImplementationOnce((opts: Record<string, unknown>) => {
         getCapturedQuery().options.push(opts);
         return { data: undefined, isLoading: false, error: new Error('RPC failed') };
       });

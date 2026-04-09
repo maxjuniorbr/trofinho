@@ -80,62 +80,97 @@ type TaskCardProps = {
   router: ReturnType<typeof useRouter>;
 };
 
+function getTaskCardAction(
+  item: ChildAssignment,
+  isUnavailable: boolean,
+  router: ReturnType<typeof useRouter>,
+): { handlePress: () => void; accessibilityLabel: string } {
+  if (isUnavailable) {
+    return {
+      handlePress: () =>
+        Alert.alert(
+          'Tarefa desativada',
+          'Esta tarefa foi desativada pelo responsável e não pode mais ser concluída.',
+        ),
+      accessibilityLabel: `Tarefa ${item.tarefas.titulo} desativada`,
+    };
+  }
+  return {
+    handlePress: () => router.push(`/(child)/tasks/${item.id}` as never),
+    accessibilityLabel: `Ver detalhes da tarefa ${item.tarefas.titulo}`,
+  };
+}
+
+function TaskCardBadges({
+  item,
+  filter,
+  isInactive,
+  recurring,
+  dateLine,
+  showEvidenceHint,
+  colors,
+  styles,
+}: Readonly<{
+  item: ChildAssignment;
+  filter: Filter;
+  isInactive: boolean;
+  recurring: boolean;
+  dateLine: DateLine | null;
+  showEvidenceHint: boolean;
+  colors: ThemeColors;
+  styles: ReturnType<typeof makeStyles>;
+}>) {
+  return (
+    <>
+      {isInactive ? (
+        <View style={styles.inactiveTag}>
+          <Text style={styles.inactiveTagText}>Desativada</Text>
+        </View>
+      ) : null}
+      <View style={styles.freqRow}>
+        {recurring ? <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} /> : null}
+        <Text style={[styles.cardDeadline, { marginBottom: 0 }]}>{formatWeekdays(item.tarefas.dias_semana)}</Text>
+      </View>
+      {dateLine ? (
+        <Text style={styles.cardDeadline}>
+          {dateLine.label}
+          {dateLine.value}
+        </Text>
+      ) : null}
+      {showEvidenceHint ? (
+        <View style={styles.evidenceHint}>
+          <Camera size={12} color={colors.text.muted} strokeWidth={2} />
+          <Text style={styles.evidenceHintText}>Requer foto</Text>
+        </View>
+      ) : null}
+      {filter === 'historico' ? (
+        <View
+          style={[
+            styles.statusTag,
+            { backgroundColor: getAssignmentStatusColor(item.status, colors) + '20' },
+          ]}
+        >
+          <Text
+            style={[
+              styles.statusText,
+              { color: getAssignmentStatusColor(item.status, colors) },
+            ]}
+          >
+            {getAssignmentStatusLabel(item.status)}
+          </Text>
+        </View>
+      ) : null}
+    </>
+  );
+}
+
 function TaskCard({ item, filter, colors, styles, router }: Readonly<TaskCardProps>) {
   const dateLine = getAssignmentDateLine(item, filter);
   const isInactive = item.tarefas.ativo === false;
   const isUnavailable = isInactive && item.status === 'pendente';
   const recurring = isRecurring(item.tarefas.dias_semana);
   const showEvidenceHint = item.tarefas.exige_evidencia && filter === 'pendente';
-
-  const handlePress = isUnavailable
-    ? () =>
-        Alert.alert(
-          'Tarefa desativada',
-          'Esta tarefa foi desativada pelo responsável e não pode mais ser concluída.',
-        )
-    : () => router.push(`/(child)/tasks/${item.id}` as never);
-
-  const accessibilityLabel = isUnavailable
-    ? `Tarefa ${item.tarefas.titulo} desativada`
-    : `Ver detalhes da tarefa ${item.tarefas.titulo}`;
-
-  const inactiveTag = isInactive ? (
-    <View style={styles.inactiveTag}>
-      <Text style={styles.inactiveTagText}>Desativada</Text>
-    </View>
-  ) : null;
-
-  const dateLineElement = dateLine ? (
-    <Text style={styles.cardDeadline}>
-      {dateLine.label}
-      {dateLine.value}
-    </Text>
-  ) : null;
-
-  const evidenceHintElement = showEvidenceHint ? (
-    <View style={styles.evidenceHint}>
-      <Camera size={12} color={colors.text.muted} strokeWidth={2} />
-      <Text style={styles.evidenceHintText}>Requer foto</Text>
-    </View>
-  ) : null;
-
-  const statusTag = filter === 'historico' ? (
-    <View
-      style={[
-        styles.statusTag,
-        { backgroundColor: getAssignmentStatusColor(item.status, colors) + '20' },
-      ]}
-    >
-      <Text
-        style={[
-          styles.statusText,
-          { color: getAssignmentStatusColor(item.status, colors) },
-        ]}
-      >
-        {getAssignmentStatusLabel(item.status)}
-      </Text>
-    </View>
-  ) : null;
+  const { handlePress, accessibilityLabel } = getTaskCardAction(item, isUnavailable, router);
 
   return (
     <Pressable
@@ -152,14 +187,16 @@ function TaskCard({ item, filter, colors, styles, router }: Readonly<TaskCardPro
           <Text style={styles.pointsText}>{getAssignmentPoints(item)} pts</Text>
         </View>
       </View>
-      {inactiveTag}
-      <View style={styles.freqRow}>
-        {recurring ? <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} /> : null}
-        <Text style={[styles.cardDeadline, { marginBottom: 0 }]}>{formatWeekdays(item.tarefas.dias_semana)}</Text>
-      </View>
-      {dateLineElement}
-      {evidenceHintElement}
-      {statusTag}
+      <TaskCardBadges
+        item={item}
+        filter={filter}
+        isInactive={isInactive}
+        recurring={recurring}
+        dateLine={dateLine}
+        showEvidenceHint={showEvidenceHint}
+        colors={colors}
+        styles={styles}
+      />
     </Pressable>
   );
 }

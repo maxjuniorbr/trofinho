@@ -65,6 +65,23 @@ function getBalanceHeaderColors(colors: ThemeColors) {
   };
 }
 
+function parseAmountValue(
+  amountStr: string,
+  max: number,
+  freeBalance: number,
+  min = 1,
+): number | string {
+  const v = Number.parseInt(amountStr, 10);
+  if (!amountStr || Number.isNaN(v) || v <= 0) return 'Informe um valor válido.';
+  if (v < min) return `Valor mínimo: ${min} pts.`;
+  if (v > max) {
+    return max === freeBalance
+      ? 'Saldo disponível insuficiente.'
+      : 'Saldo do cofrinho insuficiente.';
+  }
+  return v;
+}
+
 export default function ChildBalanceScreen() {
   const router = useRouter();
   const { colors } = useTheme();
@@ -116,20 +133,12 @@ export default function ChildBalanceScreen() {
   };
 
   const parseAmount = (max: number, min = 1): number | null => {
-    const v = Number.parseInt(amountStr, 10);
-    if (!amountStr || Number.isNaN(v) || v <= 0) {
-      setModalError('Informe um valor válido.');
+    const result = parseAmountValue(amountStr, max, balance?.saldo_livre ?? 0, min);
+    if (typeof result === 'string') {
+      setModalError(result);
       return null;
     }
-    if (v < min) {
-      setModalError(`Valor mínimo: ${min} pts.`);
-      return null;
-    }
-    if (v > max) {
-      setModalError(max === (balance?.saldo_livre ?? 0) ? 'Saldo disponível insuficiente.' : 'Saldo do cofrinho insuficiente.');
-      return null;
-    }
-    return v;
+    return result;
   };
 
   const handleTransfer = async () => {

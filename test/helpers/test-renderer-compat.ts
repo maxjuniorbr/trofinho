@@ -8,10 +8,9 @@
  * with:
  *   import { act, create, type ReactTestRenderer } from '../../test/helpers/test-renderer-compat';
  */
-import { act } from 'react';
 import { createRoot, TestInstance } from 'test-renderer';
 
-export { act };
+export { act } from 'react';
 
 // ---------------------------------------------------------------------------
 // Resolve a component reference or string to its host-element type name.
