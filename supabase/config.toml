@@ -356,7 +356,7 @@ authorization_url_path = "/oauth/consent"
 allow_dynamic_registration = false
 
 [functions.send-push-notification]
-verify_jwt = false
+verify_jwt = true
 
 [edge_runtime]
 enabled = true

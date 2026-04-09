@@ -4,10 +4,12 @@ import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Plus, RefreshCw, House, ClipboardList, Users, Gift, ShoppingBag } from 'lucide-react-native';
-import { HomeFooterBar, type FooterItem } from '@/components/ui/home-footer-bar';
+import { Plus, RefreshCw } from 'lucide-react-native';
+import { HomeFooterBar } from '@/components/ui/home-footer-bar';
+import { useAdminFooterItems } from '@/hooks/use-footer-items';
 import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ListScreenSkeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
@@ -21,13 +23,7 @@ import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 
-const FOOTER_ITEMS: readonly FooterItem[] = [
-  { icon: House, label: 'Início', rota: 'index' },
-  { icon: ClipboardList, label: 'Tarefas', rota: '/(admin)/tasks' },
-  { icon: Users, label: 'Filhos', rota: '/(admin)/children' },
-  { icon: Gift, label: 'Prêmios', rota: '/(admin)/prizes' },
-  { icon: ShoppingBag, label: 'Resgates', rota: '/(admin)/redemptions' },
-];
+
 
 const SORT_OPTIONS: SegmentOption<AdminTaskSort>[] = [
   { key: 'action_first', label: 'Por ação', accessibilityLabel: 'Ordenar por ação pendente' },
@@ -112,6 +108,7 @@ export default function AdminTasksScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const footerItems = useAdminFooterItems();
 
   const {
     data,
@@ -132,7 +129,7 @@ export default function AdminTasksScreen() {
   });
 
   const sortedTasks = useMemo(() => sortAdminTasks(tasks, sort), [tasks, sort]);
-  const shouldShowEmptyState = isLoading || Boolean(error) || tasks.length === 0;
+  const shouldShowEmptyState = !isLoading && (Boolean(error) || tasks.length === 0);
 
   const handleFooterNavigate = useCallback(
     (rota: string) => {
@@ -172,9 +169,10 @@ export default function AdminTasksScreen() {
         </View>
       ) : null}
 
-      {shouldShowEmptyState ? (
+      {isLoading ? (
+        <ListScreenSkeleton />
+      ) : shouldShowEmptyState ? (
         <EmptyState
-          loading={isLoading}
           error={error?.message ?? null}
           empty={tasks.length === 0}
           emptyMessage={'Nenhuma tarefa criada ainda.\nToque em "+" para criar a primeira tarefa.'}
@@ -208,7 +206,7 @@ export default function AdminTasksScreen() {
           )}
         />
       )}
-      <HomeFooterBar items={FOOTER_ITEMS} activeRoute="/(admin)/tasks" onNavigate={handleFooterNavigate} />
+      <HomeFooterBar items={footerItems} activeRoute="/(admin)/tasks" onNavigate={handleFooterNavigate} />
     </SafeScreenFrame>
   );
 }

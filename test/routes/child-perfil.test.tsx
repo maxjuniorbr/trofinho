@@ -115,28 +115,6 @@ vi.mock('@/components/ui/button', () => ({
   Button: (props: Record<string, unknown>) => React.createElement('Button', props),
 }));
 
-vi.mock('@/components/ui/home-footer-bar', () => ({
-  FOOTER_BAR_HEIGHT: 56,
-  HomeFooterBar: ({
-    items,
-    onNavigate,
-  }: {
-    items: { label: string; rota: string }[];
-    onNavigate: (rota: string) => void;
-  }) =>
-    React.createElement(
-      'HomeFooterBar',
-      null,
-      ...items.map((item) =>
-        React.createElement(
-          'Pressable',
-          { key: item.rota, accessibilityLabel: item.label, onPress: () => onNavigate(item.rota) },
-          React.createElement('Text', null, item.label),
-        ),
-      ),
-    ),
-}));
-
 vi.mock('@/context/theme-context', () => ({
   useTheme: () => ({
     colors: {
@@ -247,10 +225,13 @@ describe('ChildProfileScreen', () => {
     expect(deleteButton!.props.accessibilityLabel).toBe('Excluir minha conta');
   });
 
-  it('renders footer bar with expected items', () => {
+  it('renders screen header with back button', () => {
     const renderer = render(<ChildProfileScreen />);
-    const footer = renderer.root.findByType('HomeFooterBar' as never);
-    const labels = footer.findAllByType('Text' as never).map((t) => t.children[0]);
-    expect(labels).toEqual(['Início', 'Tarefas', 'Prêmios', 'Resgates', 'Perfil']);
+    const header = renderer.root.findByType('ScreenHeader' as never);
+    expect(header.props.onBack).toBeDefined();
+    act(() => {
+      header.props.onBack();
+    });
+    expect(routerMock.back).toHaveBeenCalled();
   });
 });

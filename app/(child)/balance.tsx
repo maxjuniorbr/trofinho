@@ -115,10 +115,14 @@ export default function ChildBalanceScreen() {
     setRefreshing(false);
   };
 
-  const parseAmount = (max: number): number | null => {
+  const parseAmount = (max: number, min = 1): number | null => {
     const v = Number.parseInt(amountStr, 10);
     if (!amountStr || Number.isNaN(v) || v <= 0) {
       setModalError('Informe um valor válido.');
+      return null;
+    }
+    if (v < min) {
+      setModalError(`Valor mínimo: ${min} pts.`);
       return null;
     }
     if (v > max) {
@@ -146,7 +150,7 @@ export default function ChildBalanceScreen() {
 
   const handleWithdrawal = async () => {
     setModalError(null);
-    const v = parseAmount(balance?.cofrinho ?? 0);
+    const v = parseAmount(balance?.cofrinho ?? 0, minimumWithdrawal);
     if (v === null) return;
     try {
       await withdrawalMutation.mutateAsync({
@@ -222,7 +226,9 @@ export default function ChildBalanceScreen() {
   const showAppreciation = (balance?.indice_valorizacao ?? 0) > 0;
   const successFeedback = visibleTransferSuccess ?? visibleWithdrawSuccess ?? null;
   const showPendingWithdrawal = pendingWithdrawal !== null;
+  const canWithdraw = piggyBank >= minimumWithdrawal;
   const showWithdrawButton = !showPendingWithdrawal && piggyBank > 0;
+  const showWithdrawInsufficientHint = showWithdrawButton && !canWithdraw;
   const header = getBalanceHeaderColors(colors);
 
   return (
@@ -380,7 +386,16 @@ export default function ChildBalanceScreen() {
               </View>
             ) : null}
 
-            {showWithdrawButton ? (
+            {showWithdrawInsufficientHint ? (
+              <View style={{ marginBottom: spacing['3'] }}>
+                <InlineMessage
+                  message={`Saldo mínimo para resgate: ${minimumWithdrawal} pts (taxa de ${withdrawalRate}%).`}
+                  variant="info"
+                />
+              </View>
+            ) : null}
+
+            {showWithdrawButton && canWithdraw ? (
               <View style={{ marginBottom: spacing['3'] }}>
                 <Button
                   variant="secondary"
@@ -459,8 +474,8 @@ export default function ChildBalanceScreen() {
               Pontos guardados no cofrinho ficam seguros e rendem valorização.
             </Text>
             <View style={styles.quickAmountRow}>
-              {[10, 50, freeBalance].map((v, i) => {
-                const label = i === 2 ? 'Tudo' : `${v}`;
+              {[Math.floor(freeBalance / 2), freeBalance].filter((v, i, arr) => v > 0 && arr.indexOf(v) === i).map((v) => {
+                const label = v === freeBalance ? 'Tudo' : `${v}`;
                 const isSelected = amountStr === String(v);
                 return (
                   <Pressable
@@ -546,8 +561,8 @@ export default function ChildBalanceScreen() {
               </Text>
             ) : null}
             <View style={styles.quickAmountRow}>
-              {[10, 50, piggyBank].filter((v) => v >= minimumWithdrawal).map((v, i, arr) => {
-                const label = i === arr.length - 1 && v === piggyBank ? 'Tudo' : `${v}`;
+              {[minimumWithdrawal, Math.floor(piggyBank / 2), piggyBank].filter((v, i, arr) => v >= minimumWithdrawal && v <= piggyBank && arr.indexOf(v) === i).map((v) => {
+                const label = v === piggyBank ? 'Tudo' : `${v}`;
                 const isSelected = amountStr === String(v);
                 return (
                   <Pressable

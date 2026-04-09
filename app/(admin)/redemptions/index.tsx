@@ -3,8 +3,9 @@ import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import { CheckCircle2, Clock, Trophy, User, XCircle, House, ClipboardList, Users, Gift, ShoppingBag } from 'lucide-react-native';
-import { HomeFooterBar, type FooterItem } from '@/components/ui/home-footer-bar';
+import { CheckCircle2, Clock, Trophy, User, XCircle } from 'lucide-react-native';
+import { HomeFooterBar } from '@/components/ui/home-footer-bar';
+import { useAdminFooterItems } from '@/hooks/use-footer-items';
 import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@lib/status';
 import type { RedemptionWithChildAndPrize } from '@lib/redemptions';
 import { useTheme } from '@/context/theme-context';
@@ -26,13 +27,7 @@ import {
 } from '@/hooks/queries';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 
-const FOOTER_ITEMS: readonly FooterItem[] = [
-  { icon: House, label: 'Início', rota: 'index' },
-  { icon: ClipboardList, label: 'Tarefas', rota: '/(admin)/tasks' },
-  { icon: Users, label: 'Filhos', rota: '/(admin)/children' },
-  { icon: Gift, label: 'Prêmios', rota: '/(admin)/prizes' },
-  { icon: ShoppingBag, label: 'Resgates', rota: '/(admin)/redemptions' },
-];
+
 type ConfirmModalState = {
   visible: boolean;
   type: 'confirm' | 'cancel';
@@ -91,6 +86,7 @@ export default function AdminRedemptionsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const footerItems = useAdminFooterItems();
 
   const {
     data,
@@ -423,7 +419,7 @@ export default function AdminRedemptionsScreen() {
           </View>
         </View>
       </Modal>
-      <HomeFooterBar items={FOOTER_ITEMS} activeRoute="/(admin)/redemptions" onNavigate={handleFooterNavigate} />
+      <HomeFooterBar items={footerItems} activeRoute="/(admin)/redemptions" onNavigate={handleFooterNavigate} />
     </SafeScreenFrame>
   );
 }

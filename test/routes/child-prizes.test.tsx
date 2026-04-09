@@ -137,6 +137,10 @@ vi.mock('@/hooks/queries', () => ({
   }),
 }));
 
+vi.mock('@/hooks/use-footer-items', () => ({
+  useChildFooterItems: () => [],
+}));
+
 vi.mock('@/components/ui/button', () => ({
   Button: (props: Record<string, unknown>) => React.createElement('Button', props),
 }));

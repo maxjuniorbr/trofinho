@@ -12,7 +12,7 @@ import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import { ClipboardList, Gift, House, ShoppingBag, UserCircle, PiggyBank } from 'lucide-react-native';
+import { ClipboardList, Gift, House, ShoppingBag, PiggyBank, Pencil } from 'lucide-react-native';
 import { getGreeting } from '@lib/utils';
 import { isNotificationPermissionDenied } from '@lib/notifications';
 import {
@@ -31,6 +31,7 @@ import { InlineMessage } from '@/components/ui/inline-message';
 import { HomeScreenSkeleton } from '@/components/ui/skeleton';
 import { mascotImage, celebratingImage } from '@/constants/assets';
 import { HomeFooterBar, FOOTER_BAR_HEIGHT, type FooterItem } from '@/components/ui/home-footer-bar';
+import { Avatar } from '@/components/ui/avatar';
 
 const MASCOT_CELEBRATING_PHRASES = [
   'Troféu conquistado! 🎉',
@@ -45,7 +46,6 @@ const FOOTER_ITEMS: readonly FooterItem[] = [
   { icon: ClipboardList, label: 'Tarefas', rota: '/(child)/tasks' },
   { icon: Gift, label: 'Prêmios', rota: '/(child)/prizes' },
   { icon: ShoppingBag, label: 'Resgates', rota: '/(child)/redemptions' },
-  { icon: UserCircle, label: 'Perfil', rota: '/(child)/perfil' },
 ];
 
 function getSummaryColors(colors: ThemeColors) {
@@ -75,9 +75,10 @@ export default function FilhoHomeScreen() {
 
   const profileQuery = useProfile();
   const profile = profileQuery.data ?? null;
+  const firstName = profile?.nome?.split(' ')[0] ?? 'Campeão';
+  const avatarUri = profile?.avatarUrl ?? null;
 
   const familyQuery = useFamily(profile?.familia_id);
-  const family = familyQuery.data ?? null;
 
   const assignmentsQuery = useChildAssignments();
   useRenewRecurringTasks();
@@ -203,15 +204,24 @@ export default function FilhoHomeScreen() {
         ) : null}
 
         <View style={styles.hero}>
-          <Text style={[styles.heroSub, { color: colors.text.secondary }]}>{getGreeting()} 🏆</Text>
-          <Text style={[styles.heroTitle, { color: colors.text.primary }]}>
-            Olá, {profile?.nome ?? 'Campeão'}!
-          </Text>
-          {family ? (
-            <Text style={[styles.heroFamily, { color: colors.accent.filho }]}>
-              Família {family.nome}
+          <View style={styles.heroText}>
+            <Text style={[styles.heroSub, { color: colors.text.secondary }]}>{getGreeting()} 🏆</Text>
+            <Text style={[styles.heroTitle, { color: colors.text.primary }]}>
+              Olá, {firstName}!
             </Text>
-          ) : null}
+          </View>
+          <Pressable
+            onPress={() => router.push('/(child)/perfil')}
+            accessibilityRole="button"
+            accessibilityLabel="Abrir perfil"
+          >
+            <View style={styles.avatarWrapper}>
+              <Avatar name={profile?.nome ?? 'C'} size={52} imageUri={avatarUri} />
+              <View style={[styles.editBadge, { backgroundColor: colors.accent.filhoDim }]}>
+                <Pencil size={10} color={colors.text.inverse} strokeWidth={2.5} />
+              </View>
+            </View>
+          </Pressable>
         </View>
 
         {showNotificationBanner ? <NotificationPermissionBanner /> : null}
@@ -301,20 +311,35 @@ export default function FilhoHomeScreen() {
 
 function makeStyles() {
   return StyleSheet.create({
-    container: { alignItems: 'center', paddingHorizontal: spacing.screen },
+    container: { paddingHorizontal: spacing.screen },
 
-    hero: { alignItems: 'center', width: '100%', marginBottom: spacing['4'] },
+    hero: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      width: '100%',
+      marginBottom: spacing['4'],
+    },
+    heroText: { flex: 1, paddingRight: spacing['4'] },
     heroSub: { fontFamily: typography.family.bold, fontSize: typography.size.sm },
+
+    avatarWrapper: { position: 'relative' },
+    editBadge: {
+      position: 'absolute',
+      bottom: 0,
+      right: 0,
+      width: 20,
+      height: 20,
+      borderRadius: radii.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
     heroTitle: {
       fontFamily: typography.family.black,
-      fontSize: typography.size['3xl'],
+      fontSize: typography.size['2xl'],
       marginTop: spacing['1'],
-      textAlign: 'center',
-    },
-    heroFamily: {
-      fontFamily: typography.family.semibold,
-      fontSize: typography.size.sm,
-      marginTop: spacing['1'],
+      lineHeight: typography.lineHeight['3xl'],
     },
 
     mascotContainer: { alignItems: 'center', marginBottom: spacing['6'] },

@@ -103,6 +103,10 @@ vi.mock('@/hooks/queries', () => ({
   useAdminTasks: () => adminTasksMock,
 }));
 
+vi.mock('@/hooks/use-footer-items', () => ({
+  useAdminFooterItems: () => [],
+}));
+
 vi.mock('@/hooks/use-transient-message', () => ({
   useTransientMessage: (msg: string | null) => msg,
 }));
@@ -116,6 +120,10 @@ vi.mock('@/components/ui/screen-header', () => ({
 
 vi.mock('@/components/ui/empty-state', () => ({
   EmptyState: (props: Record<string, unknown>) => React.createElement('EmptyState', props),
+}));
+
+vi.mock('@/components/ui/skeleton', () => ({
+  ListScreenSkeleton: () => React.createElement('ListScreenSkeleton'),
 }));
 
 vi.mock('@/components/ui/safe-screen-frame', () => ({
@@ -206,8 +214,7 @@ describe('AdminTasksScreen', () => {
     adminTasksMock.isLoading = true;
     adminTasksMock.data = undefined;
     const renderer = render(<AdminTasksScreen />);
-    const emptyState = renderer.root.findByType('EmptyState' as never);
-    expect(emptyState.props.loading).toBe(true);
+    renderer.root.findByType('ListScreenSkeleton' as never);
   });
 
   it('renders task title and points', () => {

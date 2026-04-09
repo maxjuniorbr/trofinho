@@ -94,6 +94,10 @@ vi.mock('@/hooks/queries', () => ({
   usePrizes: () => prizesMock,
 }));
 
+vi.mock('@/hooks/use-footer-items', () => ({
+  useAdminFooterItems: () => [],
+}));
+
 vi.mock('@/hooks/use-transient-message', () => ({
   useTransientMessage: (msg: string | null) => msg,
 }));

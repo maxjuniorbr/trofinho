@@ -3,10 +3,12 @@ import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useMemo } from 'react';
 import { useRouter } from 'expo-router';
-import { Eye, Plus, House, ClipboardList, Users, Gift, ShoppingBag } from 'lucide-react-native';
-import { HomeFooterBar, type FooterItem } from '@/components/ui/home-footer-bar';
+import { Eye, Plus } from 'lucide-react-native';
+import { HomeFooterBar } from '@/components/ui/home-footer-bar';
+import { useAdminFooterItems } from '@/hooks/use-footer-items';
 import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ListScreenSkeleton } from '@/components/ui/skeleton';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { Avatar } from '@/components/ui/avatar';
 import { useChildrenList, useAdminBalances, combineQueryStates } from '@/hooks/queries';
@@ -14,18 +16,13 @@ import type { BalanceWithChild } from '@lib/balances';
 import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 
-const FOOTER_ITEMS: readonly FooterItem[] = [
-  { icon: House, label: 'Início', rota: 'index' },
-  { icon: ClipboardList, label: 'Tarefas', rota: '/(admin)/tasks' },
-  { icon: Users, label: 'Filhos', rota: '/(admin)/children' },
-  { icon: Gift, label: 'Prêmios', rota: '/(admin)/prizes' },
-  { icon: ShoppingBag, label: 'Resgates', rota: '/(admin)/redemptions' },
-];
+
 
 export default function AdminChildrenScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(), []);
+  const footerItems = useAdminFooterItems();
 
   const childrenQuery = useChildrenList();
   const balancesQuery = useAdminBalances();
@@ -67,9 +64,10 @@ export default function AdminChildrenScreen() {
         }
       />
 
-      {isLoading || error || children.length === 0 ? (
+      {isLoading ? (
+        <ListScreenSkeleton />
+      ) : error || children.length === 0 ? (
         <EmptyState
-          loading={isLoading}
           error={error?.message}
           empty={children.length === 0}
           emptyMessage={'Nenhum filho cadastrado.\nToque em "+" para cadastrar o primeiro filho.'}
@@ -149,7 +147,7 @@ export default function AdminChildrenScreen() {
           }}
         />
       )}
-      <HomeFooterBar items={FOOTER_ITEMS} activeRoute="/(admin)/children" onNavigate={handleFooterNavigate} />
+      <HomeFooterBar items={footerItems} activeRoute="/(admin)/children" onNavigate={handleFooterNavigate} />
     </SafeScreenFrame>
   );
 }

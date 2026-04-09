@@ -4,8 +4,9 @@ import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import { CheckCircle2, Clock, XCircle, House, ClipboardList, Gift, ShoppingBag, UserCircle } from 'lucide-react-native';
-import { HomeFooterBar, type FooterItem } from '@/components/ui/home-footer-bar';
+import { CheckCircle2, Clock, XCircle } from 'lucide-react-native';
+import { HomeFooterBar } from '@/components/ui/home-footer-bar';
+import { useChildFooterItems } from '@/hooks/use-footer-items';
 import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@lib/status';
 import { useChildRedemptions } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
@@ -18,18 +19,13 @@ import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { ListFooter } from '@/components/ui/list-footer';
 import { formatDate } from '@lib/utils';
 
-const FOOTER_ITEMS: readonly FooterItem[] = [
-  { icon: House, label: 'Início', rota: 'index' },
-  { icon: ClipboardList, label: 'Tarefas', rota: '/(child)/tasks' },
-  { icon: Gift, label: 'Prêmios', rota: '/(child)/prizes' },
-  { icon: ShoppingBag, label: 'Resgates', rota: '/(child)/redemptions' },
-  { icon: UserCircle, label: 'Perfil', rota: '/(child)/perfil' },
-];
+
 
 export default function ChildRedemptionsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const footerItems = useChildFooterItems();
 
   const {
     data,
@@ -201,7 +197,7 @@ export default function ChildRedemptionsScreen() {
           ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
         />
       )}
-      <HomeFooterBar items={FOOTER_ITEMS} activeRoute="/(child)/redemptions" onNavigate={handleFooterNavigate} />
+      <HomeFooterBar items={footerItems} activeRoute="/(child)/redemptions" onNavigate={handleFooterNavigate} />
     </SafeScreenFrame>
   );
 }

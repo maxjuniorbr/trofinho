@@ -107,16 +107,7 @@ export default function ProfileScreen() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <View style={[styles.loading, { backgroundColor: colors.bg.canvas }]}>
-        <StatusBar style={colors.statusBar} />
-        <ActivityIndicator size="large" color={colors.brand.vivid} />
-      </View>
-    );
-  }
-
-  if (!authUser) {
+  if (!isLoading && !authUser) {
     router.replace('/(auth)/login');
     return null;
   }
@@ -127,6 +118,11 @@ export default function ProfileScreen() {
         <StatusBar style={colors.statusBar} />
         <ScreenHeader title="Meu Perfil" onBack={() => router.back()} />
 
+        {isLoading ? (
+          <View style={styles.loadingContent}>
+            <ActivityIndicator size="large" color={colors.brand.vivid} />
+          </View>
+        ) : (
         <ScrollView
           style={{ backgroundColor: colors.bg.canvas }}
           overScrollMode="never"
@@ -170,12 +166,13 @@ export default function ProfileScreen() {
             accessibilityLabel="Excluir minha conta"
           />
         </ScrollView>
+        )}
       </SafeScreenFrame>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  loadingContent: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scrollContent: { padding: spacing['5'], paddingBottom: spacing['6'], gap: spacing['4'] },
 });

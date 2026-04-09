@@ -4,8 +4,9 @@ import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import { RefreshCw, Camera, House, ClipboardList, Gift, ShoppingBag, UserCircle } from 'lucide-react-native';
-import { HomeFooterBar, type FooterItem } from '@/components/ui/home-footer-bar';
+import { RefreshCw, Camera } from 'lucide-react-native';
+import { HomeFooterBar } from '@/components/ui/home-footer-bar';
+import { useChildFooterItems } from '@/hooks/use-footer-items';
 import { getAssignmentPoints, isRecurring, formatWeekdays, type ChildAssignment, type AssignmentStatus } from '@lib/tasks';
 import { formatDate } from '@lib/utils';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
@@ -20,13 +21,7 @@ import { ListFooter } from '@/components/ui/list-footer';
 import { ListScreenSkeleton } from '@/components/ui/skeleton';
 import { SegmentedBar, type SegmentOption } from '@/components/ui/segmented-bar';
 
-const FOOTER_ITEMS: readonly FooterItem[] = [
-  { icon: House, label: 'Início', rota: 'index' },
-  { icon: ClipboardList, label: 'Tarefas', rota: '/(child)/tasks' },
-  { icon: Gift, label: 'Prêmios', rota: '/(child)/prizes' },
-  { icon: ShoppingBag, label: 'Resgates', rota: '/(child)/redemptions' },
-  { icon: UserCircle, label: 'Perfil', rota: '/(child)/perfil' },
-];
+
 
 type Filter = 'pendente' | 'aguardando_validacao' | 'historico';
 
@@ -165,6 +160,7 @@ export default function ChildTasksScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const footerItems = useChildFooterItems();
 
   const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useChildAssignments();
@@ -273,7 +269,7 @@ export default function ChildTasksScreen() {
       <SegmentedBar options={filtersWithBadge} value={filter} onChange={setFilter} role="filho" />
 
       {renderContent()}
-      <HomeFooterBar items={FOOTER_ITEMS} activeRoute="/(child)/tasks" onNavigate={handleFooterNavigate} />
+      <HomeFooterBar items={footerItems} activeRoute="/(child)/tasks" onNavigate={handleFooterNavigate} />
     </SafeScreenFrame>
   );
 }

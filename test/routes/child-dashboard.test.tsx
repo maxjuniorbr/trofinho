@@ -83,8 +83,8 @@ vi.mock('lucide-react-native', () => ({
   Gift: (props: Record<string, unknown>) => React.createElement('Gift', props),
   House: (props: Record<string, unknown>) => React.createElement('House', props),
   ShoppingBag: (props: Record<string, unknown>) => React.createElement('ShoppingBag', props),
-  UserCircle: (props: Record<string, unknown>) => React.createElement('UserCircle', props),
   PiggyBank: (props: Record<string, unknown>) => React.createElement('PiggyBank', props),
+  Pencil: (props: Record<string, unknown>) => React.createElement('Pencil', props),
 }));
 
 vi.mock('@sentry/react-native', () => ({
@@ -169,7 +169,7 @@ vi.mock('@/context/theme-context', () => ({
       statusBar: 'dark',
       bg: { canvas: '#fff', surface: '#fff', muted: '#f0f0f0', elevated: '#f5f5f5' },
       text: { primary: '#000', secondary: '#666', muted: '#999', inverse: '#fff' },
-      accent: { filho: '#3366CC', filhoBg: '#EEF' },
+      accent: { filho: '#3366CC', filhoBg: '#EEF', filhoDim: '#C57B0D' },
       border: { subtle: '#eee' },
       brand: { vivid: '#000' },
       semantic: { error: '#c00' },
@@ -243,10 +243,10 @@ describe('FilhoHomeScreen', () => {
     expect(text).toContain('Olá, João!');
   });
 
-  it('renders family name', () => {
+  it('renders edit badge on avatar', () => {
     const renderer = render(<FilhoHomeScreen />);
-    const text = allText(renderer);
-    expect(text).toContain('Família Silva');
+    const pencils = renderer.root.findAllByType('Pencil' as never);
+    expect(pencils.length).toBeGreaterThan(0);
   });
 
   it('renders pending tasks count in badge', () => {
@@ -272,7 +272,6 @@ describe('FilhoHomeScreen', () => {
     expect(text).toContain('Tarefas');
     expect(text).toContain('Prêmios');
     expect(text).toContain('Resgates');
-    expect(text).toContain('Perfil');
   });
 
   it('navigates to tasks on footer action press', () => {

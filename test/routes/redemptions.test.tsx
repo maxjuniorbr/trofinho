@@ -110,6 +110,10 @@ vi.mock('@/hooks/queries', () => ({
   }),
 }));
 
+vi.mock('@/hooks/use-footer-items', () => ({
+  useAdminFooterItems: () => [],
+}));
+
 vi.mock('@/components/ui/empty-state', () => ({
   EmptyState: (props: Record<string, unknown>) => React.createElement('EmptyState', props),
 }));

@@ -14,8 +14,9 @@ import { useRouter } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
 import { hapticSuccess } from '@lib/haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Trophy, CheckCircle2, House, ClipboardList, Gift, ShoppingBag, UserCircle } from 'lucide-react-native';
-import { HomeFooterBar, type FooterItem } from '@/components/ui/home-footer-bar';
+import { Trophy, CheckCircle2 } from 'lucide-react-native';
+import { HomeFooterBar } from '@/components/ui/home-footer-bar';
+import { useChildFooterItems } from '@/hooks/use-footer-items';
 import type { Prize } from '@lib/prizes';
 import {
   useActivePrizes,
@@ -34,18 +35,13 @@ import { InlineMessage } from '@/components/ui/inline-message';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 
-const FOOTER_ITEMS: readonly FooterItem[] = [
-  { icon: House, label: 'Início', rota: 'index' },
-  { icon: ClipboardList, label: 'Tarefas', rota: '/(child)/tasks' },
-  { icon: Gift, label: 'Prêmios', rota: '/(child)/prizes' },
-  { icon: ShoppingBag, label: 'Resgates', rota: '/(child)/redemptions' },
-  { icon: UserCircle, label: 'Perfil', rota: '/(child)/perfil' },
-];
+
 
 export default function ChildPrizesScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const footerItems = useChildFooterItems();
 
   const prizesQuery = useActivePrizes();
   const prizes = prizesQuery.data ?? [];
@@ -183,7 +179,7 @@ export default function ChildPrizesScreen() {
           )}
         />
       )}
-      <HomeFooterBar items={FOOTER_ITEMS} activeRoute="/(child)/prizes" onNavigate={handleFooterNavigate} />
+      <HomeFooterBar items={footerItems} activeRoute="/(child)/prizes" onNavigate={handleFooterNavigate} />
     </SafeScreenFrame>
   );
 }
