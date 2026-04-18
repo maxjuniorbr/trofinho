@@ -162,6 +162,9 @@ vi.mock('@/context/theme-context', () => ({
                 error: '#EF4444',
                 errorBg: '#FEE2E2',
                 errorText: '#991B1B',
+                info: '#308CE8',
+                infoBg: '#E5F2FF',
+                infoText: '#0F4D8A',
             },
         },
     }),
@@ -225,6 +228,13 @@ describe('ChildBalanceHistoryScreen', () => {
                 valor: 8,
                 created_at: '2026-04-01T15:00:00Z',
             },
+            {
+                id: 'tx-4',
+                tipo: 'transferencia_cofrinho',
+                descricao: 'Transferência para cofrinho',
+                valor: 20,
+                created_at: '2026-04-01T16:00:00Z',
+            },
         ];
         transactionsMock.isLoading = false;
         transactionsMock.isFetching = false;
@@ -249,20 +259,22 @@ describe('ChildBalanceHistoryScreen', () => {
     it('renders entradas and saidas totals', () => {
         const renderer = render(React.createElement(ChildBalanceHistoryScreen));
         const text = allText(renderer);
-        // entradas = 10 (credito) + 8 (credito) = 18
-        // saidas = 5 (penalizacao) = 5
+        // entradas (ganho) = 10 (credito) + 8 (credito) = 18
+        // saidas (gasto) = 5 (penalizacao) = 5
+        // cofrinho types are excluded from totals
         expect(text).toContain('+18');
         expect(text).toContain('-5');
         expect(text).toContain('ENTRADAS');
         expect(text).toContain('SAÍDAS');
     });
 
-    it('renders three filter pills', () => {
+    it('renders four filter pills', () => {
         const renderer = render(React.createElement(ChildBalanceHistoryScreen));
         const text = allText(renderer);
         expect(text).toContain('Tudo');
         expect(text).toContain('Ganhos');
-        expect(text).toContain('Saídas');
+        expect(text).toContain('Gastos');
+        expect(text).toContain('Cofrinho');
     });
 
     it('filters to ganhos when pressed', () => {
@@ -280,19 +292,36 @@ describe('ChildBalanceHistoryScreen', () => {
         expect(text).toContain('Arrumar a cama');
     });
 
-    it('filters to saidas when pressed', () => {
+    it('filters to gastos when pressed', () => {
         const renderer = render(React.createElement(ChildBalanceHistoryScreen));
-        const saidasBtn = renderer.root.findAll(
+        const gastosBtn = renderer.root.findAll(
             (n) =>
                 (n.type as string) === 'Pressable' &&
-                n.props.accessibilityLabel === 'Filtrar Saídas',
+                n.props.accessibilityLabel === 'Filtrar Gastos',
         )[0];
         act(() => {
-            saidasBtn.props.onPress();
+            gastosBtn.props.onPress();
         });
         const text = allText(renderer);
         expect(text).toContain('Brigou com irmão');
         expect(text).not.toContain('Arrumar a cama');
+        expect(text).not.toContain('Transferência para cofrinho');
+    });
+
+    it('filters to cofrinho when pressed', () => {
+        const renderer = render(React.createElement(ChildBalanceHistoryScreen));
+        const cofrinhoBtn = renderer.root.findAll(
+            (n) =>
+                (n.type as string) === 'Pressable' &&
+                n.props.accessibilityLabel === 'Filtrar Cofrinho',
+        )[0];
+        act(() => {
+            cofrinhoBtn.props.onPress();
+        });
+        const text = allText(renderer);
+        expect(text).toContain('Transferência para cofrinho');
+        expect(text).not.toContain('Arrumar a cama');
+        expect(text).not.toContain('Brigou com irmão');
     });
 
     it('groups transactions by day', () => {

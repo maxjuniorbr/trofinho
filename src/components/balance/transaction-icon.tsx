@@ -11,7 +11,7 @@ import {
   PiggyBank,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
-import { isCredit, type TransactionType } from '@lib/balances';
+import { getTransactionCategory, type TransactionType } from '@lib/balances';
 import { useTheme } from '@/context/theme-context';
 
 const TRANSACTION_ICONS: Record<TransactionType, LucideIcon> = {
@@ -33,22 +33,26 @@ type TransactionIconProps = Readonly<{
 
 export function TransactionIcon({ type, style, size = 16 }: TransactionIconProps) {
   const { colors } = useTheme();
-  const credit = isCredit(type);
+  const category = getTransactionCategory(type);
   const Icon = TRANSACTION_ICONS[type];
 
+  const bgColor =
+    category === 'ganho'
+      ? colors.semantic.successBg
+      : category === 'cofrinho'
+        ? colors.semantic.infoBg
+        : colors.semantic.errorBg;
+
+  const iconColor =
+    category === 'ganho'
+      ? colors.semantic.successText
+      : category === 'cofrinho'
+        ? colors.semantic.infoText
+        : colors.semantic.errorText;
+
   return (
-    <View
-      style={[
-        styles.base,
-        { backgroundColor: credit ? colors.semantic.successBg : colors.semantic.errorBg },
-        style,
-      ]}
-    >
-      <Icon
-        size={size}
-        color={credit ? colors.semantic.successText : colors.semantic.errorText}
-        strokeWidth={2}
-      />
+    <View style={[styles.base, { backgroundColor: bgColor }, style]}>
+      <Icon size={size} color={iconColor} strokeWidth={2} />
     </View>
   );
 }

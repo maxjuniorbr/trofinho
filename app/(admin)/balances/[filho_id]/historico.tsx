@@ -10,9 +10,11 @@ import {
     ChevronRight,
 } from 'lucide-react-native';
 import {
+    getTransactionCategory,
     getTransactionTypeLabel,
     isCredit,
     type Transaction,
+    type TransactionCategory,
 } from '@lib/balances';
 import { formatDate } from '@lib/utils';
 import { useTransactionsByPeriod, useChildDetail } from '@/hooks/queries';
@@ -27,12 +29,19 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getSafeHorizontalPadding, getSafeTopPadding } from '@lib/safe-area';
 
-type FilterKey = 'all' | 'ganhos' | 'saidas';
+type FilterKey = 'all' | 'ganhos' | 'gastos' | 'cofrinho';
+
+const FILTER_CATEGORIES: Record<Exclude<FilterKey, 'all'>, TransactionCategory> = {
+    ganhos: 'ganho',
+    gastos: 'gasto',
+    cofrinho: 'cofrinho',
+};
 
 const FILTERS: readonly { key: FilterKey; label: string }[] = [
     { key: 'all', label: 'Tudo' },
     { key: 'ganhos', label: 'Ganhos' },
-    { key: 'saidas', label: 'Saídas' },
+    { key: 'gastos', label: 'Gastos' },
+    { key: 'cofrinho', label: 'Cofrinho' },
 ];
 
 const monthBounds = (year: number, month: number) => {
@@ -87,16 +96,17 @@ export default function ChildBalanceHistoryScreen() {
 
     const filtered = useMemo(() => {
         if (filter === 'all') return allTransactions;
-        if (filter === 'ganhos') return allTransactions.filter((t) => isCredit(t.tipo));
-        return allTransactions.filter((t) => !isCredit(t.tipo));
+        const cat = FILTER_CATEGORIES[filter];
+        return allTransactions.filter((t) => getTransactionCategory(t.tipo) === cat);
     }, [allTransactions, filter]);
 
     const totals = useMemo(() => {
         let entradas = 0;
         let saidas = 0;
         for (const tx of allTransactions) {
-            if (isCredit(tx.tipo)) entradas += tx.valor;
-            else saidas += tx.valor;
+            const cat = getTransactionCategory(tx.tipo);
+            if (cat === 'ganho') entradas += tx.valor;
+            else if (cat === 'gasto') saidas += tx.valor;
         }
         return { entradas, saidas };
     }, [allTransactions]);
@@ -403,9 +413,12 @@ export default function ChildBalanceHistoryScreen() {
                                             style={[
                                                 styles.txValue,
                                                 {
-                                                    color: isCredit(tx.tipo)
-                                                        ? colors.semantic.success
-                                                        : colors.semantic.error,
+                                                    color: (() => {
+                                                        const cat = getTransactionCategory(tx.tipo);
+                                                        if (cat === 'ganho') return colors.semantic.success;
+                                                        if (cat === 'cofrinho') return colors.semantic.info;
+                                                        return colors.semantic.error;
+                                                    })(),
                                                 },
                                             ]}
                                         >

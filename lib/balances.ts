@@ -62,6 +62,19 @@ export function getTransactionTypeLabel(type: TransactionType): string {
   return map[type] ?? type;
 }
 
+export type TransactionCategory = 'ganho' | 'gasto' | 'cofrinho';
+
+export function getTransactionCategory(type: TransactionType): TransactionCategory {
+  if (type === 'credito' || type === 'estorno_resgate') return 'ganho';
+  if (
+    type === 'transferencia_cofrinho' ||
+    type === 'resgate_cofrinho' ||
+    type === 'valorizacao'
+  )
+    return 'cofrinho';
+  return 'gasto';
+}
+
 export function isCredit(type: TransactionType): boolean {
   return type === 'credito' || type === 'valorizacao' || type === 'estorno_resgate';
 }
@@ -128,9 +141,6 @@ export async function listTransactions(
   return { data: hasMore ? items.slice(0, pageSize) : items, hasMore, error: null };
 }
 
-/** Types that represent core balance movements (earned / lost). */
-const BALANCE_TYPES = ['credito', 'penalizacao', 'debito'] as const;
-
 export async function listTransactionsByPeriod(
   childId: string,
   from: string,
@@ -140,7 +150,6 @@ export async function listTransactionsByPeriod(
     .from('movimentacoes')
     .select('*')
     .eq('filho_id', childId)
-    .in('tipo', [...BALANCE_TYPES])
     .gte('created_at', from)
     .lt('created_at', to)
     .order('created_at', { ascending: false })

@@ -7,6 +7,7 @@ import {
   configureAppreciation,
   getAppreciationPeriodLabel,
   getBalance,
+  getTransactionCategory,
   getTransactionTypeLabel,
   isCredit,
   listAdminBalances,
@@ -14,7 +15,7 @@ import {
   syncAutomaticAppreciation,
   transferToPiggyBank,
 } from './balances';
-import type { TransactionType } from './balances';
+import type { TransactionCategory, TransactionType } from './balances';
 
 const supabaseMock = vi.hoisted(() => ({
   from: vi.fn(),
@@ -244,6 +245,25 @@ describe('balances', () => {
       fc.assert(
         fc.property(fc.constantFrom(...allTransactionTypes), (type) => {
           return isCredit(type) === creditTypes.has(type);
+        }),
+        { numRuns: 100 },
+      );
+    });
+
+    it('getTransactionCategory classifies all types correctly', () => {
+      const expected: Record<TransactionType, TransactionCategory> = {
+        credito: 'ganho',
+        estorno_resgate: 'ganho',
+        transferencia_cofrinho: 'cofrinho',
+        resgate_cofrinho: 'cofrinho',
+        valorizacao: 'cofrinho',
+        resgate: 'gasto',
+        penalizacao: 'gasto',
+        debito: 'gasto',
+      };
+      fc.assert(
+        fc.property(fc.constantFrom(...allTransactionTypes), (type) => {
+          return getTransactionCategory(type) === expected[type];
         }),
         { numRuns: 100 },
       );

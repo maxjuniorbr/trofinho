@@ -217,6 +217,8 @@ vi.mock('@/context/theme-context', () => ({
                 warningText: '#92400E',
                 error: '#EF4444',
                 info: '#3B82F6',
+                infoBg: '#E5F2FF',
+                infoText: '#0F4D8A',
             },
         },
     }),
@@ -375,7 +377,7 @@ describe('ChildBalanceAdminScreen', () => {
     it('renders transaction list', () => {
         const renderer = render(React.createElement(ChildBalanceAdminScreen));
         const text = allText(renderer);
-        expect(text).toContain('Aprovado hoje');
+        expect(text).toContain('Hoje');
         expect(text).toContain('Arrumar o quarto');
     });
 
@@ -383,7 +385,7 @@ describe('ChildBalanceAdminScreen', () => {
         transactionsMock.data = [];
         const renderer = render(React.createElement(ChildBalanceAdminScreen));
         const text = allText(renderer);
-        expect(text).toContain('Nenhuma movimentação aprovada hoje.');
+        expect(text).toContain('Nenhuma movimentação hoje.');
     });
 
     it('navigates back when back button is pressed', () => {

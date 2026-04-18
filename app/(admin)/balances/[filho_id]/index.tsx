@@ -6,7 +6,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { TrendingUp, PiggyBank, Settings, Wallet, AlertTriangle, ChevronLeft } from 'lucide-react-native';
 import { hapticSuccess } from '@lib/haptics';
 import { formatDate } from '@lib/utils';
-import { getTransactionTypeLabel, isCredit, calculateProjection } from '@lib/balances';
+import { getTransactionCategory, getTransactionTypeLabel, isCredit, calculateProjection } from '@lib/balances';
 import {
   useBalance,
   useTransactionsByPeriod,
@@ -462,10 +462,10 @@ export default function ChildBalanceAdminScreen() {
             <PenaltyButton onPress={() => setModalType('penalizar')} />
 
             <View style={styles.historicoHeader}>
-              <Text style={styles.secaoTitulo}>Aprovado hoje · {todayLabel}</Text>
+              <Text style={styles.secaoTitulo}>Hoje · {todayLabel}</Text>
             </View>
             {todayTransactions.length === 0 ? (
-              <Text style={styles.vazio}>Nenhuma movimentação aprovada hoje.</Text>
+              <Text style={styles.vazio}>Nenhuma movimentação hoje.</Text>
             ) : null}
           </>
         }
@@ -482,7 +482,12 @@ export default function ChildBalanceAdminScreen() {
               <Text
                 style={[
                   styles.movValor,
-                  isCredit(item.tipo) ? styles.creditoTxt : styles.debitoTxt,
+                  (() => {
+                    const cat = getTransactionCategory(item.tipo);
+                    if (cat === 'ganho') return styles.creditoTxt;
+                    if (cat === 'cofrinho') return styles.cofrinhoTxt;
+                    return styles.debitoTxt;
+                  })(),
                 ]}
               >
                 {isCredit(item.tipo) ? '+' : '-'}
@@ -766,6 +771,7 @@ function makeStyles(colors: ThemeColors) {
     movData: { fontSize: typography.size.xxs, color: colors.text.muted },
     creditoTxt: { color: colors.semantic.success },
     debitoTxt: { color: colors.semantic.error },
+    cofrinhoTxt: { color: colors.semantic.info },
     pendingBanner: {
       backgroundColor: colors.semantic.warningBg,
       borderRadius: radii.xl,
