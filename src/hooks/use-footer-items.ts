@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ClipboardList, Gift, House, ShoppingBag, Users } from 'lucide-react-native';
+import { ClipboardList, Gift, House, ShoppingBag, User } from 'lucide-react-native';
 import {
   useChildAssignments,
   usePendingValidationCount,
@@ -17,9 +17,9 @@ const CHILD_FOOTER_ITEMS: readonly FooterItem[] = [
 const ADMIN_FOOTER_ITEMS: readonly FooterItem[] = [
   { icon: House, label: 'Início', rota: 'index' },
   { icon: ClipboardList, label: 'Tarefas', rota: '/(admin)/tasks' },
-  { icon: Users, label: 'Filhos', rota: '/(admin)/children' },
   { icon: Gift, label: 'Prêmios', rota: '/(admin)/prizes' },
   { icon: ShoppingBag, label: 'Resgates', rota: '/(admin)/redemptions' },
+  { icon: User, label: 'Perfil', rota: '/(admin)/perfil' },
 ];
 
 export function useChildFooterItems(): readonly FooterItem[] {
@@ -48,8 +48,7 @@ export function useAdminFooterItems(): readonly FooterItem[] {
     () =>
       ADMIN_FOOTER_ITEMS.map((item) => {
         if (item.rota === '/(admin)/tasks') return { ...item, badge: pendingValidationCount };
-        if (item.rota === '/(admin)/redemptions')
-          return { ...item, badge: pendingRedemptionCount };
+        if (item.rota === '/(admin)/redemptions') return { ...item, badge: pendingRedemptionCount };
         return item;
       }),
     [pendingValidationCount, pendingRedemptionCount],
