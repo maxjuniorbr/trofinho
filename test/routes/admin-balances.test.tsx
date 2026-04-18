@@ -59,18 +59,24 @@ vi.mock('@shopify/flash-list', () => ({
       props,
       data && data.length > 0
         ? data.map((item) =>
-          React.createElement(React.Fragment, { key: item.filho_id as string }, renderItem({ item })),
-        )
+            React.createElement(
+              React.Fragment,
+              { key: item.filho_id as string },
+              renderItem({ item }),
+            ),
+          )
         : ListEmptyComponent,
     ),
 }));
 
 vi.mock('lucide-react-native', () => ({
+  ChevronLeft: (props: Record<string, unknown>) => React.createElement('ChevronLeft', props),
   ChevronRight: (props: Record<string, unknown>) => React.createElement('ChevronRight', props),
+  TrendingUp: (props: Record<string, unknown>) => React.createElement('TrendingUp', props),
 }));
 
-vi.mock('@/components/ui/screen-header', () => ({
-  ScreenHeader: (props: Record<string, unknown>) => React.createElement('ScreenHeader', props),
+vi.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
 vi.mock('@/components/ui/empty-state', () => ({
@@ -86,6 +92,11 @@ vi.mock('@/components/ui/avatar', () => ({
   Avatar: (props: Record<string, unknown>) => React.createElement('Avatar', props),
 }));
 
+vi.mock('@lib/safe-area', () => ({
+  getSafeTopPadding: () => 0,
+  getSafeHorizontalPadding: () => ({}),
+}));
+
 vi.mock('@/hooks/queries', () => ({
   useAdminBalances: () => balancesMock,
 }));
@@ -98,7 +109,8 @@ vi.mock('@/context/theme-context', () => ({
       bg: { surface: '#fff', canvas: '#fff' },
       border: { subtle: '#eee' },
       text: { primary: '#000', secondary: '#666', muted: '#999', inverse: '#fff' },
-      semantic: { warningText: '#f90' },
+      accent: { admin: '#FAC114', filho: '#FAC114' },
+      semantic: { warningText: '#f90', success: '#20C55D' },
     },
   }),
 }));
@@ -178,7 +190,8 @@ describe('BalancesAdminScreen', () => {
   it('renders balance amounts', () => {
     const renderer = render(<BalancesAdminScreen />);
     const text = allText(renderer);
-    expect(text).toContain('100 livre · 50 cofrinho');
+    expect(text).toContain('100 livre');
+    expect(text).toContain('50 cofrinho');
   });
 
   it('shows deactivated badge for inactive child', () => {
@@ -190,15 +203,16 @@ describe('BalancesAdminScreen', () => {
   it('shows appreciation info when positive', () => {
     const renderer = render(<BalancesAdminScreen />);
     const text = allText(renderer);
-    expect(text).toContain('5%/mensal');
+    expect(text).toContain('5% ao mês');
   });
 
   it('navigates to child balance detail on press', () => {
     const renderer = render(<BalancesAdminScreen />);
-    const pressables = renderer.root.findAllByType('Pressable' as never);
-    const firstCard = pressables[0];
+    const aliceCard = renderer.root.findAll((node) =>
+      node.props.accessibilityLabel?.includes('Alice'),
+    )[0];
     act(() => {
-      firstCard.props.onPress();
+      aliceCard.props.onPress();
     });
     expect(routerMock.push).toHaveBeenCalledWith({
       pathname: '/(admin)/balances/[filho_id]',
@@ -206,9 +220,10 @@ describe('BalancesAdminScreen', () => {
     });
   });
 
-  it('renders screen header with correct title', () => {
+  it('renders header with title and total points', () => {
     const renderer = render(<BalancesAdminScreen />);
-    const header = renderer.root.findByType('ScreenHeader' as never);
-    expect(header.props.title).toBe('Saldos dos Filhos');
+    const text = allText(renderer);
+    expect(text).toContain('Saldos');
+    expect(text).toContain('pts no total');
   });
 });

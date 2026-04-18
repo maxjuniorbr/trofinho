@@ -6,11 +6,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { TrendingUp, PiggyBank } from 'lucide-react-native';
 import { hapticSuccess } from '@lib/haptics';
 import { formatDate } from '@lib/utils';
-import {
-  getTransactionTypeLabel,
-  isCredit,
-  calculateProjection,
-} from '@lib/balances';
+import { getTransactionTypeLabel, isCredit, calculateProjection } from '@lib/balances';
 import {
   useBalance,
   useTransactions,
@@ -192,8 +188,8 @@ export default function ChildBalanceAdminScreen() {
   const cofrinho = balance?.cofrinho ?? 0;
   const totalPts = saldoLivre + cofrinho;
   const cofrinhoPercent = totalPts > 0 ? Math.round((cofrinho / totalPts) * 100) : 0;
-  const appreciationRate = appreciationSlider ?? (balance?.indice_valorizacao ?? 0);
-  const withdrawRate = withdrawalSlider ?? (balance?.taxa_resgate_cofrinho ?? 0);
+  const appreciationRate = appreciationSlider ?? balance?.indice_valorizacao ?? 0;
+  const withdrawRate = withdrawalSlider ?? balance?.taxa_resgate_cofrinho ?? 0;
   const projection = calculateProjection(cofrinho, appreciationRate);
   const hasAppreciationConfigured = appreciationRate > 0;
   const header = getBalanceHeaderColors(colors);
@@ -209,7 +205,10 @@ export default function ChildBalanceAdminScreen() {
     const currentRate = balance?.taxa_resgate_cofrinho ?? 0;
     const storedRate = pendingWithdrawal.taxa_aplicada;
     const rateChanged = storedRate !== currentRate;
-    const { net: expectedNet } = calculateNetAmount(pendingWithdrawal.valor_solicitado, currentRate);
+    const { net: expectedNet } = calculateNetAmount(
+      pendingWithdrawal.valor_solicitado,
+      currentRate,
+    );
     return (
       <View style={styles.pendingBanner}>
         <View style={styles.pendingBannerHeader}>
@@ -222,13 +221,12 @@ export default function ChildBalanceAdminScreen() {
             {pendingWithdrawal.valor_solicitado}
           </Text>{' '}
           pts do cofrinho. Taxa atual: {currentRate}% → receberá{' '}
-          <Text style={{ fontFamily: typography.family.bold }}>
-            ~{expectedNet}
-          </Text>{' '}
-          pts.
+          <Text style={{ fontFamily: typography.family.bold }}>~{expectedNet}</Text> pts.
         </Text>
         {rateChanged ? (
-          <Text style={[styles.pendingBannerText, { fontStyle: 'italic', marginTop: spacing['1'] }]}>
+          <Text
+            style={[styles.pendingBannerText, { fontStyle: 'italic', marginTop: spacing['1'] }]}
+          >
             A taxa mudou de {storedRate}% para {currentRate}% desde a solicitação.
           </Text>
         ) : null}
@@ -282,12 +280,15 @@ export default function ChildBalanceAdminScreen() {
                 <InlineMessage message={visibleSuccess} variant="success" />
               </View>
             ) : null}
-            <View style={[styles.balanceHeader, { backgroundColor: header.bg, borderColor: header.border }]}>
+            <View
+              style={[
+                styles.balanceHeader,
+                { backgroundColor: header.bg, borderColor: header.border },
+              ]}
+            >
               <View style={styles.balanceHeaderTop}>
                 <PiggyBank size={16} color={header.textMuted} strokeWidth={2} />
-                <Text style={[styles.balanceHeaderLabel, { color: header.textMuted }]}>
-                  SALDO
-                </Text>
+                <Text style={[styles.balanceHeaderLabel, { color: header.textMuted }]}>SALDO</Text>
               </View>
               <Text style={[styles.balanceHeaderTotal, { color: header.text }]}>
                 {totalPts.toLocaleString('pt-BR')}
@@ -296,14 +297,28 @@ export default function ChildBalanceAdminScreen() {
                 pontos disponíveis
               </Text>
               <View style={styles.balanceHeaderBoxes}>
-                <View style={[styles.balanceHeaderBox, { backgroundColor: header.boxBg, borderColor: header.border }]}>
-                  <Text style={[styles.balanceHeaderBoxLabel, { color: header.textMuted }]}>LIVRE</Text>
+                <View
+                  style={[
+                    styles.balanceHeaderBox,
+                    { backgroundColor: header.boxBg, borderColor: header.border },
+                  ]}
+                >
+                  <Text style={[styles.balanceHeaderBoxLabel, { color: header.textMuted }]}>
+                    LIVRE
+                  </Text>
                   <Text style={[styles.balanceHeaderBoxValue, { color: header.text }]}>
                     {saldoLivre.toLocaleString('pt-BR')}
                   </Text>
                 </View>
-                <View style={[styles.balanceHeaderBox, { backgroundColor: header.boxBg, borderColor: header.border }]}>
-                  <Text style={[styles.balanceHeaderBoxLabel, { color: header.textMuted }]}>COFRINHO</Text>
+                <View
+                  style={[
+                    styles.balanceHeaderBox,
+                    { backgroundColor: header.boxBg, borderColor: header.border },
+                  ]}
+                >
+                  <Text style={[styles.balanceHeaderBoxLabel, { color: header.textMuted }]}>
+                    COFRINHO
+                  </Text>
                   <Text style={[styles.balanceHeaderBoxValue, { color: header.text }]}>
                     {cofrinho.toLocaleString('pt-BR')}
                   </Text>
@@ -348,9 +363,7 @@ export default function ChildBalanceAdminScreen() {
                 <TrendingUp size={16} color={colors.text.primary} strokeWidth={2} />
                 <Text style={styles.boxConfigTitulo}>Valorização</Text>
               </View>
-              <Text style={styles.boxConfigSub}>
-                Taxa mensal aplicada sobre o cofrinho
-              </Text>
+              <Text style={styles.boxConfigSub}>Taxa mensal aplicada sobre o cofrinho</Text>
               <SteppedSlider
                 value={appreciationRate}
                 onValueChange={setAppreciationSlider}
@@ -391,9 +404,7 @@ export default function ChildBalanceAdminScreen() {
                 <PiggyBank size={16} color={colors.text.primary} strokeWidth={2} />
                 <Text style={styles.boxConfigTitulo}>Taxa de resgate</Text>
               </View>
-              <Text style={styles.boxConfigSub}>
-                Percentual retido ao resgatar do cofrinho
-              </Text>
+              <Text style={styles.boxConfigSub}>Percentual retido ao resgatar do cofrinho</Text>
               <SteppedSlider
                 value={withdrawRate}
                 onValueChange={setWithdrawalSlider}
@@ -414,8 +425,7 @@ export default function ChildBalanceAdminScreen() {
               />
               {cofrinho > 0 ? (
                 <Text style={styles.boxConfigAjuda}>
-                  {cofrinho} pts → recebe{' '}
-                  {Math.round(cofrinho * (1 - withdrawRate / 100))} pts
+                  {cofrinho} pts → recebe {Math.round(cofrinho * (1 - withdrawRate / 100))} pts
                 </Text>
               ) : null}
             </View>
@@ -441,14 +451,15 @@ export default function ChildBalanceAdminScreen() {
             </View>
             <View style={styles.movRight}>
               <Text
-                style={[styles.movValor, isCredit(item.tipo) ? styles.creditoTxt : styles.debitoTxt]}
+                style={[
+                  styles.movValor,
+                  isCredit(item.tipo) ? styles.creditoTxt : styles.debitoTxt,
+                ]}
               >
                 {isCredit(item.tipo) ? '+' : '-'}
                 {item.valor}
               </Text>
-              <Text style={styles.movData}>
-                {formatDate(item.created_at)}
-              </Text>
+              <Text style={styles.movData}>{formatDate(item.created_at)}</Text>
             </View>
           </View>
         )}
@@ -465,7 +476,6 @@ export default function ChildBalanceAdminScreen() {
         onClose={() => setModalType(null)}
         onApply={handlePenalty}
       />
-
     </SafeScreenFrame>
   );
 }
@@ -638,7 +648,11 @@ function makeStyles(colors: ThemeColors) {
       marginTop: spacing['0.5'],
     },
     movRight: { alignItems: 'flex-end', gap: spacing['0.5'] },
-    movValor: { fontSize: typography.size.md, fontFamily: typography.family.bold, fontVariant: ['tabular-nums'] },
+    movValor: {
+      fontSize: typography.size.md,
+      fontFamily: typography.family.bold,
+      fontVariant: ['tabular-nums'],
+    },
     movData: { fontSize: typography.size.xxs, color: colors.text.muted },
     creditoTxt: { color: colors.semantic.success },
     debitoTxt: { color: colors.semantic.error },

@@ -49,19 +49,19 @@ function getBalanceHeaderColors(colors: ThemeColors) {
   return {
     ...(isLight
       ? {
-        bg: colors.bg.surface,
-        boxBg: colors.bg.muted,
-        border: colors.border.subtle,
-        text: colors.text.primary,
-        textMuted: colors.text.secondary,
-      }
+          bg: colors.bg.surface,
+          boxBg: colors.bg.muted,
+          border: colors.border.subtle,
+          text: colors.text.primary,
+          textMuted: colors.text.secondary,
+        }
       : {
-        bg: colors.bg.elevated,
-        boxBg: colors.bg.muted,
-        border: colors.border.subtle,
-        text: '#FFFFFF',
-        textMuted: 'rgba(255, 255, 255, 0.7)',
-      }),
+          bg: colors.bg.elevated,
+          boxBg: colors.bg.muted,
+          border: colors.border.subtle,
+          text: '#FFFFFF',
+          textMuted: 'rgba(255, 255, 255, 0.7)',
+        }),
   };
 }
 
@@ -102,15 +102,15 @@ const resolveAmount = (
   return result;
 };
 
-const buildWithdrawalOpts = (profile: { id: string; familia_id: string | null; nome: string | null } | null | undefined) =>
+const buildWithdrawalOpts = (
+  profile: { id: string; familia_id: string | null; nome: string | null } | null | undefined,
+) =>
   profile?.familia_id
     ? { familiaId: profile.familia_id, childName: profile.nome ?? '', childUserId: profile.id }
     : undefined;
 
 const formatAppreciationHint = (nextDate: string | null | undefined) => {
-  const suffix = nextDate
-    ? '\nPróximo rendimento em ' + formatDate(nextDate) + '.'
-    : '';
+  const suffix = nextDate ? '\nPróximo rendimento em ' + formatDate(nextDate) + '.' : '';
   return 'Os pontos guardados rendem sozinhos com o tempo.' + suffix;
 };
 
@@ -134,10 +134,7 @@ export default function ChildBalanceScreen() {
   );
   const { fetchNextPage, hasNextPage, isFetchingNextPage } = transactionsQuery;
 
-  const { isLoading, refetchAll } = combineQueryStates(
-    balanceQuery,
-    transactionsQuery,
-  );
+  const { isLoading, refetchAll } = combineQueryStates(balanceQuery, transactionsQuery);
 
   const transferMutation = useTransferToPiggyBank();
   const withdrawalMutation = useRequestPiggyBankWithdrawal();
@@ -166,7 +163,13 @@ export default function ChildBalanceScreen() {
 
   const handleTransfer = async () => {
     setModalError(null);
-    const v = resolveAmount(amountStr, balance?.saldo_livre ?? 0, balance?.saldo_livre ?? 0, 1, setModalError);
+    const v = resolveAmount(
+      amountStr,
+      balance?.saldo_livre ?? 0,
+      balance?.saldo_livre ?? 0,
+      1,
+      setModalError,
+    );
     if (v === null || !childId) return;
     try {
       await transferMutation.mutateAsync({ childId, amount: v });
@@ -182,7 +185,13 @@ export default function ChildBalanceScreen() {
 
   const handleWithdrawal = async () => {
     setModalError(null);
-    const v = resolveAmount(amountStr, balance?.cofrinho ?? 0, balance?.saldo_livre ?? 0, minimumWithdrawal, setModalError);
+    const v = resolveAmount(
+      amountStr,
+      balance?.cofrinho ?? 0,
+      balance?.saldo_livre ?? 0,
+      minimumWithdrawal,
+      setModalError,
+    );
     if (v === null) return;
     const opts = buildWithdrawalOpts(profile);
     try {
@@ -208,9 +217,7 @@ export default function ChildBalanceScreen() {
       <SafeScreenFrame>
         <StatusBar style={colors.statusBar} />
         <ScreenHeader title="Meu saldo" />
-        <EmptyState
-          error="Não foi possível carregar seu saldo. Tente novamente mais tarde."
-        />
+        <EmptyState error="Não foi possível carregar seu saldo. Tente novamente mais tarde." />
       </SafeScreenFrame>
     );
   }
@@ -248,32 +255,33 @@ export default function ChildBalanceScreen() {
   const showWithdrawInsufficientHint = showWithdrawButton && !canWithdraw;
   const header = getBalanceHeaderColors(colors);
 
-  const progressBar = totalPts > 0 ? (
-    <View style={styles.balanceHeaderProgress}>
-      <View style={[styles.progressTrack, { backgroundColor: header.boxBg }]}>
-        <View
-          style={[
-            styles.progressFillLeft,
-            { flex: 100 - cofrinhoPercent, backgroundColor: colors.accent.filho },
-          ]}
-        />
-        <View
-          style={[
-            styles.progressFillRight,
-            { flex: cofrinhoPercent, backgroundColor: colors.semantic.warning },
-          ]}
-        />
+  const progressBar =
+    totalPts > 0 ? (
+      <View style={styles.balanceHeaderProgress}>
+        <View style={[styles.progressTrack, { backgroundColor: header.boxBg }]}>
+          <View
+            style={[
+              styles.progressFillLeft,
+              { flex: 100 - cofrinhoPercent, backgroundColor: colors.accent.filho },
+            ]}
+          />
+          <View
+            style={[
+              styles.progressFillRight,
+              { flex: cofrinhoPercent, backgroundColor: colors.semantic.warning },
+            ]}
+          />
+        </View>
+        <View style={styles.progressLabels}>
+          <Text style={[styles.progressLabel, { color: header.textMuted }]}>
+            {100 - cofrinhoPercent}% livre
+          </Text>
+          <Text style={[styles.progressLabel, { color: header.textMuted }]}>
+            {cofrinhoPercent}% cofrinho
+          </Text>
+        </View>
       </View>
-      <View style={styles.progressLabels}>
-        <Text style={[styles.progressLabel, { color: header.textMuted }]}>
-          {100 - cofrinhoPercent}% livre
-        </Text>
-        <Text style={[styles.progressLabel, { color: header.textMuted }]}>
-          {cofrinhoPercent}% cofrinho
-        </Text>
-      </View>
-    </View>
-  ) : null;
+    ) : null;
 
   const appreciationBox = showAppreciation ? (
     <View
@@ -320,29 +328,27 @@ export default function ChildBalanceScreen() {
     </View>
   ) : null;
 
-  const withdrawButton = showWithdrawButton && canWithdraw ? (
-    <View style={{ marginBottom: spacing['3'] }}>
-      <Button
-        variant="secondary"
-        label="Retirar do cofrinho"
-        onPress={() => {
-          setWithdrawModalVisible(true);
-          setAmountStr('');
-          setModalError(null);
-        }}
-        accessibilityLabel="Solicitar resgate de pontos do cofrinho"
-      />
-    </View>
-  ) : null;
+  const withdrawButton =
+    showWithdrawButton && canWithdraw ? (
+      <View style={{ marginBottom: spacing['3'] }}>
+        <Button
+          variant="secondary"
+          label="Retirar do cofrinho"
+          onPress={() => {
+            setWithdrawModalVisible(true);
+            setAmountStr('');
+            setModalError(null);
+          }}
+          accessibilityLabel="Solicitar resgate de pontos do cofrinho"
+        />
+      </View>
+    ) : null;
 
   const renderTransferModal = () => (
     <Modal visible={modalVisible} transparent animationType="slide">
       <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
         <View
-          style={[
-            styles.modalBox,
-            { paddingBottom: getSafeBottomPadding(insets, spacing['12']) },
-          ]}
+          style={[styles.modalBox, { paddingBottom: getSafeBottomPadding(insets, spacing['12']) }]}
         >
           <Text style={styles.modalTitle}>Guardar no cofrinho</Text>
           <Text style={styles.modalSub}>
@@ -353,33 +359,35 @@ export default function ChildBalanceScreen() {
             Pontos guardados no cofrinho ficam seguros e rendem valorização.
           </Text>
           <View style={styles.quickAmountRow}>
-            {[Math.floor(freeBalance / 2), freeBalance].filter((v, i, arr) => v > 0 && arr.indexOf(v) === i).map((v) => {
-              const label = v === freeBalance ? 'Tudo' : `${v}`;
-              const isSelected = amountStr === String(v);
-              return (
-                <Pressable
-                  key={label}
-                  style={[
-                    styles.quickAmountPill,
-                    {
-                      backgroundColor: isSelected ? colors.accent.filho : colors.bg.muted,
-                    },
-                  ]}
-                  onPress={() => setAmountStr(String(v))}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${label} pontos`}
-                >
-                  <Text
+            {[Math.floor(freeBalance / 2), freeBalance]
+              .filter((v, i, arr) => v > 0 && arr.indexOf(v) === i)
+              .map((v) => {
+                const label = v === freeBalance ? 'Tudo' : `${v}`;
+                const isSelected = amountStr === String(v);
+                return (
+                  <Pressable
+                    key={label}
                     style={[
-                      styles.quickAmountText,
-                      { color: isSelected ? colors.text.inverse : colors.text.primary },
+                      styles.quickAmountPill,
+                      {
+                        backgroundColor: isSelected ? colors.accent.filho : colors.bg.muted,
+                      },
                     ]}
+                    onPress={() => setAmountStr(String(v))}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${label} pontos`}
                   >
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
+                    <Text
+                      style={[
+                        styles.quickAmountText,
+                        { color: isSelected ? colors.text.inverse : colors.text.primary },
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
           </View>
           <TextInput
             style={styles.modalInput}
@@ -421,15 +429,11 @@ export default function ChildBalanceScreen() {
     <Modal visible={withdrawModalVisible} transparent animationType="slide">
       <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
         <View
-          style={[
-            styles.modalBox,
-            { paddingBottom: getSafeBottomPadding(insets, spacing['12']) },
-          ]}
+          style={[styles.modalBox, { paddingBottom: getSafeBottomPadding(insets, spacing['12']) }]}
         >
           <Text style={styles.modalTitle}>Retirar do cofrinho</Text>
           <Text style={styles.modalSub}>
-            Cofrinho:{' '}
-            <Text style={{ fontFamily: typography.family.bold }}>{piggyBank}</Text> pts
+            Cofrinho: <Text style={{ fontFamily: typography.family.bold }}>{piggyBank}</Text> pts
           </Text>
           {withdrawalRate > 0 ? (
             <Text style={styles.modalHint}>
@@ -442,33 +446,37 @@ export default function ChildBalanceScreen() {
             </Text>
           ) : null}
           <View style={styles.quickAmountRow}>
-            {[minimumWithdrawal, Math.floor(piggyBank / 2), piggyBank].filter((v, i, arr) => v >= minimumWithdrawal && v <= piggyBank && arr.indexOf(v) === i).map((v) => {
-              const label = v === piggyBank ? 'Tudo' : `${v}`;
-              const isSelected = amountStr === String(v);
-              return (
-                <Pressable
-                  key={label}
-                  style={[
-                    styles.quickAmountPill,
-                    {
-                      backgroundColor: isSelected ? colors.accent.filho : colors.bg.muted,
-                    },
-                  ]}
-                  onPress={() => setAmountStr(String(v))}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${label} pontos`}
-                >
-                  <Text
+            {[minimumWithdrawal, Math.floor(piggyBank / 2), piggyBank]
+              .filter(
+                (v, i, arr) => v >= minimumWithdrawal && v <= piggyBank && arr.indexOf(v) === i,
+              )
+              .map((v) => {
+                const label = v === piggyBank ? 'Tudo' : `${v}`;
+                const isSelected = amountStr === String(v);
+                return (
+                  <Pressable
+                    key={label}
                     style={[
-                      styles.quickAmountText,
-                      { color: isSelected ? colors.text.inverse : colors.text.primary },
+                      styles.quickAmountPill,
+                      {
+                        backgroundColor: isSelected ? colors.accent.filho : colors.bg.muted,
+                      },
                     ]}
+                    onPress={() => setAmountStr(String(v))}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${label} pontos`}
                   >
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
+                    <Text
+                      style={[
+                        styles.quickAmountText,
+                        { color: isSelected ? colors.text.inverse : colors.text.primary },
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
           </View>
           <TextInput
             style={styles.modalInput}
@@ -607,9 +615,7 @@ export default function ChildBalanceScreen() {
             {withdrawInsufficientHint}
             {withdrawButton}
 
-            <View
-              style={[styles.historicoHeader, { borderBottomColor: colors.border.subtle }]}
-            >
+            <View style={[styles.historicoHeader, { borderBottomColor: colors.border.subtle }]}>
               <Text style={styles.secaoTitulo}>Histórico</Text>
             </View>
             {hasTransactions ? null : (
@@ -620,12 +626,7 @@ export default function ChildBalanceScreen() {
           </>
         }
         renderItem={({ item }) => (
-          <View
-            style={[
-              styles.movItem,
-              { borderBottomColor: colors.border.subtle },
-            ]}
-          >
+          <View style={[styles.movItem, { borderBottomColor: colors.border.subtle }]}>
             <TransactionIcon type={item.tipo} style={styles.movIconBox} />
             <View style={styles.movInfo}>
               <Text style={styles.movLabel}>{getTransactionTypeLabel(item.tipo)}</Text>

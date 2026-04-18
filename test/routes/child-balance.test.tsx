@@ -9,7 +9,9 @@ const routerMock = vi.hoisted(() => ({
 }));
 
 const profileMock = vi.hoisted(() => ({
-  data: { id: 'u1', nome: 'João', familia_id: 'fam-1', papel: 'filho' } as Record<string, unknown> | undefined,
+  data: { id: 'u1', nome: 'João', familia_id: 'fam-1', papel: 'filho' } as
+    | Record<string, unknown>
+    | undefined,
 }));
 
 const childIdMock = vi.hoisted(() => ({
@@ -36,8 +38,20 @@ const transactionsMock = vi.hoisted(() => ({
     pages: [
       {
         data: [
-          { id: 't1', tipo: 'credito_tarefa', descricao: 'Tarefa concluída', valor: 50, created_at: '2025-06-01' },
-          { id: 't2', tipo: 'debito_resgate', descricao: 'Resgate prêmio', valor: 30, created_at: '2025-06-02' },
+          {
+            id: 't1',
+            tipo: 'credito_tarefa',
+            descricao: 'Tarefa concluída',
+            valor: 50,
+            created_at: '2025-06-01',
+          },
+          {
+            id: 't2',
+            tipo: 'debito_resgate',
+            descricao: 'Resgate prêmio',
+            valor: 30,
+            created_at: '2025-06-02',
+          },
         ],
       },
     ],
@@ -124,8 +138,8 @@ vi.mock('@shopify/flash-list', () => ({
       ListHeaderComponent,
       data && data.length > 0
         ? data.map((item) =>
-          React.createElement(React.Fragment, { key: item.id as string }, renderItem({ item })),
-        )
+            React.createElement(React.Fragment, { key: item.id as string }, renderItem({ item })),
+          )
         : ListEmptyComponent,
       ListFooterComponent,
     ),
@@ -196,7 +210,8 @@ vi.mock('@/components/ui/safe-screen-frame', () => ({
 }));
 
 vi.mock('@/components/balance/transaction-icon', () => ({
-  TransactionIcon: (props: Record<string, unknown>) => React.createElement('TransactionIcon', props),
+  TransactionIcon: (props: Record<string, unknown>) =>
+    React.createElement('TransactionIcon', props),
 }));
 
 vi.mock('@/constants/colors', () => ({
@@ -222,11 +237,24 @@ vi.mock('@/context/theme-context', () => ({
     colors: {
       statusBar: 'dark',
       bg: { canvas: '#fff', surface: '#fff', elevated: '#fafafa', muted: '#f0f0f0' },
-      text: { primary: '#000', secondary: '#666', muted: '#999', inverse: '#fff', onBrandMuted: '#ccc', onBrand: '#fff' },
+      text: {
+        primary: '#000',
+        secondary: '#666',
+        muted: '#999',
+        inverse: '#fff',
+        onBrandMuted: '#ccc',
+        onBrand: '#fff',
+      },
       accent: { filho: '#3366CC', filhoBg: '#EEF' },
       border: { default: '#ddd', subtle: '#eee' },
       brand: { vivid: '#000' },
-      semantic: { success: '#0a0', successBg: '#e0ffe0', error: '#c00', warning: '#fa0', warningBg: '#fff7e0' },
+      semantic: {
+        success: '#0a0',
+        successBg: '#e0ffe0',
+        error: '#c00',
+        warning: '#fa0',
+        warningBg: '#fff7e0',
+      },
       overlay: { scrimSoft: 'rgba(0,0,0,0.3)' },
     },
   }),
@@ -276,8 +304,20 @@ describe('ChildBalanceScreen', () => {
       pages: [
         {
           data: [
-            { id: 't1', tipo: 'credito_tarefa', descricao: 'Tarefa concluída', valor: 50, created_at: '2025-06-01' },
-            { id: 't2', tipo: 'debito_resgate', descricao: 'Resgate prêmio', valor: 30, created_at: '2025-06-02' },
+            {
+              id: 't1',
+              tipo: 'credito_tarefa',
+              descricao: 'Tarefa concluída',
+              valor: 50,
+              created_at: '2025-06-01',
+            },
+            {
+              id: 't2',
+              tipo: 'debito_resgate',
+              descricao: 'Resgate prêmio',
+              valor: 30,
+              created_at: '2025-06-02',
+            },
           ],
         },
       ],
@@ -334,7 +374,13 @@ describe('ChildBalanceScreen', () => {
   });
 
   it('disables transfer button when balance is zero', () => {
-    balanceMock.data = { saldo_livre: 0, cofrinho: 0, indice_valorizacao: 0, periodo_valorizacao: 'mensal', proxima_valorizacao_em: null };
+    balanceMock.data = {
+      saldo_livre: 0,
+      cofrinho: 0,
+      indice_valorizacao: 0,
+      periodo_valorizacao: 'mensal',
+      proxima_valorizacao_em: null,
+    };
     const renderer = render(<ChildBalanceScreen />);
     const buttons = renderer.root.findAllByType('Button' as never);
     const piggyBtn = buttons.find((b) => b.props.label === 'Guardar no cofrinho');
