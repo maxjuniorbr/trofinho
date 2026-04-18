@@ -7,6 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { RefreshCw, Camera, Clock, Trophy, Maximize2 } from 'lucide-react-native';
 import { hapticSuccess } from '@lib/haptics';
 import {
+  buildValidationLine,
   getAssignmentCancellationState,
   getAssignmentCompletionState,
   getAssignmentPoints,
@@ -15,6 +16,7 @@ import {
   type ChildAssignment,
 } from '@lib/tasks';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
+import { formatDate } from '@lib/utils';
 import {
   useChildAssignment,
   useCancelAssignmentSubmission,
@@ -415,6 +417,7 @@ export default function ChildTaskDetailScreen() {
   const task = assignment.tarefas;
   const completionState = getAssignmentCompletionState(assignment, task);
   const cancellationState = getAssignmentCancellationState(assignment, task);
+  const validationLine = buildValidationLine(assignment);
   let inactiveTaskMessage: string | null = null;
   if (task.ativo === false && assignment.status !== 'pendente') {
     inactiveTaskMessage =
@@ -462,6 +465,14 @@ export default function ChildTaskDetailScreen() {
             {getAssignmentStatusLabel(assignment.status)}
           </Text>
         </View>
+
+        {validationLine ? <Text style={styles.dateLine}>{validationLine}</Text> : null}
+
+        {assignment.status === 'aguardando_validacao' && assignment.concluida_em ? (
+          <Text style={styles.dateLine}>
+            Enviada em {formatDate(assignment.concluida_em)}
+          </Text>
+        ) : null}
 
         {visibleFeedback ? (
           <View style={styles.feedbackWrapper}>
@@ -552,6 +563,13 @@ function makeStyles(colors: ThemeColors) {
       marginBottom: spacing['4'],
     },
     statusBadgeText: { fontSize: typography.size.sm, fontFamily: typography.family.bold },
+    dateLine: {
+      textAlign: 'center',
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.medium,
+      color: colors.text.muted,
+      marginBottom: spacing['4'],
+    },
     feedbackWrapper: { marginBottom: spacing['4'] },
     card: {
       backgroundColor: colors.bg.surface,

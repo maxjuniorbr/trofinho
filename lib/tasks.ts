@@ -1,6 +1,6 @@
 import * as Crypto from 'expo-crypto';
 import { localizeRpcError, extractErrorMessage } from './api-error';
-import { toDateString } from './utils';
+import { toDateString, formatDate } from './utils';
 import { dispatchPushNotification } from './push';
 import { prepareImageUpload } from './storage';
 import { supabase } from './supabase';
@@ -577,6 +577,21 @@ export function getTaskEditState(
 export function getAssignmentPoints(assignment: Pick<Assignment, 'pontos_snapshot'>): number {
   return assignment.pontos_snapshot;
 }
+
+export const buildValidationLine = (
+  assignment: Pick<ChildAssignment, 'status' | 'validada_em' | 'concluida_em' | 'competencia'>,
+): string | null => {
+  if (assignment.status !== 'aprovada' && assignment.status !== 'rejeitada') return null;
+  const dateVal = assignment.validada_em ?? assignment.concluida_em;
+  if (!dateVal) return null;
+  const label = assignment.status === 'aprovada' ? 'Aprovada em ' : 'Rejeitada em ';
+  const base = `${label}${formatDate(dateVal)}`;
+  if (!assignment.competencia) return base;
+  const isCrossDay = toDateString(new Date(dateVal)) !== assignment.competencia;
+  if (!isCrossDay) return base;
+  const [year, month, day] = assignment.competencia.split('-').map(Number);
+  return `${base} (tarefa de ${formatDate(new Date(year, month - 1, day))})`;
+};
 
 export async function deactivateTask(taskId: string): Promise<{
   data: { pendingValidationCount: number } | null;

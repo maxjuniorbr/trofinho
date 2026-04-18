@@ -3,6 +3,7 @@ import * as fc from 'fast-check';
 
 import {
   approveAssignment,
+  buildValidationLine,
   cancelAssignmentSubmission,
   buildTaskDeactivateMessage,
   completeAssignment,
@@ -1379,6 +1380,103 @@ describe('tasks', () => {
         ),
         { numRuns: 100 },
       );
+    });
+  });
+
+  describe('buildValidationLine', () => {
+    it('returns null for pendente status', () => {
+      expect(
+        buildValidationLine({
+          status: 'pendente',
+          validada_em: '2026-04-18T12:00:00Z',
+          concluida_em: null,
+          competencia: null,
+        }),
+      ).toBeNull();
+    });
+
+    it('returns null for aguardando_validacao status', () => {
+      expect(
+        buildValidationLine({
+          status: 'aguardando_validacao',
+          validada_em: null,
+          concluida_em: '2026-04-18T12:00:00Z',
+          competencia: null,
+        }),
+      ).toBeNull();
+    });
+
+    it('returns null when both date fields are null', () => {
+      expect(
+        buildValidationLine({
+          status: 'aprovada',
+          validada_em: null,
+          concluida_em: null,
+          competencia: null,
+        }),
+      ).toBeNull();
+    });
+
+    it('returns "Aprovada em DD/MM/YYYY" for aprovada without competencia', () => {
+      const result = buildValidationLine({
+        status: 'aprovada',
+        validada_em: '2026-04-18T15:00:00Z',
+        concluida_em: null,
+        competencia: null,
+      });
+      expect(result).toMatch(/^Aprovada em \d{2}\/\d{2}\/\d{4}$/);
+    });
+
+    it('returns "Rejeitada em DD/MM/YYYY" for rejeitada', () => {
+      const result = buildValidationLine({
+        status: 'rejeitada',
+        validada_em: '2026-04-18T15:00:00Z',
+        concluida_em: null,
+        competencia: null,
+      });
+      expect(result).toMatch(/^Rejeitada em \d{2}\/\d{2}\/\d{4}$/);
+    });
+
+    it('falls back to concluida_em when validada_em is null', () => {
+      const result = buildValidationLine({
+        status: 'aprovada',
+        validada_em: null,
+        concluida_em: '2026-04-18T15:00:00Z',
+        competencia: null,
+      });
+      expect(result).toMatch(/^Aprovada em /);
+    });
+
+    it('returns base line when competencia matches validation date (same day)', () => {
+      const result = buildValidationLine({
+        status: 'aprovada',
+        validada_em: '2026-04-18T15:00:00Z',
+        concluida_em: null,
+        competencia: '2026-04-18',
+      });
+      expect(result).not.toContain('(tarefa de');
+    });
+
+    it('appends "(tarefa de DD/MM/YYYY)" when competencia differs from validation date', () => {
+      const result = buildValidationLine({
+        status: 'aprovada',
+        validada_em: '2026-04-18T15:00:00Z',
+        concluida_em: null,
+        competencia: '2026-04-17',
+      });
+      expect(result).toContain('(tarefa de');
+      expect(result).toMatch(/\(tarefa de \d{2}\/\d{2}\/\d{4}\)$/);
+    });
+
+    it('uses lowercase "tarefa de" (not "Tarefa de")', () => {
+      const result = buildValidationLine({
+        status: 'aprovada',
+        validada_em: '2026-04-18T15:00:00Z',
+        concluida_em: null,
+        competencia: '2026-04-16',
+      });
+      expect(result).toContain('(tarefa de');
+      expect(result).not.toContain('(Tarefa de');
     });
   });
 });
