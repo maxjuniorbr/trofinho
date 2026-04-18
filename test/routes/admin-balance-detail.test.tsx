@@ -172,10 +172,6 @@ vi.mock('@/components/ui/inline-message', () => ({
     InlineMessage: (props: Record<string, unknown>) => React.createElement('InlineMessage', props),
 }));
 
-vi.mock('@/components/ui/list-footer', () => ({
-    ListFooter: (props: Record<string, unknown>) => React.createElement('ListFooter', props),
-}));
-
 vi.mock('@/components/ui/button', () => ({
     Button: (props: Record<string, unknown>) => React.createElement('Button', props),
 }));
@@ -500,6 +496,40 @@ describe('ChildBalanceAdminScreen', () => {
             pathname: '/(admin)/balances/[filho_id]/historico',
             params: { filho_id: 'child-1', nome: 'Ana' },
         });
+    });
+
+    it('shows "Ver extrato completo" button when more than 10 transactions', () => {
+        const manyTxns = Array.from({ length: 12 }, (_, i) => ({
+            id: `tx-${i}`,
+            tipo: 'credito',
+            descricao: `Tarefa ${i}`,
+            valor: 10,
+            created_at: `2025-01-15T10:0${String(i).padStart(2, '0')}:00Z`,
+        }));
+        transactionsMock.data = { pages: [{ data: manyTxns }] };
+        const renderer = render(React.createElement(ChildBalanceAdminScreen));
+        const text = allText(renderer);
+        expect(text).toContain('Ver extrato completo');
+    });
+
+    it('limits displayed transactions to 10', () => {
+        const manyTxns = Array.from({ length: 15 }, (_, i) => ({
+            id: `tx-${i}`,
+            tipo: 'credito',
+            descricao: `Tarefa ${i}`,
+            valor: 10,
+            created_at: `2025-01-15T10:0${String(i).padStart(2, '0')}:00Z`,
+        }));
+        transactionsMock.data = { pages: [{ data: manyTxns }] };
+        const renderer = render(React.createElement(ChildBalanceAdminScreen));
+        const txIcons = renderer.root.findAll((n) => (n.type as string) === 'TransactionIcon');
+        expect(txIcons.length).toBe(10);
+    });
+
+    it('does not show "Ver extrato completo" button when 10 or fewer transactions', () => {
+        const renderer = render(React.createElement(ChildBalanceAdminScreen));
+        const text = allText(renderer);
+        expect(text).not.toContain('Ver extrato completo');
     });
 
     it('forwards onSave with three-field payload to mutation', async () => {

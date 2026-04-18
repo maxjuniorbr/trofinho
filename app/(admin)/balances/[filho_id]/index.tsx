@@ -31,7 +31,6 @@ import { PenaltyModal, PenaltyButton } from '@/components/balance/penalty-modal'
 import { PiggyConfigSheet } from '@/components/balance/piggy-config-sheet';
 import { TransactionIcon } from '@/components/balance/transaction-icon';
 import { InlineMessage } from '@/components/ui/inline-message';
-import { ListFooter } from '@/components/ui/list-footer';
 import { Button } from '@/components/ui/button';
 import { LinearGradient } from 'expo-linear-gradient';
 import { calculateNetAmount } from '@lib/piggy-bank-withdrawal';
@@ -39,6 +38,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getSafeHorizontalPadding, getSafeTopPadding } from '@lib/safe-area';
 
 type ModalType = 'penalizar' | 'config' | null;
+
+const RECENT_LIMIT = 10;
 
 export default function ChildBalanceAdminScreen() {
   const { filho_id, nome } = useLocalSearchParams<{ filho_id: string; nome: string }>();
@@ -58,7 +59,11 @@ export default function ChildBalanceAdminScreen() {
     () => transactionsQuery.data?.pages.flatMap((p) => p.data) ?? [],
     [transactionsQuery.data],
   );
-  const { fetchNextPage, hasNextPage, isFetchingNextPage } = transactionsQuery;
+  const recentTransactions = useMemo(
+    () => transactions.slice(0, RECENT_LIMIT),
+    [transactions],
+  );
+
 
   const [modalType, setModalType] = useState<ModalType>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -296,7 +301,7 @@ export default function ChildBalanceAdminScreen() {
       </View>
 
       <FlashList
-        data={transactions}
+        data={recentTransactions}
         keyExtractor={(m) => m.id}
         maintainVisibleContentPosition={{ disabled: true }}
         contentContainerStyle={styles.lista}
@@ -473,7 +478,7 @@ export default function ChildBalanceAdminScreen() {
                 </Text>
               </Pressable>
             </View>
-            {transactions.length === 0 ? (
+            {recentTransactions.length === 0 ? (
               <Text style={styles.vazio}>Nenhuma movimentação ainda.</Text>
             ) : null}
           </>
@@ -501,11 +506,25 @@ export default function ChildBalanceAdminScreen() {
             </View>
           </View>
         )}
-        onEndReached={() => {
-          if (hasNextPage) fetchNextPage();
-        }}
-        onEndReachedThreshold={0.3}
-        ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
+        ListFooterComponent={
+          transactions.length > RECENT_LIMIT ? (
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: '/(admin)/balances/[filho_id]/historico',
+                  params: { filho_id, nome: childName },
+                })
+              }
+              accessibilityRole="link"
+              accessibilityLabel="Ver extrato completo"
+              style={[styles.viewAllBtn, { borderColor: colors.border.subtle }]}
+            >
+              <Text style={[styles.viewAllBtnText, { color: colors.accent.adminDim }]}>
+                Ver extrato completo
+              </Text>
+            </Pressable>
+          ) : null
+        }
       />
 
       <PenaltyModal
@@ -791,6 +810,18 @@ function makeStyles(colors: ThemeColors) {
       flexDirection: 'row',
       gap: spacing['3'],
       marginTop: spacing['1'],
+    },
+    viewAllBtn: {
+      alignItems: 'center',
+      paddingVertical: spacing['3'],
+      marginTop: spacing['3'],
+      borderRadius: radii.lg,
+      borderCurve: 'continuous',
+      borderWidth: 1,
+    },
+    viewAllBtnText: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.bold,
     },
   });
 }
