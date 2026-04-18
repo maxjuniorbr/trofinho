@@ -12,7 +12,14 @@ type AuthTextFieldProps = TextInputProps &
     rightAction?: ReactNode;
   }>;
 
-export const AuthTextField = ({ label, focused, leftIcon: LeftIcon, rightAction, style, ...inputProps }: AuthTextFieldProps) => {
+export const AuthTextField = ({
+  label,
+  focused,
+  leftIcon: LeftIcon,
+  rightAction,
+  style,
+  ...inputProps
+}: AuthTextFieldProps) => {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(), []);
   const hasIcon = Boolean(LeftIcon);
@@ -29,9 +36,7 @@ export const AuthTextField = ({ label, focused, leftIcon: LeftIcon, rightAction,
           },
         ]}
       >
-        {LeftIcon ? (
-          <LeftIcon size={18} color={colors.text.muted} strokeWidth={1.5} />
-        ) : null}
+        {LeftIcon ? <LeftIcon size={18} color={colors.text.muted} strokeWidth={1.5} /> : null}
         <TextInput
           accessibilityLabel={label}
           style={[

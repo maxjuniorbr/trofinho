@@ -1,13 +1,13 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useMemo } from 'react';
-import { Mail, Lock } from 'lucide-react-native';
+import { Mail, Lock, ArrowRight } from 'lucide-react-native';
 import { signIn } from '@lib/auth';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
-import { useTheme } from '@/context/theme-context';
-import { spacing, typography } from '@/constants/theme';
-import { AuthShell } from '@/components/auth/auth-shell';
-import { AuthTextField, PasswordToggle } from '@/components/auth/auth-text-field';
+import { heroPalette, spacing, typography } from '@/constants/theme';
+import { AuthHeroScreen } from '@/components/auth/auth-hero-screen';
+import { AuthDarkField, DarkPasswordToggle } from '@/components/auth/auth-dark-field';
+import { BrandLogo } from '@/components/auth/brand-logo';
 import { Button } from '@/components/ui/button';
 import { FormFooter } from '@/components/ui/form-footer';
 
@@ -15,7 +15,6 @@ type LoginField = 'email' | 'password';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(), []);
 
   const [email, setEmail] = useState('');
@@ -56,86 +55,142 @@ export default function LoginScreen() {
   };
 
   return (
-    <AuthShell
-      variant="hero"
-      title="Trofinho"
-      subtitle="Conquiste tarefas, acumule pontos, resgate prêmios!"
-    >
-      <AuthTextField
-        label="E-mail"
-        focused={focusedField === 'email'}
-        placeholder="seu@email.com"
-        value={email}
-        onChangeText={(value) => {
-          setEmail(value);
-          setError('');
-        }}
-        onFocus={() => setFocusedField('email')}
-        onBlur={() => setFocusedField(null)}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        autoCorrect={false}
-        maxLength={MAX_EMAIL_LENGTH}
-        editable={!loading}
-        accessibilityLabel="Campo de e-mail"
-        leftIcon={Mail}
-      />
+    <AuthHeroScreen>
+      <View style={styles.header}>
+        <BrandLogo size="md" variant="onDark" />
+        <Text style={styles.title} allowFontScaling={false}>
+          Bem-vindo{'\n'}de volta.
+        </Text>
+        <Text style={styles.subtitle}>
+          Entre para acompanhar suas conquistas e gerenciar tarefas.
+        </Text>
+      </View>
 
-      <AuthTextField
-        label="Senha"
-        focused={focusedField === 'password'}
-        placeholder="••••••"
-        value={password}
-        onChangeText={(value) => {
-          setPassword(value);
-          setError('');
-        }}
-        onFocus={() => setFocusedField('password')}
-        onBlur={() => setFocusedField(null)}
-        secureTextEntry={!showPassword}
-        maxLength={128}
-        editable={!loading}
-        accessibilityLabel="Campo de senha"
-        leftIcon={Lock}
-        rightAction={
-          <PasswordToggle
-            visible={showPassword}
-            onToggle={() => setShowPassword(!showPassword)}
-          />
-        }
-      />
-      <FormFooter message={shouldShowError ? error : null}>
-        <Button
-          label="Entrar"
-          loadingLabel="Entrando…"
-          loading={loading}
-          onPress={handleSignIn}
-          size="lg"
-          accessibilityLabel={loading ? 'Entrando' : 'Entrar'}
-          accessibilityState={{ busy: loading }}
+      <View style={styles.form}>
+        <AuthDarkField
+          label="E-mail"
+          focused={focusedField === 'email'}
+          placeholder="seu@email.com"
+          value={email}
+          onChangeText={(value) => {
+            setEmail(value);
+            setError('');
+          }}
+          onFocus={() => setFocusedField('email')}
+          onBlur={() => setFocusedField(null)}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="email"
+          textContentType="emailAddress"
+          maxLength={MAX_EMAIL_LENGTH}
+          editable={!loading}
+          accessibilityLabel="Campo de e-mail"
+          leftIcon={Mail}
         />
 
-        <Pressable
-          style={({ pressed }) => [styles.secondaryButton, { opacity: pressed ? 0.65 : 1 }]}
-          onPress={() => router.push('/(auth)/register')}
-          disabled={loading}
-          accessibilityRole="button"
-          accessibilityLabel="Criar conta"
-        >
-          <Text style={[styles.secondaryButtonText, { color: colors.text.secondary }]}>
-            Não tem conta?{' '}
-            <Text style={{ color: colors.brand.vivid, fontFamily: typography.family.bold }}>
-              Criar conta
+        <AuthDarkField
+          label="Senha"
+          focused={focusedField === 'password'}
+          placeholder="••••••••"
+          value={password}
+          onChangeText={(value) => {
+            setPassword(value);
+            setError('');
+          }}
+          onFocus={() => setFocusedField('password')}
+          onBlur={() => setFocusedField(null)}
+          secureTextEntry={!showPassword}
+          autoComplete="current-password"
+          textContentType="password"
+          maxLength={128}
+          editable={!loading}
+          accessibilityLabel="Campo de senha"
+          leftIcon={Lock}
+          rightAction={
+            <DarkPasswordToggle
+              visible={showPassword}
+              onToggle={() => setShowPassword(!showPassword)}
+            />
+          }
+        />
+
+        <Text style={styles.forgotText}>
+          Esqueci minha senha <Text style={styles.forgotBadge}>(em breve)</Text>
+        </Text>
+
+        <FormFooter message={shouldShowError ? error : null} includeSafeBottom={false}>
+          <Button
+            label="Entrar"
+            loadingLabel="Entrando…"
+            loading={loading}
+            onPress={handleSignIn}
+            size="lg"
+            trailingIcon={ArrowRight}
+            accessibilityLabel={loading ? 'Entrando' : 'Entrar'}
+            accessibilityState={{ busy: loading }}
+          />
+        </FormFooter>
+
+        <View style={styles.footerPush}>
+          <Pressable
+            style={({ pressed }) => [styles.secondaryButton, { opacity: pressed ? 0.65 : 1 }]}
+            onPress={() => router.push('/(auth)/register')}
+            disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel="Criar conta"
+          >
+            <Text style={styles.secondaryButtonText}>
+              Novo por aqui? <Text style={styles.secondaryButtonAccent}>Criar conta</Text>
             </Text>
-          </Text>
-        </Pressable>
-      </FormFooter>
-    </AuthShell>
+          </Pressable>
+        </View>
+      </View>
+    </AuthHeroScreen>
   );
 }
 
 function makeStyles() {
   return StyleSheet.create({
+    header: {
+      marginTop: spacing['3'],
+    },
+    title: {
+      marginTop: spacing['5'],
+      fontFamily: typography.family.black,
+      fontSize: typography.size['4xl'],
+      lineHeight: typography.lineHeight['4xl'],
+      color: heroPalette.textOnNavy,
+      letterSpacing: -0.6,
+    },
+    subtitle: {
+      marginTop: spacing['3'],
+      fontFamily: typography.family.medium,
+      fontSize: typography.size.md,
+      lineHeight: typography.lineHeight.md,
+      color: heroPalette.textOnNavyMuted,
+      maxWidth: 280,
+    },
+    form: {
+      marginTop: spacing['6'],
+      flex: 1,
+    },
+    forgotText: {
+      fontFamily: typography.family.semibold,
+      fontSize: typography.size.xs,
+      color: heroPalette.textOnNavyMuted,
+      textAlign: 'center',
+      marginVertical: spacing['4'],
+    },
+    forgotBadge: {
+      fontFamily: typography.family.medium,
+      fontSize: typography.size.xxs,
+      color: heroPalette.textOnNavyMuted,
+      opacity: 0.6,
+    },
+    footerPush: {
+      marginTop: 'auto',
+    },
     secondaryButton: {
       paddingVertical: spacing['3'],
       alignItems: 'center',
@@ -143,6 +198,11 @@ function makeStyles() {
     secondaryButtonText: {
       fontFamily: typography.family.medium,
       fontSize: typography.size.sm,
+      color: heroPalette.textOnNavyMuted,
+    },
+    secondaryButtonAccent: {
+      fontFamily: typography.family.bold,
+      color: '#FAC114',
     },
   });
 }

@@ -1,6 +1,13 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
-import { Animated, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
+import {
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+} from 'react-native';
 import { Image } from 'expo-image';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';

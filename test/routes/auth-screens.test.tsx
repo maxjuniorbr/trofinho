@@ -1,5 +1,5 @@
 import React from 'react';
-import {act, create, type ReactTestRenderer} from '../helpers/test-renderer-compat';
+import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-compat';
 import { Pressable, Text, TextInput } from 'react-native';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

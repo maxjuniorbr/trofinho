@@ -1,20 +1,24 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useMemo } from 'react';
+import { ArrowRight, Check, Lock, Mail, User } from 'lucide-react-native';
 import { signUp } from '@lib/auth';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
-import { useTheme } from '@/context/theme-context';
-import { spacing, typography } from '@/constants/theme';
-import { AuthShell } from '@/components/auth/auth-shell';
-import { AuthTextField } from '@/components/auth/auth-text-field';
+import { heroPalette, spacing, typography } from '@/constants/theme';
+import { AuthHeroScreen } from '@/components/auth/auth-hero-screen';
+import { AuthDarkField } from '@/components/auth/auth-dark-field';
+import { BrandLogo } from '@/components/auth/brand-logo';
 import { Button } from '@/components/ui/button';
 import { FormFooter } from '@/components/ui/form-footer';
 
 type RegisterField = 'name' | 'email' | 'password' | 'confirmPassword';
 
+const MIN_PASSWORD_LENGTH = 6;
+
+type PasswordCheck = Readonly<{ label: string; ok: boolean }>;
+
 export default function RegisterScreen() {
   const router = useRouter();
-  const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(), []);
 
   const [name, setName] = useState('');
@@ -26,13 +30,29 @@ export default function RegisterScreen() {
   const [focusedField, setFocusedField] = useState<RegisterField | null>(null);
   const shouldShowError = Boolean(error);
 
+  const passwordChecks: readonly PasswordCheck[] = useMemo(
+    () => [
+      {
+        label: `Mínimo ${MIN_PASSWORD_LENGTH} caracteres`,
+        ok: password.length >= MIN_PASSWORD_LENGTH,
+      },
+      {
+        label: 'Senhas iguais',
+        ok: confirmPassword.length > 0 && password === confirmPassword,
+      },
+    ],
+    [password, confirmPassword],
+  );
+
   const validate = (): string | null => {
     const emailValue = email.trim();
     if (!name.trim()) return 'Informe seu nome.';
     if (!emailValue) return 'Informe seu e-mail.';
     if (!isValidEmail(emailValue)) return 'E-mail inválido.';
     if (!password) return 'Crie uma senha.';
-    if (password.length < 6) return 'A senha deve ter pelo menos 6 caracteres.';
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      return `A senha deve ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres.`;
+    }
     if (password !== confirmPassword) return 'As senhas não coincidem.';
     return null;
   };
@@ -61,114 +81,227 @@ export default function RegisterScreen() {
   };
 
   return (
-    <AuthShell
-      headerTitle="Criar Conta"
-      onBack={() => router.back()}
-      backLabel="Login"
-      title="Criar conta"
-      subtitle="Junte-se ao Trofinho e comece a conquistar!"
-    >
-      <AuthTextField
-        label="Nome"
-        focused={focusedField === 'name'}
-        placeholder="Seu nome"
-        value={name}
-        onChangeText={(value) => {
-          setName(value);
-          setError('');
-        }}
-        onFocus={() => setFocusedField('name')}
-        onBlur={() => setFocusedField(null)}
-        autoCapitalize="words"
-        maxLength={60}
-        editable={!loading}
-        accessibilityLabel="Campo de nome"
-      />
+    <AuthHeroScreen topBarCenter={<BrandLogo size="sm" variant="onDark" withText />}>
+      <View style={styles.header}>
+        <Text style={styles.title} allowFontScaling={false}>
+          Crie sua conta
+        </Text>
+        <Text style={styles.subtitle}>Em menos de um minuto, sem complicação.</Text>
+      </View>
 
-      <AuthTextField
-        label="E-mail"
-        focused={focusedField === 'email'}
-        placeholder="seu@email.com"
-        value={email}
-        onChangeText={(value) => {
-          setEmail(value);
-          setError('');
-        }}
-        onFocus={() => setFocusedField('email')}
-        onBlur={() => setFocusedField(null)}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        autoCorrect={false}
-        maxLength={MAX_EMAIL_LENGTH}
-        editable={!loading}
-        accessibilityLabel="Campo de e-mail"
-      />
-
-      <AuthTextField
-        label="Senha"
-        focused={focusedField === 'password'}
-        placeholder="Mínimo 6 caracteres"
-        value={password}
-        onChangeText={(value) => {
-          setPassword(value);
-          setError('');
-        }}
-        onFocus={() => setFocusedField('password')}
-        onBlur={() => setFocusedField(null)}
-        secureTextEntry
-        maxLength={128}
-        editable={!loading}
-        accessibilityLabel="Campo de senha"
-      />
-
-      <AuthTextField
-        label="Confirmar senha"
-        focused={focusedField === 'confirmPassword'}
-        placeholder="Repita a senha"
-        value={confirmPassword}
-        onChangeText={(value) => {
-          setConfirmPassword(value);
-          setError('');
-        }}
-        onFocus={() => setFocusedField('confirmPassword')}
-        onBlur={() => setFocusedField(null)}
-        secureTextEntry
-        maxLength={128}
-        editable={!loading}
-        accessibilityLabel="Campo de confirmar senha"
-      />
-      <FormFooter message={shouldShowError ? error : null}>
-        <Button
-          label="Criar conta"
-          loadingLabel="Criando conta…"
-          loading={loading}
-          onPress={handleSignUp}
-          size="lg"
-          accessibilityLabel={loading ? 'Criando conta' : 'Criar conta'}
-          accessibilityState={{ busy: loading }}
+      <View style={styles.form}>
+        <AuthDarkField
+          label="Nome"
+          focused={focusedField === 'name'}
+          placeholder="Seu nome"
+          value={name}
+          onChangeText={(value) => {
+            setName(value);
+            setError('');
+          }}
+          onFocus={() => setFocusedField('name')}
+          onBlur={() => setFocusedField(null)}
+          autoCapitalize="words"
+          autoComplete="name"
+          textContentType="name"
+          maxLength={60}
+          editable={!loading}
+          accessibilityLabel="Campo de nome"
+          leftIcon={User}
         />
 
-        <Pressable
-          style={({ pressed }) => [styles.secondaryButton, { opacity: pressed ? 0.65 : 1 }]}
-          onPress={() => router.back()}
-          disabled={loading}
-          accessibilityRole="button"
-          accessibilityLabel="Voltar ao login"
-        >
-          <Text style={[styles.secondaryButtonText, { color: colors.text.secondary }]}>
-            Já tem conta?{' '}
-            <Text style={{ color: colors.brand.vivid, fontFamily: typography.family.bold }}>
-              Entrar
-            </Text>
+        <AuthDarkField
+          label="E-mail"
+          focused={focusedField === 'email'}
+          placeholder="seu@email.com"
+          value={email}
+          onChangeText={(value) => {
+            setEmail(value);
+            setError('');
+          }}
+          onFocus={() => setFocusedField('email')}
+          onBlur={() => setFocusedField(null)}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="email"
+          textContentType="emailAddress"
+          maxLength={MAX_EMAIL_LENGTH}
+          editable={!loading}
+          accessibilityLabel="Campo de e-mail"
+          leftIcon={Mail}
+        />
+
+        <AuthDarkField
+          label="Senha"
+          focused={focusedField === 'password'}
+          placeholder="Crie uma senha"
+          value={password}
+          onChangeText={(value) => {
+            setPassword(value);
+            setError('');
+          }}
+          onFocus={() => setFocusedField('password')}
+          onBlur={() => setFocusedField(null)}
+          secureTextEntry
+          autoComplete="new-password"
+          textContentType="newPassword"
+          maxLength={128}
+          editable={!loading}
+          accessibilityLabel="Campo de senha"
+          leftIcon={Lock}
+        />
+
+        <AuthDarkField
+          label="Confirmar senha"
+          focused={focusedField === 'confirmPassword'}
+          placeholder="Repita a senha"
+          value={confirmPassword}
+          onChangeText={(value) => {
+            setConfirmPassword(value);
+            setError('');
+          }}
+          onFocus={() => setFocusedField('confirmPassword')}
+          onBlur={() => setFocusedField(null)}
+          secureTextEntry
+          autoComplete="new-password"
+          textContentType="newPassword"
+          maxLength={128}
+          editable={!loading}
+          accessibilityLabel="Campo de confirmar senha"
+          leftIcon={Lock}
+        />
+
+        {password.length > 0 ? (
+          <View style={styles.checks}>
+            {passwordChecks.map((check) => (
+              <View key={check.label} style={styles.checkRow}>
+                <View
+                  style={[styles.checkBadge, check.ok ? styles.checkBadgeOn : styles.checkBadgeOff]}
+                >
+                  {check.ok ? (
+                    <Check size={10} color={heroPalette.textOnNavy} strokeWidth={3} />
+                  ) : null}
+                </View>
+                <Text
+                  style={[styles.checkLabel, check.ok ? styles.checkLabelOn : styles.checkLabelOff]}
+                >
+                  {check.label}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        <FormFooter message={shouldShowError ? error : null} includeSafeBottom={false}>
+          <Button
+            label="Criar conta"
+            loadingLabel="Criando conta…"
+            loading={loading}
+            onPress={handleSignUp}
+            size="lg"
+            trailingIcon={ArrowRight}
+            accessibilityLabel={loading ? 'Criando conta' : 'Criar conta'}
+            accessibilityState={{ busy: loading }}
+          />
+
+          <Text style={styles.terms}>
+            Ao continuar, você concorda com os <Text style={styles.termsAccent}>Termos</Text> e a{' '}
+            <Text style={styles.termsAccent}>Política de Privacidade</Text>.
           </Text>
-        </Pressable>
-      </FormFooter>
-    </AuthShell>
+        </FormFooter>
+
+        <View style={styles.footerPush}>
+          <Pressable
+            style={({ pressed }) => [styles.secondaryButton, { opacity: pressed ? 0.65 : 1 }]}
+            onPress={() => router.back()}
+            disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel="Voltar ao login"
+          >
+            <Text style={styles.secondaryButtonText}>
+              Já tem conta? <Text style={styles.secondaryButtonAccent}>Entrar</Text>
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    </AuthHeroScreen>
   );
 }
 
 function makeStyles() {
   return StyleSheet.create({
+    header: {
+      marginTop: spacing['6'],
+    },
+    title: {
+      fontFamily: typography.family.black,
+      fontSize: typography.size['3xl'],
+      lineHeight: typography.lineHeight['3xl'],
+      color: heroPalette.textOnNavy,
+      letterSpacing: -0.4,
+    },
+    subtitle: {
+      marginTop: spacing['2'],
+      fontFamily: typography.family.medium,
+      fontSize: typography.size.sm,
+      lineHeight: typography.lineHeight.sm,
+      color: heroPalette.textOnNavyMuted,
+    },
+    form: {
+      marginTop: spacing['6'],
+      flex: 1,
+    },
+    footerPush: {
+      marginTop: 'auto',
+    },
+    checks: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing['3'],
+      marginTop: spacing['3'],
+    },
+    checkRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1.5'],
+    },
+    checkBadge: {
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    checkBadgeOn: {
+      backgroundColor: '#20C55D',
+    },
+    checkBadgeOff: {
+      backgroundColor: heroPalette.surfaceChip,
+    },
+    checkLabel: {
+      fontFamily: typography.family.semibold,
+      fontSize: typography.size.xs,
+    },
+    checkLabelOn: {
+      color: '#7EF1A8',
+    },
+    checkLabelOff: {
+      color: heroPalette.textOnNavySubtle,
+    },
+    terms: {
+      marginTop: spacing['1'],
+      fontFamily: typography.family.medium,
+      fontSize: typography.size.xxs,
+      lineHeight: typography.lineHeight.xs,
+      textAlign: 'center',
+      color: heroPalette.textOnNavySubtle,
+      paddingHorizontal: spacing['2'],
+    },
+    termsAccent: {
+      fontFamily: typography.family.semibold,
+      color: heroPalette.textOnNavyMuted,
+    },
     secondaryButton: {
       paddingVertical: spacing['3'],
       alignItems: 'center',
@@ -176,6 +309,11 @@ function makeStyles() {
     secondaryButtonText: {
       fontFamily: typography.family.medium,
       fontSize: typography.size.sm,
+      color: heroPalette.textOnNavyMuted,
+    },
+    secondaryButtonAccent: {
+      fontFamily: typography.family.bold,
+      color: '#FAC114',
     },
   });
 }

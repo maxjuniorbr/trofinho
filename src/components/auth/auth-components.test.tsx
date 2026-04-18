@@ -1,5 +1,5 @@
 import React from 'react';
-import {act, create, type ReactTestRenderer} from '../../../test/helpers/test-renderer-compat';
+import { act, create, type ReactTestRenderer } from '../../../test/helpers/test-renderer-compat';
 import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, TextInput } from 'react-native';
 import { Image } from 'expo-image';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
