@@ -268,7 +268,9 @@ describe('storage', () => {
 
     beforeEach(() => {
       createSignedUrlMock.mockReset();
-      supabaseMock.storage.from.mockReset().mockReturnValue({ createSignedUrl: createSignedUrlMock });
+      supabaseMock.storage.from
+        .mockReset()
+        .mockReturnValue({ createSignedUrl: createSignedUrlMock });
     });
 
     it('returns null for null/empty values', async () => {
