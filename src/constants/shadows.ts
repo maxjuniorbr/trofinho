@@ -68,8 +68,8 @@ export const heroPalette = {
   surfaceFieldFocus: 'rgba(255, 255, 255, 0.08)',
   surfaceChip: 'rgba(255, 255, 255, 0.10)',
   borderSoft: 'rgba(255, 255, 255, 0.15)',
-  glowGold: 'rgba(250, 193, 20, 0.18)',
-  glowGoldSoft: 'rgba(250, 193, 20, 0.10)',
+  glowGold: 'rgba(250, 193, 20, 0.12)',
+  glowGoldSoft: 'rgba(250, 193, 20, 0.06)',
 } as const;
 
 export const easingPop = [0.34, 1.56, 0.64, 1] as const;

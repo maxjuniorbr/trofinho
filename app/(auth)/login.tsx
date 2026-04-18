@@ -47,6 +47,8 @@ export default function LoginScreen() {
 
     if (signInError) {
       setLoading(false);
+      setPassword('');
+      setShowPassword(false);
       setError(signInError);
     }
 
@@ -180,7 +182,8 @@ function makeStyles() {
       fontSize: typography.size.xs,
       color: heroPalette.textOnNavyMuted,
       textAlign: 'center',
-      marginVertical: spacing['4'],
+      marginTop: spacing['3'],
+      marginBottom: spacing['2'],
     },
     forgotBadge: {
       fontFamily: typography.family.medium,
