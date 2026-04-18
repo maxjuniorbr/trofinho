@@ -70,7 +70,13 @@ export function ThemeCard({ role = 'admin' }: ThemeCardProps) {
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: radii.xl, borderCurve: 'continuous', borderWidth: 1, padding: spacing['4'], gap: spacing['1'] },
+  card: {
+    borderRadius: radii.xl,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    padding: spacing['4'],
+    gap: spacing['1'],
+  },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',

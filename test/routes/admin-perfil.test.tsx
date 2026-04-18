@@ -1,5 +1,5 @@
 import React from 'react';
-import {act, create, type ReactTestRenderer} from '../helpers/test-renderer-compat';
+import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-compat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import ProfileScreen from '../../app/(admin)/perfil';
@@ -14,7 +14,9 @@ const alertMock = vi.hoisted(() => ({
 }));
 
 const profileMock = vi.hoisted(() => ({
-  data: { id: 'u1', nome: 'Max', familia_id: 'fam-1', papel: 'admin' } as Record<string, unknown> | undefined,
+  data: { id: 'u1', nome: 'Max', familia_id: 'fam-1', papel: 'admin' } as
+    | Record<string, unknown>
+    | undefined,
   isLoading: false,
   error: null as Error | null,
   refetch: vi.fn(),
@@ -28,7 +30,10 @@ const authUserMock = vi.hoisted(() => ({
 }));
 
 const notifPrefsMock = vi.hoisted(() => ({
-  data: { tarefa_concluida: true, resgate_solicitado: true, valorizacao: true } as Record<string, boolean> | null,
+  data: { tarefa_concluida: true, resgate_solicitado: true, valorizacao: true } as Record<
+    string,
+    boolean
+  > | null,
   isLoading: false,
   error: null as Error | null,
   refetch: vi.fn(),
@@ -54,9 +59,10 @@ const createHostComponent = vi.hoisted(() => {
 vi.mock('react-native', () => ({
   ActivityIndicator: createHostComponent('ActivityIndicator'),
   Alert: alertMock,
-  KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
+  Pressable: createHostComponent('Pressable'),
   ScrollView: createHostComponent('ScrollView'),
   StyleSheet: { create: <T,>(styles: T) => styles },
+  Text: createHostComponent('Text'),
   View: createHostComponent('View'),
 }));
 
@@ -90,6 +96,15 @@ vi.mock('@/components/ui/screen-header', () => ({
   ScreenHeader: (props: Record<string, unknown>) => React.createElement('ScreenHeader', props),
 }));
 
+vi.mock('@/hooks/use-footer-items', () => ({
+  useAdminFooterItems: () => [],
+}));
+
+vi.mock('@/components/ui/home-footer-bar', () => ({
+  FOOTER_BAR_HEIGHT: 56,
+  HomeFooterBar: () => React.createElement('HomeFooterBar'),
+}));
+
 vi.mock('@/components/ui/logout-button', () => ({
   LogoutButton: (props: Record<string, unknown>) => React.createElement('LogoutButton', props),
 }));
@@ -103,6 +118,14 @@ vi.mock('@/components/ui/button', () => ({
   Button: (props: Record<string, unknown>) => React.createElement('Button', props),
 }));
 
+vi.mock('lucide-react-native', () => ({
+  ChevronRight: createHostComponent('ChevronRight'),
+  Eye: createHostComponent('Eye'),
+  Info: createHostComponent('Info'),
+  Lock: createHostComponent('Lock'),
+  User: createHostComponent('User'),
+}));
+
 vi.mock('@/components/profile/avatar-section', () => ({
   AvatarSection: (props: Record<string, unknown>) => React.createElement('AvatarSection', props),
 }));
@@ -112,8 +135,18 @@ vi.mock('@/components/profile/personal-data-card', () => ({
     React.createElement('PersonalDataCard', props),
 }));
 
+vi.mock('@/components/profile/personal-data-sheet', () => ({
+  PersonalDataSheet: (props: Record<string, unknown>) =>
+    React.createElement('PersonalDataSheet', props),
+}));
+
 vi.mock('@/components/profile/password-card', () => ({
   PasswordCard: (props: Record<string, unknown>) => React.createElement('PasswordCard', props),
+}));
+
+vi.mock('@/components/profile/change-password-sheet', () => ({
+  ChangePasswordSheet: (props: Record<string, unknown>) =>
+    React.createElement('ChangePasswordSheet', props),
 }));
 
 vi.mock('@/components/profile/theme-card', () => ({
@@ -164,10 +197,10 @@ describe('ProfileScreen (admin)', () => {
   it('renders profile components when data is available', () => {
     const renderer = render(<ProfileScreen />);
     expect(renderer.root.findAllByType('AvatarSection' as never).length).toBe(1);
-    expect(renderer.root.findAllByType('PersonalDataCard' as never).length).toBe(1);
-    expect(renderer.root.findAllByType('PasswordCard' as never).length).toBe(1);
+    expect(renderer.root.findAllByType('PersonalDataSheet' as never).length).toBe(1);
     expect(renderer.root.findAllByType('ThemeCard' as never).length).toBe(1);
     expect(renderer.root.findAllByType('NotificationCard' as never).length).toBe(1);
+    expect(renderer.root.findAllByType('ChangePasswordSheet' as never).length).toBe(1);
   });
 
   it('renders logout button', () => {
@@ -188,16 +221,16 @@ describe('ProfileScreen (admin)', () => {
   it('renders delete account button', () => {
     const renderer = render(<ProfileScreen />);
     const deleteBtn = renderer.root
-      .findAllByType('Button' as never)
-      .find((b) => b.props.label === 'Excluir minha conta');
+      .findAllByType('Pressable' as never)
+      .find((b) => b.props.accessibilityLabel === 'Excluir minha conta');
     expect(deleteBtn).toBeDefined();
   });
 
   it('shows alert when delete account is pressed', () => {
     const renderer = render(<ProfileScreen />);
     const deleteBtn = renderer.root
-      .findAllByType('Button' as never)
-      .find((b) => b.props.label === 'Excluir minha conta')!;
+      .findAllByType('Pressable' as never)
+      .find((b) => b.props.accessibilityLabel === 'Excluir minha conta')!;
     act(() => {
       deleteBtn.props.onPress();
     });
@@ -211,8 +244,8 @@ describe('ProfileScreen (admin)', () => {
   it('calls deleteAccount mutation when confirmed', () => {
     const renderer = render(<ProfileScreen />);
     const deleteBtn = renderer.root
-      .findAllByType('Button' as never)
-      .find((b) => b.props.label === 'Excluir minha conta')!;
+      .findAllByType('Pressable' as never)
+      .find((b) => b.props.accessibilityLabel === 'Excluir minha conta')!;
     act(() => {
       deleteBtn.props.onPress();
     });

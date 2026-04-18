@@ -1,5 +1,12 @@
 import * as Sentry from '@sentry/react-native';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
@@ -104,54 +111,50 @@ export default function ChildProfileScreen() {
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg.canvas }} behavior="padding">
       <SafeScreenFrame bottomInset>
         <StatusBar style={colors.statusBar} />
-        <ScreenHeader
-          title="Meu Perfil"
-          onBack={() => router.back()}
-          role="filho"
-        />
+        <ScreenHeader title="Meu Perfil" onBack={() => router.back()} role="filho" />
 
         {isLoading ? (
           <View style={styles.loadingContent}>
             <ActivityIndicator size="large" color={colors.accent.filho} />
           </View>
         ) : (
-        <ScrollView
-          style={{ backgroundColor: colors.bg.canvas }}
-          overScrollMode="never"
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <AvatarSection
-            name={effectiveName}
-            avatarUri={effectiveAvatarUri}
-            role="filho"
-            onAvatarChange={setLocalAvatarUri}
-          />
-
-          <ThemeCard role="filho" />
-
-          {effectivePrefs ? (
-            <NotificationCard
-              preferences={effectivePrefs}
-              saving={savingNotificationPreferences}
-              error={notificationPreferencesError}
+          <ScrollView
+            style={{ backgroundColor: colors.bg.canvas }}
+            overScrollMode="never"
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <AvatarSection
+              name={effectiveName}
+              avatarUri={effectiveAvatarUri}
               role="filho"
-              onPreferencesChange={handleNotificationPreferencesChange}
+              onAvatarChange={setLocalAvatarUri}
             />
-          ) : null}
 
-          <LogoutButton onPress={handleSignOut} loading={loggingOut} />
+            <ThemeCard role="filho" />
 
-          <Button
-            variant="danger"
-            label="Excluir minha conta"
-            loadingLabel="Excluindo…"
-            loading={deleteAccountMutation.isPending}
-            onPress={handleDeleteAccount}
-            accessibilityLabel="Excluir minha conta"
-          />
-        </ScrollView>
+            {effectivePrefs ? (
+              <NotificationCard
+                preferences={effectivePrefs}
+                saving={savingNotificationPreferences}
+                error={notificationPreferencesError}
+                role="filho"
+                onPreferencesChange={handleNotificationPreferencesChange}
+              />
+            ) : null}
+
+            <LogoutButton onPress={handleSignOut} loading={loggingOut} />
+
+            <Button
+              variant="danger"
+              label="Excluir minha conta"
+              loadingLabel="Excluindo…"
+              loading={deleteAccountMutation.isPending}
+              onPress={handleDeleteAccount}
+              accessibilityLabel="Excluir minha conta"
+            />
+          </ScrollView>
         )}
       </SafeScreenFrame>
     </KeyboardAvoidingView>

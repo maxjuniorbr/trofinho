@@ -15,7 +15,12 @@ type AvatarSectionProps = Readonly<{
   onAvatarChange: (url: string | null) => void;
 }>;
 
-export const AvatarSection = ({ name, avatarUri, role = 'admin', onAvatarChange }: AvatarSectionProps) => {
+export const AvatarSection = ({
+  name,
+  avatarUri,
+  role = 'admin',
+  onAvatarChange,
+}: AvatarSectionProps) => {
   const { colors } = useTheme();
   const bg = colors.bg.surface;
   const border = colors.border.subtle;

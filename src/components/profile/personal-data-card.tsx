@@ -111,7 +111,13 @@ export const PersonalDataCard = ({ profile, email, onNameUpdated }: PersonalData
 };
 
 const styles = StyleSheet.create({
-  card: { borderRadius: radii.xl, borderCurve: 'continuous', borderWidth: 1, padding: spacing['4'], gap: spacing['4'] },
+  card: {
+    borderRadius: radii.xl,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    padding: spacing['4'],
+    gap: spacing['4'],
+  },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',

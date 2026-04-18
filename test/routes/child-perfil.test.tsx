@@ -1,5 +1,5 @@
 import React from 'react';
-import {act, create, type ReactTestRenderer} from '../helpers/test-renderer-compat';
+import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-compat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import ChildProfileScreen from '../../app/(child)/perfil';
@@ -10,21 +10,29 @@ const routerMock = vi.hoisted(() => ({
 }));
 
 const profileMock = vi.hoisted(() => ({
-  data: { id: 'u1', nome: 'João', familia_id: 'fam-1', papel: 'filho' } as Record<string, unknown> | undefined,
+  data: { id: 'u1', nome: 'João', familia_id: 'fam-1', papel: 'filho' } as
+    | Record<string, unknown>
+    | undefined,
   isLoading: false,
   error: null as Error | null,
   refetch: vi.fn(),
 }));
 
 const authUserMock = vi.hoisted(() => ({
-  data: { email: 'joao@example.com', avatarUrl: null } as Record<string, unknown> | undefined | null,
+  data: { email: 'joao@example.com', avatarUrl: null } as
+    | Record<string, unknown>
+    | undefined
+    | null,
   isLoading: false,
   error: null as Error | null,
   refetch: vi.fn(),
 }));
 
 const notifPrefsMock = vi.hoisted(() => ({
-  data: { tarefa_concluida: true, resgate_solicitado: true, valorizacao: true } as Record<string, boolean> | null,
+  data: { tarefa_concluida: true, resgate_solicitado: true, valorizacao: true } as Record<
+    string,
+    boolean
+  > | null,
   isLoading: false,
   error: null as Error | null,
   refetch: vi.fn(),

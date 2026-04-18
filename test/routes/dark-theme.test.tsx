@@ -1,5 +1,5 @@
 import React from 'react';
-import {act, create, type ReactTestRenderer} from '../helpers/test-renderer-compat';
+import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-compat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { darkColors } from '@/constants/theme';
 
@@ -78,7 +78,10 @@ const pendingRedemptionMock = vi.hoisted(() => ({
 }));
 
 const notifPrefsMock = vi.hoisted(() => ({
-  data: { tarefa_concluida: true, resgate_solicitado: true, valorizacao: true } as Record<string, boolean> | null,
+  data: { tarefa_concluida: true, resgate_solicitado: true, valorizacao: true } as Record<
+    string,
+    boolean
+  > | null,
   isLoading: false,
   error: null as Error | null,
   refetch: vi.fn(),
@@ -106,11 +109,13 @@ vi.mock('react-native', () => ({
   Alert: alertMock,
   AppState: { addEventListener: vi.fn(() => ({ remove: vi.fn() })) },
   KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
+  Modal: createHostComponent('Modal'),
   Pressable: createHostComponent('Pressable'),
   RefreshControl: createHostComponent('RefreshControl'),
   ScrollView: createHostComponent('ScrollView'),
   StyleSheet: { create: <T,>(styles: T) => styles },
   Text: createHostComponent('Text'),
+  TextInput: createHostComponent('TextInput'),
   View: createHostComponent('View'),
 }));
 
@@ -175,6 +180,8 @@ vi.mock('@/components/ui/inline-message', () => ({
 
 vi.mock('@/components/ui/screen-header', () => ({
   ScreenHeader: (props: Record<string, unknown>) => React.createElement('ScreenHeader', props),
+  HeaderIconButton: (props: Record<string, unknown>) =>
+    React.createElement('HeaderIconButton', props),
 }));
 
 vi.mock('@/components/ui/logout-button', () => ({
@@ -189,13 +196,14 @@ vi.mock('@/components/profile/avatar-section', () => ({
   AvatarSection: (props: Record<string, unknown>) => React.createElement('AvatarSection', props),
 }));
 
-vi.mock('@/components/profile/personal-data-card', () => ({
-  PersonalDataCard: (props: Record<string, unknown>) =>
-    React.createElement('PersonalDataCard', props),
+vi.mock('@/components/profile/personal-data-sheet', () => ({
+  PersonalDataSheet: (props: Record<string, unknown>) =>
+    React.createElement('PersonalDataSheet', props),
 }));
 
-vi.mock('@/components/profile/password-card', () => ({
-  PasswordCard: (props: Record<string, unknown>) => React.createElement('PasswordCard', props),
+vi.mock('@/components/profile/change-password-sheet', () => ({
+  ChangePasswordSheet: (props: Record<string, unknown>) =>
+    React.createElement('ChangePasswordSheet', props),
 }));
 
 vi.mock('@/components/profile/theme-card', () => ({
@@ -228,7 +236,13 @@ describe('Dark theme rendering', () => {
     signOutMock.mockReset().mockResolvedValue(undefined);
     deleteAccountMock.mutate.mockReset();
 
-    profileMock.data = { id: 'u1', nome: 'Max', familia_id: 'fam-1', papel: 'admin', avatarUrl: null };
+    profileMock.data = {
+      id: 'u1',
+      nome: 'Max',
+      familia_id: 'fam-1',
+      papel: 'admin',
+      avatarUrl: null,
+    };
     profileMock.isLoading = false;
     profileMock.error = null;
     authUserMock.data = { email: 'max@example.com', avatarUrl: null };
@@ -309,7 +323,7 @@ describe('Dark theme rendering', () => {
     it('renders profile components in dark mode', () => {
       const renderer = render(<ProfileScreen />);
       expect(renderer.root.findAllByType('AvatarSection' as never).length).toBe(1);
-      expect(renderer.root.findAllByType('PersonalDataCard' as never).length).toBe(1);
+      expect(renderer.root.findAllByType('PersonalDataSheet' as never).length).toBe(1);
       expect(renderer.root.findAllByType('ThemeCard' as never).length).toBe(1);
     });
   });
