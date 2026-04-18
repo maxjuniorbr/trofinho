@@ -1,5 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { listChildren, getChild, getMyChildId, deactivateChild, reactivateChild } from '../../../lib/children';
+import {
+  listChildren,
+  getChild,
+  getMyChildId,
+  deactivateChild,
+  reactivateChild,
+} from '../../../lib/children';
 import { queryFnAdapter, mutationFnAdapter } from './query-fn-adapter';
 import { queryKeys, STALE_TIMES } from './query-keys';
 

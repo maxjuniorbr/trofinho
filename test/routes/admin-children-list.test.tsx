@@ -1,5 +1,5 @@
 import React from 'react';
-import {act, create, type ReactTestRenderer} from '../helpers/test-renderer-compat';
+import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-compat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import AdminChildrenScreen from '../../app/(admin)/children/index';
@@ -10,7 +10,13 @@ const routerMock = vi.hoisted(() => ({
 }));
 
 const childrenMock = vi.hoisted(() => ({
-  data: [] as { id: string; nome: string; ativo?: boolean; usuario_id?: string | null; avatar_url?: string | null }[],
+  data: [] as {
+    id: string;
+    nome: string;
+    ativo?: boolean;
+    usuario_id?: string | null;
+    avatar_url?: string | null;
+  }[],
   isLoading: false,
   error: null as Error | null,
   refetch: vi.fn(),
@@ -34,7 +40,7 @@ const createHostComponent = vi.hoisted(() => {
 });
 
 vi.mock('react-native', () => ({
-  Pressable: createHostComponent('Pressable'),
+  Alert: { alert: vi.fn() },
   RefreshControl: createHostComponent('RefreshControl'),
   StyleSheet: { create: <T,>(styles: T) => styles },
   Text: createHostComponent('Text'),
@@ -71,6 +77,12 @@ vi.mock('expo-router', () => ({
   useRouter: () => routerMock,
 }));
 
+vi.mock('lucide-react-native', () => ({
+  Eye: createHostComponent('Eye'),
+  Plus: createHostComponent('Plus'),
+  Star: createHostComponent('Star'),
+}));
+
 vi.mock('@/hooks/queries', () => ({
   useChildrenList: () => childrenMock,
   useAdminBalances: () => balancesMock,
@@ -82,12 +94,11 @@ vi.mock('@/hooks/queries', () => ({
   }),
 }));
 
-vi.mock('@/hooks/use-footer-items', () => ({
-  useAdminFooterItems: () => [],
-}));
-
 vi.mock('@/components/ui/screen-header', () => ({
-  ScreenHeader: ({ rightAction, ...props }: Record<string, unknown> & { rightAction?: React.ReactNode }) =>
+  ScreenHeader: ({
+    rightAction,
+    ...props
+  }: Record<string, unknown> & { rightAction?: React.ReactNode }) =>
     React.createElement('ScreenHeader', props, rightAction),
   HeaderIconButton: (props: Record<string, unknown>) =>
     React.createElement('HeaderIconButton', props),
@@ -110,9 +121,12 @@ vi.mock('@/components/ui/avatar', () => ({
   Avatar: (props: Record<string, unknown>) => React.createElement('Avatar', props),
 }));
 
-vi.mock('@/components/ui/home-footer-bar', () => ({
-  FOOTER_BAR_HEIGHT: 56,
-  HomeFooterBar: () => React.createElement('HomeFooterBar'),
+vi.mock('@/components/children/child-view-sheet', () => ({
+  ChildViewSheet: (props: Record<string, unknown>) => React.createElement('ChildViewSheet', props),
+}));
+
+vi.mock('@/components/children/child-new-sheet', () => ({
+  ChildNewSheet: (props: Record<string, unknown>) => React.createElement('ChildNewSheet', props),
 }));
 
 function render(element: React.ReactElement) {
@@ -183,33 +197,40 @@ describe('AdminChildrenScreen', () => {
     expect(text).toContain('Sem conta');
   });
 
-  it('shows balance for each child', () => {
+  it('shows balance with star and pts format', () => {
     const renderer = render(<AdminChildrenScreen />);
     const text = allText(renderer);
+    expect(text).toContain('150 pts');
     expect(text).toContain('100 livre');
     expect(text).toContain('50 cofrinho');
   });
 
-  it('navigates to child detail on press', () => {
+  it('opens view sheet on eye button press', () => {
     const renderer = render(<AdminChildrenScreen />);
-    const pressable = renderer.root.findAll(
-      (node) => node.props.accessibilityLabel === 'Ana, ver nome e e-mail',
+    const eyeBtn = renderer.root.findAll(
+      (node) =>
+        (node.type as string) === 'HeaderIconButton' &&
+        node.props.accessibilityLabel === 'Ver detalhes de Ana',
     )[0];
     act(() => {
-      pressable.props.onPress();
+      eyeBtn.props.onPress();
     });
-    expect(routerMock.push).toHaveBeenCalledWith('/(admin)/children/c1');
+    const viewSheet = renderer.root.findByType('ChildViewSheet' as never);
+    expect(viewSheet.props.childId).toBe('c1');
   });
 
-  it('navigates to new child screen via header button', () => {
+  it('opens new child sheet via header button', () => {
     const renderer = render(<AdminChildrenScreen />);
     const addBtn = renderer.root.findAll(
-      (node) => (node.type as string) === 'HeaderIconButton' && node.props.accessibilityLabel === 'Cadastrar filho',
+      (node) =>
+        (node.type as string) === 'HeaderIconButton' &&
+        node.props.accessibilityLabel === 'Cadastrar filho',
     )[0];
     act(() => {
       addBtn.props.onPress();
     });
-    expect(routerMock.push).toHaveBeenCalledWith('/(admin)/children/new');
+    const newSheet = renderer.root.findByType('ChildNewSheet' as never);
+    expect(newSheet.props.visible).toBe(true);
   });
 
   it('shows deactivated badge for inactive children', () => {

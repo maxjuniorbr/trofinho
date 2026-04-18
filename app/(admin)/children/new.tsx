@@ -79,38 +79,40 @@ const NewChildScreen = () => {
       <SafeScreenFrame topInset bottomInset>
         <View style={[styles.sucessoContainer, { backgroundColor: colors.bg.canvas }]}>
           <StatusBar style={colors.statusBar} />
-        <Text style={styles.sucessoEmoji}>🎉</Text>
-        <Text style={[styles.sucessoTitulo, { color: colors.text.primary }]}>
-          Filho cadastrado!
-        </Text>
-        <Text style={[styles.sucessoTexto, { color: colors.text.secondary }]}>
-          Compartilhe as credenciais com {name}:{'\n\n'}
-          <Text style={{ color: colors.accent.admin, fontFamily: typography.family.bold }}>
-            E-mail: {email}
+          <Text style={styles.sucessoEmoji}>🎉</Text>
+          <Text style={[styles.sucessoTitulo, { color: colors.text.primary }]}>
+            Filho cadastrado!
           </Text>
-          {'\n'}
-          <Text style={{ color: colors.accent.admin, fontFamily: typography.family.bold }}>
-            Senha: {'•'.repeat(tempPassword.length)}
+          <Text style={[styles.sucessoTexto, { color: colors.text.secondary }]}>
+            Compartilhe as credenciais com {name}:{'\n\n'}
+            <Text style={{ color: colors.accent.admin, fontFamily: typography.family.bold }}>
+              E-mail: {email}
+            </Text>
+            {'\n'}
+            <Text style={{ color: colors.accent.admin, fontFamily: typography.family.bold }}>
+              Senha: {'•'.repeat(tempPassword.length)}
+            </Text>
           </Text>
-        </Text>
-        <Pressable
-          style={[styles.botaoCopiar, { borderColor: colors.accent.admin }]}
-          onPress={handleCopyPassword}
-          accessibilityRole="button"
-          accessibilityLabel="Copiar senha para área de transferência"
-        >
-          <Text style={[styles.botaoCopiarTexto, { color: colors.accent.admin }]}>
-            {copied ? 'Copiada!' : 'Copiar senha'}
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[styles.botaoConcluir, { backgroundColor: colors.accent.adminDim }]}
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Concluir cadastro"
-        >
-          <Text style={[styles.botaoConcluirTexto, { color: colors.text.inverse }]}>Concluir</Text>
-        </Pressable>
+          <Pressable
+            style={[styles.botaoCopiar, { borderColor: colors.accent.admin }]}
+            onPress={handleCopyPassword}
+            accessibilityRole="button"
+            accessibilityLabel="Copiar senha para área de transferência"
+          >
+            <Text style={[styles.botaoCopiarTexto, { color: colors.accent.admin }]}>
+              {copied ? 'Copiada!' : 'Copiar senha'}
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.botaoConcluir, { backgroundColor: colors.accent.adminDim }]}
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Concluir cadastro"
+          >
+            <Text style={[styles.botaoConcluirTexto, { color: colors.text.inverse }]}>
+              Concluir
+            </Text>
+          </Pressable>
         </View>
       </SafeScreenFrame>
     );
@@ -122,7 +124,11 @@ const NewChildScreen = () => {
       onBack={() => router.back()}
       keyboardAvoiding
       footer={
-        <FormFooter message={shouldShowError ? errorMessage : null} compact includeSafeBottom={false}>
+        <FormFooter
+          message={shouldShowError ? errorMessage : null}
+          compact
+          includeSafeBottom={false}
+        >
           <Button
             label="Cadastrar filho"
             loadingLabel="Cadastrando…"
@@ -274,8 +280,13 @@ function makeStyles() {
       paddingHorizontal: spacing['8'],
       minHeight: 48,
       justifyContent: 'center',
+      alignItems: 'center',
     },
-    botaoConcluirTexto: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
+    botaoConcluirTexto: {
+      fontSize: typography.size.md,
+      fontFamily: typography.family.semibold,
+      textAlign: 'center',
+    },
     botaoCopiar: {
       borderRadius: radii.md,
       borderWidth: 1,

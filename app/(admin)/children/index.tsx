@@ -1,28 +1,28 @@
-import { StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Eye, Plus } from 'lucide-react-native';
-import { HomeFooterBar } from '@/components/ui/home-footer-bar';
-import { useAdminFooterItems } from '@/hooks/use-footer-items';
+import { Eye, Plus, Star } from 'lucide-react-native';
 import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ListScreenSkeleton } from '@/components/ui/skeleton';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { Avatar } from '@/components/ui/avatar';
+import { ChildViewSheet } from '@/components/children/child-view-sheet';
+import { ChildNewSheet } from '@/components/children/child-new-sheet';
 import { useChildrenList, useAdminBalances, combineQueryStates } from '@/hooks/queries';
 import type { BalanceWithChild } from '@lib/balances';
 import { useTheme } from '@/context/theme-context';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 
-
-
 export default function AdminChildrenScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const styles = useMemo(() => makeStyles(), []);
-  const footerItems = useAdminFooterItems();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
+  const [viewChildId, setViewChildId] = useState<string | null>(null);
+  const [newSheetVisible, setNewSheetVisible] = useState(false);
 
   const childrenQuery = useChildrenList();
   const balancesQuery = useAdminBalances();
@@ -40,15 +40,6 @@ export default function AdminChildrenScreen() {
   const handleRefresh = useCallback(async () => {
     await refetchAll();
   }, [refetchAll]);
-
-  const handleFooterNavigate = useCallback(
-    (rota: string) => {
-      if (rota === '/(admin)/children') return;
-      if (rota === 'index') router.back();
-      else router.replace(rota as never);
-    },
-    [router],
-  );
 
   const renderContent = () => {
     if (isLoading) {
@@ -81,59 +72,45 @@ export default function AdminChildrenScreen() {
         ListFooterComponent={<View style={{ height: spacing['12'] }} />}
         renderItem={({ item }) => {
           const balance = balancesMap.get(item.id);
+          const totalPts = balance ? balance.saldo_livre + balance.cofrinho : 0;
           return (
-            <View
-              style={[
-                styles.card,
-                shadows.card,
-                {
-                  backgroundColor: colors.bg.surface,
-                  borderColor: colors.border.subtle,
-                  opacity: item.ativo === false ? 0.5 : 1,
-                },
-              ]}
-            >
-              <Pressable
-                style={styles.cardMain}
-                onPress={() => router.push(`/(admin)/children/${item.id}` as never)}
-                accessibilityRole="button"
-                accessibilityLabel={`${item.nome}, ver nome e e-mail`}
-              >
-                <Avatar name={item.nome} size={44} imageUri={item.avatar_url} />
+            <View style={[styles.card, shadows.card, { opacity: item.ativo === false ? 0.5 : 1 }]}>
+              <View style={styles.cardRow}>
+                <Avatar name={item.nome} size={56} imageUri={item.avatar_url} />
+
                 <View style={styles.cardInfo}>
-                  <Text style={[styles.cardNome, { color: colors.text.primary }]}>
-                    {item.nome}
-                  </Text>
-                  {item.ativo === false && (
-                    <Text style={[styles.inactiveBadge, { color: colors.semantic.warningText }]}>
-                      Desativado
-                    </Text>
-                  )}
+                  <Text style={styles.cardNome}>{item.nome}</Text>
+
+                  {item.ativo === false && <Text style={styles.inactiveBadge}>Desativado</Text>}
+
                   <Text
                     style={[
                       styles.cardStatus,
                       {
-                        color: item.usuario_id
-                          ? colors.semantic.success
-                          : colors.semantic.warning,
+                        color: item.usuario_id ? colors.semantic.success : colors.semantic.warning,
                       },
                     ]}
                   >
                     {item.usuario_id ? 'Conta vinculada' : 'Sem conta'}
                   </Text>
+
                   {balance ? (
-                    <Text style={[styles.cardSaldo, { color: colors.text.secondary }]}>
-                      {balance.saldo_livre} livre · {balance.cofrinho} cofrinho
-                    </Text>
+                    <View style={styles.ptsRow}>
+                      <Star size={12} color={colors.brand.vivid} fill={colors.brand.vivid} />
+                      <Text style={styles.ptsTotal}>{totalPts} pts</Text>
+                      <Text style={styles.ptsBreakdown}>
+                        ({balance.saldo_livre} livre · {balance.cofrinho} cofrinho)
+                      </Text>
+                    </View>
                   ) : null}
                 </View>
-              </Pressable>
 
-              <HeaderIconButton
-                icon={Eye}
-                onPress={() => router.push(`/(admin)/children/${item.id}` as never)}
-                accessibilityLabel={`Ver dados de ${item.nome}`}
-              />
+                <HeaderIconButton
+                  icon={Eye}
+                  onPress={() => setViewChildId(item.id)}
+                  accessibilityLabel={`Ver detalhes de ${item.nome}`}
+                />
+              </View>
             </View>
           );
         }}
@@ -142,47 +119,71 @@ export default function AdminChildrenScreen() {
   };
 
   return (
-    <SafeScreenFrame bottomInset={false}>
+    <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
       <ScreenHeader
         title="Filhos"
+        onBack={() => router.back()}
         rightAction={
           <HeaderIconButton
             icon={Plus}
-            onPress={() => router.push('/(admin)/children/new')}
+            onPress={() => setNewSheetVisible(true)}
             accessibilityLabel="Cadastrar filho"
           />
         }
       />
 
       {renderContent()}
-      <HomeFooterBar items={footerItems} activeRoute="/(admin)/children" onNavigate={handleFooterNavigate} />
+
+      <ChildViewSheet childId={viewChildId} onClose={() => setViewChildId(null)} />
+      <ChildNewSheet visible={newSheetVisible} onClose={() => setNewSheetVisible(false)} />
     </SafeScreenFrame>
   );
 }
 
-function makeStyles() {
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
-    container: { flex: 1 },
-    lista: { paddingHorizontal: spacing['4'], gap: spacing['3'] },
+    lista: { paddingHorizontal: spacing['4'] },
     card: {
       borderRadius: radii.xl,
       borderWidth: 1,
-      padding: spacing['3'],
+      padding: spacing['4'],
+      marginBottom: spacing['3'],
+      backgroundColor: colors.bg.surface,
+      borderColor: colors.border.subtle,
+    },
+    cardRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
       gap: spacing['3'],
     },
-    cardMain: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-    cardInfo: { flex: 1, marginLeft: spacing['3'] },
-    cardNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
+    cardInfo: { flex: 1 },
+    cardNome: {
+      fontSize: typography.size.md,
+      fontFamily: typography.family.bold,
+      color: colors.text.primary,
+    },
     inactiveBadge: {
       fontSize: typography.size.xs,
       fontFamily: typography.family.semibold,
+      color: colors.semantic.warningText,
       marginTop: spacing['0.5'],
     },
-    cardStatus: { fontSize: typography.size.xs, marginTop: spacing['1'] },
-    cardSaldo: { fontSize: typography.size.xs, marginTop: spacing['1'] },
+    cardStatus: { fontSize: typography.size.xs, marginTop: spacing['0.5'] },
+    ptsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1'],
+      marginTop: spacing['1'],
+    },
+    ptsTotal: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.bold,
+      color: colors.text.primary,
+    },
+    ptsBreakdown: {
+      fontSize: 10,
+      color: colors.text.secondary,
+    },
   });
 }
