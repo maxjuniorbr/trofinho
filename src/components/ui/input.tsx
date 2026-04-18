@@ -10,10 +10,11 @@ interface InputProps extends TextInputProps {
 }
 
 export const Input = forwardRef<TextInput, InputProps>(function Input(
-  { label, error, noMarginBottom = false, style, ...rest },
+  { label, error, noMarginBottom = false, style, editable, ...rest },
   ref,
 ) {
   const { colors } = useTheme();
+  const isDisabled = editable === false;
 
   return (
     <View style={[styles.wrapper, noMarginBottom ? styles.noMarginBottom : null]}>
@@ -21,14 +22,16 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
       <TextInput
         ref={ref}
         accessibilityLabel={rest.accessibilityLabel ?? label}
+        editable={editable}
         style={[
           styles.input,
           {
-            backgroundColor: colors.bg.surface,
-            color: colors.text.primary,
+            backgroundColor: isDisabled ? colors.bg.muted : colors.bg.surface,
+            color: isDisabled ? colors.text.muted : colors.text.primary,
             borderColor: error ? colors.border.error : colors.border.default,
             minHeight: 48,
           },
+          isDisabled && styles.disabled,
           style,
         ]}
         placeholderTextColor={colors.text.muted}
@@ -59,6 +62,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing['3'],
     paddingHorizontal: spacing['4'],
     fontSize: typography.size.md,
+  },
+  disabled: {
+    opacity: 0.6,
   },
   errorText: {
     fontSize: typography.size.xs,
