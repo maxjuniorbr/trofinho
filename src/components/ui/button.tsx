@@ -8,6 +8,7 @@ import {
   type PressableProps,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import type { LucideIcon } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import { gradients, radii, shadows, spacing, typography, withAlpha } from '@/constants/theme';
 import * as Haptics from 'expo-haptics';
@@ -21,6 +22,7 @@ interface ButtonProps extends Omit<PressableProps, 'style'> {
   loading?: boolean;
   label: string;
   loadingLabel?: string;
+  trailingIcon?: LucideIcon;
 }
 
 type ReadonlyButtonProps = Readonly<ButtonProps>;
@@ -68,6 +70,7 @@ export const Button = ({
   loading = false,
   label,
   loadingLabel,
+  trailingIcon: TrailingIcon,
   disabled,
   onPress,
   ...rest
@@ -143,6 +146,15 @@ export const Button = ({
     );
   } else if (loading) {
     buttonContent = <ActivityIndicator color={fgColor} size="small" />;
+  } else if (TrailingIcon) {
+    buttonContent = (
+      <View style={styles.loadingRow}>
+        <Text style={[styles.label, { color: fgColor, fontSize, lineHeight, fontFamily }]}>
+          {label}
+        </Text>
+        <TrailingIcon size={fontSize} color={fgColor} strokeWidth={2.25} />
+      </View>
+    );
   } else {
     buttonContent = (
       <Text style={[styles.label, { color: fgColor, fontSize, lineHeight, fontFamily }]}>
@@ -157,7 +169,9 @@ export const Button = ({
       onPress={handlePress}
       disabled={isDisabled}
       accessibilityRole="button"
-      accessibilityLabel={rest.accessibilityLabel ?? (loading && loadingLabel ? loadingLabel : label)}
+      accessibilityLabel={
+        rest.accessibilityLabel ?? (loading && loadingLabel ? loadingLabel : label)
+      }
       style={({ pressed }) => {
         let opacity = 1;
         if (isDisabled) opacity = 0.45;
