@@ -7,7 +7,13 @@ import { useRouter } from 'expo-router';
 import { RefreshCw, Camera } from 'lucide-react-native';
 import { HomeFooterBar } from '@/components/ui/home-footer-bar';
 import { useChildFooterItems } from '@/hooks/use-footer-items';
-import { getAssignmentPoints, isRecurring, formatWeekdays, type ChildAssignment, type AssignmentStatus } from '@lib/tasks';
+import {
+  getAssignmentPoints,
+  isRecurring,
+  formatWeekdays,
+  type ChildAssignment,
+  type AssignmentStatus,
+} from '@lib/tasks';
 import { formatDate } from '@lib/utils';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
 import { useChildAssignments } from '@/hooks/queries';
@@ -20,8 +26,6 @@ import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { ListFooter } from '@/components/ui/list-footer';
 import { ListScreenSkeleton } from '@/components/ui/skeleton';
 import { SegmentedBar, type SegmentOption } from '@/components/ui/segmented-bar';
-
-
 
 type Filter = 'pendente' | 'aguardando_validacao' | 'historico';
 
@@ -129,7 +133,9 @@ function TaskCardBadges({
       ) : null}
       <View style={styles.freqRow}>
         {recurring ? <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} /> : null}
-        <Text style={[styles.cardDeadline, { marginBottom: 0 }]}>{formatWeekdays(item.tarefas.dias_semana)}</Text>
+        <Text style={[styles.cardDeadline, { marginBottom: 0 }]}>
+          {formatWeekdays(item.tarefas.dias_semana)}
+        </Text>
       </View>
       {dateLine ? (
         <Text style={styles.cardDeadline}>
@@ -151,10 +157,7 @@ function TaskCardBadges({
           ]}
         >
           <Text
-            style={[
-              styles.statusText,
-              { color: getAssignmentStatusColor(item.status, colors) },
-            ]}
+            style={[styles.statusText, { color: getAssignmentStatusColor(item.status, colors) }]}
           >
             {getAssignmentStatusLabel(item.status)}
           </Text>
@@ -216,7 +219,7 @@ export default function ChildTasksScreen() {
   const handleFooterNavigate = useCallback(
     (rota: string) => {
       if (rota === '/(child)/tasks') return;
-      if (rota === 'index') router.back();
+      if (rota === 'index') router.dismissTo('/(child)');
       else router.replace(rota as never);
     },
     [router],
@@ -307,15 +310,16 @@ export default function ChildTasksScreen() {
   return (
     <SafeScreenFrame bottomInset={false}>
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader
-        title="Minhas Tarefas"
-        role="filho"
-      />
+      <ScreenHeader title="Minhas Tarefas" role="filho" />
 
       <SegmentedBar options={filtersWithBadge} value={filter} onChange={setFilter} role="filho" />
 
       {renderContent()}
-      <HomeFooterBar items={footerItems} activeRoute="/(child)/tasks" onNavigate={handleFooterNavigate} />
+      <HomeFooterBar
+        items={footerItems}
+        activeRoute="/(child)/tasks"
+        onNavigate={handleFooterNavigate}
+      />
     </SafeScreenFrame>
   );
 }

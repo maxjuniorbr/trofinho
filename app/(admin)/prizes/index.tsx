@@ -19,8 +19,6 @@ import { useTransientMessage } from '@/hooks/use-transient-message';
 import { consumeNavigationFeedback, type NavigationFeedback } from '@lib/navigation-feedback';
 import { usePrizes } from '@/hooks/queries';
 
-
-
 export default function AdminPrizesScreen() {
   const router = useRouter();
   const { colors } = useTheme();
@@ -62,7 +60,7 @@ export default function AdminPrizesScreen() {
   const handleFooterNavigate = useCallback(
     (rota: string) => {
       if (rota === '/(admin)/prizes') return;
-      if (rota === 'index') router.back();
+      if (rota === 'index') router.dismissTo('/(admin)');
       else router.replace(rota as never);
     },
     [router],
@@ -180,7 +178,11 @@ export default function AdminPrizesScreen() {
       ) : null}
 
       {renderContent()}
-      <HomeFooterBar items={footerItems} activeRoute="/(admin)/prizes" onNavigate={handleFooterNavigate} />
+      <HomeFooterBar
+        items={footerItems}
+        activeRoute="/(admin)/prizes"
+        onNavigate={handleFooterNavigate}
+      />
     </SafeScreenFrame>
   );
 }

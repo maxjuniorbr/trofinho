@@ -17,13 +17,17 @@ import { ListFooter } from '@/components/ui/list-footer';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { consumeNavigationFeedback, type NavigationFeedback } from '@lib/navigation-feedback';
 import { useAdminTasks } from '@/hooks/queries';
-import { sortAdminTasks, isRecurring, formatWeekdays, type AdminTaskSort, type TaskListItem } from '@lib/tasks';
+import {
+  sortAdminTasks,
+  isRecurring,
+  formatWeekdays,
+  type AdminTaskSort,
+  type TaskListItem,
+} from '@lib/tasks';
 import { formatDate } from '@lib/utils';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
-
-
 
 const SORT_OPTIONS: SegmentOption<AdminTaskSort>[] = [
   { key: 'action_first', label: 'Por ação', accessibilityLabel: 'Ordenar por ação pendente' },
@@ -96,9 +100,7 @@ function AdminTaskCard({ item, colors, styles, onPress }: AdminTaskCardProps) {
         {total === 0 && (
           <Text style={[styles.statTexto, { color: colors.text.muted }]}>Sem atribuições</Text>
         )}
-        {total > 0 && aguardando > 0 && (
-          <Badge label={`${aguardando} validar`} variant="info" />
-        )}
+        {total > 0 && aguardando > 0 && <Badge label={`${aguardando} validar`} variant="info" />}
       </View>
     </Pressable>
   );
@@ -134,7 +136,7 @@ export default function AdminTasksScreen() {
   const handleFooterNavigate = useCallback(
     (rota: string) => {
       if (rota === '/(admin)/tasks') return;
-      if (rota === 'index') router.back();
+      if (rota === 'index') router.dismissTo('/(admin)');
       else router.replace(rota as never);
     },
     [router],
@@ -213,7 +215,11 @@ export default function AdminTasksScreen() {
       ) : null}
 
       {renderContent()}
-      <HomeFooterBar items={footerItems} activeRoute="/(admin)/tasks" onNavigate={handleFooterNavigate} />
+      <HomeFooterBar
+        items={footerItems}
+        activeRoute="/(admin)/tasks"
+        onNavigate={handleFooterNavigate}
+      />
     </SafeScreenFrame>
   );
 }

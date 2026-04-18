@@ -27,7 +27,6 @@ import {
 } from '@/hooks/queries';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 
-
 type ConfirmModalState = {
   visible: boolean;
   type: 'confirm' | 'cancel';
@@ -62,7 +61,10 @@ function RedemptionRow({ item, colors, styles, isLast }: RedemptionRowProps) {
     <View
       style={[
         styles.resRow,
-        !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border.subtle },
+        !isLast && {
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          borderBottomColor: colors.border.subtle,
+        },
       ]}
     >
       <View style={[styles.resRowIcon, { backgroundColor: statusColor + '20' }]}>
@@ -122,7 +124,7 @@ export default function AdminRedemptionsScreen() {
   const handleFooterNavigate = useCallback(
     (rota: string) => {
       if (rota === '/(admin)/redemptions') return;
-      if (rota === 'index') router.back();
+      if (rota === 'index') router.dismissTo('/(admin)');
       else router.replace(rota as never);
     },
     [router],
@@ -271,9 +273,7 @@ export default function AdminRedemptionsScreen() {
                 <View style={[styles.historicoHeader, { borderBottomColor: colors.border.subtle }]}>
                   <View style={styles.secaoTituloRow}>
                     <Clock size={14} color={colors.text.primary} strokeWidth={2} />
-                    <Text style={styles.secaoTitulo}>
-                      Pendentes ({pendingRedemptions.length})
-                    </Text>
+                    <Text style={styles.secaoTitulo}>Pendentes ({pendingRedemptions.length})</Text>
                   </View>
                 </View>
                 {pendingRedemptions.map((item) => {
@@ -363,9 +363,7 @@ export default function AdminRedemptionsScreen() {
                 <Text style={styles.secaoTitulo}>Histórico</Text>
               </View>
             )}
-            {redemptions.length > 0 &&
-            historicalRedemptions.length === 0 &&
-            !isFetching ? (
+            {redemptions.length > 0 && historicalRedemptions.length === 0 && !isFetching ? (
               <Text style={styles.semHistorico}>Nenhum histórico de resgates.</Text>
             ) : null}
           </>
@@ -394,7 +392,12 @@ export default function AdminRedemptionsScreen() {
 
       {renderContent()}
 
-      <Modal visible={modal.visible} transparent animationType="fade" onRequestClose={() => setModal(MODAL_INITIAL)}>
+      <Modal
+        visible={modal.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModal(MODAL_INITIAL)}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>
@@ -426,7 +429,11 @@ export default function AdminRedemptionsScreen() {
           </View>
         </View>
       </Modal>
-      <HomeFooterBar items={footerItems} activeRoute="/(admin)/redemptions" onNavigate={handleFooterNavigate} />
+      <HomeFooterBar
+        items={footerItems}
+        activeRoute="/(admin)/redemptions"
+        onNavigate={handleFooterNavigate}
+      />
     </SafeScreenFrame>
   );
 }

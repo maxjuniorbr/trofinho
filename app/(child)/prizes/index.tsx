@@ -1,12 +1,5 @@
 import * as Sentry from '@sentry/react-native';
-import {
-  Alert,
-  StyleSheet,
-  Text,
-  View,
-  Animated,
-  RefreshControl,
-} from 'react-native';
+import { Alert, StyleSheet, Text, View, Animated, RefreshControl } from 'react-native';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
@@ -35,8 +28,6 @@ import { InlineMessage } from '@/components/ui/inline-message';
 import { ListFooter } from '@/components/ui/list-footer';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
-
-
 
 export default function ChildPrizesScreen() {
   const router = useRouter();
@@ -70,7 +61,7 @@ export default function ChildPrizesScreen() {
   const handleFooterNavigate = useCallback(
     (rota: string) => {
       if (rota === '/(child)/prizes') return;
-      if (rota === 'index') router.back();
+      if (rota === 'index') router.dismissTo('/(child)');
       else router.replace(rota as never);
     },
     [router],
@@ -89,17 +80,13 @@ export default function ChildPrizesScreen() {
   };
 
   const handleRedeem = (prize: Prize) => {
-    Alert.alert(
-      'Confirmar resgate',
-      `Trocar ${prize.custo_pontos} pontos por "${prize.nome}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Resgatar',
-          onPress: () => executeRedeem(prize),
-        },
-      ],
-    );
+    Alert.alert('Confirmar resgate', `Trocar ${prize.custo_pontos} pontos por "${prize.nome}"?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Resgatar',
+        onPress: () => executeRedeem(prize),
+      },
+    ]);
   };
 
   const executeRedeem = async (prize: Prize) => {
@@ -111,11 +98,11 @@ export default function ChildPrizesScreen() {
         prizeId: prize.id,
         opts: profile?.familia_id
           ? {
-            familiaId: profile.familia_id,
-            childName: profile.nome ?? '',
-            prizeName: prize.nome,
-            childUserId: profile.id,
-          }
+              familiaId: profile.familia_id,
+              childName: profile.nome ?? '',
+              prizeName: prize.nome,
+              childUserId: profile.id,
+            }
           : undefined,
       });
       hapticSuccess();
@@ -189,20 +176,25 @@ export default function ChildPrizesScreen() {
   return (
     <SafeScreenFrame bottomInset={false}>
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader
-        title="Meus Prêmios"
-        role="filho"
-      />
+      <ScreenHeader title="Meus Prêmios" role="filho" />
 
       {renderContent()}
-      <HomeFooterBar items={footerItems} activeRoute="/(child)/prizes" onNavigate={handleFooterNavigate} />
+      <HomeFooterBar
+        items={footerItems}
+        activeRoute="/(child)/prizes"
+        onNavigate={handleFooterNavigate}
+      />
     </SafeScreenFrame>
   );
 }
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    list: { paddingHorizontal: spacing['3'], paddingTop: spacing['4'], paddingBottom: spacing['12'] },
+    list: {
+      paddingHorizontal: spacing['3'],
+      paddingTop: spacing['4'],
+      paddingBottom: spacing['12'],
+    },
     balanceBanner: {
       borderRadius: radii.xl,
       borderCurve: 'continuous',
@@ -254,7 +246,13 @@ function PrizeCard({ item, freeBalance, redeeming, onRedeem }: PrizeCardProps) {
   }, [progress, progressAnim]);
 
   return (
-    <View style={[cardStyles.card, shadows.card, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
+    <View
+      style={[
+        cardStyles.card,
+        shadows.card,
+        { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+      ]}
+    >
       {item.imagem_url ? (
         <Image
           source={item.imagem_url}

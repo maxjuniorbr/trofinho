@@ -19,8 +19,6 @@ import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { ListFooter } from '@/components/ui/list-footer';
 import { formatDate } from '@lib/utils';
 
-
-
 export default function ChildRedemptionsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
@@ -50,12 +48,13 @@ export default function ChildRedemptionsScreen() {
   const errorMessage = error?.message ?? null;
   const hasError = Boolean(errorMessage);
   const shouldShowEmptyState = hasError || redemptions.length === 0;
-  const emptyStateMessage = 'Nenhum resgate realizado ainda.\nVá ao catálogo e troque seus pontos! 🎁';
+  const emptyStateMessage =
+    'Nenhum resgate realizado ainda.\nVá ao catálogo e troque seus pontos! 🎁';
 
   const handleFooterNavigate = useCallback(
     (rota: string) => {
       if (rota === '/(child)/redemptions') return;
-      if (rota === 'index') router.back();
+      if (rota === 'index') router.dismissTo('/(child)');
       else router.replace(rota as never);
     },
     [router],
@@ -111,9 +110,7 @@ export default function ChildRedemptionsScreen() {
                 <View style={[styles.sectionHeader, { borderBottomColor: colors.border.subtle }]}>
                   <View style={styles.sectionTitleRow}>
                     <Clock size={14} color={colors.text.primary} strokeWidth={2} />
-                    <Text style={styles.sectionTitle}>
-                      Pendentes ({pendingRedemptions.length})
-                    </Text>
+                    <Text style={styles.sectionTitle}>Pendentes ({pendingRedemptions.length})</Text>
                   </View>
                 </View>
                 {pendingRedemptions.map((item, index) => {
@@ -134,7 +131,9 @@ export default function ChildRedemptionsScreen() {
                         <Clock size={14} color={statusColor} strokeWidth={2} />
                       </View>
                       <View style={styles.rowInfo}>
-                        <Text style={styles.rowNome}>{item.premios?.nome ?? 'Prêmio removido'}</Text>
+                        <Text style={styles.rowNome}>
+                          {item.premios?.nome ?? 'Prêmio removido'}
+                        </Text>
                         <Text style={styles.rowHint}>Aguardando confirmação</Text>
                       </View>
                       <View style={styles.rowRight}>
@@ -199,13 +198,14 @@ export default function ChildRedemptionsScreen() {
   return (
     <SafeScreenFrame bottomInset={false}>
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader
-        title="Meus Resgates"
-        role="filho"
-      />
+      <ScreenHeader title="Meus Resgates" role="filho" />
 
       {renderContent()}
-      <HomeFooterBar items={footerItems} activeRoute="/(child)/redemptions" onNavigate={handleFooterNavigate} />
+      <HomeFooterBar
+        items={footerItems}
+        activeRoute="/(child)/redemptions"
+        onNavigate={handleFooterNavigate}
+      />
     </SafeScreenFrame>
   );
 }

@@ -15,7 +15,13 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { RefreshCw, Camera, Pencil, CheckCircle2, XCircle, Clock } from 'lucide-react-native';
-import { getTaskEditState, buildTaskDeactivateMessage, isRecurring, formatWeekdays, type AssignmentWithChild } from '@lib/tasks';
+import {
+  getTaskEditState,
+  buildTaskDeactivateMessage,
+  isRecurring,
+  formatWeekdays,
+  type AssignmentWithChild,
+} from '@lib/tasks';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
 import { consumeNavigationFeedback } from '@lib/navigation-feedback';
 import { formatDate, toDateString } from '@lib/utils';
@@ -105,7 +111,10 @@ function AssignmentRow({ assignment, colors, styles, isLast }: AssignmentRowProp
     <View
       style={[
         styles.atribRow,
-        !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border.subtle },
+        !isLast && {
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          borderBottomColor: colors.border.subtle,
+        },
       ]}
     >
       <View style={[styles.atribRowIcon, { backgroundColor: statusColor + '20' }]}>
@@ -639,12 +648,8 @@ export default function TaskDetailAdminScreen() {
                 onStartReject={() =>
                   setActions((prev) => ({ ...prev, [assignment.id]: 'rejecting' }))
                 }
-                onCancelReject={() =>
-                  setActions((prev) => ({ ...prev, [assignment.id]: null }))
-                }
-                onNoteChange={(value) =>
-                  setNotes((prev) => ({ ...prev, [assignment.id]: value }))
-                }
+                onCancelReject={() => setActions((prev) => ({ ...prev, [assignment.id]: null }))}
+                onNoteChange={(value) => setNotes((prev) => ({ ...prev, [assignment.id]: value }))}
                 onImageStateChange={(state) =>
                   setImgStates((prev) => ({ ...prev, [assignment.id]: state }))
                 }
