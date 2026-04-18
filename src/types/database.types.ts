@@ -216,6 +216,7 @@ export type Database = {
       movimentacoes: {
         Row: {
           created_at: string
+          data_referencia: string
           descricao: string
           filho_id: string
           id: string
@@ -225,6 +226,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          data_referencia?: string
           descricao: string
           filho_id: string
           id?: string
@@ -234,6 +236,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          data_referencia?: string
           descricao?: string
           filho_id?: string
           id?: string
@@ -682,6 +685,25 @@ export type Database = {
       }
       limpar_registros_antigos: { Args: never; Returns: Json }
       limpar_usuarios_orfaos_antigos: { Args: never; Returns: Json }
+      listar_movimentacoes_por_periodo: {
+        Args: { p_filho_id: string; p_from: string; p_to: string }
+        Returns: {
+          created_at: string
+          data_referencia: string
+          descricao: string
+          filho_id: string
+          id: string
+          referencia_id: string | null
+          tipo: Database["public"]["Enums"]["movimentacao_tipo"]
+          valor: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "movimentacoes"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       meu_filho_id: { Args: never; Returns: string }
       meu_papel: { Args: never; Returns: string }
       minha_familia_id: { Args: never; Returns: string }

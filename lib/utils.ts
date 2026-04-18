@@ -1,6 +1,13 @@
 export function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
+  const d =
+    typeof date === 'string' ? new Date(date + (date.includes('T') ? '' : 'T00:00:00')) : date;
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+export function formatDateShort(date: Date | string): string {
+  const d =
+    typeof date === 'string' ? new Date(date + (date.includes('T') ? '' : 'T00:00:00')) : date;
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 }
 
 export function parseDate(value: string): Date | null {
@@ -15,6 +22,45 @@ export function parseDate(value: string): Date | null {
   if (parsedDate.getFullYear() !== Number(year)) return null;
 
   return parsedDate;
+}
+
+function toLocalDate(value: Date | string): Date {
+  return typeof value === 'string'
+    ? new Date(value + (value.includes('T') ? '' : 'T00:00:00'))
+    : value;
+}
+
+function startOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+const WEEKDAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+/**
+ * Returns a human-friendly date label:
+ * - "Hoje" / "Ontem"
+ * - "Há N dias" for 2..7 days ago
+ * - "Sex, 11/04" for older dates in same year
+ * - "11/04/2025" for older dates in different year
+ */
+export function formatDateRelative(date: Date | string, today: Date = new Date()): string {
+  const d = startOfDay(toLocalDate(date));
+  const ref = startOfDay(today);
+  const diffMs = ref.getTime() - d.getTime();
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'Hoje';
+  if (diffDays === 1) return 'Ontem';
+  if (diffDays >= 2 && diffDays <= 7) return `Há ${diffDays} dias`;
+
+  if (d.getFullYear() === ref.getFullYear()) {
+    const weekday = WEEKDAY_LABELS[d.getDay()];
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${weekday}, ${day}/${month}`;
+  }
+
+  return formatDate(d);
 }
 
 export function toDateString(date: Date): string {

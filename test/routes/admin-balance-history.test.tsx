@@ -64,7 +64,7 @@ vi.mock('@shopify/flash-list', () => ({
         ref: React.ForwardedRef<unknown>,
     ) {
         const { data, renderItem, ListHeaderComponent, ListFooterComponent, ...rest } = props;
-        React.useImperativeHandle(ref, () => ({ scrollToOffset: () => {}, scrollToTop: () => {} }));
+        React.useImperativeHandle(ref, () => ({ scrollToOffset: () => { }, scrollToTop: () => { } }));
         return React.createElement(
             'FlashList',
             rest,
@@ -142,6 +142,24 @@ vi.mock('@lib/utils', () => ({
         const yyyy = d.getUTCFullYear();
         return `${dd}/${mm}/${yyyy}`;
     },
+    formatDateShort: (iso: string) => {
+        const d = new Date(iso);
+        const dd = String(d.getUTCDate()).padStart(2, '0');
+        const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+        return `${dd}/${mm}`;
+    },
+    formatDateRelative: (iso: string) => {
+        const d = new Date(iso);
+        const dd = String(d.getUTCDate()).padStart(2, '0');
+        const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+        return `${dd}/${mm}`;
+    },
+    toDateString: (date: Date) => {
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    },
 }));
 
 
@@ -212,28 +230,28 @@ describe('ChildBalanceHistoryScreen', () => {
                 tipo: 'credito',
                 descricao: 'Arrumar a cama',
                 valor: 10,
-                created_at: '2026-04-01T10:00:00Z',
+                created_at: '2026-04-01T10:00:00Z', data_referencia: '2026-04-01',
             },
             {
                 id: 'tx-2',
                 tipo: 'penalizacao',
                 descricao: 'Brigou com irmão',
                 valor: 5,
-                created_at: '2026-04-02T10:00:00Z',
+                created_at: '2026-04-02T10:00:00Z', data_referencia: '2026-04-02',
             },
             {
                 id: 'tx-3',
                 tipo: 'credito',
                 descricao: 'Valorização mensal',
                 valor: 8,
-                created_at: '2026-04-01T15:00:00Z',
+                created_at: '2026-04-01T15:00:00Z', data_referencia: '2026-04-01',
             },
             {
                 id: 'tx-4',
                 tipo: 'transferencia_cofrinho',
                 descricao: 'Transferência para cofrinho',
                 valor: 20,
-                created_at: '2026-04-01T16:00:00Z',
+                created_at: '2026-04-01T16:00:00Z', data_referencia: '2026-04-01',
             },
         ];
         transactionsMock.isLoading = false;
@@ -327,8 +345,8 @@ describe('ChildBalanceHistoryScreen', () => {
     it('groups transactions by day', () => {
         const renderer = render(React.createElement(ChildBalanceHistoryScreen));
         const text = allText(renderer);
-        expect(text).toContain('01/04/2026');
-        expect(text).toContain('02/04/2026');
+        expect(text).toContain('01/04');
+        expect(text).toContain('02/04');
     });
 
     it('navigates back when back button is pressed', () => {

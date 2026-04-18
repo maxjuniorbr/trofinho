@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TrendingUp, PiggyBank } from 'lucide-react-native';
 import { hapticSuccess } from '@lib/haptics';
 import { formatDate } from '@lib/utils';
-import { getTransactionTypeLabel, isCredit } from '@lib/balances';
+import { getTransactionTypeLabel, isCredit, formatTransactionDates } from '@lib/balances';
 import {
   useBalance,
   useTransactions,
@@ -49,19 +49,19 @@ function getBalanceHeaderColors(colors: ThemeColors) {
   return {
     ...(isLight
       ? {
-          bg: colors.bg.surface,
-          boxBg: colors.bg.muted,
-          border: colors.border.subtle,
-          text: colors.text.primary,
-          textMuted: colors.text.secondary,
-        }
+        bg: colors.bg.surface,
+        boxBg: colors.bg.muted,
+        border: colors.border.subtle,
+        text: colors.text.primary,
+        textMuted: colors.text.secondary,
+      }
       : {
-          bg: colors.bg.elevated,
-          boxBg: colors.bg.muted,
-          border: colors.border.subtle,
-          text: '#FFFFFF',
-          textMuted: 'rgba(255, 255, 255, 0.7)',
-        }),
+        bg: colors.bg.elevated,
+        boxBg: colors.bg.muted,
+        border: colors.border.subtle,
+        text: '#FFFFFF',
+        textMuted: 'rgba(255, 255, 255, 0.7)',
+      }),
   };
 }
 
@@ -625,29 +625,35 @@ export default function ChildBalanceScreen() {
             )}
           </>
         }
-        renderItem={({ item }) => (
-          <View style={[styles.movItem, { borderBottomColor: colors.border.subtle }]}>
-            <TransactionIcon type={item.tipo} style={styles.movIconBox} />
-            <View style={styles.movInfo}>
-              <Text style={styles.movLabel}>{getTransactionTypeLabel(item.tipo)}</Text>
-              <Text style={styles.movDesc} numberOfLines={1}>
-                {item.descricao}
-              </Text>
+        renderItem={({ item }) => {
+          const dates = formatTransactionDates(item);
+          return (
+            <View style={[styles.movItem, { borderBottomColor: colors.border.subtle }]}>
+              <TransactionIcon type={item.tipo} style={styles.movIconBox} />
+              <View style={styles.movInfo}>
+                <Text style={styles.movLabel}>{getTransactionTypeLabel(item.tipo)}</Text>
+                <Text style={styles.movDesc} numberOfLines={1}>
+                  {item.descricao}
+                </Text>
+              </View>
+              <View style={styles.movRight}>
+                <Text
+                  style={[
+                    styles.movValor,
+                    isCredit(item.tipo) ? styles.creditoTxt : styles.debitoTxt,
+                  ]}
+                >
+                  {isCredit(item.tipo) ? '+' : '-'}
+                  {item.valor}
+                </Text>
+                <Text style={styles.movData}>{dates.eventDate}</Text>
+                {dates.hasEventDate && !dates.sameDay ? (
+                  <Text style={styles.movDataSecondary}>{dates.recordedPhrase}</Text>
+                ) : null}
+              </View>
             </View>
-            <View style={styles.movRight}>
-              <Text
-                style={[
-                  styles.movValor,
-                  isCredit(item.tipo) ? styles.creditoTxt : styles.debitoTxt,
-                ]}
-              >
-                {isCredit(item.tipo) ? '+' : '-'}
-                {item.valor}
-              </Text>
-              <Text style={styles.movData}>{formatDate(item.created_at)}</Text>
-            </View>
-          </View>
-        )}
+          );
+        }}
         onEndReached={() => {
           if (hasNextPage) fetchNextPage();
         }}
@@ -821,6 +827,11 @@ function makeStyles(colors: ThemeColors) {
       fontVariant: ['tabular-nums'],
     },
     movData: { fontSize: typography.size.xxs, color: colors.text.muted },
+    movDataSecondary: {
+      fontSize: typography.size.xxs,
+      color: colors.text.muted,
+      fontStyle: 'italic',
+    },
     creditoTxt: { color: colors.semantic.success },
     debitoTxt: { color: colors.semantic.error },
 

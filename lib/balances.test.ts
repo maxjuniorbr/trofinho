@@ -5,6 +5,7 @@ import {
   applyPenalty,
   calculateProjection,
   configureAppreciation,
+  formatTransactionDates,
   getAppreciationPeriodLabel,
   getBalance,
   getTransactionCategory,
@@ -292,6 +293,110 @@ describe('balances', () => {
 
     it('calculates correctly for typical values', () => {
       expect(calculateProjection(200, 15)).toBe(30);
+    });
+  });
+
+  describe('formatTransactionDates', () => {
+    const today = new Date(2026, 4, 3); // May 3, 2026
+    const baseTx = {
+      id: '1',
+      filho_id: 'f1',
+      valor: 10,
+      descricao: 'Test',
+      referencia_id: null,
+      tipo: 'credito' as TransactionType,
+    };
+
+    it('falls back to created_at when data_referencia is null (legacy data)', () => {
+      const tx = {
+        ...baseTx,
+        created_at: '2026-05-01T10:00:00Z',
+        data_referencia: null,
+      };
+      const result = formatTransactionDates(tx, today);
+      expect(result.hasEventDate).toBe(false);
+      expect(result.sameDay).toBe(true);
+      expect(result.eventDate).toBe('Há 2 dias');
+      expect(result.eventDateFull).toBe('01/05/2026');
+      expect(result.recordedDate).toBe('Há 2 dias');
+      expect(result.recordedLabel).toBe('Aprovado');
+      expect(result.recordedPhrase).toBe('Aprovado há 2 dias');
+    });
+
+    it('marks sameDay when activity and recording happen on the same day', () => {
+      const tx = {
+        ...baseTx,
+        created_at: '2026-05-01T10:00:00Z',
+        data_referencia: '2026-05-01',
+      };
+      const result = formatTransactionDates(tx, today);
+      expect(result.hasEventDate).toBe(true);
+      expect(result.sameDay).toBe(true);
+      expect(result.eventDate).toBe('Há 2 dias');
+      expect(result.recordedDate).toBe('Há 2 dias');
+    });
+
+    it('uses "Aprovado" label and natural phrase for credito when dates differ', () => {
+      const tx = {
+        ...baseTx,
+        tipo: 'credito' as TransactionType,
+        created_at: '2026-05-02T10:00:00Z',
+        data_referencia: '2026-04-28',
+      };
+      const result = formatTransactionDates(tx, today);
+      expect(result.sameDay).toBe(false);
+      expect(result.eventDate).toBe('Há 5 dias');
+      expect(result.eventDateFull).toBe('28/04/2026');
+      expect(result.recordedDate).toBe('Ontem');
+      expect(result.recordedLabel).toBe('Aprovado');
+      expect(result.recordedPhrase).toBe('Aprovado ontem');
+    });
+
+    it('uses "em" preposition for absolute recorded dates', () => {
+      const tx = {
+        ...baseTx,
+        tipo: 'credito' as TransactionType,
+        created_at: '2026-04-10T10:00:00Z',
+        data_referencia: '2026-04-01',
+      };
+      const result = formatTransactionDates(tx, today);
+      expect(result.recordedDate).toBe('Sex, 10/04');
+      expect(result.recordedPhrase).toBe('Aprovado em Sex, 10/04');
+    });
+
+    it('uses "Cancelado" label for estorno_resgate', () => {
+      const tx = {
+        ...baseTx,
+        tipo: 'estorno_resgate' as TransactionType,
+        created_at: '2026-05-03T10:00:00Z',
+        data_referencia: '2026-05-01',
+      };
+      const result = formatTransactionDates(tx, today);
+      expect(result.recordedLabel).toBe('Cancelado');
+      expect(result.recordedDate).toBe('Hoje');
+      expect(result.recordedPhrase).toBe('Cancelado hoje');
+    });
+
+    it('uses "Confirmado" label for resgate_cofrinho', () => {
+      const tx = {
+        ...baseTx,
+        tipo: 'resgate_cofrinho' as TransactionType,
+        created_at: '2026-05-03T10:00:00Z',
+        data_referencia: '2026-05-01',
+      };
+      const result = formatTransactionDates(tx, today);
+      expect(result.recordedLabel).toBe('Confirmado');
+    });
+
+    it('uses "Registrado" label for generic types', () => {
+      const tx = {
+        ...baseTx,
+        tipo: 'debito' as TransactionType,
+        created_at: '2026-05-03T10:00:00Z',
+        data_referencia: '2026-05-01',
+      };
+      const result = formatTransactionDates(tx, today);
+      expect(result.recordedLabel).toBe('Registrado');
     });
   });
 });

@@ -43,14 +43,14 @@ const transactionsMock = vi.hoisted(() => ({
             tipo: 'credito_tarefa',
             descricao: 'Tarefa concluída',
             valor: 50,
-            created_at: '2025-06-01',
+            created_at: '2025-06-01', data_referencia: '2025-06-01',
           },
           {
             id: 't2',
             tipo: 'debito_resgate',
             descricao: 'Resgate prêmio',
             valor: 30,
-            created_at: '2025-06-02',
+            created_at: '2025-06-02', data_referencia: '2025-06-02',
           },
         ],
       },
@@ -138,8 +138,8 @@ vi.mock('@shopify/flash-list', () => ({
       ListHeaderComponent,
       data && data.length > 0
         ? data.map((item) =>
-            React.createElement(React.Fragment, { key: item.id as string }, renderItem({ item })),
-          )
+          React.createElement(React.Fragment, { key: item.id as string }, renderItem({ item })),
+        )
         : ListEmptyComponent,
       ListFooterComponent,
     ),
@@ -160,12 +160,17 @@ vi.mock('@lib/haptics', () => ({
 
 vi.mock('@lib/utils', () => ({
   formatDate: (d: string) => d,
+  formatDateShort: (d: string) => d,
 }));
 
 vi.mock('@lib/balances', () => ({
   getAppreciationPeriodLabel: (s: string) => s,
   getTransactionTypeLabel: (t: string) => t,
   isCredit: (t: string) => t.startsWith('credito'),
+  formatTransactionDates: (tx: { created_at: string; data_referencia: string }) => ({
+    primary: tx.created_at,
+    secondary: null,
+  }),
 }));
 
 vi.mock('@lib/safe-area', () => ({
@@ -309,14 +314,14 @@ describe('ChildBalanceScreen', () => {
               tipo: 'credito_tarefa',
               descricao: 'Tarefa concluída',
               valor: 50,
-              created_at: '2025-06-01',
+              created_at: '2025-06-01', data_referencia: '2025-06-01',
             },
             {
               id: 't2',
               tipo: 'debito_resgate',
               descricao: 'Resgate prêmio',
               valor: 30,
-              created_at: '2025-06-02',
+              created_at: '2025-06-02', data_referencia: '2025-06-02',
             },
           ],
         },

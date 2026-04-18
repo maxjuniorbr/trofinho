@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react-native';
 import { localizeRpcError } from './api-error';
 import { supabase } from './supabase';
+import { formatDate, formatDateRelative, formatDateShort } from './utils';
 
 export type TransactionType =
   | 'credito'
@@ -41,6 +42,7 @@ export interface Transaction {
   valor: number;
   descricao: string;
   referencia_id: string | null;
+  data_referencia: string | null;
   created_at: string;
 }
 
@@ -73,6 +75,73 @@ export function getTransactionCategory(type: TransactionType): TransactionCatego
 
 export function isCredit(type: TransactionType): boolean {
   return type === 'credito' || type === 'valorizacao' || type === 'estorno_resgate';
+}
+
+export interface TransactionDateInfo {
+  /** Relative or absolute label for the activity date (data_referencia ou created_at quando legado). */
+  eventDate: string;
+  /** Always DD/MM/YYYY for accessibility / tooltips. */
+  eventDateFull: string;
+  /** Relative or absolute label for the recorded date (created_at). */
+  recordedDate: string;
+  /** Capitalized label like 'Aprovado em' / 'Cancelado em'. */
+  recordedLabel: string;
+  /** Natural phrase combining label + recorded date (e.g. "Aprovado hoje", "Aprovado em 11/04"). */
+  recordedPhrase: string;
+  /** True when activity and recording happened on the same day. */
+  sameDay: boolean;
+  /** False for legacy rows (data_referencia is null). */
+  hasEventDate: boolean;
+}
+
+const RECORDED_LABELS: Partial<Record<TransactionType, string>> = {
+  credito: 'Aprovado',
+  estorno_resgate: 'Cancelado',
+  resgate_cofrinho: 'Confirmado',
+};
+
+function buildRecordedPhrase(label: string, recordedDate: string): string {
+  // Relative labels ("Hoje", "Ontem", "Há N dias") read naturally as "Aprovado hoje".
+  // Absolute labels ("Sex, 11/04", "11/12/2025") need the preposition "em".
+  const lower = recordedDate.toLowerCase();
+  const isRelative =
+    lower === 'hoje' || lower === 'ontem' || lower.startsWith('há ');
+  return isRelative ? `${label} ${lower}` : `${label} em ${recordedDate}`;
+}
+
+export function formatTransactionDates(
+  tx: Transaction,
+  today: Date = new Date(),
+): TransactionDateInfo {
+  const recordedDateStr = tx.created_at;
+  const eventDateStr = tx.data_referencia;
+  const recordedLabel = RECORDED_LABELS[tx.tipo] ?? 'Registrado';
+  const recordedDate = formatDateRelative(recordedDateStr, today);
+  const recordedPhrase = buildRecordedPhrase(recordedLabel, recordedDate);
+
+  if (!eventDateStr) {
+    return {
+      eventDate: formatDateRelative(recordedDateStr, today),
+      eventDateFull: formatDate(recordedDateStr),
+      recordedDate,
+      recordedLabel,
+      recordedPhrase,
+      sameDay: true,
+      hasEventDate: false,
+    };
+  }
+
+  const sameDay = formatDateShort(eventDateStr) === formatDateShort(recordedDateStr);
+
+  return {
+    eventDate: formatDateRelative(eventDateStr, today),
+    eventDateFull: formatDate(eventDateStr),
+    recordedDate,
+    recordedLabel,
+    recordedPhrase,
+    sameDay,
+    hasEventDate: true,
+  };
 }
 
 export function getAppreciationPeriodLabel(period: AppreciationPeriod): string {
@@ -143,13 +212,12 @@ export async function listTransactionsByPeriod(
   to: string,
 ): Promise<{ data: Transaction[]; error: string | null }> {
   const { data, error } = await supabase
-    .from('movimentacoes')
-    .select('*')
-    .eq('filho_id', childId)
-    .gte('created_at', from)
-    .lt('created_at', to)
-    .order('created_at', { ascending: false })
-    .overrideTypes<Transaction[], { merge: false }>();
+    .rpc('listar_movimentacoes_por_periodo', {
+      p_filho_id: childId,
+      p_from: from,
+      p_to: to,
+    })
+    .returns<Transaction[]>();
 
   if (error) return { data: [], error: localizeRpcError(error.message) };
   return { data: data ?? [], error: null };

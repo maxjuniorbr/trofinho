@@ -5,8 +5,8 @@ import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { TrendingUp, PiggyBank, Settings, Wallet, AlertTriangle, ChevronLeft } from 'lucide-react-native';
 import { hapticSuccess } from '@lib/haptics';
-import { formatDate } from '@lib/utils';
-import { getTransactionCategory, getTransactionTypeLabel, isCredit, calculateProjection } from '@lib/balances';
+import { formatDate, toDateString } from '@lib/utils';
+import { getTransactionCategory, getTransactionTypeLabel, isCredit, calculateProjection, formatTransactionDates } from '@lib/balances';
 import {
   useBalance,
   useTransactionsByPeriod,
@@ -43,7 +43,7 @@ const todayRange = () => {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const end = new Date(start.getTime() + 86_400_000);
-  return { from: start.toISOString(), to: end.toISOString() };
+  return { from: toDateString(start), to: toDateString(end) };
 };
 
 export default function ChildBalanceAdminScreen() {
@@ -462,41 +462,46 @@ export default function ChildBalanceAdminScreen() {
             <PenaltyButton onPress={() => setModalType('penalizar')} />
 
             <View style={styles.historicoHeader}>
-              <Text style={styles.secaoTitulo}>Hoje · {todayLabel}</Text>
+              <Text style={styles.secaoTitulo}>Atividades de hoje · {todayLabel}</Text>
             </View>
             {todayTransactions.length === 0 ? (
               <Text style={styles.vazio}>Nenhuma movimentação hoje.</Text>
             ) : null}
           </>
         }
-        renderItem={({ item }) => (
-          <View style={[styles.movItem, { borderBottomColor: colors.border.subtle }]}>
-            <TransactionIcon type={item.tipo} style={styles.movIconBox} />
-            <View style={styles.movInfo}>
-              <Text style={styles.movLabel}>{getTransactionTypeLabel(item.tipo)}</Text>
-              <Text style={styles.movDesc} numberOfLines={1}>
-                {item.descricao}
-              </Text>
+        renderItem={({ item }) => {
+          const dates = formatTransactionDates(item);
+          return (
+            <View style={[styles.movItem, { borderBottomColor: colors.border.subtle }]}>
+              <TransactionIcon type={item.tipo} style={styles.movIconBox} />
+              <View style={styles.movInfo}>
+                <Text style={styles.movLabel}>{getTransactionTypeLabel(item.tipo)}</Text>
+                <Text style={styles.movDesc} numberOfLines={1}>
+                  {item.descricao}
+                </Text>
+                {dates.hasEventDate && !dates.sameDay ? (
+                  <Text style={styles.movDataSecondary}>{dates.recordedPhrase}</Text>
+                ) : null}
+              </View>
+              <View style={styles.movRight}>
+                <Text
+                  style={[
+                    styles.movValor,
+                    (() => {
+                      const cat = getTransactionCategory(item.tipo);
+                      if (cat === 'ganho') return styles.creditoTxt;
+                      if (cat === 'cofrinho') return styles.cofrinhoTxt;
+                      return styles.debitoTxt;
+                    })(),
+                  ]}
+                >
+                  {isCredit(item.tipo) ? '+' : '-'}
+                  {item.valor}
+                </Text>
+              </View>
             </View>
-            <View style={styles.movRight}>
-              <Text
-                style={[
-                  styles.movValor,
-                  (() => {
-                    const cat = getTransactionCategory(item.tipo);
-                    if (cat === 'ganho') return styles.creditoTxt;
-                    if (cat === 'cofrinho') return styles.cofrinhoTxt;
-                    return styles.debitoTxt;
-                  })(),
-                ]}
-              >
-                {isCredit(item.tipo) ? '+' : '-'}
-                {item.valor}
-              </Text>
-              <Text style={styles.movData}>{formatDate(item.created_at)}</Text>
-            </View>
-          </View>
-        )}
+          );
+        }}
         ListFooterComponent={
           <Pressable
             onPress={() =>
@@ -769,6 +774,11 @@ function makeStyles(colors: ThemeColors) {
       fontVariant: ['tabular-nums'],
     },
     movData: { fontSize: typography.size.xxs, color: colors.text.muted },
+    movDataSecondary: {
+      fontSize: typography.size.xxs,
+      color: colors.text.muted,
+      fontStyle: 'italic' as const,
+    },
     creditoTxt: { color: colors.semantic.success },
     debitoTxt: { color: colors.semantic.error },
     cofrinhoTxt: { color: colors.semantic.info },

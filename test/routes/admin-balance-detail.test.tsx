@@ -293,7 +293,7 @@ describe('ChildBalanceAdminScreen', () => {
                 tipo: 'tarefa',
                 descricao: 'Arrumar o quarto',
                 valor: 50,
-                created_at: '2025-01-15T10:00:00Z',
+                created_at: '2025-01-15T10:00:00Z', data_referencia: '2025-01-15',
             },
         ];
         transactionsMock.isLoading = false;
@@ -377,7 +377,7 @@ describe('ChildBalanceAdminScreen', () => {
     it('renders transaction list', () => {
         const renderer = render(React.createElement(ChildBalanceAdminScreen));
         const text = allText(renderer);
-        expect(text).toContain('Hoje');
+        expect(text).toContain('Atividades de hoje');
         expect(text).toContain('Arrumar o quarto');
     });
 
