@@ -77,5 +77,5 @@ export function useChildNotifInbox(): {
 export function useChildUnreadNotifCount(): number {
   const { items, isLoading } = useChildNotifInbox();
   if (isLoading) return 0;
-  return items.length;
+  return items.filter((n) => n.group === 'Hoje').length;
 }
