@@ -7,6 +7,7 @@
 
 import type { ChildAssignment } from './tasks';
 import type { RedemptionWithChildAndPrize, RedemptionWithPrize } from './redemptions';
+import type { NotificationRoute } from './notifications';
 import { toDateString } from './utils';
 
 export type NotifType = 'task' | 'redemption' | 'penalty' | 'appreciation';
@@ -22,7 +23,7 @@ export interface Notif {
   time: string;
   group: NotifGroup;
   needsAction?: boolean;
-  route?: string;
+  route?: NotificationRoute;
 }
 
 // ── Helpers ──────────────────────────────────────────────
