@@ -53,34 +53,34 @@ vi.mock('expo-linear-gradient', () => ({
 }));
 
 vi.mock('@shopify/flash-list', () => ({
-    FlashList: ({
-        data,
-        renderItem,
-        ListHeaderComponent,
-        ListFooterComponent,
-        ...props
-    }: {
-        data: Record<string, unknown>[];
-        renderItem: (info: { item: Record<string, unknown> }) => React.ReactNode;
-        ListHeaderComponent?: React.ReactNode;
-        ListFooterComponent?: React.ReactNode;
-        [key: string]: unknown;
-    }) =>
-        React.createElement(
+    FlashList: React.forwardRef(function FlashListMock(
+        props: {
+            data?: Record<string, unknown>[];
+            renderItem?: (info: { item: Record<string, unknown> }) => React.ReactNode;
+            ListHeaderComponent?: React.ReactNode;
+            ListFooterComponent?: React.ReactNode;
+            [key: string]: unknown;
+        },
+        ref: React.ForwardedRef<unknown>,
+    ) {
+        const { data, renderItem, ListHeaderComponent, ListFooterComponent, ...rest } = props;
+        React.useImperativeHandle(ref, () => ({ scrollToOffset: () => {} }));
+        return React.createElement(
             'FlashList',
-            props,
+            rest,
             ListHeaderComponent,
             data && data.length > 0
                 ? data.map((item, i) =>
                     React.createElement(
                         React.Fragment,
                         { key: (item.label as string) ?? i },
-                        renderItem({ item }),
+                        renderItem!({ item }),
                     ),
                 )
                 : null,
             ListFooterComponent,
-        ),
+        );
+    }),
 }));
 
 vi.mock('lucide-react-native', () => ({

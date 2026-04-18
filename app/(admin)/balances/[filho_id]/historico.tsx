@@ -1,6 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
+import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -85,6 +85,12 @@ export default function ChildBalanceHistoryScreen() {
     const [year, setYear] = useState(now.getFullYear());
     const [month, setMonth] = useState(now.getMonth());
     const [filter, setFilter] = useState<FilterKey>('all');
+    const listRef = useRef<FlashListRef<{ label: string; items: Transaction[] }>>(null);
+
+    const handleFilterChange = useCallback((key: FilterKey) => {
+        setFilter(key);
+        listRef.current?.scrollToOffset({ offset: 0, animated: false });
+    }, []);
 
     const { from, to } = useMemo(() => monthBounds(year, month), [year, month]);
     const transactionsQuery = useTransactionsByPeriod(filho_id, from, to);
@@ -187,6 +193,7 @@ export default function ChildBalanceHistoryScreen() {
             </View>
 
             <FlashList
+                ref={listRef}
                 data={groups}
                 keyExtractor={(g) => g.label}
                 contentContainerStyle={styles.lista}
@@ -312,7 +319,7 @@ export default function ChildBalanceHistoryScreen() {
                                             style={styles.filterPill}
                                         >
                                             <Pressable
-                                                onPress={() => setFilter(f.key)}
+                                                onPress={() => handleFilterChange(f.key)}
                                                 accessibilityRole="button"
                                                 accessibilityLabel={`Filtrar ${f.label}`}
                                                 style={styles.filterPressable}
@@ -332,7 +339,7 @@ export default function ChildBalanceHistoryScreen() {
                                 return (
                                     <Pressable
                                         key={f.key}
-                                        onPress={() => setFilter(f.key)}
+                                        onPress={() => handleFilterChange(f.key)}
                                         accessibilityRole="button"
                                         accessibilityLabel={`Filtrar ${f.label}`}
                                         style={[
