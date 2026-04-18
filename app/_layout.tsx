@@ -141,14 +141,13 @@ function RootNavigator({
           setPushToken(token);
         }
         if (!token) {
-          Sentry.addBreadcrumb({ category: 'push', message: 'token_null', level: 'warning' });
-          console.warn(
-            '[push-token] registerForPushNotifications returned null — token not obtained',
-          );
+          Sentry.captureMessage('push-token: registration returned null', {
+            level: 'warning',
+            tags: { area: 'push-token' },
+          });
         }
       } catch (error) {
-        Sentry.addBreadcrumb({ category: 'push', message: 'registration_error', level: 'error' });
-        console.warn('[push-token] Exception during push registration:', error);
+        Sentry.captureException(error, { tags: { area: 'push-token', step: 'register' } });
         if (mounted) {
           setPushToken(null);
         }
@@ -178,8 +177,7 @@ function RootNavigator({
           lastSavedPushTokenKeyRef.current = saveKey;
         }
       } catch (error) {
-        Sentry.addBreadcrumb({ category: 'push', message: 'persist_failed', level: 'error' });
-        console.warn('[push-token] Failed to persist token:', error);
+        Sentry.captureException(error, { tags: { area: 'push-token', step: 'persist' } });
         if (mounted) {
           lastSavedPushTokenKeyRef.current = null;
         }

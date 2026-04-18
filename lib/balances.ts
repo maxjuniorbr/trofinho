@@ -66,11 +66,7 @@ export type TransactionCategory = 'ganho' | 'gasto' | 'cofrinho';
 
 export function getTransactionCategory(type: TransactionType): TransactionCategory {
   if (type === 'credito' || type === 'estorno_resgate') return 'ganho';
-  if (
-    type === 'transferencia_cofrinho' ||
-    type === 'resgate_cofrinho' ||
-    type === 'valorizacao'
-  )
+  if (type === 'transferencia_cofrinho' || type === 'resgate_cofrinho' || type === 'valorizacao')
     return 'cofrinho';
   return 'gasto';
 }
@@ -233,7 +229,7 @@ export async function syncAutomaticAppreciation(childId?: string): Promise<void>
       await supabase.rpc('sincronizar_valorizacoes_automaticas');
     }
   } catch (error) {
-    console.error(error);
     // Best-effort: sync failure must not block balance reads
+    Sentry.captureException(error, { tags: { subsystem: 'balances', step: 'sync-appreciation' } });
   }
 }

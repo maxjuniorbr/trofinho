@@ -84,7 +84,6 @@ export default function ProfileScreen() {
       await signOut();
     } catch (e) {
       Sentry.captureException(e);
-      console.error(e);
       setLoggingOut(false);
     }
   };
@@ -115,7 +114,6 @@ export default function ProfileScreen() {
       await setNotificationPrefs(next);
     } catch (e) {
       Sentry.captureException(e);
-      console.error(e);
       setNotificationPreferences(previous);
       setNotificationPreferencesError('Não foi possível salvar as preferências agora.');
     } finally {

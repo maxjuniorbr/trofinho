@@ -77,7 +77,7 @@ export async function confirmPiggyBankWithdrawal(
       userId: opts.userId,
       amount: String(opts.amount),
     });
-  } else {
+  } else if (__DEV__) {
     console.warn(
       `[push] Not dispatching 'resgate_cofrinho_confirmado': Missing required recipient (userId).`,
     );

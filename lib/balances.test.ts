@@ -207,13 +207,16 @@ describe('balances', () => {
     await expect(syncAutomaticAppreciation()).resolves.toBeUndefined();
   });
 
-  it('reports sync errors via console.error without throwing', async () => {
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  it('reports sync errors via Sentry without throwing', async () => {
     const error = new Error('sync failed');
     supabaseMock.rpc.mockRejectedValue(error);
     await expect(syncAutomaticAppreciation()).resolves.toBeUndefined();
-    expect(consoleErrorSpy).toHaveBeenCalledWith(error);
-    consoleErrorSpy.mockRestore();
+    expect(captureExceptionMock).toHaveBeenCalledWith(
+      error,
+      expect.objectContaining({
+        tags: expect.objectContaining({ subsystem: 'balances', step: 'sync-appreciation' }),
+      }),
+    );
   });
 
   describe('property tests', () => {

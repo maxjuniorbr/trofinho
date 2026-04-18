@@ -323,7 +323,7 @@ export async function approveAssignment(
       taskTitle: opts.taskTitle,
       entityId: assignmentId,
     });
-  } else {
+  } else if (__DEV__) {
     console.warn(
       `[push] Not dispatching 'tarefa_aprovada' for '${opts.taskTitle}': Missing required recipient (userId).`,
     );
@@ -350,7 +350,7 @@ export async function rejectAssignment(
       taskTitle: opts.taskTitle,
       entityId: assignmentId,
     });
-  } else {
+  } else if (__DEV__) {
     console.warn(
       `[push] Not dispatching 'tarefa_rejeitada' for '${opts.taskTitle}': Missing required recipient (userId).`,
     );

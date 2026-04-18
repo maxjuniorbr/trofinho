@@ -37,7 +37,6 @@ export async function handleNotificationAction(
       });
     }
   } catch (error) {
-    console.warn('[notification-action] Failed:', error);
     Sentry.captureException(error, {
       tags: { subsystem: 'notification-action', actionId },
     });

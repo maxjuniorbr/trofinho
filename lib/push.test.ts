@@ -51,7 +51,7 @@ describe('dispatchPushNotification', () => {
    * Validates: Requirements 8.1, 8.2, 10.3
    *
    * For any error thrown by supabase.functions.invoke(), dispatchPushNotification
-   * SHALL catch the error, log it via console.warn, report to Sentry, and SHALL NOT
+   * SHALL catch the error, report it to Sentry, and SHALL NOT
    * re-throw or propagate the error to the caller.
    */
   describe('Property 8: Fire-and-forget error isolation', () => {
@@ -130,8 +130,7 @@ describe('dispatchPushNotification', () => {
       expect(captureExceptionMock).toHaveBeenCalledOnce();
     });
 
-    it('logs via console.warn on FunctionsHttpError path', async () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    it('logs via Sentry on FunctionsHttpError path', async () => {
       const fnError = Object.assign(new Error('Edge fn error'), { name: 'FunctionsHttpError' });
       invokeMock.mockResolvedValueOnce({ data: null, error: fnError });
 
@@ -140,8 +139,13 @@ describe('dispatchPushNotification', () => {
         prizeName: 'P',
       });
 
-      expect(consoleWarnSpy).toHaveBeenCalledOnce();
-      expect(consoleWarnSpy.mock.calls[0][0]).toContain('resgate_solicitado');
+      expect(captureExceptionMock).toHaveBeenCalledOnce();
+      expect(captureExceptionMock).toHaveBeenCalledWith(
+        fnError,
+        expect.objectContaining({
+          tags: expect.objectContaining({ subsystem: 'push', event: 'resgate_solicitado' }),
+        }),
+      );
     });
   });
 

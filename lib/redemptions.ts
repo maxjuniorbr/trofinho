@@ -63,7 +63,7 @@ export async function confirmRedemption(
       userId: opts.userId,
       prizeName: opts.prizeName,
     });
-  } else {
+  } else if (__DEV__) {
     console.warn(
       `[push] Not dispatching 'resgate_confirmado' for '${opts.prizeName}': Missing required recipient (userId).`,
     );
@@ -88,7 +88,7 @@ export async function cancelRedemption(
         userId: opts.userId,
         prizeName: opts.prizeName,
       });
-    } else {
+    } else if (__DEV__) {
       console.warn(
         `[push] Not dispatching 'resgate_cancelado' for '${opts.prizeName}': Missing required recipient (userId).`,
       );
@@ -142,7 +142,7 @@ export async function requestRedemption(
       ...(data ? { redemptionId: data } : {}),
       ...(opts.childUserId ? { childUserId: opts.childUserId } : {}),
     });
-  } else {
+  } else if (__DEV__) {
     console.warn(
       "[push] Not dispatching 'resgate_solicitado': Missing profile context (familiaId).",
     );

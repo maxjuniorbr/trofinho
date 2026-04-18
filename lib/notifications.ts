@@ -239,13 +239,17 @@ async function scheduleNotification(
 
 export async function registerForPushNotifications(): Promise<string | null> {
   if (isExpoGo()) {
-    console.warn('[push-registration] Skipped: running in Expo Go (push not supported)');
+    if (__DEV__) {
+      console.warn('[push-registration] Skipped: running in Expo Go (push not supported)');
+    }
     return null;
   }
 
   const Notifications = await getNotificationsModule();
   if (!Notifications) {
-    console.warn('[push-registration] Skipped: expo-notifications module not available');
+    if (__DEV__) {
+      console.warn('[push-registration] Skipped: expo-notifications module not available');
+    }
     return null;
   }
 
@@ -265,12 +269,16 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   if (!hasGrantedNotificationPermission(permissions, Notifications)) {
-    console.warn('[push-registration] Skipped: notification permission denied');
+    if (__DEV__) {
+      console.warn('[push-registration] Skipped: notification permission denied');
+    }
     return null;
   }
 
   if (!Device.isDevice) {
-    console.warn('[push-registration] Skipped: not a physical device (emulator/simulator)');
+    if (__DEV__) {
+      console.warn('[push-registration] Skipped: not a physical device (emulator/simulator)');
+    }
     return null;
   }
 

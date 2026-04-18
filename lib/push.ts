@@ -73,15 +73,9 @@ export async function dispatchPushNotification(
         errorCategory = 'Rede/Conexão';
       }
 
-      console.warn(
-        `[push] Falha ao enviar evento '${event}':\n` +
-          `       Causa: ${errorCategory}\n` +
-          `       Detalhe: ${error.message ?? error}`,
-      );
-
       Sentry.captureException(error, {
         tags: { subsystem: 'push', event, errorCategory: error.name || 'Unknown' },
-        extra: { statusCode },
+        extra: { statusCode, errorCategory, message: error.message ?? String(error) },
       });
       return;
     }
@@ -90,10 +84,6 @@ export async function dispatchPushNotification(
       console.log(`[push] Evento '${event}' processado:`, data);
     }
   } catch (err) {
-    console.warn(
-      `[push] Exceção inesperada no evento '${event}':`,
-      err instanceof Error ? err.message : err,
-    );
     Sentry.captureException(err, {
       tags: { subsystem: 'push', event, errorCategory: 'Exception' },
     });
