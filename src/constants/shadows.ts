@@ -45,6 +45,31 @@ export const gradients = {
     start: { x: 0.5, y: 0 },
     end: { x: 0.5, y: 1 },
   },
+  // Deep navy → mid → light navy (top-to-bottom). Backdrop for the auth hero.
+  heroNavy: {
+    colors: ['#0F1729', '#19233F', '#283B5D'] as const,
+    locations: [0, 0.6, 1] as const,
+    start: { x: 0.5, y: 0 },
+    end: { x: 0.5, y: 1 },
+  },
+} as const;
+
+// Fixed brand surfaces used by hero/marketing screens. Independent of the
+// active light/dark theme — these surfaces are always dark navy.
+export const heroPalette = {
+  navyDeep: '#0F1729',
+  navyMid: '#19233F',
+  navyLight: '#283B5D',
+  textOnNavy: '#FFFFFF',
+  textOnNavyMuted: 'rgba(255, 255, 255, 0.70)',
+  textOnNavySubtle: 'rgba(255, 255, 255, 0.55)',
+  textOnNavyFaint: 'rgba(255, 255, 255, 0.35)',
+  surfaceField: 'rgba(255, 255, 255, 0.06)',
+  surfaceFieldFocus: 'rgba(255, 255, 255, 0.08)',
+  surfaceChip: 'rgba(255, 255, 255, 0.10)',
+  borderSoft: 'rgba(255, 255, 255, 0.15)',
+  glowGold: 'rgba(250, 193, 20, 0.18)',
+  glowGoldSoft: 'rgba(250, 193, 20, 0.10)',
 } as const;
 
 export const easingPop = [0.34, 1.56, 0.64, 1] as const;
