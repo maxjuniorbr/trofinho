@@ -19,10 +19,9 @@ export default function AdminLayout() {
       <Stack.Screen name="tasks/[id]" />
       <Stack.Screen name="tasks/[id]/edit" />
       <Stack.Screen name="children/index" options={{ animation: 'none' }} />
-      <Stack.Screen name="children/new" />
-      <Stack.Screen name="children/[id]" />
       <Stack.Screen name="balances/index" />
-      <Stack.Screen name="balances/[filho_id]" />
+      <Stack.Screen name="balances/[filho_id]/index" />
+      <Stack.Screen name="balances/[filho_id]/historico" />
       <Stack.Screen name="prizes/index" options={{ animation: 'none' }} />
       <Stack.Screen name="prizes/new" />
       <Stack.Screen name="prizes/[id]" />
