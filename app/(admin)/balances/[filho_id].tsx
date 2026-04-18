@@ -3,7 +3,7 @@ import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { TrendingUp, PiggyBank } from 'lucide-react-native';
+import { TrendingUp, PiggyBank, Settings, Wallet, AlertTriangle, ChevronLeft } from 'lucide-react-native';
 import { hapticSuccess } from '@lib/haptics';
 import { formatDate } from '@lib/utils';
 import { getTransactionTypeLabel, isCredit, calculateProjection } from '@lib/balances';
@@ -18,54 +18,40 @@ import {
   useCancelPiggyBankWithdrawal,
   useConfigureWithdrawalRate,
   useProfile,
+  useChildDetail,
 } from '@/hooks/queries';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, spacing, typography } from '@/constants/theme';
-import { ScreenHeader } from '@/components/ui/screen-header';
+import { radii, spacing, typography, gradients } from '@/constants/theme';
+import { HeaderIconButton } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Avatar } from '@/components/ui/avatar';
 import { PenaltyModal, PenaltyButton } from '@/components/balance/penalty-modal';
+import { PiggyConfigSheet } from '@/components/balance/piggy-config-sheet';
 import { TransactionIcon } from '@/components/balance/transaction-icon';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { ListFooter } from '@/components/ui/list-footer';
 import { Button } from '@/components/ui/button';
-import { SteppedSlider } from '@/components/ui/stepped-slider';
+import { LinearGradient } from 'expo-linear-gradient';
 import { calculateNetAmount } from '@lib/piggy-bank-withdrawal';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getSafeHorizontalPadding, getSafeTopPadding } from '@lib/safe-area';
 
-type ModalType = 'penalizar' | null;
-
-function getBalanceHeaderColors(colors: ThemeColors) {
-  const isLight = colors.statusBar === 'dark';
-  return {
-    ...(isLight
-      ? {
-          bg: colors.bg.surface,
-          boxBg: colors.bg.muted,
-          border: colors.border.subtle,
-          text: colors.text.primary,
-          textMuted: colors.text.secondary,
-        }
-      : {
-          bg: colors.bg.elevated,
-          boxBg: colors.bg.muted,
-          border: colors.border.subtle,
-          text: '#FFFFFF',
-          textMuted: 'rgba(255, 255, 255, 0.7)',
-        }),
-  };
-}
+type ModalType = 'penalizar' | 'config' | null;
 
 export default function ChildBalanceAdminScreen() {
   const { filho_id, nome } = useLocalSearchParams<{ filho_id: string; nome: string }>();
   const router = useRouter();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const balanceQuery = useBalance(filho_id);
   const transactionsQuery = useTransactions(filho_id);
   const { data: profile } = useProfile();
+  const { data: childDetail } = useChildDetail(filho_id);
   const { isLoading, isFetching, refetchAll } = combineQueryStates(balanceQuery, transactionsQuery);
 
   const balance = balanceQuery.data ?? null;
@@ -84,9 +70,6 @@ export default function ChildBalanceAdminScreen() {
   const confirmWithdrawalMutation = useConfirmPiggyBankWithdrawal();
   const cancelWithdrawalMutation = useCancelPiggyBankWithdrawal();
   const configureRateMutation = useConfigureWithdrawalRate();
-
-  const [appreciationSlider, setAppreciationSlider] = useState<number | null>(null);
-  const [withdrawalSlider, setWithdrawalSlider] = useState<number | null>(null);
 
   const pendingWithdrawalsQuery = usePendingPiggyBankWithdrawals();
   const pendingWithdrawals = useMemo(
@@ -175,6 +158,22 @@ export default function ChildBalanceAdminScreen() {
     );
   }, [pendingWithdrawal, cancelWithdrawalMutation, profile]);
 
+  const handleSaveAppreciation = useCallback(
+    async (rate: number) => {
+      if (!filho_id) return;
+      await configureMutation.mutateAsync({ childId: filho_id, rate });
+    },
+    [filho_id, configureMutation],
+  );
+
+  const handleSaveWithdrawal = useCallback(
+    async (rate: number) => {
+      if (!filho_id) return;
+      await configureRateMutation.mutateAsync({ childId: filho_id, rate });
+    },
+    [filho_id, configureRateMutation],
+  );
+
   if (isLoading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
@@ -188,17 +187,12 @@ export default function ChildBalanceAdminScreen() {
   const cofrinho = balance?.cofrinho ?? 0;
   const totalPts = saldoLivre + cofrinho;
   const cofrinhoPercent = totalPts > 0 ? Math.round((cofrinho / totalPts) * 100) : 0;
-  const appreciationRate = appreciationSlider ?? balance?.indice_valorizacao ?? 0;
-  const withdrawRate = withdrawalSlider ?? balance?.taxa_resgate_cofrinho ?? 0;
+  const appreciationRate = balance?.indice_valorizacao ?? 0;
+  const withdrawRate = balance?.taxa_resgate_cofrinho ?? 0;
   const projection = calculateProjection(cofrinho, appreciationRate);
   const hasAppreciationConfigured = appreciationRate > 0;
-  const header = getBalanceHeaderColors(colors);
-  const ultimaValorizacaoTexto = balance?.data_ultima_valorizacao
-    ? `Última: ${formatDate(balance.data_ultima_valorizacao)}`
-    : '';
-  const proximaValorizacaoTexto = balance?.proxima_valorizacao_em
-    ? `Próxima: ${formatDate(balance.proxima_valorizacao_em)}`
-    : '';
+  const childName = nome ?? childDetail?.nome ?? 'Filho';
+  const childAvatar = childDetail?.avatar_url ?? null;
 
   const pendingWithdrawalBanner = (() => {
     if (!pendingWithdrawal) return null;
@@ -216,7 +210,7 @@ export default function ChildBalanceAdminScreen() {
           <Text style={styles.pendingBannerTitle}>Resgate do cofrinho pendente</Text>
         </View>
         <Text style={styles.pendingBannerText}>
-          {nome ?? 'Filho'} quer retirar{' '}
+          {childName} quer retirar{' '}
           <Text style={{ fontFamily: typography.family.bold }}>
             {pendingWithdrawal.valor_solicitado}
           </Text>{' '}
@@ -259,7 +253,42 @@ export default function ChildBalanceAdminScreen() {
   return (
     <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader title={nome ?? 'Filho'} onBack={() => router.back()} />
+
+      {/* Custom header: back + avatar + name + gear */}
+      <View
+        style={[
+          styles.customHeader,
+          {
+            paddingTop: getSafeTopPadding(insets, spacing['3']),
+            ...getSafeHorizontalPadding(insets, spacing['4']),
+            backgroundColor: colors.bg.surface,
+            borderBottomColor: colors.border.subtle,
+          },
+        ]}
+      >
+        <HeaderIconButton
+          icon={ChevronLeft}
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(admin)/');
+            }
+          }}
+          accessibilityLabel="Voltar"
+        />
+        <View style={styles.headerCenter}>
+          <Avatar name={childName} size={32} imageUri={childAvatar} />
+          <Text style={[styles.headerName, { color: colors.text.primary }]} numberOfLines={1}>
+            {childName}
+          </Text>
+        </View>
+        <HeaderIconButton
+          icon={Settings}
+          onPress={() => setModalType('config')}
+          accessibilityLabel="Configurar cofrinho"
+        />
+      </View>
 
       <FlashList
         data={transactions}
@@ -280,156 +309,147 @@ export default function ChildBalanceAdminScreen() {
                 <InlineMessage message={visibleSuccess} variant="success" />
               </View>
             ) : null}
-            <View
-              style={[
-                styles.balanceHeader,
-                { backgroundColor: header.bg, borderColor: header.border },
-              ]}
-            >
-              <View style={styles.balanceHeaderTop}>
-                <PiggyBank size={16} color={header.textMuted} strokeWidth={2} />
-                <Text style={[styles.balanceHeaderLabel, { color: header.textMuted }]}>SALDO</Text>
-              </View>
-              <Text style={[styles.balanceHeaderTotal, { color: header.text }]}>
-                {totalPts.toLocaleString('pt-BR')}
-              </Text>
-              <Text style={[styles.balanceHeaderSubtitle, { color: header.textMuted }]}>
-                pontos disponíveis
-              </Text>
-              <View style={styles.balanceHeaderBoxes}>
-                <View
-                  style={[
-                    styles.balanceHeaderBox,
-                    { backgroundColor: header.boxBg, borderColor: header.border },
-                  ]}
-                >
-                  <Text style={[styles.balanceHeaderBoxLabel, { color: header.textMuted }]}>
-                    LIVRE
-                  </Text>
-                  <Text style={[styles.balanceHeaderBoxValue, { color: header.text }]}>
-                    {saldoLivre.toLocaleString('pt-BR')}
-                  </Text>
+
+            {/* Two side-by-side balance cards */}
+            <View style={styles.balanceCards}>
+              <LinearGradient
+                colors={gradients.gold.colors}
+                start={gradients.gold.start}
+                end={gradients.gold.end}
+                style={styles.balanceCard}
+              >
+                <View style={styles.balanceCardTop}>
+                  <Wallet size={14} color="rgba(255,255,255,0.7)" strokeWidth={2} />
+                  <Text style={styles.balanceCardLabel}>SALDO LIVRE</Text>
                 </View>
-                <View
-                  style={[
-                    styles.balanceHeaderBox,
-                    { backgroundColor: header.boxBg, borderColor: header.border },
-                  ]}
-                >
-                  <Text style={[styles.balanceHeaderBoxLabel, { color: header.textMuted }]}>
+                <Text style={styles.balanceCardValue}>
+                  {saldoLivre.toLocaleString('pt-BR')}
+                </Text>
+                <Text style={styles.balanceCardUnit}>pontos</Text>
+              </LinearGradient>
+
+              <View
+                style={[
+                  styles.balanceCard,
+                  styles.cofrinhoCard,
+                  { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+                ]}
+              >
+                <View style={styles.balanceCardTop}>
+                  <PiggyBank size={14} color={colors.text.muted} strokeWidth={2} />
+                  <Text style={[styles.balanceCardLabel, { color: colors.text.muted }]}>
                     COFRINHO
                   </Text>
-                  <Text style={[styles.balanceHeaderBoxValue, { color: header.text }]}>
-                    {cofrinho.toLocaleString('pt-BR')}
-                  </Text>
                 </View>
-              </View>
-              {totalPts > 0 ? (
-                <View style={styles.balanceHeaderProgress}>
-                  <View style={[styles.progressTrack, { backgroundColor: header.boxBg }]}>
-                    <View
-                      style={[
-                        styles.progressFillLeft,
-                        {
-                          flex: 100 - cofrinhoPercent,
-                          backgroundColor: colors.accent.adminDim,
-                        },
-                      ]}
-                    />
-                    <View
-                      style={[
-                        styles.progressFillRight,
-                        {
-                          flex: cofrinhoPercent,
-                          backgroundColor: colors.semantic.warning,
-                        },
-                      ]}
-                    />
-                  </View>
-                  <View style={styles.progressLabels}>
-                    <Text style={[styles.progressLabel, { color: header.textMuted }]}>
-                      {100 - cofrinhoPercent}% livre
-                    </Text>
-                    <Text style={[styles.progressLabel, { color: header.textMuted }]}>
-                      {cofrinhoPercent}% cofrinho
-                    </Text>
-                  </View>
-                </View>
-              ) : null}
-            </View>
-
-            <View style={styles.boxConfig}>
-              <View style={styles.boxConfigTituloRow}>
-                <TrendingUp size={16} color={colors.text.primary} strokeWidth={2} />
-                <Text style={styles.boxConfigTitulo}>Valorização</Text>
-              </View>
-              <Text style={styles.boxConfigSub}>Taxa mensal aplicada sobre o cofrinho</Text>
-              <SteppedSlider
-                value={appreciationRate}
-                onValueChange={setAppreciationSlider}
-                onSlidingComplete={(rate) => {
-                  if (!filho_id) return;
-                  configureMutation.mutate(
-                    { childId: filho_id, rate },
-                    {
-                      onSuccess: () => {
-                        hapticSuccess();
-                        setSuccessMessage(`Valorização configurada para ${rate}% ao mês.`);
-                      },
-                      onSettled: () => setAppreciationSlider(null),
-                    },
-                  );
-                }}
-                accessibilityLabel="Índice de valorização do cofrinho"
-              />
-              {hasAppreciationConfigured && cofrinho > 0 ? (
-                <View style={styles.projectionBox}>
-                  <TrendingUp size={14} color={colors.semantic.success} strokeWidth={2} />
-                  <Text style={[styles.projectionText, { color: colors.semantic.success }]}>
-                    +{projection} pts no próximo mês
-                  </Text>
-                </View>
-              ) : null}
-              {ultimaValorizacaoTexto || proximaValorizacaoTexto ? (
-                <Text style={styles.boxConfigAjuda}>
-                  {[ultimaValorizacaoTexto, proximaValorizacaoTexto].filter(Boolean).join(' · ')}
+                <Text style={[styles.balanceCardValue, { color: colors.text.primary }]}>
+                  {cofrinho.toLocaleString('pt-BR')}
                 </Text>
-              ) : null}
+                <Text style={[styles.balanceCardUnit, { color: colors.text.muted }]}>pontos</Text>
+              </View>
             </View>
 
+            {/* Progress bar */}
+            {totalPts > 0 ? (
+              <View style={styles.progressSection}>
+                <View style={[styles.progressTrack, { backgroundColor: colors.bg.muted }]}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      { flex: cofrinhoPercent, backgroundColor: colors.brand.vivid },
+                    ]}
+                  />
+                  <View style={{ flex: 100 - cofrinhoPercent }} />
+                </View>
+                <Text style={[styles.progressLabel, { color: colors.text.muted }]}>
+                  {cofrinhoPercent}% no cofrinho
+                </Text>
+              </View>
+            ) : null}
+
+            {/* Piggy rules summary card (read-only) */}
+            <View
+              style={[
+                styles.rulesCard,
+                { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+              ]}
+            >
+              <View style={styles.rulesCardHeader}>
+                <View style={[styles.rulesIconBox, { backgroundColor: colors.semantic.successBg }]}>
+                  <TrendingUp size={16} color={colors.semantic.success} strokeWidth={2} />
+                </View>
+                <Text style={[styles.rulesTitle, { color: colors.text.primary }]}>
+                  Regras do cofrinho
+                </Text>
+              </View>
+
+              {hasAppreciationConfigured ? (
+                <>
+                  <View style={styles.rulesRateRow}>
+                    <Text style={[styles.rulesRateValue, { color: colors.text.primary }]}>
+                      {appreciationRate}%
+                    </Text>
+                    <Text style={[styles.rulesRateUnit, { color: colors.text.muted }]}>
+                      ao mês
+                    </Text>
+                  </View>
+                  {projection > 0 && cofrinho > 0 ? (
+                    <View
+                      style={[
+                        styles.projectionBox,
+                        { backgroundColor: colors.semantic.successBg },
+                      ]}
+                    >
+                      <View style={styles.projectionRow}>
+                        <TrendingUp size={12} color={colors.semantic.successText} strokeWidth={2} />
+                        <Text
+                          style={[styles.projectionText, { color: colors.semantic.successText }]}
+                        >
+                          Projeção: +{projection} pts no próximo mês
+                        </Text>
+                      </View>
+                      <Text
+                        style={[styles.projectionDetail, { color: colors.semantic.successText }]}
+                      >
+                        Sobre {cofrinho} pts no cofrinho a {appreciationRate}%
+                      </Text>
+                    </View>
+                  ) : null}
+                </>
+              ) : (
+                <View style={styles.noAppreciationRow}>
+                  <AlertTriangle size={16} color={colors.semantic.warning} strokeWidth={2} />
+                  <Text style={[styles.noAppreciationText, { color: colors.text.muted }]}>
+                    Rendimento não configurado
+                  </Text>
+                </View>
+              )}
+
+              <View style={styles.rulesStatsRow}>
+                <View style={[styles.rulesStat, { backgroundColor: colors.bg.muted }]}>
+                  <Text style={[styles.rulesStatLabel, { color: colors.text.muted }]}>
+                    TAXA DE SAQUE
+                  </Text>
+                  <Text style={[styles.rulesStatValue, { color: colors.semantic.warning }]}>
+                    -{withdrawRate}%
+                  </Text>
+                </View>
+                <View style={[styles.rulesStat, { backgroundColor: colors.bg.muted }]}>
+                  <Text style={[styles.rulesStatLabel, { color: colors.text.muted }]}>
+                    SAQUE → RECEBE
+                  </Text>
+                  <Text style={[styles.rulesStatValue, { color: colors.semantic.success }]}>
+                    {cofrinho > 0
+                      ? `${Math.round(cofrinho * (1 - withdrawRate / 100))} pts`
+                      : '—'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Pending withdrawal banner */}
             {pendingWithdrawalBanner}
 
-            <View style={styles.boxConfig}>
-              <View style={styles.boxConfigTituloRow}>
-                <PiggyBank size={16} color={colors.text.primary} strokeWidth={2} />
-                <Text style={styles.boxConfigTitulo}>Taxa de resgate</Text>
-              </View>
-              <Text style={styles.boxConfigSub}>Percentual retido ao resgatar do cofrinho</Text>
-              <SteppedSlider
-                value={withdrawRate}
-                onValueChange={setWithdrawalSlider}
-                onSlidingComplete={(rate) => {
-                  if (!filho_id) return;
-                  configureRateMutation.mutate(
-                    { childId: filho_id, rate },
-                    {
-                      onSuccess: () => {
-                        hapticSuccess();
-                        setSuccessMessage(`Taxa de resgate configurada para ${rate}%.`);
-                      },
-                      onSettled: () => setWithdrawalSlider(null),
-                    },
-                  );
-                }}
-                accessibilityLabel="Taxa de resgate do cofrinho"
-              />
-              {cofrinho > 0 ? (
-                <Text style={styles.boxConfigAjuda}>
-                  {cofrinho} pts → recebe {Math.round(cofrinho * (1 - withdrawRate / 100))} pts
-                </Text>
-              ) : null}
-            </View>
-
+            {/* Penalty button */}
             <PenaltyButton onPress={() => setModalType('penalizar')} />
 
             <View style={[styles.historicoHeader, { borderBottomColor: colors.border.subtle }]}>
@@ -472,9 +492,20 @@ export default function ChildBalanceAdminScreen() {
 
       <PenaltyModal
         visible={modalType === 'penalizar'}
-        childName={nome ?? 'Filho'}
+        childName={childName}
         onClose={() => setModalType(null)}
         onApply={handlePenalty}
+      />
+
+      <PiggyConfigSheet
+        visible={modalType === 'config'}
+        onClose={() => setModalType(null)}
+        appreciationRate={appreciationRate}
+        withdrawalRate={withdrawRate}
+        onSaveAppreciation={handleSaveAppreciation}
+        onSaveWithdrawal={handleSaveWithdrawal}
+        savingAppreciation={configureMutation.isPending}
+        savingWithdrawal={configureRateMutation.isPending}
       />
     </SafeScreenFrame>
   );
@@ -483,126 +514,179 @@ export default function ChildBalanceAdminScreen() {
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    lista: { padding: spacing['5'], paddingBottom: spacing['12'] },
-    balanceHeader: {
-      borderRadius: radii.xl,
-      borderCurve: 'continuous',
-      borderWidth: 1,
-      padding: spacing['5'],
-      marginBottom: spacing['3'],
-      gap: spacing['1'],
-    },
-    balanceHeaderTop: {
+    customHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing['1.5'],
-      marginBottom: spacing['1'],
+      justifyContent: 'space-between',
+      paddingBottom: spacing['3'],
+      borderBottomWidth: 1,
     },
-    balanceHeaderLabel: {
-      fontFamily: typography.family.bold,
-      fontSize: typography.size.xs,
-      letterSpacing: 0.5,
-    },
-    balanceHeaderTotal: {
-      fontFamily: typography.family.black,
-      fontSize: typography.size['4xl'],
-      lineHeight: typography.lineHeight['4xl'],
-      fontVariant: ['tabular-nums'],
-    },
-    balanceHeaderSubtitle: {
-      fontFamily: typography.family.medium,
-      fontSize: typography.size.sm,
-      marginBottom: spacing['3'],
-    },
-    balanceHeaderBoxes: { flexDirection: 'row', gap: spacing['3'] },
-    balanceHeaderBox: {
+    headerCenter: {
       flex: 1,
-      borderRadius: radii.lg,
-      borderCurve: 'continuous',
-      borderWidth: 1,
-      paddingVertical: spacing['3'],
-      paddingHorizontal: spacing['4'],
-      alignItems: 'center',
-      gap: spacing['0.5'],
-    },
-    balanceHeaderBoxLabel: {
-      fontFamily: typography.family.semibold,
-      fontSize: typography.size.xxs,
-      letterSpacing: 0.5,
-    },
-    balanceHeaderBoxValue: {
-      fontFamily: typography.family.black,
-      fontSize: typography.size.xl,
-      fontVariant: ['tabular-nums'],
-    },
-    boxConfig: {
-      backgroundColor: colors.bg.surface,
-      borderRadius: radii.xl,
-      borderCurve: 'continuous',
-      borderWidth: 1,
-      borderColor: colors.border.subtle,
-      padding: spacing['4'],
-      marginBottom: spacing['3'],
-    },
-    boxConfigTituloRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing['1.5'],
+      gap: spacing['2'],
+      marginHorizontal: spacing['3'],
+    },
+    headerName: {
+      fontSize: typography.size.md,
+      fontFamily: typography.family.extrabold,
+      flex: 1,
+    },
+    lista: { padding: spacing['5'], paddingBottom: spacing['12'] },
+    balanceCards: {
+      flexDirection: 'row',
+      gap: spacing['3'],
+      marginBottom: spacing['3'],
+    },
+    balanceCard: {
+      flex: 1,
+      borderRadius: radii.xl,
+      borderCurve: 'continuous',
+      padding: spacing['4'],
+    },
+    cofrinhoCard: {
+      borderWidth: 1,
+    },
+    balanceCardTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1'],
       marginBottom: spacing['1'],
     },
-    boxConfigTitulo: {
-      fontSize: typography.size.md,
-      fontFamily: typography.family.bold,
-      color: colors.text.primary,
+    balanceCardLabel: {
+      fontSize: typography.size.xxs,
+      fontFamily: typography.family.semibold,
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
+      color: 'rgba(255,255,255,0.7)',
     },
-    boxConfigSub: {
-      fontSize: typography.size.xs,
+    balanceCardValue: {
+      fontSize: typography.size['3xl'],
+      fontFamily: typography.family.extrabold,
+      fontVariant: ['tabular-nums'],
+      color: '#FFFFFF',
+    },
+    balanceCardUnit: {
+      fontSize: typography.size.xxs,
       fontFamily: typography.family.medium,
-      color: colors.text.muted,
-      marginBottom: spacing['2'],
+      color: 'rgba(255,255,255,0.6)',
+      marginTop: spacing['0.5'],
     },
-    balanceHeaderProgress: {
-      marginTop: spacing['3'],
-      gap: spacing['1'],
+    progressSection: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['2'],
+      marginBottom: spacing['4'],
     },
     progressTrack: {
+      flex: 1,
       flexDirection: 'row',
       height: 8,
       borderRadius: radii.full,
       overflow: 'hidden',
-      gap: 2,
     },
-    progressFillLeft: {
-      borderTopLeftRadius: radii.full,
-      borderBottomLeftRadius: radii.full,
-    },
-    progressFillRight: {
-      borderTopRightRadius: radii.full,
-      borderBottomRightRadius: radii.full,
-    },
-    progressLabels: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
+    progressFill: {
+      borderRadius: radii.full,
     },
     progressLabel: {
-      fontSize: typography.size.xs,
-      fontFamily: typography.family.semibold,
+      fontSize: typography.size.xxs,
+      fontFamily: typography.family.bold,
       fontVariant: ['tabular-nums'],
     },
-    projectionBox: {
+    rulesCard: {
+      borderRadius: radii.xl,
+      borderCurve: 'continuous',
+      borderWidth: 1,
+      padding: spacing['4'],
+      marginBottom: spacing['3'],
+    },
+    rulesCardHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing['1.5'],
-      marginTop: spacing['2'],
+      gap: spacing['2'],
+      marginBottom: spacing['3'],
+    },
+    rulesIconBox: {
+      width: 28,
+      height: 28,
+      borderRadius: radii.md,
+      borderCurve: 'continuous',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    rulesTitle: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.bold,
+    },
+    rulesRateRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: spacing['1'],
+      marginBottom: spacing['1'],
+    },
+    rulesRateValue: {
+      fontSize: typography.size['2xl'],
+      fontFamily: typography.family.extrabold,
+    },
+    rulesRateUnit: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.medium,
+    },
+    projectionBox: {
+      borderRadius: radii.xl,
+      borderCurve: 'continuous',
+      paddingHorizontal: spacing['3'],
+      paddingVertical: spacing['2'],
+      marginBottom: spacing['3'],
+      gap: spacing['0.5'],
+    },
+    projectionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1'],
     },
     projectionText: {
-      fontSize: typography.size.sm,
-      fontFamily: typography.family.semibold,
-    },
-    boxConfigAjuda: {
-      color: colors.text.muted,
       fontSize: typography.size.xs,
-      marginTop: spacing['2'],
+      fontFamily: typography.family.bold,
+    },
+    projectionDetail: {
+      fontSize: typography.size.xxs,
+      fontFamily: typography.family.medium,
+      opacity: 0.7,
+    },
+    noAppreciationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['2'],
+      paddingVertical: spacing['2'],
+    },
+    noAppreciationText: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.medium,
+    },
+    rulesStatsRow: {
+      flexDirection: 'row',
+      gap: spacing['2'],
+      marginTop: spacing['3'],
+    },
+    rulesStat: {
+      flex: 1,
+      borderRadius: radii.lg,
+      borderCurve: 'continuous',
+      paddingHorizontal: spacing['3'],
+      paddingVertical: spacing['2'],
+    },
+    rulesStatLabel: {
+      fontSize: typography.size.xxs,
+      fontFamily: typography.family.bold,
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
+    },
+    rulesStatValue: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.extrabold,
+      marginTop: spacing['0.5'],
     },
     historicoHeader: {
       borderBottomWidth: 1,
