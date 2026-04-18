@@ -65,11 +65,21 @@ function getAssignmentDateLine(assignment: AssignmentWithChild): DateLine | null
         : null;
     case 'aprovada': {
       const date = assignment.validada_em ?? assignment.concluida_em;
-      return date ? { label: 'Aprovada em ', date: formatDate(date) } : null;
+      if (!date) return null;
+      let formatted = formatDate(date);
+      if (assignment.competencia && toDateString(new Date(date)) !== assignment.competencia) {
+        formatted += ' · Tarefa de ' + formatDate(assignment.competencia + 'T12:00:00');
+      }
+      return { label: 'Aprovada em ', date: formatted };
     }
     case 'rejeitada': {
       const date = assignment.validada_em ?? assignment.concluida_em;
-      return date ? { label: 'Rejeitada em ', date: formatDate(date) } : null;
+      if (!date) return null;
+      let formatted = formatDate(date);
+      if (assignment.competencia && toDateString(new Date(date)) !== assignment.competencia) {
+        formatted += ' · Tarefa de ' + formatDate(assignment.competencia + 'T12:00:00');
+      }
+      return { label: 'Rejeitada em ', date: formatted };
     }
   }
 }

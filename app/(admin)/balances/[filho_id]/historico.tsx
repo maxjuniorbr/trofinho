@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
@@ -87,10 +87,9 @@ export default function ChildBalanceHistoryScreen() {
     const [filter, setFilter] = useState<FilterKey>('all');
     const listRef = useRef<FlashListRef<{ label: string; items: Transaction[] }>>(null);
 
-    const handleFilterChange = useCallback((key: FilterKey) => {
-        setFilter(key);
-        listRef.current?.scrollToOffset({ offset: 0, animated: false });
-    }, []);
+    useEffect(() => {
+        listRef.current?.scrollToTop({ animated: false });
+    }, [filter]);
 
     const { from, to } = useMemo(() => monthBounds(year, month), [year, month]);
     const transactionsQuery = useTransactionsByPeriod(filho_id, from, to);
@@ -319,7 +318,7 @@ export default function ChildBalanceHistoryScreen() {
                                             style={styles.filterPill}
                                         >
                                             <Pressable
-                                                onPress={() => handleFilterChange(f.key)}
+                                                onPress={() => setFilter(f.key)}
                                                 accessibilityRole="button"
                                                 accessibilityLabel={`Filtrar ${f.label}`}
                                                 style={styles.filterPressable}
@@ -339,7 +338,7 @@ export default function ChildBalanceHistoryScreen() {
                                 return (
                                     <Pressable
                                         key={f.key}
-                                        onPress={() => handleFilterChange(f.key)}
+                                        onPress={() => setFilter(f.key)}
                                         accessibilityRole="button"
                                         accessibilityLabel={`Filtrar ${f.label}`}
                                         style={[

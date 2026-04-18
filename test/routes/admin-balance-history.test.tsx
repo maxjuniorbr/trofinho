@@ -64,7 +64,7 @@ vi.mock('@shopify/flash-list', () => ({
         ref: React.ForwardedRef<unknown>,
     ) {
         const { data, renderItem, ListHeaderComponent, ListFooterComponent, ...rest } = props;
-        React.useImperativeHandle(ref, () => ({ scrollToOffset: () => {} }));
+        React.useImperativeHandle(ref, () => ({ scrollToOffset: () => {}, scrollToTop: () => {} }));
         return React.createElement(
             'FlashList',
             rest,

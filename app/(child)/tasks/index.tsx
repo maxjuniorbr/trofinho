@@ -14,7 +14,7 @@ import {
   type ChildAssignment,
   type AssignmentStatus,
 } from '@lib/tasks';
-import { formatDate } from '@lib/utils';
+import { formatDate, toDateString } from '@lib/utils';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
 import { useChildAssignments } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
@@ -70,9 +70,13 @@ function getAssignmentDateLine(assignment: ChildAssignment, filter: Filter): Dat
   }
   const date = assignment.validada_em ?? assignment.concluida_em;
   if (!date) return null;
+  let value = formatDate(date);
+  if (assignment.competencia && toDateString(new Date(date)) !== assignment.competencia) {
+    value += ' · Tarefa de ' + formatDate(assignment.competencia + 'T12:00:00');
+  }
   return {
     label: assignment.validada_em ? 'Validada em ' : 'Concluída em ',
-    value: formatDate(date),
+    value,
   };
 }
 
