@@ -4,13 +4,13 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, User, X } from 'lucide-react-native';
 import { HeaderIconButton } from '@/components/ui/screen-header';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { useUpdateUserName } from '@/hooks/queries/use-profile';
 import { useTheme } from '@/context/theme-context';
@@ -136,47 +136,29 @@ export function PersonalDataSheet({
             >
               {errorMessage ? <InlineMessage message={errorMessage} variant="error" /> : null}
 
-              <View style={styles.field}>
-                <Text style={[styles.fieldLabel, { color: colors.text.secondary }]}>
-                  Nome completo
-                </Text>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: colors.bg.elevated,
-                      borderColor: colors.border.default,
-                      color: colors.text.primary,
-                    },
-                  ]}
-                  value={name}
-                  onChangeText={(v) => {
-                    setName(v);
-                    setValidationError(null);
-                    updateNameMutation.reset();
-                  }}
-                  placeholder="Seu nome"
-                  placeholderTextColor={colors.text.muted}
-                  autoCapitalize="words"
-                  autoCorrect={false}
-                  maxLength={60}
-                  accessibilityLabel="Nome completo"
-                />
-              </View>
+              <Input
+                label="Nome completo"
+                value={name}
+                onChangeText={(v) => {
+                  setName(v);
+                  setValidationError(null);
+                  updateNameMutation.reset();
+                }}
+                placeholder="Seu nome"
+                autoCapitalize="words"
+                autoCorrect={false}
+                maxLength={60}
+                accessibilityLabel="Nome completo"
+                noMarginBottom
+              />
 
-              <View style={styles.field}>
-                <Text style={[styles.fieldLabel, { color: colors.text.secondary }]}>E-mail</Text>
-                <View
-                  style={[
-                    styles.inputReadonly,
-                    { backgroundColor: colors.bg.muted, borderColor: colors.border.subtle },
-                  ]}
-                >
-                  <Text style={[styles.inputReadonlyText, { color: colors.text.muted }]}>
-                    {email}
-                  </Text>
-                </View>
-              </View>
+              <Input
+                label="E-mail"
+                value={email}
+                editable={false}
+                accessibilityLabel="E-mail (não editável)"
+                noMarginBottom
+              />
 
               <Button
                 label="Salvar alterações"
@@ -237,38 +219,6 @@ function makeStyles(colors: ThemeColors) {
     content: {
       gap: spacing['3'],
       paddingBottom: spacing['4'],
-    },
-    field: {
-      gap: spacing['1'],
-    },
-    fieldLabel: {
-      fontSize: typography.size.xs,
-      fontFamily: typography.family.bold,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-    },
-    input: {
-      borderWidth: 1,
-      borderRadius: radii.lg,
-      borderCurve: 'continuous',
-      paddingHorizontal: spacing['4'],
-      paddingVertical: spacing['3'],
-      fontSize: typography.size.md,
-      fontFamily: typography.family.medium,
-      minHeight: 48,
-    },
-    inputReadonly: {
-      borderWidth: 1,
-      borderRadius: radii.lg,
-      borderCurve: 'continuous',
-      paddingHorizontal: spacing['4'],
-      paddingVertical: spacing['3'],
-      minHeight: 48,
-      justifyContent: 'center',
-    },
-    inputReadonlyText: {
-      fontSize: typography.size.md,
-      fontFamily: typography.family.medium,
     },
     successContainer: {
       alignItems: 'center',
