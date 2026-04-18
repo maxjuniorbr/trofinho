@@ -331,3 +331,104 @@ describe('deriveChildNotifs', () => {
     expect(deriveChildNotifs(input)).toEqual([]);
   });
 });
+
+describe('edge cases: missing and malformed dates', () => {
+  const makeAssignment = (
+    overrides: Partial<ChildNotifInput['assignments'][number]>,
+  ): ChildNotifInput['assignments'][number] => ({
+    id: 'a1',
+    tarefa_id: 't1',
+    filho_id: 'f1',
+    status: 'aprovada',
+    pontos_snapshot: 10,
+    evidencia_url: null,
+    nota_rejeicao: null,
+    concluida_em: minsAgo(10),
+    validada_em: null,
+    validada_por: null,
+    created_at: minsAgo(60),
+    competencia: null,
+    tarefas: {
+      id: 't1',
+      titulo: 'Test',
+    } as ChildNotifInput['assignments'][number]['tarefas'],
+    ...overrides,
+  });
+
+  it('groups assignment as "Anterior" when validada_em is null and created_at is old', () => {
+    const input: ChildNotifInput = {
+      assignments: [makeAssignment({ validada_em: null, created_at: daysAgo(5) })],
+      redemptions: [],
+    };
+    const [n] = deriveChildNotifs(input);
+    expect(n.group).toBe('Anterior');
+  });
+
+  it('returns empty relative time when validada_em is null and using created_at fallback', () => {
+    const input: ChildNotifInput = {
+      assignments: [makeAssignment({ validada_em: null, created_at: minsAgo(5) })],
+      redemptions: [],
+    };
+    const [n] = deriveChildNotifs(input);
+    expect(n.time).toBeTruthy();
+  });
+
+  it('handles very old dates without crashing', () => {
+    const input: ChildNotifInput = {
+      assignments: [makeAssignment({ validada_em: '2020-01-01T00:00:00Z' })],
+      redemptions: [],
+    };
+    const notifs = deriveChildNotifs(input);
+    expect(notifs).toHaveLength(1);
+    expect(notifs[0].group).toBe('Anterior');
+  });
+
+  it('handles future dates gracefully', () => {
+    const input: ChildNotifInput = {
+      assignments: [
+        makeAssignment({ validada_em: new Date(FIXED_NOW.getTime() + 86_400_000).toISOString() }),
+      ],
+      redemptions: [],
+    };
+    const notifs = deriveChildNotifs(input);
+    expect(notifs).toHaveLength(1);
+  });
+
+  it('admin notif groups as "Anterior" when task created_at is null-ish', () => {
+    const input: AdminNotifInput = {
+      tasks: [
+        {
+          id: 't1',
+          titulo: 'Task',
+          pontos: 10,
+          created_at: '',
+          atribuicoes: [{ status: 'aguardando_validacao' }],
+        },
+      ],
+      redemptions: [],
+    };
+    const [n] = deriveAdminNotifs(input);
+    expect(n.group).toBe('Anterior');
+  });
+
+  it('child approved assignment with null premios in redemption does not crash', () => {
+    const input: ChildNotifInput = {
+      assignments: [],
+      redemptions: [
+        {
+          id: 'r1',
+          filho_id: 'f1',
+          premio_id: 'p1',
+          status: 'pendente',
+          pontos_debitados: 50,
+          created_at: minsAgo(10),
+          updated_at: minsAgo(10),
+          premios: null,
+        },
+      ],
+    };
+    const notifs = deriveChildNotifs(input);
+    expect(notifs).toHaveLength(1);
+    expect(notifs[0].description).toContain('Prêmio');
+  });
+});
