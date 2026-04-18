@@ -128,6 +128,9 @@ export async function listTransactions(
   return { data: hasMore ? items.slice(0, pageSize) : items, hasMore, error: null };
 }
 
+/** Types that represent core balance movements (earned / lost). */
+const BALANCE_TYPES = ['credito', 'penalizacao', 'debito'] as const;
+
 export async function listTransactionsByPeriod(
   childId: string,
   from: string,
@@ -137,6 +140,7 @@ export async function listTransactionsByPeriod(
     .from('movimentacoes')
     .select('*')
     .eq('filho_id', childId)
+    .in('tipo', [...BALANCE_TYPES])
     .gte('created_at', from)
     .lt('created_at', to)
     .order('created_at', { ascending: false })
