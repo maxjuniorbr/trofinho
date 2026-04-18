@@ -82,7 +82,7 @@ const RedemptionRow = ({ item, colors, styles, isLast }: RedemptionRowProps) => 
       </View>
     </View>
   );
-}
+};
 
 export default function AdminRedemptionsScreen() {
   const router = useRouter();

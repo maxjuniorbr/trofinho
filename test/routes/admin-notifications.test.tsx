@@ -168,9 +168,7 @@ describe('AdminNotificationsScreen', () => {
     inboxMock.items = [makeNotif({ route: '/(admin)/tasks' })];
     const renderer = render(<AdminNotificationsScreen />);
     const pressables = renderer.root.findAllByType('Pressable' as never);
-    const card = pressables.find(
-      (p) => p.props.accessibilityLabel?.includes('Tarefa pendente'),
-    );
+    const card = pressables.find((p) => p.props.accessibilityLabel?.includes('Tarefa pendente'));
     expect(card).toBeDefined();
     act(() => card!.props.onPress());
     expect(routerMock.push).toHaveBeenCalledWith('/(admin)/tasks');
