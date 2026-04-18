@@ -204,7 +204,7 @@ export default function EditTaskScreen() {
         onDescriptionChange={setDescription}
         onPointsChange={setPoints}
         onDiasSemanaChange={setDiasSemana}
-        onRequiresEvidenceChange={() => {}}
+        onRequiresEvidenceChange={() => { }}
         autoFocusTitle
         weekdaysEditable={editState.canEdit}
         pointsEditable={editState.canEditPoints}

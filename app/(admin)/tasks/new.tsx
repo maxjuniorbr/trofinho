@@ -66,9 +66,9 @@ export default function NewTaskScreen() {
         },
         opts: profile
           ? {
-              familiaId: profile.familia_id,
-              filhoIds,
-            }
+            familiaId: profile.familia_id,
+            filhoIds,
+          }
           : undefined,
       },
       {

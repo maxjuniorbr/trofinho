@@ -200,10 +200,10 @@ export default function AdminRedemptionsScreen() {
           redemptionId,
           opts: modal.childUserId
             ? {
-                familiaId: profile.familia_id,
-                userId: modal.childUserId,
-                prizeName: modal.prizeName,
-              }
+              familiaId: profile.familia_id,
+              userId: modal.childUserId,
+              prizeName: modal.prizeName,
+            }
             : undefined,
         },
         {
