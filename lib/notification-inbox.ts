@@ -27,7 +27,8 @@ export interface Notif {
 
 // ── Helpers ──────────────────────────────────────────────
 
-function dateGroup(isoDate: string): NotifGroup {
+function dateGroup(isoDate: string | null | undefined): NotifGroup {
+  if (!isoDate) return 'Anterior';
   const today = toDateString(new Date());
   const yesterday = toDateString(new Date(Date.now() - 86_400_000));
   const d = isoDate.slice(0, 10);
@@ -36,8 +37,11 @@ function dateGroup(isoDate: string): NotifGroup {
   return 'Anterior';
 }
 
-function relativeTime(isoDate: string): string {
-  const diffMs = Date.now() - new Date(isoDate).getTime();
+function relativeTime(isoDate: string | null | undefined): string {
+  if (!isoDate) return '';
+  const parsed = new Date(isoDate).getTime();
+  if (Number.isNaN(parsed)) return '';
+  const diffMs = Date.now() - parsed;
   const mins = Math.floor(diffMs / 60_000);
   if (mins < 1) return 'agora';
   if (mins < 60) return `há ${mins} min`;
