@@ -1,8 +1,9 @@
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
   getBalance,
   listAdminBalances,
   listTransactions,
+  listTransactionsByPeriod,
   applyPenalty,
   configureAppreciation,
   configurePiggyBank,
@@ -47,6 +48,15 @@ export const useTransactions = (childId: string) =>
     ) => (lastPage.hasMore ? lastPageParam + 1 : undefined),
     staleTime: STALE_TIMES.balances,
     enabled: !!childId,
+  });
+
+export const useTransactionsByPeriod = (childId: string, from: string, to: string) =>
+  useQuery({
+    queryKey: queryKeys.balances.transactionsByPeriod(childId, from, to),
+    queryFn: queryFnAdapter(() => listTransactionsByPeriod(childId, from, to)),
+    staleTime: STALE_TIMES.balances,
+    enabled: !!childId,
+    placeholderData: keepPreviousData,
   });
 
 export const useApplyPenalty = () => {

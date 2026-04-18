@@ -17,6 +17,8 @@ export const queryKeys = {
     byChild: (childId: string) => [...queryKeys.balances.all, 'by-child', childId] as const,
     transactions: (childId: string) =>
       [...queryKeys.balances.all, 'transactions', childId] as const,
+    transactionsByPeriod: (childId: string, from: string, to: string) =>
+      [...queryKeys.balances.all, 'transactions-period', childId, from, to] as const,
   },
   children: {
     all: ['children'] as const,

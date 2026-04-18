@@ -128,6 +128,24 @@ export async function listTransactions(
   return { data: hasMore ? items.slice(0, pageSize) : items, hasMore, error: null };
 }
 
+export async function listTransactionsByPeriod(
+  childId: string,
+  from: string,
+  to: string,
+): Promise<{ data: Transaction[]; error: string | null }> {
+  const { data, error } = await supabase
+    .from('movimentacoes')
+    .select('*')
+    .eq('filho_id', childId)
+    .gte('created_at', from)
+    .lt('created_at', to)
+    .order('created_at', { ascending: false })
+    .overrideTypes<Transaction[], { merge: false }>();
+
+  if (error) return { data: [], error: localizeRpcError(error.message) };
+  return { data: data ?? [], error: null };
+}
+
 export async function transferToPiggyBank(
   childId: string,
   amount: number,

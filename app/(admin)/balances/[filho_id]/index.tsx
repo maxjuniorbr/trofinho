@@ -9,7 +9,7 @@ import { formatDate } from '@lib/utils';
 import { getTransactionTypeLabel, isCredit, calculateProjection } from '@lib/balances';
 import {
   useBalance,
-  useTransactions,
+  useTransactionsByPeriod,
   useApplyPenalty,
   useConfigurePiggyBank,
   combineQueryStates,
@@ -39,7 +39,12 @@ import { getSafeHorizontalPadding, getSafeTopPadding } from '@lib/safe-area';
 
 type ModalType = 'penalizar' | 'config' | null;
 
-const RECENT_LIMIT = 10;
+const todayRange = () => {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const end = new Date(start.getTime() + 86_400_000);
+  return { from: start.toISOString(), to: end.toISOString() };
+};
 
 export default function ChildBalanceAdminScreen() {
   const { filho_id, nome } = useLocalSearchParams<{ filho_id: string; nome: string }>();
@@ -48,21 +53,17 @@ export default function ChildBalanceAdminScreen() {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
+  const { from: todayFrom, to: todayTo } = useMemo(todayRange, []);
+  const todayLabel = formatDate(new Date());
+
   const balanceQuery = useBalance(filho_id);
-  const transactionsQuery = useTransactions(filho_id);
+  const transactionsQuery = useTransactionsByPeriod(filho_id, todayFrom, todayTo);
   const { data: profile } = useProfile();
   const { data: childDetail } = useChildDetail(filho_id);
   const { isLoading, isFetching, refetchAll } = combineQueryStates(balanceQuery, transactionsQuery);
 
   const balance = balanceQuery.data ?? null;
-  const transactions = useMemo(
-    () => transactionsQuery.data?.pages.flatMap((p) => p.data) ?? [],
-    [transactionsQuery.data],
-  );
-  const recentTransactions = useMemo(
-    () => transactions.slice(0, RECENT_LIMIT),
-    [transactions],
-  );
+  const todayTransactions = transactionsQuery.data ?? [];
 
 
   const [modalType, setModalType] = useState<ModalType>(null);
@@ -301,7 +302,7 @@ export default function ChildBalanceAdminScreen() {
       </View>
 
       <FlashList
-        data={recentTransactions}
+        data={todayTransactions}
         keyExtractor={(m) => m.id}
         maintainVisibleContentPosition={{ disabled: true }}
         contentContainerStyle={styles.lista}
@@ -461,25 +462,10 @@ export default function ChildBalanceAdminScreen() {
             <PenaltyButton onPress={() => setModalType('penalizar')} />
 
             <View style={styles.historicoHeader}>
-              <Text style={styles.secaoTitulo}>Histórico</Text>
-              <Pressable
-                onPress={() =>
-                  router.push({
-                    pathname: '/(admin)/balances/[filho_id]/historico',
-                    params: { filho_id, nome: childName },
-                  })
-                }
-                accessibilityRole="link"
-                accessibilityLabel="Ver histórico completo"
-                hitSlop={8}
-              >
-                <Text style={[styles.historicoLink, { color: colors.accent.adminDim }]}>
-                  Ver completo →
-                </Text>
-              </Pressable>
+              <Text style={styles.secaoTitulo}>Aprovado hoje · {todayLabel}</Text>
             </View>
-            {recentTransactions.length === 0 ? (
-              <Text style={styles.vazio}>Nenhuma movimentação ainda.</Text>
+            {todayTransactions.length === 0 ? (
+              <Text style={styles.vazio}>Nenhuma movimentação aprovada hoje.</Text>
             ) : null}
           </>
         }
@@ -507,23 +493,21 @@ export default function ChildBalanceAdminScreen() {
           </View>
         )}
         ListFooterComponent={
-          transactions.length > RECENT_LIMIT ? (
-            <Pressable
-              onPress={() =>
-                router.push({
-                  pathname: '/(admin)/balances/[filho_id]/historico',
-                  params: { filho_id, nome: childName },
-                })
-              }
-              accessibilityRole="link"
-              accessibilityLabel="Ver extrato completo"
-              style={[styles.viewAllBtn, { borderColor: colors.border.subtle }]}
-            >
-              <Text style={[styles.viewAllBtnText, { color: colors.accent.adminDim }]}>
-                Ver extrato completo
-              </Text>
-            </Pressable>
-          ) : null
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: '/(admin)/balances/[filho_id]/historico',
+                params: { filho_id, nome: childName },
+              })
+            }
+            accessibilityRole="link"
+            accessibilityLabel="Ver extrato completo"
+            style={[styles.viewAllBtn, { borderColor: colors.border.subtle }]}
+          >
+            <Text style={[styles.viewAllBtnText, { color: colors.accent.adminDim }]}>
+              Ver extrato completo
+            </Text>
+          </Pressable>
         }
       />
 

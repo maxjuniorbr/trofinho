@@ -3,21 +3,25 @@ import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowDownLeft, ArrowUpRight, ChevronLeft } from 'lucide-react-native';
+import {
+    ArrowDownLeft,
+    ArrowUpRight,
+    ChevronLeft,
+    ChevronRight,
+} from 'lucide-react-native';
 import {
     getTransactionTypeLabel,
     isCredit,
     type Transaction,
 } from '@lib/balances';
 import { formatDate } from '@lib/utils';
-import { useTransactions, useChildDetail } from '@/hooks/queries';
+import { useTransactionsByPeriod, useChildDetail } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { gradients, radii, spacing, typography } from '@/constants/theme';
 import { HeaderIconButton } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { EmptyState } from '@/components/ui/empty-state';
-import { ListFooter } from '@/components/ui/list-footer';
 import { TransactionIcon } from '@/components/balance/transaction-icon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -31,31 +35,31 @@ const FILTERS: readonly { key: FilterKey; label: string }[] = [
     { key: 'saidas', label: 'Saídas' },
 ];
 
-type MonthGroup = Readonly<{
-    label: string;
-    items: Transaction[];
-}>;
+const monthBounds = (year: number, month: number) => {
+    const start = new Date(year, month, 1);
+    const end = new Date(year, month + 1, 1);
+    return { from: start.toISOString(), to: end.toISOString() };
+};
 
-const monthLabel = (iso: string): string => {
-    const date = new Date(iso);
+const formatMonthLabel = (year: number, month: number): string => {
+    const date = new Date(year, month, 1);
     return date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 };
 
-const groupByMonth = (items: Transaction[]): MonthGroup[] => {
+const isCurrentMonth = (year: number, month: number): boolean => {
+    const now = new Date();
+    return year === now.getFullYear() && month === now.getMonth();
+};
+
+const groupByDay = (items: Transaction[]): { label: string; items: Transaction[] }[] => {
     const map = new Map<string, Transaction[]>();
     for (const tx of items) {
-        const label = monthLabel(tx.created_at);
+        const label = formatDate(tx.created_at);
         const list = map.get(label);
-        if (list) {
-            list.push(tx);
-        } else {
-            map.set(label, [tx]);
-        }
+        if (list) list.push(tx);
+        else map.set(label, [tx]);
     }
-    return Array.from(map.entries()).map(([label, groupItems]) => ({
-        label,
-        items: groupItems,
-    }));
+    return Array.from(map.entries()).map(([label, groupItems]) => ({ label, items: groupItems }));
 };
 
 export default function ChildBalanceHistoryScreen() {
@@ -65,14 +69,19 @@ export default function ChildBalanceHistoryScreen() {
     const insets = useSafeAreaInsets();
     const styles = useMemo(() => makeStyles(colors), [colors]);
 
-    const transactionsQuery = useTransactions(filho_id);
     const { data: childDetail } = useChildDetail(filho_id);
     const childName = nome ?? childDetail?.nome ?? 'Filho';
 
+    const now = useMemo(() => new Date(), []);
+    const [year, setYear] = useState(now.getFullYear());
+    const [month, setMonth] = useState(now.getMonth());
     const [filter, setFilter] = useState<FilterKey>('all');
 
+    const { from, to } = useMemo(() => monthBounds(year, month), [year, month]);
+    const transactionsQuery = useTransactionsByPeriod(filho_id, from, to);
+
     const allTransactions = useMemo(
-        () => transactionsQuery.data?.pages.flatMap((p) => p.data) ?? [],
+        () => transactionsQuery.data ?? [],
         [transactionsQuery.data],
     );
 
@@ -92,7 +101,31 @@ export default function ChildBalanceHistoryScreen() {
         return { entradas, saidas };
     }, [allTransactions]);
 
-    const groups = useMemo(() => groupByMonth(filtered), [filtered]);
+    const groups = useMemo(() => groupByDay(filtered), [filtered]);
+
+    const currentMonthLabel = useMemo(() => formatMonthLabel(year, month), [year, month]);
+    const canGoForward = !isCurrentMonth(year, month);
+
+    const goToPrevMonth = useCallback(() => {
+        setMonth((m) => {
+            if (m === 0) {
+                setYear((y) => y - 1);
+                return 11;
+            }
+            return m - 1;
+        });
+    }, []);
+
+    const goToNextMonth = useCallback(() => {
+        if (!canGoForward) return;
+        setMonth((m) => {
+            if (m === 11) {
+                setYear((y) => y + 1);
+                return 0;
+            }
+            return m + 1;
+        });
+    }, [canGoForward]);
 
     const handleBack = useCallback(() => {
         if (router.canGoBack()) router.back();
@@ -156,6 +189,47 @@ export default function ChildBalanceHistoryScreen() {
                 }
                 ListHeaderComponent={
                     <>
+                        {/* Month navigator */}
+                        <View style={styles.monthNav}>
+                            <Pressable
+                                onPress={goToPrevMonth}
+                                accessibilityRole="button"
+                                accessibilityLabel="Mês anterior"
+                                hitSlop={12}
+                            >
+                                <ChevronLeft
+                                    size={20}
+                                    color={colors.text.primary}
+                                    strokeWidth={2}
+                                />
+                            </Pressable>
+                            <Text
+                                style={[
+                                    styles.monthNavLabel,
+                                    { color: colors.text.primary },
+                                ]}
+                            >
+                                {currentMonthLabel}
+                            </Text>
+                            <Pressable
+                                onPress={goToNextMonth}
+                                accessibilityRole="button"
+                                accessibilityLabel="Próximo mês"
+                                hitSlop={12}
+                                disabled={!canGoForward}
+                            >
+                                <ChevronRight
+                                    size={20}
+                                    color={
+                                        canGoForward
+                                            ? colors.text.primary
+                                            : colors.text.muted
+                                    }
+                                    strokeWidth={2}
+                                />
+                            </Pressable>
+                        </View>
+
                         <View style={styles.statsRow}>
                             <View
                                 style={[
@@ -272,19 +346,19 @@ export default function ChildBalanceHistoryScreen() {
 
                         {groups.length === 0 ? (
                             <Text style={[styles.empty, { color: colors.text.muted }]}>
-                                Nenhuma transação encontrada
+                                Nenhuma transação neste mês.
                             </Text>
                         ) : null}
                     </>
                 }
                 renderItem={({ item: group }) => (
-                    <View style={styles.monthBlock}>
-                        <Text style={[styles.monthLabel, { color: colors.text.muted }]}>
+                    <View style={styles.dayBlock}>
+                        <Text style={[styles.dayLabel, { color: colors.text.muted }]}>
                             {group.label}
                         </Text>
                         <View
                             style={[
-                                styles.monthCard,
+                                styles.dayCard,
                                 {
                                     backgroundColor: colors.bg.surface,
                                     borderColor: colors.border.subtle,
@@ -338,27 +412,12 @@ export default function ChildBalanceHistoryScreen() {
                                             {isCredit(tx.tipo) ? '+' : '-'}
                                             {tx.valor}
                                         </Text>
-                                        <Text
-                                            style={[
-                                                styles.txDate,
-                                                { color: colors.text.muted },
-                                            ]}
-                                        >
-                                            {formatDate(tx.created_at)}
-                                        </Text>
                                     </View>
                                 </View>
                             ))}
                         </View>
                     </View>
                 )}
-                onEndReached={() => {
-                    if (transactionsQuery.hasNextPage) transactionsQuery.fetchNextPage();
-                }}
-                onEndReachedThreshold={0.3}
-                ListFooterComponent={
-                    <ListFooter loading={transactionsQuery.isFetchingNextPage} />
-                }
             />
         </SafeScreenFrame>
     );
@@ -385,6 +444,17 @@ function makeStyles(colors: ThemeColors) {
         },
         headerSpacer: { width: 36 },
         lista: { padding: spacing['5'], paddingBottom: spacing['12'] },
+        monthNav: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: spacing['4'],
+        },
+        monthNavLabel: {
+            fontSize: typography.size.md,
+            fontFamily: typography.family.bold,
+            textTransform: 'capitalize',
+        },
         statsRow: {
             flexDirection: 'row',
             gap: spacing['3'],
@@ -428,17 +498,16 @@ function makeStyles(colors: ThemeColors) {
             fontSize: typography.size.xs,
             fontFamily: typography.family.bold,
         },
-        monthBlock: {
+        dayBlock: {
             marginBottom: spacing['4'],
         },
-        monthLabel: {
+        dayLabel: {
             fontSize: typography.size.xxs,
             fontFamily: typography.family.bold,
             letterSpacing: 0.5,
-            textTransform: 'capitalize',
             marginBottom: spacing['2'],
         },
-        monthCard: {
+        dayCard: {
             borderRadius: radii.lg,
             borderCurve: 'continuous',
             borderWidth: 1,
@@ -472,7 +541,6 @@ function makeStyles(colors: ThemeColors) {
             fontFamily: typography.family.extrabold,
             fontVariant: ['tabular-nums'],
         },
-        txDate: { fontSize: typography.size.xxs, color: colors.text.muted },
         empty: {
             fontSize: typography.size.sm,
             textAlign: 'center',

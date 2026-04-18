@@ -11,15 +11,10 @@ const routerMock = vi.hoisted(() => ({
 }));
 
 const transactionsMock = vi.hoisted(() => ({
-    data: { pages: [{ data: [] as Record<string, unknown>[] }] } as {
-        pages: { data: Record<string, unknown>[] }[];
-    } | null,
+    data: [] as Record<string, unknown>[] | null,
     isLoading: false,
     isFetching: false,
     refetch: vi.fn().mockResolvedValue(undefined),
-    fetchNextPage: vi.fn(),
-    hasNextPage: false,
-    isFetchingNextPage: false,
 }));
 
 const childDetailMock = vi.hoisted(() => ({
@@ -94,6 +89,7 @@ vi.mock('lucide-react-native', () => ({
     ArrowUpRight: (props: Record<string, unknown>) =>
         React.createElement('ArrowUpRight', props),
     ChevronLeft: (props: Record<string, unknown>) => React.createElement('ChevronLeft', props),
+    ChevronRight: (props: Record<string, unknown>) => React.createElement('ChevronRight', props),
 }));
 
 vi.mock('react-native-safe-area-context', () => ({
@@ -126,9 +122,7 @@ vi.mock('@/components/ui/screen-header', () => ({
         ),
 }));
 
-vi.mock('@/components/ui/list-footer', () => ({
-    ListFooter: (props: Record<string, unknown>) => React.createElement('ListFooter', props),
-}));
+
 
 vi.mock('@/components/balance/transaction-icon', () => ({
     TransactionIcon: (props: Record<string, unknown>) =>
@@ -141,8 +135,16 @@ vi.mock('@lib/safe-area', () => ({
 }));
 
 vi.mock('@lib/utils', () => ({
-    formatDate: (iso: string) => iso.slice(0, 10),
+    formatDate: (iso: string) => {
+        const d = new Date(iso);
+        const dd = String(d.getUTCDate()).padStart(2, '0');
+        const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const yyyy = d.getUTCFullYear();
+        return `${dd}/${mm}/${yyyy}`;
+    },
 }));
+
+
 
 vi.mock('@/context/theme-context', () => ({
     useTheme: () => ({
@@ -166,7 +168,7 @@ vi.mock('@/context/theme-context', () => ({
 }));
 
 vi.mock('@/hooks/queries', () => ({
-    useTransactions: () => transactionsMock,
+    useTransactionsByPeriod: () => transactionsMock,
     useChildDetail: () => childDetailMock,
 }));
 
@@ -201,38 +203,31 @@ describe('ChildBalanceHistoryScreen', () => {
         routerMock.replace.mockReset();
         routerMock.canGoBack.mockReturnValue(true);
 
-        transactionsMock.data = {
-            pages: [
-                {
-                    data: [
-                        {
-                            id: 'tx-1',
-                            tipo: 'credito',
-                            descricao: 'Arrumar a cama',
-                            valor: 10,
-                            created_at: '2026-04-01T10:00:00Z',
-                        },
-                        {
-                            id: 'tx-2',
-                            tipo: 'penalizacao',
-                            descricao: 'Brigou com irmão',
-                            valor: 5,
-                            created_at: '2026-04-02T10:00:00Z',
-                        },
-                        {
-                            id: 'tx-3',
-                            tipo: 'valorizacao',
-                            descricao: 'Valorização mensal',
-                            valor: 8,
-                            created_at: '2026-03-01T10:00:00Z',
-                        },
-                    ],
-                },
-            ],
-        };
+        transactionsMock.data = [
+            {
+                id: 'tx-1',
+                tipo: 'credito',
+                descricao: 'Arrumar a cama',
+                valor: 10,
+                created_at: '2026-04-01T10:00:00Z',
+            },
+            {
+                id: 'tx-2',
+                tipo: 'penalizacao',
+                descricao: 'Brigou com irmão',
+                valor: 5,
+                created_at: '2026-04-02T10:00:00Z',
+            },
+            {
+                id: 'tx-3',
+                tipo: 'credito',
+                descricao: 'Valorização mensal',
+                valor: 8,
+                created_at: '2026-04-01T15:00:00Z',
+            },
+        ];
         transactionsMock.isLoading = false;
         transactionsMock.isFetching = false;
-        transactionsMock.hasNextPage = false;
 
         childDetailMock.data = { nome: 'Ana Maria', avatar_url: null };
     });
@@ -254,7 +249,7 @@ describe('ChildBalanceHistoryScreen', () => {
     it('renders entradas and saidas totals', () => {
         const renderer = render(React.createElement(ChildBalanceHistoryScreen));
         const text = allText(renderer);
-        // entradas = 10 (credito) + 8 (valorizacao) = 18
+        // entradas = 10 (credito) + 8 (credito) = 18
         // saidas = 5 (penalizacao) = 5
         expect(text).toContain('+18');
         expect(text).toContain('-5');
@@ -300,11 +295,11 @@ describe('ChildBalanceHistoryScreen', () => {
         expect(text).not.toContain('Arrumar a cama');
     });
 
-    it('groups transactions by month', () => {
+    it('groups transactions by day', () => {
         const renderer = render(React.createElement(ChildBalanceHistoryScreen));
-        const text = allText(renderer).toLowerCase();
-        expect(text).toContain('abril');
-        expect(text).toContain('março');
+        const text = allText(renderer);
+        expect(text).toContain('01/04/2026');
+        expect(text).toContain('02/04/2026');
     });
 
     it('navigates back when back button is pressed', () => {
@@ -335,9 +330,25 @@ describe('ChildBalanceHistoryScreen', () => {
     });
 
     it('shows empty message when no transactions', () => {
-        transactionsMock.data = { pages: [{ data: [] }] };
+        transactionsMock.data = [];
         const renderer = render(React.createElement(ChildBalanceHistoryScreen));
         const text = allText(renderer);
-        expect(text).toContain('Nenhuma transação encontrada');
+        expect(text).toContain('Nenhuma transação neste mês.');
+    });
+
+    it('renders month navigator', () => {
+        const renderer = render(React.createElement(ChildBalanceHistoryScreen));
+        const prevBtn = renderer.root.findAll(
+            (n) =>
+                (n.type as string) === 'Pressable' &&
+                n.props.accessibilityLabel === 'Mês anterior',
+        );
+        const nextBtn = renderer.root.findAll(
+            (n) =>
+                (n.type as string) === 'Pressable' &&
+                n.props.accessibilityLabel === 'Próximo mês',
+        );
+        expect(prevBtn.length).toBe(1);
+        expect(nextBtn.length).toBe(1);
     });
 });

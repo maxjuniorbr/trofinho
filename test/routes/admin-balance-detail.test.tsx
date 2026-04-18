@@ -19,15 +19,10 @@ const balanceMock = vi.hoisted(() => ({
 }));
 
 const transactionsMock = vi.hoisted(() => ({
-    data: { pages: [{ data: [] as Record<string, unknown>[] }] } as {
-        pages: { data: Record<string, unknown>[] }[];
-    } | null,
+    data: [] as Record<string, unknown>[] | null,
     isLoading: false,
     isFetching: false,
     refetch: vi.fn().mockResolvedValue(undefined),
-    fetchNextPage: vi.fn(),
-    hasNextPage: false,
-    isFetchingNextPage: false,
 }));
 
 const childDetailMock = vi.hoisted(() => ({
@@ -229,7 +224,7 @@ vi.mock('@/context/theme-context', () => ({
 
 vi.mock('@/hooks/queries', () => ({
     useBalance: () => balanceMock,
-    useTransactions: () => transactionsMock,
+    useTransactionsByPeriod: () => transactionsMock,
     useProfile: () => profileMock,
     useChildDetail: () => childDetailMock,
     combineQueryStates: () => ({
@@ -290,24 +285,17 @@ describe('ChildBalanceAdminScreen', () => {
         balanceMock.isLoading = false;
         balanceMock.isFetching = false;
 
-        transactionsMock.data = {
-            pages: [
-                {
-                    data: [
-                        {
-                            id: 'tx-1',
-                            tipo: 'tarefa',
-                            descricao: 'Arrumar o quarto',
-                            valor: 50,
-                            created_at: '2025-01-15T10:00:00Z',
-                        },
-                    ],
-                },
-            ],
-        };
+        transactionsMock.data = [
+            {
+                id: 'tx-1',
+                tipo: 'tarefa',
+                descricao: 'Arrumar o quarto',
+                valor: 50,
+                created_at: '2025-01-15T10:00:00Z',
+            },
+        ];
         transactionsMock.isLoading = false;
         transactionsMock.isFetching = false;
-        transactionsMock.hasNextPage = false;
 
         childDetailMock.data = { nome: 'Ana Maria', avatar_url: null };
         profileMock.data = { familia_id: 'fam-1', role: 'admin' };
@@ -387,15 +375,15 @@ describe('ChildBalanceAdminScreen', () => {
     it('renders transaction list', () => {
         const renderer = render(React.createElement(ChildBalanceAdminScreen));
         const text = allText(renderer);
-        expect(text).toContain('Histórico');
+        expect(text).toContain('Aprovado hoje');
         expect(text).toContain('Arrumar o quarto');
     });
 
     it('shows empty transactions message when no data', () => {
-        transactionsMock.data = { pages: [{ data: [] }] };
+        transactionsMock.data = [];
         const renderer = render(React.createElement(ChildBalanceAdminScreen));
         const text = allText(renderer);
-        expect(text).toContain('Nenhuma movimentação ainda.');
+        expect(text).toContain('Nenhuma movimentação aprovada hoje.');
     });
 
     it('navigates back when back button is pressed', () => {
@@ -472,22 +460,12 @@ describe('ChildBalanceAdminScreen', () => {
         expect(text).toContain('SEM TAXA APÓS');
     });
 
-    it('renders "Ver completo" link in histórico header', () => {
+    it('navigates to history screen when "Ver extrato completo" is pressed', () => {
         const renderer = render(React.createElement(ChildBalanceAdminScreen));
         const link = renderer.root.findAll(
             (n) =>
                 (n.type as string) === 'Pressable' &&
-                n.props.accessibilityLabel === 'Ver histórico completo',
-        );
-        expect(link.length).toBe(1);
-    });
-
-    it('navigates to history screen when "Ver completo" is pressed', () => {
-        const renderer = render(React.createElement(ChildBalanceAdminScreen));
-        const link = renderer.root.findAll(
-            (n) =>
-                (n.type as string) === 'Pressable' &&
-                n.props.accessibilityLabel === 'Ver histórico completo',
+                n.props.accessibilityLabel === 'Ver extrato completo',
         )[0];
         act(() => {
             link.props.onPress();
@@ -498,38 +476,10 @@ describe('ChildBalanceAdminScreen', () => {
         });
     });
 
-    it('shows "Ver extrato completo" button when more than 10 transactions', () => {
-        const manyTxns = Array.from({ length: 12 }, (_, i) => ({
-            id: `tx-${i}`,
-            tipo: 'credito',
-            descricao: `Tarefa ${i}`,
-            valor: 10,
-            created_at: `2025-01-15T10:0${String(i).padStart(2, '0')}:00Z`,
-        }));
-        transactionsMock.data = { pages: [{ data: manyTxns }] };
+    it('always shows "Ver extrato completo" button', () => {
         const renderer = render(React.createElement(ChildBalanceAdminScreen));
         const text = allText(renderer);
         expect(text).toContain('Ver extrato completo');
-    });
-
-    it('limits displayed transactions to 10', () => {
-        const manyTxns = Array.from({ length: 15 }, (_, i) => ({
-            id: `tx-${i}`,
-            tipo: 'credito',
-            descricao: `Tarefa ${i}`,
-            valor: 10,
-            created_at: `2025-01-15T10:0${String(i).padStart(2, '0')}:00Z`,
-        }));
-        transactionsMock.data = { pages: [{ data: manyTxns }] };
-        const renderer = render(React.createElement(ChildBalanceAdminScreen));
-        const txIcons = renderer.root.findAll((n) => (n.type as string) === 'TransactionIcon');
-        expect(txIcons.length).toBe(10);
-    });
-
-    it('does not show "Ver extrato completo" button when 10 or fewer transactions', () => {
-        const renderer = render(React.createElement(ChildBalanceAdminScreen));
-        const text = allText(renderer);
-        expect(text).not.toContain('Ver extrato completo');
     });
 
     it('forwards onSave with three-field payload to mutation', async () => {

@@ -26,6 +26,7 @@ export {
   useBalance,
   useAdminBalances,
   useTransactions,
+  useTransactionsByPeriod,
   useApplyPenalty,
   useConfigureAppreciation,
   useConfigurePiggyBank,
