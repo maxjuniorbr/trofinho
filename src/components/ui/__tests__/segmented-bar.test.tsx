@@ -16,7 +16,9 @@ function renderBar(value: Filter = 'a', options = OPTIONS) {
   const onChange = vi.fn();
   let root!: ReturnType<typeof create>;
   act(() => {
-    root = create(<SegmentedBar options={options} value={value} onChange={onChange} role="filho" />);
+    root = create(
+      <SegmentedBar options={options} value={value} onChange={onChange} role="filho" />,
+    );
   });
   return { root, onChange };
 }
@@ -34,9 +36,7 @@ describe('SegmentedBar badges', () => {
     const betaPill = pressables[1];
     // Badge Views have minWidth: 18. Should be none inside the Beta pill.
     const badgeViews = betaPill.findAll(
-      (node) =>
-        (node.type as string) === 'View' &&
-        node.props?.style?.minWidth === 18,
+      (node) => (node.type as string) === 'View' && node.props?.style?.minWidth === 18,
     );
     expect(badgeViews).toHaveLength(0);
   });
@@ -46,9 +46,7 @@ describe('SegmentedBar badges', () => {
     const pressables = root.root.findAll((node) => (node.type as string) === 'Pressable');
     const gammaPill = pressables[2];
     const badgeViews = gammaPill.findAll(
-      (node) =>
-        (node.type as string) === 'View' &&
-        node.props?.style?.minWidth === 18,
+      (node) => (node.type as string) === 'View' && node.props?.style?.minWidth === 18,
     );
     expect(badgeViews).toHaveLength(0);
   });

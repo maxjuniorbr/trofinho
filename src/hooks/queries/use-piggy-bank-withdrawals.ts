@@ -8,11 +8,7 @@ import {
   configureWithdrawalRate,
   countPendingPiggyBankWithdrawals,
 } from '../../../lib/piggy-bank-withdrawal';
-import {
-  queryFnAdapter,
-  mutationFnAdapter,
-  nullableQueryFnAdapter,
-} from './query-fn-adapter';
+import { queryFnAdapter, mutationFnAdapter, nullableQueryFnAdapter } from './query-fn-adapter';
 import { queryKeys, STALE_TIMES } from './query-keys';
 
 export const usePendingPiggyBankWithdrawalCount = () =>

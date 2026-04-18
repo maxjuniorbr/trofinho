@@ -1,5 +1,5 @@
 import * as Crypto from 'expo-crypto';
-import { localizeRpcError , extractErrorMessage } from './api-error';
+import { localizeRpcError, extractErrorMessage } from './api-error';
 import { toDateString } from './utils';
 import { dispatchPushNotification } from './push';
 import { prepareImageUpload } from './storage';
@@ -14,8 +14,7 @@ export const isRecurring = (diasSemana: number): boolean => diasSemana > 0;
 export const isDayActive = (diasSemana: number, dow: number): boolean =>
   (diasSemana & (1 << dow)) > 0;
 
-export const toggleDay = (diasSemana: number, dow: number): number =>
-  diasSemana ^ (1 << dow);
+export const toggleDay = (diasSemana: number, dow: number): number => diasSemana ^ (1 << dow);
 
 export const formatWeekdays = (diasSemana: number): string => {
   if (diasSemana === 0) return 'Pontual';
@@ -287,12 +286,10 @@ async function signAssignmentListEvidence(
 
   if (validEntries.length === 0) return assignments;
 
-  const { data, error } = await supabase.storage
-    .from('evidencias')
-    .createSignedUrls(
-      validEntries.map((e) => e.path),
-      EVIDENCE_URL_TTL_SECONDS,
-    );
+  const { data, error } = await supabase.storage.from('evidencias').createSignedUrls(
+    validEntries.map((e) => e.path),
+    EVIDENCE_URL_TTL_SECONDS,
+  );
 
   if (error || !data) return assignments;
 
@@ -449,7 +446,10 @@ export async function completeAssignment(
 
   if (error) {
     if (evidenceUrl) {
-      supabase.storage.from('evidencias').remove([evidenceUrl]).catch(() => {});
+      supabase.storage
+        .from('evidencias')
+        .remove([evidenceUrl])
+        .catch(() => {});
     }
     return { error: localizeRpcError(error.message) };
   }
@@ -694,12 +694,10 @@ async function signTaskEvidence(task: TaskDetail): Promise<TaskDetail> {
 
   if (validEntries.length === 0) return task;
 
-  const { data, error } = await supabase.storage
-    .from('evidencias')
-    .createSignedUrls(
-      validEntries.map((e) => e.path),
-      EVIDENCE_URL_TTL_SECONDS,
-    );
+  const { data, error } = await supabase.storage.from('evidencias').createSignedUrls(
+    validEntries.map((e) => e.path),
+    EVIDENCE_URL_TTL_SECONDS,
+  );
 
   const signedMap = new Map<number, string>();
   if (!error && data) {

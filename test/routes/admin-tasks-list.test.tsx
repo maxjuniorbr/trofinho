@@ -1,5 +1,5 @@
 import React from 'react';
-import {act, create, type ReactTestRenderer} from '../helpers/test-renderer-compat';
+import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-compat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import AdminTasksScreen from '../../app/(admin)/tasks/index';
@@ -116,7 +116,10 @@ vi.mock('@/hooks/use-transient-message', () => ({
 }));
 
 vi.mock('@/components/ui/screen-header', () => ({
-  ScreenHeader: ({ rightAction, ...props }: Record<string, unknown> & { rightAction?: React.ReactNode }) =>
+  ScreenHeader: ({
+    rightAction,
+    ...props
+  }: Record<string, unknown> & { rightAction?: React.ReactNode }) =>
     React.createElement('ScreenHeader', props, rightAction),
   HeaderIconButton: (props: Record<string, unknown>) =>
     React.createElement('HeaderIconButton', props),

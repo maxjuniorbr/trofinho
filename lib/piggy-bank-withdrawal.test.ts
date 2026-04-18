@@ -65,13 +65,10 @@ describe('getMinimumWithdrawalAmount', () => {
 
   it('guarantees floor(min * rate / 100) >= 1 for any positive rate', () => {
     fc.assert(
-      fc.property(
-        fc.integer({ min: 1, max: 50 }),
-        (rate) => {
-          const min = getMinimumWithdrawalAmount(rate);
-          return Math.floor((min * rate) / 100) >= 1;
-        },
-      ),
+      fc.property(fc.integer({ min: 1, max: 50 }), (rate) => {
+        const min = getMinimumWithdrawalAmount(rate);
+        return Math.floor((min * rate) / 100) >= 1;
+      }),
     );
   });
 });
@@ -136,7 +133,9 @@ describe('requestPiggyBankWithdrawal', () => {
   });
 
   it('returns error on rpc failure', async () => {
-    supabaseMock.rpc.mockResolvedValueOnce({ error: { message: 'Saldo do cofrinho insuficiente' } });
+    supabaseMock.rpc.mockResolvedValueOnce({
+      error: { message: 'Saldo do cofrinho insuficiente' },
+    });
 
     const result = await requestPiggyBankWithdrawal(50);
 

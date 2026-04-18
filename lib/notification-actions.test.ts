@@ -2,8 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 import { handleNotificationAction, ACTION_IDS, CATEGORY_IDS } from './notification-actions';
 
-const approveAssignmentMock = vi.hoisted(() => vi.fn().mockResolvedValue({ data: true, error: null }));
-const confirmRedemptionMock = vi.hoisted(() => vi.fn().mockResolvedValue({ data: true, error: null }));
+const approveAssignmentMock = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({ data: true, error: null }),
+);
+const confirmRedemptionMock = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({ data: true, error: null }),
+);
 const captureExceptionMock = vi.hoisted(() => vi.fn());
 
 vi.mock('./tasks', () => ({ approveAssignment: approveAssignmentMock }));
@@ -130,9 +134,9 @@ describe('notification-actions', () => {
     it('does nothing for unknown action IDs', async () => {
       await fc.assert(
         fc.asyncProperty(
-          fc.string({ minLength: 1, maxLength: 50 }).filter(
-            (s) => s !== ACTION_IDS.APPROVE_TASK && s !== ACTION_IDS.CONFIRM_REDEMPTION,
-          ),
+          fc
+            .string({ minLength: 1, maxLength: 50 })
+            .filter((s) => s !== ACTION_IDS.APPROVE_TASK && s !== ACTION_IDS.CONFIRM_REDEMPTION),
           async (actionId) => {
             await handleNotificationAction(actionId, { assignmentId: 'a1', familiaId: 'f1' });
             expect(approveAssignmentMock).not.toHaveBeenCalled();

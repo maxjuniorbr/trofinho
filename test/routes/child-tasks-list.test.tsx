@@ -1,5 +1,5 @@
 import React from 'react';
-import {act, create, type ReactTestRenderer} from '../helpers/test-renderer-compat';
+import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-compat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import ChildTasksScreen from '../../app/(child)/tasks/index';
@@ -277,7 +277,12 @@ describe('ChildTasksScreen', () => {
         {
           data: [
             makeAssignment({
-              tarefas: { titulo: 'Lavar louça', dias_semana: 0, ativo: true, exige_evidencia: true },
+              tarefas: {
+                titulo: 'Lavar louça',
+                dias_semana: 0,
+                ativo: true,
+                exige_evidencia: true,
+              },
             }),
           ],
           hasMore: false,

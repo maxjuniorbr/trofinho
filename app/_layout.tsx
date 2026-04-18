@@ -193,7 +193,6 @@ function RootNavigator({
     };
   }, [profile?.id, pushToken]);
 
-
   useEffect(() => {
     const target = resolveNavDecision(ready, profile, segments as string[]);
     if (target) {

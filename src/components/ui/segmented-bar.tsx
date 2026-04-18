@@ -42,9 +42,7 @@ export function SegmentedBar<K extends string>({
             accessibilityRole="button"
             accessibilityLabel={
               opt.accessibilityLabel ??
-              (opt.badge != null && opt.badge > 0
-                ? `${opt.label} (${opt.badge})`
-                : opt.label)
+              (opt.badge != null && opt.badge > 0 ? `${opt.label} (${opt.badge})` : opt.label)
             }
           >
             <View style={styles.pillContent}>
@@ -56,9 +54,7 @@ export function SegmentedBar<K extends string>({
                   style={[
                     styles.badge,
                     {
-                      backgroundColor: isActive
-                        ? colors.text.inverse
-                        : activeColor,
+                      backgroundColor: isActive ? colors.text.inverse : activeColor,
                     },
                   ]}
                 >
@@ -66,9 +62,7 @@ export function SegmentedBar<K extends string>({
                     style={[
                       styles.badgeText,
                       {
-                        color: isActive
-                          ? activeColor
-                          : colors.text.inverse,
+                        color: isActive ? activeColor : colors.text.inverse,
                       },
                     ]}
                   >

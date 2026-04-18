@@ -1,5 +1,5 @@
 import React from 'react';
-import {act, create, type ReactTestRenderer} from '../helpers/test-renderer-compat';
+import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-compat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import NewTaskScreen from '../../app/(admin)/tasks/new';
@@ -73,13 +73,17 @@ vi.mock('@/components/ui/form-footer', () => ({
 }));
 
 vi.mock('@/components/tasks/task-form-fields', () => ({
-  TaskFormFields: (props: Record<string, unknown>) =>
-    React.createElement('TaskFormFields', props),
+  TaskFormFields: (props: Record<string, unknown>) => React.createElement('TaskFormFields', props),
 }));
 
 vi.mock('@/components/ui/sticky-footer-screen', () => ({
-  StickyFooterScreen: ({ children, footer }: { children: React.ReactNode; footer: React.ReactNode }) =>
-    React.createElement('StickyFooterScreen', null, children, footer),
+  StickyFooterScreen: ({
+    children,
+    footer,
+  }: {
+    children: React.ReactNode;
+    footer: React.ReactNode;
+  }) => React.createElement('StickyFooterScreen', null, children, footer),
 }));
 
 function render(element: React.ReactElement) {
@@ -150,9 +154,9 @@ describe('NewTaskScreen', () => {
 
   it('shows create task button', () => {
     const renderer = render(<NewTaskScreen />);
-    const button = renderer.root.findAllByType('Button' as never).find(
-      (b) => b.props.label === 'Criar tarefa',
-    );
+    const button = renderer.root
+      .findAllByType('Button' as never)
+      .find((b) => b.props.label === 'Criar tarefa');
     expect(button).toBeDefined();
   });
 

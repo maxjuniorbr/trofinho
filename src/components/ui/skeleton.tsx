@@ -10,7 +10,12 @@ type SkeletonProps = Readonly<{
   style?: ViewStyle;
 }>;
 
-function SkeletonBox({ width = '100%', height = 16, borderRadius = radii.md, style }: SkeletonProps) {
+function SkeletonBox({
+  width = '100%',
+  height = 16,
+  borderRadius = radii.md,
+  style,
+}: SkeletonProps) {
   const { colors } = useTheme();
   const opacity = useRef(new Animated.Value(0.4)).current;
 
@@ -27,10 +32,7 @@ function SkeletonBox({ width = '100%', height = 16, borderRadius = radii.md, sty
 
   return (
     <Animated.View
-      style={[
-        { width, height, borderRadius, backgroundColor: colors.bg.muted, opacity },
-        style,
-      ]}
+      style={[{ width, height, borderRadius, backgroundColor: colors.bg.muted, opacity }, style]}
     />
   );
 }

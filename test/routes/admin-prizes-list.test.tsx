@@ -1,5 +1,5 @@
 import React from 'react';
-import {act, create, type ReactTestRenderer} from '../helpers/test-renderer-compat';
+import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-compat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import AdminPrizesScreen from '../../app/(admin)/prizes/index';
@@ -103,7 +103,10 @@ vi.mock('@/hooks/use-transient-message', () => ({
 }));
 
 vi.mock('@/components/ui/screen-header', () => ({
-  ScreenHeader: ({ rightAction, ...props }: Record<string, unknown> & { rightAction?: React.ReactNode }) =>
+  ScreenHeader: ({
+    rightAction,
+    ...props
+  }: Record<string, unknown> & { rightAction?: React.ReactNode }) =>
     React.createElement('ScreenHeader', props, rightAction),
   HeaderIconButton: (props: Record<string, unknown>) =>
     React.createElement('HeaderIconButton', props),
@@ -221,7 +224,9 @@ describe('AdminPrizesScreen', () => {
   it('navigates to new prize screen', () => {
     const renderer = render(<AdminPrizesScreen />);
     const addBtn = renderer.root.findAll(
-      (node) => (node.type as string) === 'HeaderIconButton' && node.props.accessibilityLabel === 'Criar pr\u00eamio',
+      (node) =>
+        (node.type as string) === 'HeaderIconButton' &&
+        node.props.accessibilityLabel === 'Criar pr\u00eamio',
     )[0];
     act(() => {
       addBtn.props.onPress();
@@ -243,10 +248,7 @@ describe('AdminPrizesScreen', () => {
     prizesMock.data = {
       pages: [
         {
-          data: [
-            makePrize({ id: 'p1', ativo: true }),
-            makePrize({ id: 'p2', ativo: false }),
-          ],
+          data: [makePrize({ id: 'p1', ativo: true }), makePrize({ id: 'p2', ativo: false })],
           hasMore: false,
         },
       ],

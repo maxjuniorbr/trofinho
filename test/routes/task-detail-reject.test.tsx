@@ -1,6 +1,6 @@
 // Feature: ux-polish-fase4b, Property 8: Destructive action executes if and only if user confirms
 import React from 'react';
-import {act, create, type ReactTestRenderer} from '../helpers/test-renderer-compat';
+import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-compat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 
@@ -93,7 +93,9 @@ vi.mock('@shopify/flash-list', () => ({
     return React.createElement('FlashList', { ref }, [
       props.ListHeaderComponent,
       ...(props.data ?? []).map((item, index) =>
-        React.createElement(React.Fragment, { key: props.keyExtractor?.(item, index) ?? String(index) },
+        React.createElement(
+          React.Fragment,
+          { key: props.keyExtractor?.(item, index) ?? String(index) },
           props.renderItem?.({ item, index }),
         ),
       ),

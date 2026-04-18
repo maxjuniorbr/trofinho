@@ -1,7 +1,7 @@
 // Feature: ux-polish-fase4b, Property 6: Cancellation dialog includes dynamic values
 // Feature: ux-polish-fase4b, Property 8: Destructive action executes if and only if user confirms
 import React from 'react';
-import {act, create, type ReactTestRenderer} from '../helpers/test-renderer-compat';
+import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-compat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 
@@ -252,52 +252,56 @@ describe('AdminRedemptionsScreen — cancellation dialog property tests', () => 
   // **Validates: Requirements 3.4, 3.5**
   it('P8-cancel: cancel mutation is called only when user confirms the Alert, not on dismiss', async () => {
     await fc.assert(
-      fc.asyncProperty(fc.integer({ min: 1, max: 99999 }), fc.boolean(), async (points, userConfirms) => {
-        alertMock.alert.mockReset();
-        cancelMutationMock.mutate.mockReset();
+      fc.asyncProperty(
+        fc.integer({ min: 1, max: 99999 }),
+        fc.boolean(),
+        async (points, userConfirms) => {
+          alertMock.alert.mockReset();
+          cancelMutationMock.mutate.mockReset();
 
-        redemptionsMock.data = {
-          pages: [
-            {
-              data: [makePendingRedemption('r-1', 'Filho Teste', 'Premio Teste', points)],
-              hasMore: false,
-            },
-          ],
-          pageParams: [0],
-        };
+          redemptionsMock.data = {
+            pages: [
+              {
+                data: [makePendingRedemption('r-1', 'Filho Teste', 'Premio Teste', points)],
+                hasMore: false,
+              },
+            ],
+            pageParams: [0],
+          };
 
-        const renderer = render(<AdminRedemptionsScreen />);
+          const renderer = render(<AdminRedemptionsScreen />);
 
-        // Open modal
-        const cancelButtons = findCancelButton(renderer);
-        act(() => {
-          cancelButtons[0].props.onPress();
-        });
-
-        // Trigger Alert from modal
-        const modalConfirmButtons = findModalConfirmButton(renderer);
-        await act(async () => {
-          modalConfirmButtons[0].props.onPress();
-        });
-
-        expect(alertMock.alert).toHaveBeenCalledTimes(1);
-        const buttons = alertMock.alert.mock.calls[0][2] as {
-          text: string;
-          style: string;
-          onPress?: () => void;
-        }[];
-
-        if (userConfirms) {
-          const destructiveBtn = buttons.find((b) => b.style === 'destructive');
+          // Open modal
+          const cancelButtons = findCancelButton(renderer);
           act(() => {
-            destructiveBtn!.onPress!();
+            cancelButtons[0].props.onPress();
           });
-          expect(cancelMutationMock.mutate).toHaveBeenCalledTimes(1);
-        } else {
-          // User cancels — do not press the destructive button
-          expect(cancelMutationMock.mutate).not.toHaveBeenCalled();
-        }
-      }),
+
+          // Trigger Alert from modal
+          const modalConfirmButtons = findModalConfirmButton(renderer);
+          await act(async () => {
+            modalConfirmButtons[0].props.onPress();
+          });
+
+          expect(alertMock.alert).toHaveBeenCalledTimes(1);
+          const buttons = alertMock.alert.mock.calls[0][2] as {
+            text: string;
+            style: string;
+            onPress?: () => void;
+          }[];
+
+          if (userConfirms) {
+            const destructiveBtn = buttons.find((b) => b.style === 'destructive');
+            act(() => {
+              destructiveBtn!.onPress!();
+            });
+            expect(cancelMutationMock.mutate).toHaveBeenCalledTimes(1);
+          } else {
+            // User cancels — do not press the destructive button
+            expect(cancelMutationMock.mutate).not.toHaveBeenCalled();
+          }
+        },
+      ),
       { numRuns: 100 },
     );
   });

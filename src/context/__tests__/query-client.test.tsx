@@ -7,7 +7,9 @@ const addEventListenerMock = vi.hoisted(() => vi.fn());
 const removeMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@tanstack/react-query', () => ({
-  QueryClient: vi.fn().mockImplementation(function () { return {}; }),
+  QueryClient: vi.fn().mockImplementation(function () {
+    return {};
+  }),
   QueryClientProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   focusManager: focusManagerMock,
 }));
@@ -32,7 +34,11 @@ describe('QueryProvider', () => {
     const QueryProvider = await loadProvider();
 
     act(() => {
-      create(<QueryProvider><></></QueryProvider>);
+      create(
+        <QueryProvider>
+          <></>
+        </QueryProvider>,
+      );
     });
 
     expect(addEventListenerMock).toHaveBeenCalledWith('change', expect.any(Function));
@@ -42,7 +48,11 @@ describe('QueryProvider', () => {
     const QueryProvider = await loadProvider();
 
     act(() => {
-      create(<QueryProvider><></></QueryProvider>);
+      create(
+        <QueryProvider>
+          <></>
+        </QueryProvider>,
+      );
     });
 
     const listener = addEventListenerMock.mock.calls[0][1] as (status: string) => void;
@@ -55,7 +65,11 @@ describe('QueryProvider', () => {
     const QueryProvider = await loadProvider();
 
     act(() => {
-      create(<QueryProvider><></></QueryProvider>);
+      create(
+        <QueryProvider>
+          <></>
+        </QueryProvider>,
+      );
     });
 
     const listener = addEventListenerMock.mock.calls[0][1] as (status: string) => void;
@@ -68,7 +82,11 @@ describe('QueryProvider', () => {
     const QueryProvider = await loadProvider();
 
     act(() => {
-      create(<QueryProvider><></></QueryProvider>);
+      create(
+        <QueryProvider>
+          <></>
+        </QueryProvider>,
+      );
     });
 
     const listener = addEventListenerMock.mock.calls[0][1] as (status: string) => void;
@@ -82,7 +100,11 @@ describe('QueryProvider', () => {
 
     let renderer!: ReturnType<typeof create>;
     act(() => {
-      renderer = create(<QueryProvider><></></QueryProvider>);
+      renderer = create(
+        <QueryProvider>
+          <></>
+        </QueryProvider>,
+      );
     });
 
     act(() => {

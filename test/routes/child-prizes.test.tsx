@@ -18,8 +18,22 @@ const prizesMock = vi.hoisted(() => ({
     pages: [
       {
         data: [
-          { id: 'p1', nome: 'Bicicleta', descricao: 'MTB legal', custo_pontos: 100, imagem_url: null, ativo: true },
-          { id: 'p2', nome: 'Livro', descricao: null, custo_pontos: 30, imagem_url: 'https://img.test/book.jpg', ativo: true },
+          {
+            id: 'p1',
+            nome: 'Bicicleta',
+            descricao: 'MTB legal',
+            custo_pontos: 100,
+            imagem_url: null,
+            ativo: true,
+          },
+          {
+            id: 'p2',
+            nome: 'Livro',
+            descricao: null,
+            custo_pontos: 30,
+            imagem_url: 'https://img.test/book.jpg',
+            ativo: true,
+          },
         ],
         hasMore: false,
       },
@@ -111,8 +125,8 @@ vi.mock('@shopify/flash-list', () => ({
       ListHeaderComponent,
       data && data.length > 0
         ? data.map((item) =>
-          React.createElement(React.Fragment, { key: item.id as string }, renderItem({ item })),
-        )
+            React.createElement(React.Fragment, { key: item.id as string }, renderItem({ item })),
+          )
         : null,
     ),
 }));
@@ -177,7 +191,14 @@ vi.mock('@/context/theme-context', () => ({
     colors: {
       statusBar: 'dark',
       bg: { canvas: '#fff', surface: '#fff', muted: '#f0f0f0' },
-      text: { primary: '#000', secondary: '#666', muted: '#999', inverse: '#fff', onBrand: '#fff', onBrandMuted: '#ccc' },
+      text: {
+        primary: '#000',
+        secondary: '#666',
+        muted: '#999',
+        inverse: '#fff',
+        onBrand: '#fff',
+        onBrandMuted: '#ccc',
+      },
       accent: { filho: '#3366CC', filhoBg: '#EEF' },
       border: { subtle: '#eee' },
       brand: { vivid: '#000' },
@@ -242,8 +263,22 @@ describe('ChildPrizesScreen', () => {
       pages: [
         {
           data: [
-            { id: 'p1', nome: 'Bicicleta', descricao: 'MTB legal', custo_pontos: 100, imagem_url: null, ativo: true },
-            { id: 'p2', nome: 'Livro', descricao: null, custo_pontos: 30, imagem_url: 'https://img.test/book.jpg', ativo: true },
+            {
+              id: 'p1',
+              nome: 'Bicicleta',
+              descricao: 'MTB legal',
+              custo_pontos: 100,
+              imagem_url: null,
+              ativo: true,
+            },
+            {
+              id: 'p2',
+              nome: 'Livro',
+              descricao: null,
+              custo_pontos: 30,
+              imagem_url: 'https://img.test/book.jpg',
+              ativo: true,
+            },
           ],
           hasMore: false,
         },

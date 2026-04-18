@@ -1,10 +1,6 @@
 import type { UserProfile } from './auth';
 
-export type NavTarget =
-  | '/(auth)/login'
-  | '/(auth)/onboarding'
-  | '/(admin)/'
-  | '/(child)/';
+export type NavTarget = '/(auth)/login' | '/(auth)/onboarding' | '/(admin)/' | '/(child)/';
 
 /**
  * Pure function that determines the navigation target for the root layout.
