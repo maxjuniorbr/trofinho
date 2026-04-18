@@ -1,6 +1,12 @@
 import { Stack } from 'expo-router';
 import { useTheme } from '@/context/theme-context';
-import { useTasksLiveSync, useBalanceLiveSync, useRedemptionsLiveSync, useMyChildId, useProfile } from '@/hooks/queries';
+import {
+  useTasksLiveSync,
+  useBalanceLiveSync,
+  useRedemptionsLiveSync,
+  useMyChildId,
+  useProfile,
+} from '@/hooks/queries';
 
 export { ErrorBoundary } from '@/components/ui/route-error-fallback';
 
@@ -21,6 +27,7 @@ export default function ChildLayout() {
       <Stack.Screen name="balance" />
       <Stack.Screen name="prizes/index" options={{ animation: 'none' }} />
       <Stack.Screen name="redemptions/index" options={{ animation: 'none' }} />
+      <Stack.Screen name="notifications" />
       <Stack.Screen name="perfil" options={{ animation: 'none' }} />
     </Stack>
   );

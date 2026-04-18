@@ -8,22 +8,14 @@ import {
   Text,
   View,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import {
-  ClipboardList,
-  Users,
-  Gift,
-  ShoppingBag,
-  House,
-  Pencil,
-  ChevronRight,
-  TrendingUp,
-  PiggyBank,
-} from 'lucide-react-native';
+import { Bell, ChevronRight, TrendingUp, Wallet, UserPlus } from 'lucide-react-native';
 import { getGreeting } from '@lib/utils';
 import { isNotificationPermissionDenied } from '@lib/notifications';
+import { useAdminUnreadNotifCount } from '@/hooks/use-notification-inbox';
 import {
   useProfile,
   useFamily,
@@ -34,52 +26,15 @@ import {
   combineQueryStates,
 } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
-import { radii,
-  spacing,
-  typography,
-  type ThemeColors,
-} from '@/constants/theme';
+import { radii, shadows, spacing, typography } from '@/constants/theme';
+import { gradients, heroPalette } from '@/constants/shadows';
 import { Avatar } from '@/components/ui/avatar';
 import { NotificationPermissionBanner } from '@/components/ui/notification-permission-banner';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { AdminHomeScreenSkeleton } from '@/components/ui/skeleton';
-import { HomeFooterBar, FOOTER_BAR_HEIGHT, type FooterItem } from '@/components/ui/home-footer-bar';
-
-const FOOTER_ITEMS: readonly FooterItem[] = [
-  { icon: House, label: 'Início', rota: 'index' },
-  {
-    icon: ClipboardList,
-    label: 'Tarefas',
-    rota: '/(admin)/tasks',
-  },
-  { icon: Users, label: 'Filhos', rota: '/(admin)/children' },
-  { icon: Gift, label: 'Prêmios', rota: '/(admin)/prizes' },
-  {
-    icon: ShoppingBag,
-    label: 'Resgates',
-    rota: '/(admin)/redemptions',
-  },
-];
-
-function getSummaryColors(colors: ThemeColors) {
-  const isLight = colors.statusBar === 'dark';
-  return isLight
-    ? {
-        bg: colors.bg.surface,
-        boxBg: colors.bg.muted,
-        border: colors.border.subtle,
-        text: colors.text.primary,
-        textMuted: colors.text.secondary,
-      }
-    : {
-        bg: colors.bg.elevated,
-        boxBg: colors.bg.muted,
-        border: colors.border.subtle,
-        text: '#FFFFFF',
-        textMuted: 'rgba(255, 255, 255, 0.7)',
-      };
-}
+import { HomeFooterBar, FOOTER_BAR_HEIGHT } from '@/components/ui/home-footer-bar';
+import { useAdminFooterItems } from '@/hooks/use-footer-items';
 
 export default function AdminHomeScreen() {
   const router = useRouter();
@@ -88,7 +43,6 @@ export default function AdminHomeScreen() {
 
   const profileQuery = useProfile();
   const profile = profileQuery.data ?? null;
-  const avatarUri = profile?.avatarUrl ?? null;
 
   const familyQuery = useFamily(profile?.familia_id);
   const family = familyQuery.data ?? null;
@@ -103,10 +57,7 @@ export default function AdminHomeScreen() {
   );
 
   const pendingValidationQuery = usePendingValidationCount();
-  const pendingValidationCount = pendingValidationQuery.data ?? 0;
-
   const pendingRedemptionQuery = usePendingRedemptionCount();
-  const pendingRedemptionCount = pendingRedemptionQuery.data ?? 0;
 
   const { isLoading, error, refetchAll } = combineQueryStates(
     profileQuery,
@@ -150,15 +101,9 @@ export default function AdminHomeScreen() {
     }
   };
 
-  const footerItems = useMemo(
-    () =>
-      FOOTER_ITEMS.map((item) => {
-        if (item.rota === '/(admin)/tasks') return { ...item, badge: pendingValidationCount };
-        if (item.rota === '/(admin)/redemptions') return { ...item, badge: pendingRedemptionCount };
-        return item;
-      }),
-    [pendingValidationCount, pendingRedemptionCount],
-  );
+  const footerItems = useAdminFooterItems();
+  const unreadNotifs = useAdminUnreadNotifCount();
+  const bellLabel = unreadNotifs > 0 ? `Notificações, ${unreadNotifs} não lidas` : 'Notificações';
 
   const handleNavigate = useCallback(
     (rota: string) => {
@@ -183,7 +128,6 @@ export default function AdminHomeScreen() {
   const totalLivre = balances.reduce((acc, s) => acc + s.saldo_livre, 0);
   const totalCofrinho = balances.reduce((acc, s) => acc + s.cofrinho, 0);
   const totalPoints = totalLivre + totalCofrinho;
-  const summary = getSummaryColors(colors);
 
   return (
     <SafeScreenFrame topInset bottomInset={false}>
@@ -222,125 +166,174 @@ export default function AdminHomeScreen() {
             </Text>
           </View>
           <Pressable
-            onPress={() => router.push('/(admin)/perfil')}
+            onPress={() => router.push('/(admin)/notifications')}
             accessibilityRole="button"
-            accessibilityLabel="Abrir perfil"
+            accessibilityLabel={bellLabel}
+            style={({ pressed }) => [
+              styles.bellButton,
+              { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+              pressed && { opacity: 0.7 },
+            ]}
           >
-            <View style={styles.avatarWrapper}>
-              <Avatar name={profile?.nome ?? 'A'} size={52} imageUri={avatarUri} />
-              <View style={[styles.editBadge, { backgroundColor: colors.accent.adminDim }]}>
-                <Pencil size={10} color={colors.text.inverse} strokeWidth={2.5} />
+            <Bell size={18} color={colors.text.primary} strokeWidth={2} />
+            {unreadNotifs > 0 ? (
+              <View style={[styles.bellBadge, { backgroundColor: colors.semantic.error }]}>
+                <Text style={styles.bellBadgeText}>{unreadNotifs > 9 ? '9+' : unreadNotifs}</Text>
               </View>
-            </View>
+            ) : null}
           </Pressable>
         </View>
 
         {showNotificationBanner ? <NotificationPermissionBanner /> : null}
 
-        <View style={[styles.summaryCard, { backgroundColor: summary.bg, borderColor: summary.border }]}>
-          <View style={styles.summaryHeader}>
-            <PiggyBank size={16} color={summary.textMuted} strokeWidth={2} />
-            <Text style={[styles.summaryHeaderText, { color: summary.textMuted }]}>
-              RESUMO DA FAMÍLIA
+        <View
+          accessibilityRole="summary"
+          accessibilityLabel={`Resumo da família, ${totalPoints} pontos`}
+        >
+          <LinearGradient
+            colors={gradients.heroNavy.colors}
+            locations={gradients.heroNavy.locations}
+            start={gradients.heroNavy.start}
+            end={gradients.heroNavy.end}
+            style={styles.summaryCard}
+          >
+            <View style={styles.summaryHeaderLeft}>
+              <Wallet size={16} color={heroPalette.textOnNavyMuted} strokeWidth={2} />
+              <Text style={styles.summaryHeaderText}>RESUMO DA FAMÍLIA</Text>
+            </View>
+            <Text style={styles.summaryTotal}>
+              {totalPoints.toLocaleString('pt-BR')} <Text style={styles.summaryTotalUnit}>pts</Text>
             </Text>
-          </View>
-          <Text style={[styles.summaryTotal, { color: summary.text }]}>
-            {totalPoints.toLocaleString('pt-BR')}
-          </Text>
-          <Text style={[styles.summarySubtitle, { color: summary.textMuted }]}>
-            pontos em circulação
-          </Text>
-          <View style={styles.summaryBoxes}>
-            <View style={[styles.summaryBox, { backgroundColor: summary.boxBg, borderColor: summary.border }]}>
-              <Text style={[styles.summaryBoxLabel, { color: summary.textMuted }]}>LIVRE</Text>
-              <Text style={[styles.summaryBoxValue, { color: summary.text }]}>
-                {totalLivre.toLocaleString('pt-BR')}
-              </Text>
+            <Text style={styles.summarySubtitle}>em circulação</Text>
+            <View style={styles.summaryBoxes}>
+              <View style={styles.summaryBox}>
+                <Text style={styles.summaryBoxLabel}>LIVRE</Text>
+                <Text style={styles.summaryBoxValue}>{totalLivre.toLocaleString('pt-BR')}</Text>
+              </View>
+              <View style={styles.summaryBox}>
+                <Text style={styles.summaryBoxLabel}>COFRINHO</Text>
+                <Text style={styles.summaryBoxValue}>{totalCofrinho.toLocaleString('pt-BR')}</Text>
+              </View>
             </View>
-            <View style={[styles.summaryBox, { backgroundColor: summary.boxBg, borderColor: summary.border }]}>
-              <Text style={[styles.summaryBoxLabel, { color: summary.textMuted }]}>COFRINHO</Text>
-              <Text style={[styles.summaryBoxValue, { color: summary.text }]}>
-                {totalCofrinho.toLocaleString('pt-BR')}
-              </Text>
-            </View>
-          </View>
+          </LinearGradient>
         </View>
-
 
         {children.length > 0 ? (
           <View style={styles.childrenList}>
+            <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Filhos</Text>
-              {children.map((item) => {
-                const saldo = balancesMap.get(item.id);
-                const pts = saldo ? saldo.saldo_livre + saldo.cofrinho : 0;
-                const cofrinhoPercent =
-                  pts > 0 ? Math.round(((saldo?.cofrinho ?? 0) / pts) * 100) : 0;
-                const livrePercent = 100 - cofrinhoPercent;
-                const appreciation = saldo?.indice_valorizacao ?? 0;
-                return (
-                  <Pressable
-                    key={item.id}
-                    style={({ pressed }) => [
-                      styles.childCard,
-                      { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-                      pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
-                    ]}
-                    onPress={() =>
-                      router.push({
-                        pathname: '/(admin)/balances/[filho_id]',
-                        params: { filho_id: item.id, nome: item.nome },
-                      })
-                    }
-                    accessibilityRole="button"
-                    accessibilityLabel={`${item.nome}, ${pts} pontos, ver saldo`}
-                  >
-                    <Avatar name={item.nome} size={44} imageUri={item.avatar_url} />
-                    <View style={styles.childBody}>
+              <Pressable
+                onPress={() => router.push('/(admin)/children')}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Gerenciar filhos"
+                style={({ pressed }) => [styles.sectionLink, pressed && { opacity: 0.65 }]}
+              >
+                <Text style={[styles.sectionLinkText, { color: colors.accent.adminDim }]}>
+                  Gerenciar
+                </Text>
+                <ChevronRight size={14} color={colors.accent.adminDim} strokeWidth={2} />
+              </Pressable>
+            </View>
+            {children.map((item) => {
+              const saldo = balancesMap.get(item.id);
+              const pts = saldo ? saldo.saldo_livre + saldo.cofrinho : 0;
+              const cofrinhoPercent =
+                pts > 0 ? Math.round(((saldo?.cofrinho ?? 0) / pts) * 100) : 0;
+              const appreciation = saldo?.indice_valorizacao ?? 0;
+              return (
+                <Pressable
+                  key={item.id}
+                  style={({ pressed }) => [
+                    styles.childCard,
+                    { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+                    pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
+                  ]}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/(admin)/balances/[filho_id]',
+                      params: { filho_id: item.id, nome: item.nome },
+                    })
+                  }
+                  accessibilityRole="button"
+                  accessibilityLabel={`${item.nome}, ${pts} pontos, ver saldo`}
+                >
+                  <Avatar name={item.nome} size={40} imageUri={item.avatar_url} />
+                  <View style={styles.childBody}>
+                    <View style={styles.childNameRow}>
                       <Text
                         style={[styles.childName, { color: colors.text.primary }]}
                         numberOfLines={1}
                       >
                         {item.nome}
                       </Text>
-                      {pts > 0 ? (
-                        <View style={styles.childProgressRow}>
-                          <View style={styles.childProgressTrack}>
-                            <View
-                              style={[
-                                styles.childProgressFillLeft,
-                                { flex: livrePercent, backgroundColor: colors.accent.adminDim },
-                              ]}
-                            />
-                            <View
-                              style={[
-                                styles.childProgressFillRight,
-                                { flex: cofrinhoPercent, backgroundColor: colors.semantic.warning },
-                              ]}
-                            />
-                          </View>
-                          <Text style={[styles.childMeta, { color: colors.text.muted }]}>
-                            {cofrinhoPercent}% cofrinho
-                          </Text>
-                        </View>
-                      ) : null}
-                      {appreciation > 0 ? (
-                        <View style={styles.childAppreciationRow}>
-                          <TrendingUp size={12} color={colors.semantic.success} strokeWidth={2} />
-                          <Text style={[styles.childAppreciation, { color: colors.semantic.success }]}>
-                            {appreciation}% ao mês
-                          </Text>
-                        </View>
-                      ) : null}
+                      <Text style={[styles.childPoints, { color: colors.text.primary }]}>
+                        {pts.toLocaleString('pt-BR')}
+                      </Text>
                     </View>
-                    <Text style={[styles.childPointsLarge, { color: colors.text.primary }]}>
-                      {pts.toLocaleString('pt-BR')}
-                    </Text>
-                    <ChevronRight size={16} color={colors.text.muted} strokeWidth={1.75} />
-                  </Pressable>
-                );
-              })}
+                    {pts > 0 ? (
+                      <View style={styles.childProgressRow}>
+                        <View
+                          style={[styles.childProgressTrack, { backgroundColor: colors.bg.muted }]}
+                        >
+                          <View
+                            style={[
+                              styles.childProgressFill,
+                              {
+                                width: `${cofrinhoPercent}%`,
+                                backgroundColor: colors.accent.admin,
+                              },
+                            ]}
+                          />
+                        </View>
+                        <Text style={[styles.childMeta, { color: colors.text.muted }]}>
+                          {cofrinhoPercent}% cofrinho
+                        </Text>
+                      </View>
+                    ) : null}
+                    {appreciation > 0 ? (
+                      <View style={styles.childAppreciationRow}>
+                        <TrendingUp size={12} color={colors.semantic.success} strokeWidth={2} />
+                        <Text
+                          style={[styles.childAppreciation, { color: colors.semantic.success }]}
+                        >
+                          {appreciation}% ao mês
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  <ChevronRight size={16} color={colors.text.muted} strokeWidth={1.75} />
+                </Pressable>
+              );
+            })}
           </View>
-        ) : null}
+        ) : (
+          <View
+            style={[
+              styles.emptyState,
+              { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+            ]}
+          >
+            <UserPlus size={32} color={colors.text.muted} strokeWidth={1.5} />
+            <Text style={[styles.emptyStateText, { color: colors.text.secondary }]}>
+              Nenhum filho cadastrado
+            </Text>
+            <Pressable
+              onPress={() => router.push('/(admin)/children')}
+              accessibilityRole="button"
+              accessibilityLabel="Adicionar filho"
+              style={({ pressed }) => [
+                styles.emptyStateButton,
+                { backgroundColor: colors.accent.admin },
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <Text style={[styles.emptyStateButtonText, { color: colors.text.onBrand }]}>
+                Adicionar filho
+              </Text>
+            </Pressable>
+          </View>
+        )}
       </ScrollView>
       <HomeFooterBar items={footerItems} activeRoute="index" onNavigate={handleNavigate} />
     </SafeScreenFrame>
@@ -359,16 +352,29 @@ function makeStyles() {
     },
     heroText: { flex: 1, paddingRight: spacing['4'] },
 
-    avatarWrapper: { position: 'relative' },
-    editBadge: {
+    bellButton: {
+      width: 44,
+      height: 44,
+      borderRadius: radii.full,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    bellBadge: {
       position: 'absolute',
-      bottom: 0,
-      right: 0,
-      width: 20,
-      height: 20,
+      top: -4,
+      right: -4,
+      minWidth: 18,
+      height: 18,
       borderRadius: radii.full,
       alignItems: 'center',
       justifyContent: 'center',
+      paddingHorizontal: 4,
+    },
+    bellBadgeText: {
+      fontFamily: typography.family.black,
+      fontSize: 10,
+      color: '#FFFFFF',
     },
     heroSub: { fontFamily: typography.family.bold, fontSize: typography.size.sm },
     heroTitle: {
@@ -381,12 +387,11 @@ function makeStyles() {
     summaryCard: {
       borderRadius: radii.xl,
       borderCurve: 'continuous',
-      borderWidth: 1,
       padding: spacing['5'],
       marginBottom: spacing['6'],
       gap: spacing['1'],
     },
-    summaryHeader: {
+    summaryHeaderLeft: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing['1.5'],
@@ -396,24 +401,32 @@ function makeStyles() {
       fontFamily: typography.family.bold,
       fontSize: typography.size.xs,
       letterSpacing: 0.5,
+      color: heroPalette.textOnNavyMuted,
     },
     summaryTotal: {
       fontFamily: typography.family.black,
       fontSize: typography.size['5xl'],
       lineHeight: typography.lineHeight['5xl'],
       fontVariant: ['tabular-nums'],
+      color: heroPalette.textOnNavy,
+    },
+    summaryTotalUnit: {
+      fontFamily: typography.family.bold,
+      fontSize: typography.size.md,
+      color: heroPalette.textOnNavySubtle,
     },
     summarySubtitle: {
       fontFamily: typography.family.medium,
       fontSize: typography.size.sm,
       marginBottom: spacing['3'],
+      color: heroPalette.textOnNavyMuted,
     },
     summaryBoxes: { flexDirection: 'row', gap: spacing['3'] },
     summaryBox: {
       flex: 1,
       borderRadius: radii.lg,
       borderCurve: 'continuous',
-      borderWidth: 1,
+      backgroundColor: 'rgba(255, 255, 255, 0.10)',
       paddingVertical: spacing['3'],
       paddingHorizontal: spacing['4'],
       alignItems: 'center',
@@ -423,14 +436,31 @@ function makeStyles() {
       fontFamily: typography.family.semibold,
       fontSize: typography.size.xxs,
       letterSpacing: 0.5,
+      color: heroPalette.textOnNavySubtle,
     },
     summaryBoxValue: {
       fontFamily: typography.family.black,
       fontSize: typography.size.xl,
       fontVariant: ['tabular-nums'],
+      color: heroPalette.textOnNavy,
     },
 
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing['3'],
+    },
     sectionTitle: { fontFamily: typography.family.bold, fontSize: typography.size.md },
+    sectionLink: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['0.5'],
+    },
+    sectionLinkText: {
+      fontFamily: typography.family.semibold,
+      fontSize: typography.size.xs,
+    },
 
     childrenList: { gap: spacing['2'] },
     childCard: {
@@ -441,29 +471,30 @@ function makeStyles() {
       borderCurve: 'continuous',
       borderWidth: 1,
       padding: spacing['4'],
+      ...shadows.card,
     },
     childBody: { flex: 1, gap: spacing['1'] },
-    childName: { fontFamily: typography.family.bold, fontSize: typography.size.sm },
-    childPointsLarge: {
+    childNameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing['2'],
+    },
+    childName: { fontFamily: typography.family.bold, fontSize: typography.size.sm, flex: 1 },
+    childPoints: {
       fontFamily: typography.family.black,
-      fontSize: typography.size.xl,
+      fontSize: typography.size.md,
       fontVariant: ['tabular-nums'],
     },
     childProgressRow: { gap: spacing['0.5'] },
     childProgressTrack: {
-      flexDirection: 'row',
-      height: 8,
+      height: 6,
       borderRadius: radii.full,
       overflow: 'hidden',
-      gap: 2,
     },
-    childProgressFillLeft: {
-      borderTopLeftRadius: radii.full,
-      borderBottomLeftRadius: radii.full,
-    },
-    childProgressFillRight: {
-      borderTopRightRadius: radii.full,
-      borderBottomRightRadius: radii.full,
+    childProgressFill: {
+      height: '100%',
+      borderRadius: radii.full,
     },
     childMeta: {
       fontFamily: typography.family.medium,
@@ -479,6 +510,27 @@ function makeStyles() {
       fontSize: typography.size.xxs,
     },
 
-
+    emptyState: {
+      borderRadius: radii.xl,
+      borderCurve: 'continuous',
+      borderWidth: 1,
+      paddingVertical: spacing['10'],
+      paddingHorizontal: spacing['6'],
+      alignItems: 'center',
+      gap: spacing['3'],
+    },
+    emptyStateText: {
+      fontFamily: typography.family.semibold,
+      fontSize: typography.size.sm,
+    },
+    emptyStateButton: {
+      paddingVertical: spacing['2'],
+      paddingHorizontal: spacing['4'],
+      borderRadius: radii.md,
+    },
+    emptyStateButtonText: {
+      fontFamily: typography.family.bold,
+      fontSize: typography.size.xs,
+    },
   });
 }

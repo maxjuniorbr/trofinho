@@ -1,5 +1,5 @@
 import React from 'react';
-import {act, create, type ReactTestRenderer} from '../helpers/test-renderer-compat';
+import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-compat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import FilhoHomeScreen from '../../app/(child)/index';
@@ -9,7 +9,9 @@ const routerMock = vi.hoisted(() => ({
 }));
 
 const profileMock = vi.hoisted(() => ({
-  data: { id: 'u1', nome: 'João', familia_id: 'fam-1', papel: 'filho' } as Record<string, unknown> | undefined,
+  data: { id: 'u1', nome: 'João', familia_id: 'fam-1', papel: 'filho' } as
+    | Record<string, unknown>
+    | undefined,
   isLoading: false,
   error: null as Error | null,
   refetch: vi.fn(),
@@ -85,6 +87,7 @@ vi.mock('lucide-react-native', () => ({
   ShoppingBag: (props: Record<string, unknown>) => React.createElement('ShoppingBag', props),
   PiggyBank: (props: Record<string, unknown>) => React.createElement('PiggyBank', props),
   Pencil: (props: Record<string, unknown>) => React.createElement('Pencil', props),
+  Bell: (props: Record<string, unknown>) => React.createElement('Bell', props),
 }));
 
 vi.mock('@sentry/react-native', () => ({

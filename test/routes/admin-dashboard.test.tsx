@@ -1,5 +1,5 @@
 import React from 'react';
-import {act, create, type ReactTestRenderer} from '../helpers/test-renderer-compat';
+import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-compat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import AdminHomeScreen from '../../app/(admin)/index';
@@ -110,10 +110,6 @@ vi.mock('@/components/ui/avatar', () => ({
   Avatar: (props: Record<string, unknown>) => React.createElement('Avatar', props),
 }));
 
-vi.mock('@/components/ui/badge', () => ({
-  Badge: (props: Record<string, unknown>) => React.createElement('Badge', props),
-}));
-
 vi.mock('@/components/ui/notification-permission-banner', () => ({
   NotificationPermissionBanner: () => React.createElement('NotificationPermissionBanner'),
 }));
@@ -154,6 +150,26 @@ vi.mock('@/components/ui/home-footer-bar', () => ({
     ),
 }));
 
+vi.mock('@/hooks/use-footer-items', () => ({
+  useAdminFooterItems: () => [
+    { icon: 'House', label: 'Início', rota: 'index' },
+    {
+      icon: 'ClipboardList',
+      label: 'Tarefas',
+      rota: '/(admin)/tasks',
+      badge: pendingValidationMock.data || undefined,
+    },
+    { icon: 'Gift', label: 'Prêmios', rota: '/(admin)/prizes' },
+    {
+      icon: 'ShoppingBag',
+      label: 'Resgates',
+      rota: '/(admin)/redemptions',
+      badge: pendingRedemptionMock.data || undefined,
+    },
+    { icon: 'User', label: 'Perfil', rota: '/(admin)/perfil' },
+  ],
+}));
+
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
   act(() => {
@@ -177,7 +193,13 @@ function allText(renderer: ReactTestRenderer): string {
 describe('AdminHomeScreen', () => {
   beforeEach(() => {
     routerMock.push.mockReset();
-    profileMock.data = { id: 'u1', nome: 'Max', familia_id: 'fam-1', papel: 'admin', avatarUrl: null };
+    profileMock.data = {
+      id: 'u1',
+      nome: 'Max',
+      familia_id: 'fam-1',
+      papel: 'admin',
+      avatarUrl: null,
+    };
     profileMock.isLoading = false;
     profileMock.error = null;
     familyMock.data = { nome: 'Silva' };
@@ -235,26 +257,26 @@ describe('AdminHomeScreen', () => {
     const text = allText(renderer);
     expect(text).toContain('Início');
     expect(text).toContain('Tarefas');
-    expect(text).toContain('Filhos');
     expect(text).toContain('Prêmios');
     expect(text).toContain('Resgates');
+    expect(text).toContain('Perfil');
   });
 
-  it('navigates to profile when avatar is pressed', () => {
+  it('navigates to notifications when bell is pressed', () => {
     const renderer = render(<AdminHomeScreen />);
-    const profileButton = renderer.root.findAll(
-      (node) => node.props.accessibilityLabel === 'Abrir perfil',
+    const bellButton = renderer.root.findAll(
+      (node) => node.props.accessibilityLabel === 'Notificações',
     )[0];
     act(() => {
-      profileButton.props.onPress();
+      bellButton.props.onPress();
     });
-    expect(routerMock.push).toHaveBeenCalledWith('/(admin)/perfil');
+    expect(routerMock.push).toHaveBeenCalledWith('/(admin)/notifications');
   });
 
   it('navigates to balance screen when pressing child card', () => {
     const renderer = render(<AdminHomeScreen />);
-    const childCards = renderer.root.findAll(
-      (node) => node.props.accessibilityLabel?.includes('Ana'),
+    const childCards = renderer.root.findAll((node) =>
+      node.props.accessibilityLabel?.includes('Ana'),
     );
     expect(childCards.length).toBeGreaterThan(0);
     act(() => {

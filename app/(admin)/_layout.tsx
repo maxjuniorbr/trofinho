@@ -27,6 +27,7 @@ export default function AdminLayout() {
       <Stack.Screen name="prizes/new" />
       <Stack.Screen name="prizes/[id]" />
       <Stack.Screen name="redemptions/index" options={{ animation: 'none' }} />
+      <Stack.Screen name="notifications" />
       <Stack.Screen name="perfil" />
     </Stack>
   );

@@ -12,9 +12,18 @@ import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import { ClipboardList, Gift, House, ShoppingBag, PiggyBank, Pencil } from 'lucide-react-native';
+import {
+  ClipboardList,
+  Gift,
+  House,
+  ShoppingBag,
+  PiggyBank,
+  Pencil,
+  Bell,
+} from 'lucide-react-native';
 import { getGreeting } from '@lib/utils';
 import { isNotificationPermissionDenied } from '@lib/notifications';
+import { useChildUnreadNotifCount } from '@/hooks/use-notification-inbox';
 import {
   useProfile,
   useFamily,
@@ -77,6 +86,8 @@ export default function FilhoHomeScreen() {
   const profile = profileQuery.data ?? null;
   const firstName = profile?.nome?.split(' ')[0] ?? 'Campeão';
   const avatarUri = profile?.avatarUrl ?? null;
+  const unreadNotifs = useChildUnreadNotifCount();
+  const bellLabel = unreadNotifs > 0 ? `Notificações, ${unreadNotifs} não lidas` : 'Notificações';
 
   const familyQuery = useFamily(profile?.familia_id);
 
@@ -205,11 +216,30 @@ export default function FilhoHomeScreen() {
 
         <View style={styles.hero}>
           <View style={styles.heroText}>
-            <Text style={[styles.heroSub, { color: colors.text.secondary }]}>{getGreeting()} 🏆</Text>
+            <Text style={[styles.heroSub, { color: colors.text.secondary }]}>
+              {getGreeting()} 🏆
+            </Text>
             <Text style={[styles.heroTitle, { color: colors.text.primary }]}>
               Olá, {firstName}!
             </Text>
           </View>
+          <Pressable
+            onPress={() => router.push('/(child)/notifications')}
+            accessibilityRole="button"
+            accessibilityLabel={bellLabel}
+            style={({ pressed }) => [
+              styles.bellButton,
+              { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+              pressed && { opacity: 0.7 },
+            ]}
+          >
+            <Bell size={18} color={colors.text.primary} strokeWidth={2} />
+            {unreadNotifs > 0 ? (
+              <View style={[styles.bellBadge, { backgroundColor: colors.semantic.error }]}>
+                <Text style={styles.bellBadgeText}>{unreadNotifs > 9 ? '9+' : unreadNotifs}</Text>
+              </View>
+            ) : null}
+          </Pressable>
           <Pressable
             onPress={() => router.push('/(child)/perfil')}
             accessibilityRole="button"
@@ -274,7 +304,10 @@ export default function FilhoHomeScreen() {
 
           <View style={styles.summaryBoxRow}>
             <View
-              style={[styles.summaryBox, { backgroundColor: summary.boxBg, borderColor: summary.border }]}
+              style={[
+                styles.summaryBox,
+                { backgroundColor: summary.boxBg, borderColor: summary.border },
+              ]}
               accessibilityLabel={`Saldo disponível: ${freeBalance} pontos`}
             >
               <Text style={[styles.summaryBoxLabel, { color: summary.textMuted }]}>LIVRE</Text>
@@ -283,7 +316,10 @@ export default function FilhoHomeScreen() {
               </Text>
             </View>
             <View
-              style={[styles.summaryBox, { backgroundColor: summary.boxBg, borderColor: summary.border }]}
+              style={[
+                styles.summaryBox,
+                { backgroundColor: summary.boxBg, borderColor: summary.border },
+              ]}
               accessibilityLabel={`Cofrinho: ${piggyBank} pontos`}
             >
               <View style={styles.summaryBoxLabelRow}>
@@ -302,7 +338,6 @@ export default function FilhoHomeScreen() {
             Complete tarefas para ganhar seus primeiros pontos! ⭐
           </Text>
         ) : null}
-
       </ScrollView>
       <HomeFooterBar items={footerItems} activeRoute="index" onNavigate={handleNavigate} />
     </SafeScreenFrame>
@@ -322,6 +357,32 @@ function makeStyles() {
     },
     heroText: { flex: 1, paddingRight: spacing['4'] },
     heroSub: { fontFamily: typography.family.bold, fontSize: typography.size.sm },
+
+    bellButton: {
+      width: 40,
+      height: 40,
+      borderRadius: radii.full,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing['3'],
+    },
+    bellBadge: {
+      position: 'absolute',
+      top: -4,
+      right: -4,
+      minWidth: 18,
+      height: 18,
+      borderRadius: radii.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 4,
+    },
+    bellBadgeText: {
+      fontFamily: typography.family.black,
+      fontSize: 10,
+      color: '#FFFFFF',
+    },
 
     avatarWrapper: { position: 'relative' },
     editBadge: {
@@ -418,6 +479,5 @@ function makeStyles() {
       marginBottom: spacing['2'],
       fontStyle: 'italic',
     },
-
   });
 }
