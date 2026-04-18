@@ -239,8 +239,8 @@ function makeStyles(_colors: ThemeColors) {
         sheet: {
             borderTopLeftRadius: radii.xl,
             borderTopRightRadius: radii.xl,
-            padding: spacing['5'],
-            paddingBottom: spacing['10'],
+            padding: spacing['6'],
+            paddingBottom: spacing['12'],
             maxHeight: '85%',
         },
         header: {
@@ -284,6 +284,7 @@ function makeStyles(_colors: ThemeColors) {
         },
         content: {
             gap: spacing['4'],
+            paddingBottom: spacing['4'],
         },
         feedbackRow: {
             marginBottom: spacing['1'],
