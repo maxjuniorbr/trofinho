@@ -22,7 +22,10 @@ function createIcon(name: string) {
 }
 
 function createHostComponent(name: string) {
-  const Component = React.forwardRef(function HostComponent(props: Props, ref: React.ForwardedRef<unknown>) {
+  const Component = React.forwardRef(function HostComponent(
+    props: Props,
+    ref: React.ForwardedRef<unknown>,
+  ) {
     return React.createElement(name, { ...props, ref }, props.children);
   });
   Component.displayName = name;
@@ -110,6 +113,9 @@ vi.mock('lucide-react-native', () => ({
   Mail: createIcon('Mail'),
   EyeOff: createIcon('EyeOff'),
   X: createIcon('X'),
+  ArrowRight: createIcon('ArrowRight'),
+  Check: createIcon('Check'),
+  UserPlus: createIcon('UserPlus'),
 }));
 
 vi.mock('expo-linear-gradient', () => ({
@@ -125,7 +131,16 @@ vi.mock('@tanstack/react-query', () => ({
   QueryClient: vi.fn(),
   QueryClientProvider: ({ children }: Props) => children,
   useQuery: vi.fn(() => ({ data: undefined, isLoading: false, error: null })),
-  useMutation: vi.fn(() => ({ mutate: vi.fn(), isLoading: false })),
+  useInfiniteQuery: vi.fn(() => ({
+    data: undefined,
+    isLoading: false,
+    error: null,
+    fetchNextPage: vi.fn(),
+    hasNextPage: false,
+    isFetchingNextPage: false,
+  })),
+  useMutation: vi.fn(() => ({ mutate: vi.fn(), isLoading: false, isPending: false })),
+  useQueryClient: vi.fn(() => ({ invalidateQueries: vi.fn(), setQueryData: vi.fn() })),
 }));
 
 class AnimatedValue {
@@ -148,6 +163,7 @@ vi.mock('react-native', () => ({
   },
   Image: createHostComponent('Image'),
   KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
+  Modal: createHostComponent('Modal'),
   Platform: { OS: 'ios', select: (obj: Record<string, unknown>) => obj.ios },
   Pressable: createHostComponent('Pressable'),
   ScrollView: createHostComponent('ScrollView'),
@@ -173,6 +189,15 @@ vi.mock('expo-haptics', () => ({
 
 vi.mock('expo-crypto', () => ({
   randomUUID: () => '00000000-0000-4000-8000-000000000000',
+}));
+
+vi.mock('expo-file-system', () => ({
+  File: vi.fn(),
+}));
+
+vi.mock('expo-image-manipulator', () => ({
+  ImageManipulator: { manipulate: vi.fn() },
+  SaveFormat: { JPEG: 'jpeg' },
 }));
 
 vi.mock('expo-secure-store', () => ({

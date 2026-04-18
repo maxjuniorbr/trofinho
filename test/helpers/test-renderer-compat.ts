@@ -21,11 +21,7 @@ type ComponentType = React.ComponentType<any> | string;
 
 const getTypeName = (type: ComponentType): string => {
   if (typeof type === 'string') return type;
-  return (
-    (type as { displayName?: string }).displayName ??
-    type.name ??
-    ''
-  );
+  return (type as { displayName?: string }).displayName ?? type.name ?? '';
 };
 
 // ---------------------------------------------------------------------------
@@ -41,9 +37,7 @@ proto.findByType = function findByType(this: TestInstance, type: ComponentType):
     throw new Error(`No instances found with node type: "${name}"`);
   }
   if (results.length > 1) {
-    throw new Error(
-      `Expected 1 but found ${results.length} instances with node type: "${name}"`,
-    );
+    throw new Error(`Expected 1 but found ${results.length} instances with node type: "${name}"`);
   }
   return results[0];
 };
@@ -95,9 +89,7 @@ export const create = (element: React.ReactElement): ReactTestRenderer => {
     toJSON() {
       // react-test-renderer returns the rendered element's JSON (not the
       // container wrapper). Unwrap the container to match that behavior.
-      const first = root.container.children.find(
-        (c): c is TestInstance => typeof c !== 'string',
-      );
+      const first = root.container.children.find((c): c is TestInstance => typeof c !== 'string');
       return first ? first.toJSON() : null;
     },
     unmount() {
