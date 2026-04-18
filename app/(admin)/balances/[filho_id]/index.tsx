@@ -740,6 +740,7 @@ function makeStyles(colors: ThemeColors) {
       fontSize: typography.size.sm,
       textAlign: 'center',
       marginTop: spacing['4'],
+      marginBottom: spacing['4'],
     },
     movItem: {
       flexDirection: 'row',

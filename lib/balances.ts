@@ -104,8 +104,7 @@ function buildRecordedPhrase(label: string, recordedDate: string): string {
   // Relative labels ("Hoje", "Ontem", "Há N dias") read naturally as "Aprovado hoje".
   // Absolute labels ("Sex, 11/04", "11/12/2025") need the preposition "em".
   const lower = recordedDate.toLowerCase();
-  const isRelative =
-    lower === 'hoje' || lower === 'ontem' || lower.startsWith('há ');
+  const isRelative = lower === 'hoje' || lower === 'ontem' || lower.startsWith('há ');
   return isRelative ? `${label} ${lower}` : `${label} em ${recordedDate}`;
 }
 
