@@ -42,6 +42,7 @@ function createDeps(supabase?: SupabaseClientLike): HandlerDeps {
   const mock = supabase ?? createMockSupabase();
   return {
     getServiceRoleKey: () => 'service-role-key',
+    getAnonKey: () => 'anon-key',
     getSupabaseUrl: () => 'https://test.supabase.co',
     createSupabaseClient: vi.fn().mockReturnValue(mock),
   };
@@ -130,6 +131,21 @@ describe('register-child handler', () => {
     it('rejects when service role key is missing', async () => {
       const deps: HandlerDeps = {
         getServiceRoleKey: () => undefined,
+        getAnonKey: () => 'anon-key',
+        getSupabaseUrl: () => 'https://test.supabase.co',
+        createSupabaseClient: vi.fn(),
+      };
+      const res = await handleRequest(
+        makeRequest({ name: 'Lia', email: 'lia@example.com', tempPassword: 'secret-123' }),
+        deps,
+      );
+      expect(res.status).toBe(500);
+    });
+
+    it('rejects when anon key is missing', async () => {
+      const deps: HandlerDeps = {
+        getServiceRoleKey: () => 'service-role-key',
+        getAnonKey: () => undefined,
         getSupabaseUrl: () => 'https://test.supabase.co',
         createSupabaseClient: vi.fn(),
       };
@@ -164,6 +180,7 @@ describe('register-child handler', () => {
       }) as unknown as Request;
       const deps: HandlerDeps = {
         getServiceRoleKey: () => 'srk',
+        getAnonKey: () => 'anon-key',
         getSupabaseUrl: () => 'https://test.supabase.co',
         createSupabaseClient: vi.fn().mockReturnValue(createMockSupabase()),
       };
@@ -211,9 +228,10 @@ describe('register-child handler', () => {
 
     it('creates child successfully (201 + childId)', async () => {
       const mock = createMockSupabase();
+      const deps = createDeps(mock);
       const res = await handleRequest(
         makeRequest({ name: 'Lia', email: 'lia@example.com', tempPassword: 'secret-123' }),
-        createDeps(mock),
+        deps,
       );
       expect(res.status).toBe(201);
       const json = (await res.json()) as { childId: string };
@@ -229,6 +247,20 @@ describe('register-child handler', () => {
         filho_nome: 'Lia',
       });
       expect(mock.auth.admin.deleteUser).not.toHaveBeenCalled();
+
+      // Admin client uses service-role key; RPC client uses anon key + user JWT header
+      expect(deps.createSupabaseClient).toHaveBeenCalledTimes(2);
+      expect(deps.createSupabaseClient).toHaveBeenNthCalledWith(
+        1,
+        'https://test.supabase.co',
+        'service-role-key',
+      );
+      expect(deps.createSupabaseClient).toHaveBeenNthCalledWith(
+        2,
+        'https://test.supabase.co',
+        'anon-key',
+        { globalHeaders: { Authorization: 'Bearer valid-jwt-token' } },
+      );
     });
 
     it('rolls back auth user when RPC fails', async () => {

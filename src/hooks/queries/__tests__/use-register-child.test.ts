@@ -48,7 +48,12 @@ describe('useRegisterChild', () => {
       tempPassword: string;
     }) => Promise<unknown>;
     await mutationFn({ name: 'Ana', email: 'ana@test.com', tempPassword: '123456' });
-    expect(childrenLib.registerChild).toHaveBeenCalledWith('Ana', 'ana@test.com', '123456');
+    expect(childrenLib.registerChild).toHaveBeenCalledWith(
+      'Ana',
+      'ana@test.com',
+      '123456',
+      undefined,
+    );
   });
 
   it('invalidates children and balances queries on success', async () => {

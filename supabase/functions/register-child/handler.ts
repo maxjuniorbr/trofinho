@@ -7,6 +7,7 @@ export type RegisterChildRequest = {
   name: string;
   email: string;
   tempPassword: string;
+  avatar?: string;
 };
 
 export type RegisterChildResponse = {
@@ -51,7 +52,7 @@ export function validateRequest(
     return { valid: false, error: 'Request body must be a JSON object' };
   }
 
-  const { name, email, tempPassword } = body as Record<string, unknown>;
+  const { name, email, tempPassword, avatar } = body as Record<string, unknown>;
 
   if (typeof name !== 'string' || name.trim() === '') {
     return { valid: false, error: 'name must be a non-empty string' };
@@ -63,15 +64,25 @@ export function validateRequest(
     return { valid: false, error: 'tempPassword must be at least 6 characters' };
   }
 
-  return { valid: true, data: { name: name.trim(), email: email.trim(), tempPassword } };
+  const sanitizedAvatar = typeof avatar === 'string' && avatar.trim() ? avatar.trim() : undefined;
+
+  return {
+    valid: true,
+    data: { name: name.trim(), email: email.trim(), tempPassword, avatar: sanitizedAvatar },
+  };
 }
 
 // ─── Main handler (framework-agnostic) ───────────────────────────────────────
 
 export interface HandlerDeps {
   getServiceRoleKey: () => string | undefined;
+  getAnonKey: () => string | undefined;
   getSupabaseUrl: () => string;
-  createSupabaseClient: (url: string, key: string) => SupabaseClientLike;
+  createSupabaseClient: (
+    url: string,
+    key: string,
+    options?: { globalHeaders?: Record<string, string> },
+  ) => SupabaseClientLike;
 }
 
 const MAX_BODY_BYTES = 4_096;
@@ -94,7 +105,8 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
   }
 
   const serviceRoleKey = deps.getServiceRoleKey();
-  if (!serviceRoleKey) {
+  const anonKey = deps.getAnonKey();
+  if (!serviceRoleKey || !anonKey) {
     return new Response(JSON.stringify({ error: 'Internal error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
@@ -127,11 +139,11 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
     });
   }
 
-  const { name, email, tempPassword } = validation.data;
-  const supabase = deps.createSupabaseClient(deps.getSupabaseUrl(), serviceRoleKey);
+  const { name, email, tempPassword, avatar } = validation.data;
+  const adminClient = deps.createSupabaseClient(deps.getSupabaseUrl(), serviceRoleKey);
 
   // Verify caller identity — must be an authenticated admin
-  const { data: authData, error: authError } = await supabase.auth.getUser(userToken);
+  const { data: authData, error: authError } = await adminClient.auth.getUser(userToken);
   if (authError || !authData.user) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
@@ -140,7 +152,7 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
   }
 
   // Step 1: Create auth user via admin API (bypasses email confirmation flow)
-  const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+  const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
     email,
     password: tempPassword,
     email_confirm: true,
@@ -155,16 +167,25 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
 
   const userId = newUser.user.id;
 
-  // Step 2: Link child to family via RPC (runs as the admin caller via service role,
-  // but the RPC uses auth.uid() internally — we pass the user ID explicitly)
-  const { data: childId, error: rpcError } = await supabase.rpc('criar_filho_na_familia', {
+  // Step 2: Link child to family via RPC. Use anon key for the API gateway
+  // and override Authorization with the caller's JWT so auth.uid() resolves
+  // to the admin user inside the RPC function.
+  const userClient = deps.createSupabaseClient(deps.getSupabaseUrl(), anonKey, {
+    globalHeaders: { Authorization: `Bearer ${userToken}` },
+  });
+  const rpcParams: Record<string, unknown> = {
     filho_user_id: userId,
     filho_nome: name,
-  });
+  };
+  if (avatar) rpcParams.p_avatar_url = avatar;
+  const { data: childId, error: rpcError } = await userClient.rpc(
+    'criar_filho_na_familia',
+    rpcParams,
+  );
 
   if (rpcError) {
     // Rollback: delete the orphan auth user immediately via admin API (no 5-min window)
-    await supabase.auth.admin.deleteUser(userId);
+    await adminClient.auth.admin.deleteUser(userId);
 
     return new Response(JSON.stringify({ error: rpcError.message }), {
       status: 422,

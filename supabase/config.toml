@@ -358,6 +358,13 @@ allow_dynamic_registration = false
 [functions.send-push-notification]
 verify_jwt = true
 
+# register-child handles its own JWT verification via the admin client
+# (auth.getUser(token)). Gateway verification is disabled because Supabase's
+# new asymmetric (ES256) user JWTs are rejected by the gateway with
+# UNAUTHORIZED_UNSUPPORTED_TOKEN_ALGORITHM.
+[functions.register-child]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

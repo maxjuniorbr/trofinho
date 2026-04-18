@@ -108,6 +108,24 @@ describe('children', () => {
     });
   });
 
+  it.each([
+    ['User already registered', 'Este e-mail já possui uma conta.'],
+    ['Apenas admins podem cadastrar filhos', 'Somente administradores podem cadastrar filhos.'],
+  ])('extracts error from FunctionsHttpError context "%s"', async (message, expected) => {
+    supabaseMock.functions.invoke.mockResolvedValue({
+      data: null,
+      error: {
+        name: 'FunctionsHttpError',
+        message: 'Edge Function returned a non-2xx status code',
+        context: { error: message },
+      },
+    });
+
+    await expect(registerChild('Lia', 'lia@example.com', 'secret-123')).resolves.toEqual({
+      error: expected,
+    });
+  });
+
   it('lists children and surfaces database errors', async () => {
     supabaseMock.from
       .mockReturnValueOnce(

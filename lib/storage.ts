@@ -104,6 +104,14 @@ function extractStoragePath(bucket: string, storedValue: string): string {
 }
 
 /**
+ * Detects non-path values (e.g. emoji avatars) stored directly in avatar_url.
+ * Storage paths always contain '/' or end with an image extension.
+ */
+export function isEmojiAvatar(value: string): boolean {
+  return !value.includes('/') && !/\.[a-z]{2,5}$/i.test(value) && !value.startsWith('http');
+}
+
+/**
  * Converts a stored avatar/image reference (public URL or raw path) into a
  * short-lived signed URL for private bucket access.
  */
@@ -112,6 +120,7 @@ export async function resolveStorageUrl(
   storedValue: string | null | undefined,
 ): Promise<string | null> {
   if (!storedValue) return null;
+  if (isEmojiAvatar(storedValue)) return storedValue;
 
   const path = extractStoragePath(bucket, storedValue);
   const { data, error } = await supabase.storage
@@ -130,21 +139,32 @@ export async function resolveStorageUrls(
   bucket: string,
   storedValues: (string | null | undefined)[],
 ): Promise<(string | null)[]> {
-  const entries = storedValues.map((v) => (v ? extractStoragePath(bucket, v) : null));
-  const validPaths = entries.filter((p): p is string => p !== null);
+  // Separate emoji avatars (pass-through) from storage paths (need signing)
+  const results: (string | null)[] = storedValues.map(() => null);
+  const pathIndices: number[] = [];
+  const pathValues: string[] = [];
 
-  if (validPaths.length === 0) return storedValues.map(() => null);
+  storedValues.forEach((v, i) => {
+    if (!v) return;
+    if (isEmojiAvatar(v)) {
+      results[i] = v;
+    } else {
+      pathIndices.push(i);
+      pathValues.push(extractStoragePath(bucket, v));
+    }
+  });
+
+  if (pathValues.length === 0) return results;
 
   const { data, error } = await supabase.storage
     .from(bucket)
-    .createSignedUrls(validPaths, SIGNED_URL_EXPIRY_S);
+    .createSignedUrls(pathValues, SIGNED_URL_EXPIRY_S);
 
-  if (error || !data) return storedValues.map(() => null);
+  if (error || !data) return results;
 
-  // Map signed URLs back to original indices
-  let dataIdx = 0;
-  return entries.map((entry) => {
-    if (!entry) return null;
-    return data[dataIdx++]?.signedUrl ?? null;
+  pathIndices.forEach((origIdx, dataIdx) => {
+    results[origIdx] = data[dataIdx]?.signedUrl ?? null;
   });
+
+  return results;
 }

@@ -19,6 +19,7 @@ export async function registerChild(
   name: string,
   email: string,
   tempPassword: string,
+  avatar?: string,
 ): Promise<{ error: string | null }> {
   const {
     data: { session },
@@ -29,12 +30,14 @@ export async function registerChild(
   }
 
   const { data, error } = await supabase.functions.invoke('register-child', {
-    body: { name, email, tempPassword },
+    body: { name, email, tempPassword, avatar },
     headers: { Authorization: `Bearer ${session.access_token}` },
   });
 
   if (error) {
-    const message = data?.error ?? error.message ?? '';
+    // supabase-js v2: on non-2xx, data is null and the response body is in error.context
+    const context = 'context' in error ? (error as { context?: { error?: string } }).context : null;
+    const message = context?.error ?? data?.error ?? error.message ?? '';
     return { error: translateEdgeFunctionError(message) };
   }
 

@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { gradients, typography } from '@/constants/theme';
 import { useTheme } from '@/context/theme-context';
+import { isEmojiAvatar } from '@lib/storage';
 
 interface AvatarProps {
   name: string;
@@ -18,6 +19,22 @@ export const Avatar = ({ name, size = 44, solidColor, imageUri }: ReadonlyAvatar
   const { colors } = useTheme();
   const borderRadius = size / 2;
   const [imgError, setImgError] = useState(false);
+
+  const emojiMode = imageUri ? isEmojiAvatar(imageUri) : false;
+
+  if (emojiMode && imageUri) {
+    const emojiFontSize = Math.round(size * 0.55);
+    return (
+      <LinearGradient
+        colors={gradients.gold.colors}
+        start={gradients.gold.start}
+        end={gradients.gold.end}
+        style={[styles.base, { width: size, height: size, borderRadius }]}
+      >
+        <Text style={{ fontSize: emojiFontSize }}>{imageUri}</Text>
+      </LinearGradient>
+    );
+  }
 
   if (imageUri && !imgError) {
     return (

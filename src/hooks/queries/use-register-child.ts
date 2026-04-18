@@ -6,8 +6,10 @@ import { queryKeys } from './query-keys';
 export const useRegisterChild = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (args: { name: string; email: string; tempPassword: string }) =>
-      mutationFnAdapter(() => registerChild(args.name, args.email, args.tempPassword))(),
+    mutationFn: (args: { name: string; email: string; tempPassword: string; avatar?: string }) =>
+      mutationFnAdapter(() =>
+        registerChild(args.name, args.email, args.tempPassword, args.avatar),
+      )(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.children.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });

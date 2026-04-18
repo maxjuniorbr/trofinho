@@ -1,7 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as fc from 'fast-check';
 
-import { prepareImageUpload, uploadImageToPublicBucket } from './storage';
+import {
+  isEmojiAvatar,
+  prepareImageUpload,
+  resolveStorageUrl,
+  resolveStorageUrls,
+  uploadImageToPublicBucket,
+} from './storage';
 
 const resizeImageMock = vi.hoisted(() => vi.fn((uri: string) => Promise.resolve(uri)));
 const readImageAsArrayBufferMock = vi.hoisted(() => vi.fn());
@@ -241,6 +247,105 @@ describe('storage', () => {
         }),
         { numRuns: 100 },
       );
+    });
+  });
+
+  describe('isEmojiAvatar', () => {
+    it.each([
+      ['🧒🏻', true],
+      ['👦🏽', true],
+      ['avatars/abc.jpg', false],
+      ['photo.png', false],
+      ['https://example.com/img.jpg', false],
+      ['nested/folder/file.webp', false],
+    ])('returns %s for value "%s"', (value, expected) => {
+      expect(isEmojiAvatar(value)).toBe(expected);
+    });
+  });
+
+  describe('resolveStorageUrl', () => {
+    const createSignedUrlMock = vi.fn();
+
+    beforeEach(() => {
+      createSignedUrlMock.mockReset();
+      supabaseMock.storage.from.mockReset().mockReturnValue({ createSignedUrl: createSignedUrlMock });
+    });
+
+    it('returns null for null/empty values', async () => {
+      await expect(resolveStorageUrl('avatars', null)).resolves.toBeNull();
+      await expect(resolveStorageUrl('avatars', undefined)).resolves.toBeNull();
+      await expect(resolveStorageUrl('avatars', '')).resolves.toBeNull();
+    });
+
+    it('passes emoji avatars through without signing', async () => {
+      await expect(resolveStorageUrl('avatars', '🧒🏻')).resolves.toBe('🧒🏻');
+      expect(createSignedUrlMock).not.toHaveBeenCalled();
+    });
+
+    it('signs storage paths', async () => {
+      createSignedUrlMock.mockResolvedValue({
+        data: { signedUrl: 'https://signed.example.com/x.jpg' },
+        error: null,
+      });
+      await expect(resolveStorageUrl('avatars', 'user/abc.jpg')).resolves.toBe(
+        'https://signed.example.com/x.jpg',
+      );
+    });
+
+    it('returns null when signing fails', async () => {
+      createSignedUrlMock.mockResolvedValue({ data: null, error: { message: 'fail' } });
+      await expect(resolveStorageUrl('avatars', 'user/abc.jpg')).resolves.toBeNull();
+    });
+  });
+
+  describe('resolveStorageUrls', () => {
+    const createSignedUrlsMock = vi.fn();
+
+    beforeEach(() => {
+      createSignedUrlsMock.mockReset();
+      supabaseMock.storage.from
+        .mockReset()
+        .mockReturnValue({ createSignedUrls: createSignedUrlsMock });
+    });
+
+    it('returns array of nulls when all values are nullish', async () => {
+      const result = await resolveStorageUrls('avatars', [null, undefined, '']);
+      expect(result).toEqual([null, null, null]);
+      expect(createSignedUrlsMock).not.toHaveBeenCalled();
+    });
+
+    it('mixes emoji passthrough with signed paths preserving order', async () => {
+      createSignedUrlsMock.mockResolvedValue({
+        data: [
+          { signedUrl: 'https://signed.example.com/a.jpg' },
+          { signedUrl: 'https://signed.example.com/b.jpg' },
+        ],
+        error: null,
+      });
+
+      const result = await resolveStorageUrls('avatars', [
+        'user1/a.jpg',
+        '🧒🏻',
+        null,
+        'user2/b.jpg',
+      ]);
+
+      expect(result).toEqual([
+        'https://signed.example.com/a.jpg',
+        '🧒🏻',
+        null,
+        'https://signed.example.com/b.jpg',
+      ]);
+      expect(createSignedUrlsMock).toHaveBeenCalledWith(
+        ['user1/a.jpg', 'user2/b.jpg'],
+        expect.any(Number),
+      );
+    });
+
+    it('returns nulls for path entries when signing fails (emoji still passes through)', async () => {
+      createSignedUrlsMock.mockResolvedValue({ data: null, error: { message: 'fail' } });
+      const result = await resolveStorageUrls('avatars', ['user/a.jpg', '🧒🏻']);
+      expect(result).toEqual([null, '🧒🏻']);
     });
   });
 });
