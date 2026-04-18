@@ -7,7 +7,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, User, X } from 'lucide-react-native';
 import { HeaderIconButton } from '@/components/ui/screen-header';
 import { Button } from '@/components/ui/button';
@@ -40,6 +40,16 @@ export function PersonalDataSheet({
   const [name, setName] = useState(profile?.nome ?? '');
   const [validationError, setValidationError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearCloseTimer = useCallback(() => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => clearCloseTimer, [clearCloseTimer]);
 
   // Sync name when profile changes or sheet opens
   useEffect(() => {
@@ -47,17 +57,19 @@ export function PersonalDataSheet({
       setName(profile?.nome ?? '');
       setValidationError(null);
       setSuccess(false);
+      clearCloseTimer();
       updateNameMutation.reset();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   const handleClose = useCallback(() => {
+    clearCloseTimer();
     setValidationError(null);
     setSuccess(false);
     updateNameMutation.reset();
     onClose();
-  }, [updateNameMutation, onClose]);
+  }, [updateNameMutation, onClose, clearCloseTimer]);
 
   const handleSave = useCallback(() => {
     setValidationError(null);
@@ -71,10 +83,11 @@ export function PersonalDataSheet({
       onSuccess: () => {
         onNameUpdated(trimmed);
         setSuccess(true);
-        setTimeout(handleClose, 1200);
+        clearCloseTimer();
+        closeTimerRef.current = setTimeout(handleClose, 1200);
       },
     });
-  }, [name, updateNameMutation, onNameUpdated, handleClose]);
+  }, [name, updateNameMutation, onNameUpdated, handleClose, clearCloseTimer]);
 
   const errorMessage =
     validationError ?? (updateNameMutation.error ? updateNameMutation.error.message : null);

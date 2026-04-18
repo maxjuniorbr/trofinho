@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Eye, EyeOff, Lock, X } from 'lucide-react-native';
 import { HeaderIconButton } from '@/components/ui/screen-header';
 import { Button } from '@/components/ui/button';
@@ -40,12 +40,23 @@ export function ChangePasswordSheet({ visible, onClose }: ChangePasswordSheetPro
   const [showNext, setShowNext] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [success, setSuccess] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearCloseTimer = useCallback(() => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => clearCloseTimer, [clearCloseTimer]);
 
   const ruleResults = RULES.map((r) => ({ ok: r.test(next), label: r.label }));
   const passwordsMatch = next.length > 0 && next === confirm;
   const canSubmit = current.length > 0 && ruleResults.every((r) => r.ok) && passwordsMatch;
 
   const resetForm = useCallback(() => {
+    clearCloseTimer();
     setCurrent('');
     setNext('');
     setConfirm('');
@@ -54,7 +65,7 @@ export function ChangePasswordSheet({ visible, onClose }: ChangePasswordSheetPro
     setShowConfirm(false);
     setSuccess(false);
     updatePasswordMutation.reset();
-  }, [updatePasswordMutation]);
+  }, [updatePasswordMutation, clearCloseTimer]);
 
   const handleClose = useCallback(() => {
     resetForm();
@@ -68,11 +79,12 @@ export function ChangePasswordSheet({ visible, onClose }: ChangePasswordSheetPro
       {
         onSuccess: () => {
           setSuccess(true);
-          setTimeout(handleClose, 1200);
+          clearCloseTimer();
+          closeTimerRef.current = setTimeout(handleClose, 1200);
         },
       },
     );
-  }, [canSubmit, current, next, updatePasswordMutation, handleClose]);
+  }, [canSubmit, current, next, updatePasswordMutation, handleClose, clearCloseTimer]);
 
   const errorMessage = updatePasswordMutation.error ? updatePasswordMutation.error.message : null;
 
