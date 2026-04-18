@@ -298,9 +298,9 @@ export default function ChildBalanceHistoryScreen() {
                                         styles.txRow,
                                         idx < group.items.length - 1
                                             ? {
-                                                  borderBottomColor: colors.border.subtle,
-                                                  borderBottomWidth: StyleSheet.hairlineWidth,
-                                              }
+                                                borderBottomColor: colors.border.subtle,
+                                                borderBottomWidth: StyleSheet.hairlineWidth,
+                                            }
                                             : null,
                                     ]}
                                 >

@@ -78,12 +78,7 @@ export const useConfigureAppreciation = () => {
 export const useConfigurePiggyBank = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (args: {
-      childId: string;
-      rate: number;
-      withdrawalRate: number;
-      prazo: number;
-    }) =>
+    mutationFn: (args: { childId: string; rate: number; withdrawalRate: number; prazo: number }) =>
       mutationFnAdapter(() =>
         configurePiggyBank(args.childId, {
           rate: args.rate,

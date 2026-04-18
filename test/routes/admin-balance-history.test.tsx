@@ -77,12 +77,12 @@ vi.mock('@shopify/flash-list', () => ({
             ListHeaderComponent,
             data && data.length > 0
                 ? data.map((item, i) =>
-                      React.createElement(
-                          React.Fragment,
-                          { key: (item.label as string) ?? i },
-                          renderItem({ item }),
-                      ),
-                  )
+                    React.createElement(
+                        React.Fragment,
+                        { key: (item.label as string) ?? i },
+                        renderItem({ item }),
+                    ),
+                )
                 : null,
             ListFooterComponent,
         ),
