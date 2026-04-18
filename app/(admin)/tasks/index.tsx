@@ -45,7 +45,7 @@ type AdminTaskCardProps = Readonly<{
   onPress: () => void;
 }>;
 
-function AdminTaskCard({ item, colors, styles, onPress }: AdminTaskCardProps) {
+const AdminTaskCard = ({ item, colors, styles, onPress }: AdminTaskCardProps) => {
   const total = item.atribuicoes.length;
   const aguardando = item.atribuicoes.filter((a) => a.status === 'aguardando_validacao').length;
 

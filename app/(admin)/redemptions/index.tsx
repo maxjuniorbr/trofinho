@@ -54,7 +54,7 @@ type RedemptionRowProps = Readonly<{
   isLast: boolean;
 }>;
 
-function RedemptionRow({ item, colors, styles, isLast }: RedemptionRowProps) {
+const RedemptionRow = ({ item, colors, styles, isLast }: RedemptionRowProps) => {
   const statusColor = getRedemptionStatusColor(item.status, colors);
   const StatusIcon = item.status === 'confirmado' ? CheckCircle2 : XCircle;
   return (

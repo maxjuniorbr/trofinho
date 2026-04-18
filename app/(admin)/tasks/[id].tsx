@@ -91,7 +91,7 @@ type AssignmentRowProps = Readonly<{
   isLast: boolean;
 }>;
 
-function getRowStatusLabel(assignment: AssignmentWithChild): string {
+const getRowStatusLabel = (assignment: AssignmentWithChild): string => {
   if (
     assignment.status === 'pendente' &&
     assignment.competencia !== null &&
@@ -100,9 +100,9 @@ function getRowStatusLabel(assignment: AssignmentWithChild): string {
     return 'Não executada';
   }
   return getAssignmentStatusLabel(assignment.status);
-}
+};
 
-function getRowStatusIcon(status: AssignmentWithChild['status']) {
+const getRowStatusIcon = (status: AssignmentWithChild['status']) => {
   const map = {
     aprovada: CheckCircle2,
     rejeitada: XCircle,
@@ -110,9 +110,9 @@ function getRowStatusIcon(status: AssignmentWithChild['status']) {
     aguardando_validacao: Clock,
   } as const;
   return map[status];
-}
+};
 
-function AssignmentRow({ assignment, colors, styles, isLast }: AssignmentRowProps) {
+const AssignmentRow = ({ assignment, colors, styles, isLast }: AssignmentRowProps) => {
   const dateLine = getAssignmentDateLine(assignment);
   const statusColor = getAssignmentStatusColor(assignment.status, colors);
   const StatusIcon = getRowStatusIcon(assignment.status);
@@ -165,7 +165,7 @@ type AssignmentCardProps = Readonly<{
   onImagePress: (url: string) => void;
 }>;
 
-function AssignmentCard({
+const AssignmentCard = ({
   assignment,
   action,
   note,
@@ -180,7 +180,7 @@ function AssignmentCard({
   onNoteChange,
   onImageStateChange,
   onImagePress,
-}: AssignmentCardProps) {
+}: AssignmentCardProps) => {
   const processing = action === 'processing';
   const statusColor = getAssignmentStatusColor(assignment.status, colors);
   const isRejecting = action === 'rejecting';
