@@ -428,6 +428,7 @@ export type Database = {
           id: string
           indice_valorizacao: number
           periodo_valorizacao: Database["public"]["Enums"]["periodo_valorizacao"]
+          prazo_bloqueio_dias: number
           proxima_valorizacao_em: string | null
           saldo_livre: number
           taxa_resgate_cofrinho: number
@@ -440,6 +441,7 @@ export type Database = {
           id?: string
           indice_valorizacao?: number
           periodo_valorizacao?: Database["public"]["Enums"]["periodo_valorizacao"]
+          prazo_bloqueio_dias?: number
           proxima_valorizacao_em?: string | null
           saldo_livre?: number
           taxa_resgate_cofrinho?: number
@@ -452,6 +454,7 @@ export type Database = {
           id?: string
           indice_valorizacao?: number
           periodo_valorizacao?: Database["public"]["Enums"]["periodo_valorizacao"]
+          prazo_bloqueio_dias?: number
           proxima_valorizacao_em?: string | null
           saldo_livre?: number
           taxa_resgate_cofrinho?: number
@@ -591,6 +594,15 @@ export type Database = {
         Args: { p_atribuicao_id: string; p_evidencia_url?: string }
         Returns: undefined
       }
+      configurar_cofrinho: {
+        Args: {
+          p_filho_id: string
+          p_indice: number
+          p_prazo: number
+          p_taxa: number
+        }
+        Returns: undefined
+      }
       configurar_taxa_resgate_cofrinho: {
         Args: { p_filho_id: string; p_taxa: number }
         Returns: undefined
@@ -608,10 +620,19 @@ export type Database = {
         Args: { nome_familia: string; nome_usuario: string }
         Returns: string
       }
-      criar_filho_na_familia: {
-        Args: { filho_nome: string; filho_user_id: string }
-        Returns: string
-      }
+      criar_filho_na_familia:
+        | {
+            Args: { filho_nome: string; filho_user_id: string }
+            Returns: string
+          }
+        | {
+            Args: {
+              filho_nome: string
+              filho_user_id: string
+              p_avatar_url?: string
+            }
+            Returns: string
+          }
       criar_tarefa_com_atribuicoes: {
         Args: {
           p_descricao: string
@@ -660,6 +681,7 @@ export type Database = {
         Returns: undefined
       }
       limpar_registros_antigos: { Args: never; Returns: Json }
+      limpar_usuarios_orfaos_antigos: { Args: never; Returns: Json }
       meu_filho_id: { Args: never; Returns: string }
       meu_papel: { Args: never; Returns: string }
       minha_familia_id: { Args: never; Returns: string }

@@ -28,6 +28,7 @@ export {
   useTransactions,
   useApplyPenalty,
   useConfigureAppreciation,
+  useConfigurePiggyBank,
   useTransferToPiggyBank,
 } from './use-balances';
 export {

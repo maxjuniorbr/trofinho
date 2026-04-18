@@ -1,4 +1,4 @@
-import { Alert, StyleSheet, Text, View, RefreshControl } from 'react-native';
+import { Alert, StyleSheet, Text, View, RefreshControl, Pressable } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
@@ -11,12 +11,11 @@ import {
   useBalance,
   useTransactions,
   useApplyPenalty,
-  useConfigureAppreciation,
+  useConfigurePiggyBank,
   combineQueryStates,
   usePendingPiggyBankWithdrawals,
   useConfirmPiggyBankWithdrawal,
   useCancelPiggyBankWithdrawal,
-  useConfigureWithdrawalRate,
   useProfile,
   useChildDetail,
 } from '@/hooks/queries';
@@ -66,10 +65,9 @@ export default function ChildBalanceAdminScreen() {
   const visibleSuccess = useTransientMessage(successMessage);
 
   const penaltyMutation = useApplyPenalty();
-  const configureMutation = useConfigureAppreciation();
+  const configurePiggyMutation = useConfigurePiggyBank();
   const confirmWithdrawalMutation = useConfirmPiggyBankWithdrawal();
   const cancelWithdrawalMutation = useCancelPiggyBankWithdrawal();
-  const configureRateMutation = useConfigureWithdrawalRate();
 
   const pendingWithdrawalsQuery = usePendingPiggyBankWithdrawals();
   const pendingWithdrawals = useMemo(
@@ -158,20 +156,26 @@ export default function ChildBalanceAdminScreen() {
     );
   }, [pendingWithdrawal, cancelWithdrawalMutation, profile]);
 
-  const handleSaveAppreciation = useCallback(
-    async (rate: number) => {
+  const handleSavePiggyConfig = useCallback(
+    async ({
+      rate,
+      withdrawalRate: nextWithdrawal,
+      prazo,
+    }: {
+      rate: number;
+      withdrawalRate: number;
+      prazo: number;
+    }) => {
       if (!filho_id) return;
-      await configureMutation.mutateAsync({ childId: filho_id, rate });
+      await configurePiggyMutation.mutateAsync({
+        childId: filho_id,
+        rate,
+        withdrawalRate: nextWithdrawal,
+        prazo,
+      });
+      setSuccessMessage('Configuração do cofrinho atualizada.');
     },
-    [filho_id, configureMutation],
-  );
-
-  const handleSaveWithdrawal = useCallback(
-    async (rate: number) => {
-      if (!filho_id) return;
-      await configureRateMutation.mutateAsync({ childId: filho_id, rate });
-    },
-    [filho_id, configureRateMutation],
+    [filho_id, configurePiggyMutation],
   );
 
   if (isLoading) {
@@ -189,6 +193,7 @@ export default function ChildBalanceAdminScreen() {
   const cofrinhoPercent = totalPts > 0 ? Math.round((cofrinho / totalPts) * 100) : 0;
   const appreciationRate = balance?.indice_valorizacao ?? 0;
   const withdrawRate = balance?.taxa_resgate_cofrinho ?? 0;
+  const prazoBloqueio = balance?.prazo_bloqueio_dias ?? 7;
   const projection = calculateProjection(cofrinho, appreciationRate);
   const hasAppreciationConfigured = appreciationRate > 0;
   const childName = nome ?? childDetail?.nome ?? 'Filho';
@@ -435,12 +440,10 @@ export default function ChildBalanceAdminScreen() {
                 </View>
                 <View style={[styles.rulesStat, { backgroundColor: colors.bg.muted }]}>
                   <Text style={[styles.rulesStatLabel, { color: colors.text.muted }]}>
-                    SAQUE → RECEBE
+                    SEM TAXA APÓS
                   </Text>
                   <Text style={[styles.rulesStatValue, { color: colors.semantic.success }]}>
-                    {cofrinho > 0
-                      ? `${Math.round(cofrinho * (1 - withdrawRate / 100))} pts`
-                      : '—'}
+                    {prazoBloqueio} dias
                   </Text>
                 </View>
               </View>
@@ -452,8 +455,23 @@ export default function ChildBalanceAdminScreen() {
             {/* Penalty button */}
             <PenaltyButton onPress={() => setModalType('penalizar')} />
 
-            <View style={[styles.historicoHeader, { borderBottomColor: colors.border.subtle }]}>
+            <View style={styles.historicoHeader}>
               <Text style={styles.secaoTitulo}>Histórico</Text>
+              <Pressable
+                onPress={() =>
+                  router.push({
+                    pathname: '/(admin)/balances/[filho_id]/historico',
+                    params: { filho_id, nome: childName },
+                  })
+                }
+                accessibilityRole="link"
+                accessibilityLabel="Ver histórico completo"
+                hitSlop={8}
+              >
+                <Text style={[styles.historicoLink, { color: colors.accent.adminDim }]}>
+                  Ver completo →
+                </Text>
+              </Pressable>
             </View>
             {transactions.length === 0 ? (
               <Text style={styles.vazio}>Nenhuma movimentação ainda.</Text>
@@ -502,10 +520,9 @@ export default function ChildBalanceAdminScreen() {
         onClose={() => setModalType(null)}
         appreciationRate={appreciationRate}
         withdrawalRate={withdrawRate}
-        onSaveAppreciation={handleSaveAppreciation}
-        onSaveWithdrawal={handleSaveWithdrawal}
-        savingAppreciation={configureMutation.isPending}
-        savingWithdrawal={configureRateMutation.isPending}
+        prazoBloqueioDias={prazoBloqueio}
+        onSave={handleSavePiggyConfig}
+        saving={configurePiggyMutation.isPending}
       />
     </SafeScreenFrame>
   );
@@ -689,7 +706,9 @@ function makeStyles(colors: ThemeColors) {
       marginTop: spacing['0.5'],
     },
     historicoHeader: {
-      borderBottomWidth: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
       paddingBottom: spacing['3'],
       marginTop: spacing['2'],
       marginBottom: spacing['1'],
@@ -698,6 +717,10 @@ function makeStyles(colors: ThemeColors) {
       fontSize: typography.size.md,
       fontFamily: typography.family.bold,
       color: colors.text.primary,
+    },
+    historicoLink: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.semibold,
     },
     vazio: {
       color: colors.text.muted,

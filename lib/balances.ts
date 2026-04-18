@@ -24,7 +24,14 @@ export interface Balance {
   data_ultima_valorizacao: string | null;
   proxima_valorizacao_em: string | null;
   taxa_resgate_cofrinho: number;
+  prazo_bloqueio_dias: number;
   updated_at: string;
+}
+
+export interface PiggyBankConfig {
+  rate: number;
+  withdrawalRate: number;
+  prazo: number;
 }
 
 export interface Transaction {
@@ -168,6 +175,20 @@ export async function configureAppreciation(
   const { error } = await supabase.rpc('configurar_valorizacao', {
     p_filho_id: childId,
     p_indice: rate,
+  });
+  if (error) return { error: localizeRpcError(error.message) };
+  return { error: null };
+}
+
+export async function configurePiggyBank(
+  childId: string,
+  config: PiggyBankConfig,
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('configurar_cofrinho', {
+    p_filho_id: childId,
+    p_indice: config.rate,
+    p_taxa: config.withdrawalRate,
+    p_prazo: config.prazo,
   });
   if (error) return { error: localizeRpcError(error.message) };
   return { error: null };

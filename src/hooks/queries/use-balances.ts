@@ -5,6 +5,7 @@ import {
   listTransactions,
   applyPenalty,
   configureAppreciation,
+  configurePiggyBank,
   transferToPiggyBank,
   syncAutomaticAppreciation,
 } from '../../../lib/balances';
@@ -67,6 +68,29 @@ export const useConfigureAppreciation = () => {
   return useMutation({
     mutationFn: (args: { childId: string; rate: number }) =>
       mutationFnAdapter(() => configureAppreciation(args.childId, args.rate))(),
+    onSuccess: async () => {
+      syncAutomaticAppreciation().catch(console.error);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });
+    },
+  });
+};
+
+export const useConfigurePiggyBank = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (args: {
+      childId: string;
+      rate: number;
+      withdrawalRate: number;
+      prazo: number;
+    }) =>
+      mutationFnAdapter(() =>
+        configurePiggyBank(args.childId, {
+          rate: args.rate,
+          withdrawalRate: args.withdrawalRate,
+          prazo: args.prazo,
+        }),
+      )(),
     onSuccess: async () => {
       syncAutomaticAppreciation().catch(console.error);
       await queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });
