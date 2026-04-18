@@ -647,7 +647,7 @@ export default function ChildBalanceScreen() {
                   {item.valor}
                 </Text>
                 <Text style={styles.movData}>{dates.eventDate}</Text>
-                {dates.hasEventDate && !dates.sameDay ? (
+                {dates.showRecordedPhrase ? (
                   <Text style={styles.movDataSecondary}>{dates.recordedPhrase}</Text>
                 ) : null}
               </View>

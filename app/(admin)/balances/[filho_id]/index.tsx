@@ -479,7 +479,7 @@ export default function ChildBalanceAdminScreen() {
                 <Text style={styles.movDesc} numberOfLines={1}>
                   {item.descricao}
                 </Text>
-                {dates.hasEventDate && !dates.sameDay ? (
+                {dates.showRecordedPhrase ? (
                   <Text style={styles.movDataSecondary}>{dates.recordedPhrase}</Text>
                 ) : null}
               </View>

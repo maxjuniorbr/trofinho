@@ -92,12 +92,16 @@ export interface TransactionDateInfo {
   sameDay: boolean;
   /** False for legacy rows (data_referencia is null). */
   hasEventDate: boolean;
+  /** True when the recorded phrase should be displayed (specific label or cross-day). */
+  showRecordedPhrase: boolean;
 }
 
 const RECORDED_LABELS: Partial<Record<TransactionType, string>> = {
   credito: 'Aprovado',
   estorno_resgate: 'Cancelado',
   resgate_cofrinho: 'Confirmado',
+  penalizacao: 'Aplicado',
+  transferencia_cofrinho: 'Transferido',
 };
 
 function buildRecordedPhrase(label: string, recordedDate: string): string {
@@ -118,6 +122,8 @@ export function formatTransactionDates(
   const recordedDate = formatDateRelative(recordedDateStr, today);
   const recordedPhrase = buildRecordedPhrase(recordedLabel, recordedDate);
 
+  const hasSpecificLabel = tx.tipo in RECORDED_LABELS;
+
   if (!eventDateStr) {
     return {
       eventDate: formatDateRelative(recordedDateStr, today),
@@ -127,6 +133,7 @@ export function formatTransactionDates(
       recordedPhrase,
       sameDay: true,
       hasEventDate: false,
+      showRecordedPhrase: false,
     };
   }
 
@@ -140,6 +147,7 @@ export function formatTransactionDates(
     recordedPhrase,
     sameDay,
     hasEventDate: true,
+    showRecordedPhrase: !sameDay || hasSpecificLabel,
   };
 }
 

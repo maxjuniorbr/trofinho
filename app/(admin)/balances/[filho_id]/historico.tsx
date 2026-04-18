@@ -331,7 +331,7 @@ export default function ChildBalanceHistoryScreen() {
                                         </Text>
                                         {(() => {
                                             const dates = formatTransactionDates(tx);
-                                            return dates.hasEventDate && !dates.sameDay ? (
+                                            return dates.showRecordedPhrase ? (
                                                 <Text style={[styles.txSecondaryDate, { color: colors.text.muted }]}>
                                                     {dates.recordedPhrase}
                                                 </Text>

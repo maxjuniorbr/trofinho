@@ -316,6 +316,7 @@ describe('balances', () => {
       const result = formatTransactionDates(tx, today);
       expect(result.hasEventDate).toBe(false);
       expect(result.sameDay).toBe(true);
+      expect(result.showRecordedPhrase).toBe(false);
       expect(result.eventDate).toBe('Há 2 dias');
       expect(result.eventDateFull).toBe('01/05/2026');
       expect(result.recordedDate).toBe('Há 2 dias');
@@ -332,6 +333,7 @@ describe('balances', () => {
       const result = formatTransactionDates(tx, today);
       expect(result.hasEventDate).toBe(true);
       expect(result.sameDay).toBe(true);
+      expect(result.showRecordedPhrase).toBe(true);
       expect(result.eventDate).toBe('Há 2 dias');
       expect(result.recordedDate).toBe('Há 2 dias');
     });
@@ -345,6 +347,7 @@ describe('balances', () => {
       };
       const result = formatTransactionDates(tx, today);
       expect(result.sameDay).toBe(false);
+      expect(result.showRecordedPhrase).toBe(true);
       expect(result.eventDate).toBe('Há 5 dias');
       expect(result.eventDateFull).toBe('28/04/2026');
       expect(result.recordedDate).toBe('Ontem');
@@ -397,6 +400,55 @@ describe('balances', () => {
       };
       const result = formatTransactionDates(tx, today);
       expect(result.recordedLabel).toBe('Registrado');
+      expect(result.showRecordedPhrase).toBe(true);
+    });
+
+    it('uses "Aplicado" label for penalizacao', () => {
+      const tx = {
+        ...baseTx,
+        tipo: 'penalizacao' as TransactionType,
+        created_at: '2026-05-03T10:00:00Z',
+        data_referencia: '2026-05-01',
+      };
+      const result = formatTransactionDates(tx, today);
+      expect(result.recordedLabel).toBe('Aplicado');
+      expect(result.showRecordedPhrase).toBe(true);
+    });
+
+    it('uses "Transferido" label for transferencia_cofrinho', () => {
+      const tx = {
+        ...baseTx,
+        tipo: 'transferencia_cofrinho' as TransactionType,
+        created_at: '2026-05-03T10:00:00Z',
+        data_referencia: '2026-05-01',
+      };
+      const result = formatTransactionDates(tx, today);
+      expect(result.recordedLabel).toBe('Transferido');
+      expect(result.showRecordedPhrase).toBe(true);
+    });
+
+    it('shows recorded phrase for specific label even on sameDay', () => {
+      const tx = {
+        ...baseTx,
+        tipo: 'credito' as TransactionType,
+        created_at: '2026-05-01T10:00:00Z',
+        data_referencia: '2026-05-01',
+      };
+      const result = formatTransactionDates(tx, today);
+      expect(result.sameDay).toBe(true);
+      expect(result.showRecordedPhrase).toBe(true);
+    });
+
+    it('hides recorded phrase for generic label on sameDay', () => {
+      const tx = {
+        ...baseTx,
+        tipo: 'resgate' as TransactionType,
+        created_at: '2026-05-01T10:00:00Z',
+        data_referencia: '2026-05-01',
+      };
+      const result = formatTransactionDates(tx, today);
+      expect(result.sameDay).toBe(true);
+      expect(result.showRecordedPhrase).toBe(false);
     });
   });
 });
