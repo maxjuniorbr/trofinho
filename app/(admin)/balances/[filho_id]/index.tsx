@@ -1,4 +1,5 @@
 import { Alert, StyleSheet, Text, View, RefreshControl, Pressable } from 'react-native';
+import { localizeRpcError } from '@lib/api-error';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
@@ -105,7 +106,7 @@ export default function ChildBalanceAdminScreen() {
         setSuccessMessage('Penalidade aplicada com sucesso.');
         return { error: null };
       } catch (e) {
-        return { error: e instanceof Error ? e.message : 'Erro ao aplicar penalidade.' };
+        return { error: e instanceof Error ? localizeRpcError(e.message) : 'Erro ao aplicar penalidade.' };
       }
     },
     [filho_id, penaltyMutation],
@@ -127,7 +128,7 @@ export default function ChildBalanceAdminScreen() {
       hapticSuccess();
       setSuccessMessage('Resgate do cofrinho aprovado com sucesso.');
     } catch (e) {
-      setSuccessMessage(e instanceof Error ? e.message : 'Erro ao aprovar resgate.');
+      setSuccessMessage(e instanceof Error ? localizeRpcError(e.message) : 'Erro ao aprovar resgate.');
     }
   }, [pendingWithdrawal, confirmWithdrawalMutation, profile, balance]);
 
@@ -154,7 +155,7 @@ export default function ChildBalanceAdminScreen() {
               hapticSuccess();
               setSuccessMessage('Resgate do cofrinho rejeitado.');
             } catch (e) {
-              setSuccessMessage(e instanceof Error ? e.message : 'Erro ao rejeitar resgate.');
+              setSuccessMessage(e instanceof Error ? localizeRpcError(e.message) : 'Erro ao rejeitar resgate.');
             }
           },
         },

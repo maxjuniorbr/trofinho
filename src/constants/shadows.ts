@@ -68,6 +68,10 @@ export const heroPalette = {
   surfaceFieldFocus: 'rgba(255, 255, 255, 0.08)',
   surfaceChip: 'rgba(255, 255, 255, 0.10)',
   borderSoft: 'rgba(255, 255, 255, 0.15)',
+  borderFocus: '#FAC114',
+  textOnLight: '#030711',
+  checkOn: '#20C55D',
+  checkOnText: '#7EF1A8',
   glowGold: 'rgba(250, 193, 20, 0.12)',
   glowGoldSoft: 'rgba(250, 193, 20, 0.06)',
 } as const;

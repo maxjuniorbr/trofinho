@@ -39,7 +39,7 @@ export const AuthDarkField = ({
           styles.inputRow,
           {
             backgroundColor: focused ? heroPalette.surfaceFieldFocus : heroPalette.surfaceField,
-            borderColor: focused ? '#FAC114' : heroPalette.borderSoft,
+            borderColor: focused ? heroPalette.borderFocus : heroPalette.borderSoft,
           },
         ]}
       >
@@ -50,7 +50,7 @@ export const AuthDarkField = ({
           accessibilityLabel={label}
           style={[styles.input, hasIcon ? styles.inputWithIcon : null, style]}
           placeholderTextColor={heroPalette.textOnNavyFaint}
-          selectionColor="#FAC114"
+          selectionColor={heroPalette.borderFocus}
           {...inputProps}
         />
         {rightAction ?? null}

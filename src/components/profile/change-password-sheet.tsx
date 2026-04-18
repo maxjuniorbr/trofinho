@@ -16,6 +16,7 @@ import { InlineMessage } from '@/components/ui/inline-message';
 import { useUpdateUserPassword } from '@/hooks/queries/use-profile';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
+import { localizeSupabaseError } from '@lib/api-error';
 
 type ChangePasswordSheetProps = Readonly<{
   visible: boolean;
@@ -86,7 +87,9 @@ export function ChangePasswordSheet({ visible, onClose }: ChangePasswordSheetPro
     );
   }, [canSubmit, current, next, updatePasswordMutation, handleClose, clearCloseTimer]);
 
-  const errorMessage = updatePasswordMutation.error ? updatePasswordMutation.error.message : null;
+  const errorMessage = updatePasswordMutation.error
+    ? localizeSupabaseError(updatePasswordMutation.error.message)
+    : null;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>

@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
 import { useRegisterChild } from '@/hooks/queries/use-register-child';
+import { localizeSupabaseError } from '@lib/api-error';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 
@@ -64,8 +65,8 @@ export function ChildNewSheet({ visible, onClose }: ChildNewSheetProps) {
       setValidationError('E-mail inválido.');
       return;
     }
-    if (tempPassword.length < 6) {
-      setValidationError('A senha temporária deve ter pelo menos 6 caracteres.');
+    if (tempPassword.length < 8) {
+      setValidationError('A senha temporária deve ter pelo menos 8 caracteres.');
       return;
     }
     if (tempPassword !== confirmPassword) {
@@ -79,7 +80,7 @@ export function ChildNewSheet({ visible, onClose }: ChildNewSheetProps) {
   }, [name, email, tempPassword, confirmPassword, registerMutation, avatar, handleClose]);
 
   const errorMessage =
-    validationError ?? (registerMutation.error ? registerMutation.error.message : null);
+    validationError ?? (registerMutation.error ? localizeSupabaseError(registerMutation.error.message) : null);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
@@ -133,6 +134,7 @@ export function ChildNewSheet({ visible, onClose }: ChildNewSheetProps) {
               maxLength={60}
               autoCapitalize="words"
               autoCorrect={false}
+              accessibilityLabel="Nome do filho"
               noMarginBottom
             />
 
@@ -145,6 +147,7 @@ export function ChildNewSheet({ visible, onClose }: ChildNewSheetProps) {
               autoCapitalize="none"
               keyboardType="email-address"
               autoCorrect={false}
+              accessibilityLabel="E-mail do filho"
               noMarginBottom
             />
 
@@ -152,11 +155,12 @@ export function ChildNewSheet({ visible, onClose }: ChildNewSheetProps) {
               label="Senha temporária *"
               value={tempPassword}
               onChangeText={setTempPassword}
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Mínimo 8 caracteres"
               maxLength={40}
               autoCapitalize="none"
               secureTextEntry
               autoCorrect={false}
+              accessibilityLabel="Senha temporária"
               noMarginBottom
             />
 
@@ -169,6 +173,7 @@ export function ChildNewSheet({ visible, onClose }: ChildNewSheetProps) {
               autoCapitalize="none"
               secureTextEntry
               autoCorrect={false}
+              accessibilityLabel="Confirmar senha"
               noMarginBottom
             />
 

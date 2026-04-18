@@ -1,3 +1,4 @@
+import { localizeSupabaseError } from '@lib/api-error';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     KeyboardAvoidingView,
@@ -82,10 +83,10 @@ export function PiggyConfigSheet({
             await onSave({ rate, withdrawalRate: wd, prazo });
             hapticSuccess();
             setFeedback({ message: 'Configuração salva com sucesso.', variant: 'success' });
-            onClose();
+            setTimeout(onClose, 1200);
         } catch (error) {
             const message =
-                error instanceof Error ? error.message : 'Erro ao salvar configuração.';
+                error instanceof Error ? localizeSupabaseError(error.message) : 'Erro ao salvar configuração.';
             setFeedback({ message, variant: 'error' });
         }
     }, [rateText, withdrawalText, prazoText, onSave, onClose]);

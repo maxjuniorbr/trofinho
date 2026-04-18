@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { useChildDetail, useDeactivateChild, useReactivateChild } from '@/hooks/queries';
+import { localizeRpcError } from '@lib/api-error';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
@@ -54,7 +55,7 @@ export function ChildViewSheet({ childId, onClose }: ChildViewSheetProps) {
                 setFeedbackKey((k) => k + 1);
               },
               onError: (err) => {
-                setFeedbackMessage(err.message);
+                setFeedbackMessage(localizeRpcError(err.message));
                 setFeedbackVariant('error');
                 setFeedbackKey((k) => k + 1);
               },
@@ -82,7 +83,7 @@ export function ChildViewSheet({ childId, onClose }: ChildViewSheetProps) {
                 setFeedbackKey((k) => k + 1);
               },
               onError: (err) => {
-                setFeedbackMessage(err.message);
+                setFeedbackMessage(localizeRpcError(err.message));
                 setFeedbackVariant('error');
                 setFeedbackKey((k) => k + 1);
               },

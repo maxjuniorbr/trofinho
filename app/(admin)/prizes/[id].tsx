@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react-native';
 import { ActivityIndicator, Alert, StyleSheet, Switch, Text, View } from 'react-native';
+import { localizeRpcError } from '@lib/api-error';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
@@ -81,7 +82,6 @@ export default function AdminPrizeDetailScreen() {
       setImageState('loading');
     } catch (e) {
       Sentry.captureException(e);
-      console.error(e);
       setFormError('Não foi possível selecionar a imagem agora.');
     } finally {
       setPickingImage(false);
@@ -133,7 +133,7 @@ export default function AdminPrizeDetailScreen() {
           router.dismissTo('/(admin)/prizes');
         },
         onError: (err) => {
-          setFormError(err.message);
+          setFormError(localizeRpcError(err.message));
         },
       },
     );
@@ -256,7 +256,7 @@ export default function AdminPrizeDetailScreen() {
                   setPendingWarning(null);
                 },
                 onError: (err) => {
-                  setFormError(err.message);
+                  setFormError(localizeRpcError(err.message));
                 },
               });
               return;
@@ -276,7 +276,7 @@ export default function AdminPrizeDetailScreen() {
                         setPendingWarning(result.warning ?? null);
                       },
                       onError: (err) => {
-                        setFormError(err.message);
+                        setFormError(localizeRpcError(err.message));
                       },
                     });
                   },

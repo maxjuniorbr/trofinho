@@ -24,6 +24,8 @@ export interface Notif {
   group: NotifGroup;
   needsAction?: boolean;
   route?: NotificationRoute;
+  /** ISO date used for intra-group ordering (most recent first). Not rendered. */
+  _sortDate?: string;
 }
 
 // ── Helpers ──────────────────────────────────────────────
@@ -88,6 +90,7 @@ export function deriveAdminNotifs(input: AdminNotifInput): Notif[] {
       group: dateGroup(task.created_at),
       needsAction: true,
       route: '/(admin)/tasks',
+      _sortDate: task.created_at,
     });
   }
 
@@ -104,11 +107,16 @@ export function deriveAdminNotifs(input: AdminNotifInput): Notif[] {
       group: dateGroup(r.created_at),
       needsAction: true,
       route: '/(admin)/redemptions',
+      _sortDate: r.created_at,
     });
   }
 
-  // Sort: most recent first
-  notifs.sort((a, b) => groupOrder(a.group) - groupOrder(b.group));
+  // Sort: by group, then most recent first within each group
+  notifs.sort(
+    (a, b) =>
+      groupOrder(a.group) - groupOrder(b.group) ||
+      (b._sortDate ?? '').localeCompare(a._sortDate ?? ''),
+  );
 
   return notifs;
 }
@@ -136,6 +144,7 @@ export function deriveChildNotifs(input: ChildNotifInput): Notif[] {
       time: relativeTime(refDate),
       group: dateGroup(refDate),
       route: '/(child)/tasks',
+      _sortDate: refDate,
     });
   }
 
@@ -154,6 +163,7 @@ export function deriveChildNotifs(input: ChildNotifInput): Notif[] {
       time: relativeTime(refDate),
       group: dateGroup(refDate),
       route: '/(child)/tasks',
+      _sortDate: refDate,
     });
   }
 
@@ -170,6 +180,7 @@ export function deriveChildNotifs(input: ChildNotifInput): Notif[] {
       time: relativeTime(r.updated_at),
       group: dateGroup(r.updated_at),
       route: '/(child)/redemptions',
+      _sortDate: r.updated_at,
     });
   }
 
@@ -186,10 +197,15 @@ export function deriveChildNotifs(input: ChildNotifInput): Notif[] {
       time: relativeTime(r.created_at),
       group: dateGroup(r.created_at),
       route: '/(child)/redemptions',
+      _sortDate: r.created_at,
     });
   }
 
-  notifs.sort((a, b) => groupOrder(a.group) - groupOrder(b.group));
+  notifs.sort(
+    (a, b) =>
+      groupOrder(a.group) - groupOrder(b.group) ||
+      (b._sortDate ?? '').localeCompare(a._sortDate ?? ''),
+  );
 
   return notifs;
 }

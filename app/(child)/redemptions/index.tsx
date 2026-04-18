@@ -65,7 +65,6 @@ export default function ChildRedemptionsScreen() {
       await refetch();
     } catch (e) {
       Sentry.captureException(e);
-      console.error(e);
     }
   };
 

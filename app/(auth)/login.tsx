@@ -205,7 +205,7 @@ function makeStyles() {
     },
     secondaryButtonAccent: {
       fontFamily: typography.family.bold,
-      color: '#FAC114',
+      color: heroPalette.borderFocus,
     },
   });
 }

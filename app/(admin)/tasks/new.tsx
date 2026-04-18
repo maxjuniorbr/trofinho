@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View, Pressable, ActivityIndicator } from 'react-native';
+import { localizeRpcError } from '@lib/api-error';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo } from 'react';
 import { useRouter } from 'expo-router';
@@ -76,7 +77,7 @@ export default function NewTaskScreen() {
           router.dismissTo('/(admin)/tasks');
         },
         onError: (err) => {
-          setError(err.message);
+          setError(localizeRpcError(err.message));
         },
       },
     );

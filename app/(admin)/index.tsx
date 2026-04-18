@@ -95,7 +95,6 @@ export default function AdminHomeScreen() {
       setShowNotificationBanner(denied);
     } catch (e) {
       Sentry.captureException(e);
-      console.error(e);
     } finally {
       setRefreshing(false);
     }
@@ -121,7 +120,7 @@ export default function AdminHomeScreen() {
   }
 
   if (error) {
-    console.error(error);
+    Sentry.captureException(error);
   }
 
   const balances = Array.from(balancesMap.values());

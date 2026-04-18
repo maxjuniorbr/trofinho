@@ -17,6 +17,7 @@ import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 import type { ThemeColors } from '@/constants/theme';
 import type { UserProfile } from '@lib/auth';
+import { localizeSupabaseError } from '@lib/api-error';
 
 type PersonalDataSheetProps = Readonly<{
   visible: boolean;
@@ -90,7 +91,7 @@ export function PersonalDataSheet({
   }, [name, updateNameMutation, onNameUpdated, handleClose, clearCloseTimer]);
 
   const errorMessage =
-    validationError ?? (updateNameMutation.error ? updateNameMutation.error.message : null);
+    validationError ?? (updateNameMutation.error ? localizeSupabaseError(updateNameMutation.error.message) : null);
 
   const canSubmit = name.trim().length > 0 && name.trim() !== (profile?.nome ?? '');
 
@@ -162,10 +163,12 @@ export function PersonalDataSheet({
 
               <Button
                 label="Salvar alterações"
+                loadingLabel="Salvando…"
                 variant="primary"
                 loading={updateNameMutation.isPending}
                 onPress={handleSave}
                 disabled={!canSubmit || updateNameMutation.isPending}
+                accessibilityLabel="Salvar alterações"
               />
             </ScrollView>
           )}

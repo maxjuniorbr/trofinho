@@ -235,7 +235,6 @@ export default function ChildTasksScreen() {
       await refetch();
     } catch (e) {
       Sentry.captureException(e);
-      console.error(e);
     } finally {
       setRefreshing(false);
     }

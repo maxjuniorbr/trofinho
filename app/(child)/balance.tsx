@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TrendingUp, PiggyBank } from 'lucide-react-native';
 import { hapticSuccess } from '@lib/haptics';
+import { localizeRpcError } from '@lib/api-error';
 import { formatDate } from '@lib/utils';
 import { getTransactionTypeLabel, isCredit, formatTransactionDates } from '@lib/balances';
 import {
@@ -83,7 +84,7 @@ function parseAmountValue(
 }
 
 const extractErrorMessage = (e: unknown, fallback: string) =>
-  e instanceof Error ? e.message : fallback;
+  e instanceof Error ? localizeRpcError(e.message) : fallback;
 
 const pluralS = (n: number) => (n === 1 ? '' : 's');
 
@@ -156,7 +157,6 @@ export default function ChildBalanceScreen() {
     setRefreshing(true);
     await refetchAll().catch((e) => {
       Sentry.captureException(e);
-      console.error(e);
     });
     setRefreshing(false);
   };

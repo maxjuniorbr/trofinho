@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { ChevronRight, Eye, Info, Lock, User } from 'lucide-react-native';
 import { ScreenHeader } from '@/components/ui/screen-header';
@@ -121,8 +121,13 @@ export default function ProfileScreen() {
     }
   };
 
+  useEffect(() => {
+    if (!isLoading && !authUser) {
+      router.replace('/(auth)/login');
+    }
+  }, [isLoading, authUser, router]);
+
   if (!isLoading && !authUser) {
-    router.replace('/(auth)/login');
     return null;
   }
 

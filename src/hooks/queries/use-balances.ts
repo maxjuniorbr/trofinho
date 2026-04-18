@@ -1,4 +1,11 @@
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import * as Sentry from '@sentry/react-native';
+import {
+  useQuery,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from '@tanstack/react-query';
 import {
   getBalance,
   listAdminBalances,
@@ -79,7 +86,7 @@ export const useConfigureAppreciation = () => {
     mutationFn: (args: { childId: string; rate: number }) =>
       mutationFnAdapter(() => configureAppreciation(args.childId, args.rate))(),
     onSuccess: async () => {
-      syncAutomaticAppreciation().catch(console.error);
+      syncAutomaticAppreciation().catch((e) => Sentry.captureException(e));
       await queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });
     },
   });
@@ -97,7 +104,7 @@ export const useConfigurePiggyBank = () => {
         }),
       )(),
     onSuccess: async () => {
-      syncAutomaticAppreciation().catch(console.error);
+      syncAutomaticAppreciation().catch((e) => Sentry.captureException(e));
       await queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });
     },
   });

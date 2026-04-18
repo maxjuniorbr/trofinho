@@ -61,19 +61,19 @@ function getSummaryColors(colors: ThemeColors) {
   const isLight = colors.statusBar === 'dark';
   return isLight
     ? {
-        bg: colors.bg.surface,
-        boxBg: colors.bg.muted,
-        border: colors.border.subtle,
-        text: colors.text.primary,
-        textMuted: colors.text.secondary,
-      }
+      bg: colors.bg.surface,
+      boxBg: colors.bg.muted,
+      border: colors.border.subtle,
+      text: colors.text.primary,
+      textMuted: colors.text.secondary,
+    }
     : {
-        bg: colors.bg.elevated,
-        boxBg: colors.bg.muted,
-        border: colors.border.subtle,
-        text: '#FFFFFF',
-        textMuted: 'rgba(255, 255, 255, 0.7)',
-      };
+      bg: colors.bg.elevated,
+      boxBg: colors.bg.muted,
+      border: colors.border.subtle,
+      text: '#FFFFFF',
+      textMuted: 'rgba(255, 255, 255, 0.7)',
+    };
 }
 
 export default function FilhoHomeScreen() {
@@ -168,7 +168,6 @@ export default function FilhoHomeScreen() {
       setShowNotificationBanner(denied);
     } catch (e) {
       Sentry.captureException(e);
-      console.error(e);
     } finally {
       setRefreshing(false);
     }
@@ -184,7 +183,7 @@ export default function FilhoHomeScreen() {
   }
 
   if (error) {
-    console.error(error);
+    Sentry.captureException(error);
   }
 
   return (

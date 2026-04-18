@@ -45,7 +45,7 @@ export default function BalancesAdminScreen() {
         ]}
       >
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(admin)'))}
           style={({ pressed }) => [
             styles.backButton,
             { backgroundColor: colors.bg.muted, opacity: pressed ? 0.8 : 1 },

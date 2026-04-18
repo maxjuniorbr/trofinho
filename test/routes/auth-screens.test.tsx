@@ -197,12 +197,12 @@ describe('auth screens', () => {
 
     changeInput(renderer, 0, 'Max');
     changeInput(renderer, 1, 'max@example.com');
-    changeInput(renderer, 2, '123456');
-    changeInput(renderer, 3, '123456');
+    changeInput(renderer, 2, '12345678');
+    changeInput(renderer, 3, '12345678');
 
     await pressButton(renderer, 'Criar conta');
 
-    expect(authMocks.signUp).toHaveBeenCalledWith('max@example.com', '123456');
+    expect(authMocks.signUp).toHaveBeenCalledWith('max@example.com', '12345678');
     expect(screenText(renderer)).toContain('Este e-mail já está cadastrado.');
   });
 
@@ -212,8 +212,8 @@ describe('auth screens', () => {
     const renderer = render(<RegisterScreen />);
     changeInput(renderer, 0, 'Max');
     changeInput(renderer, 1, 'max@example.com');
-    changeInput(renderer, 2, '123456');
-    changeInput(renderer, 3, '123456');
+    changeInput(renderer, 2, '12345678');
+    changeInput(renderer, 3, '12345678');
 
     await pressButton(renderer, 'Criar conta');
     expect(routerMock.replace).toHaveBeenCalledWith({
@@ -248,10 +248,10 @@ describe('auth screens', () => {
 
     changeInput(renderer, 2, '123');
     await pressButton(renderer, 'Criar conta');
-    expect(screenText(renderer)).toContain('A senha deve ter pelo menos 6 caracteres.');
+    expect(screenText(renderer)).toContain('A senha deve ter pelo menos 8 caracteres.');
 
-    changeInput(renderer, 2, '123456');
-    changeInput(renderer, 3, '654321');
+    changeInput(renderer, 2, '12345678');
+    changeInput(renderer, 3, '87654321');
     await pressButton(renderer, 'Criar conta');
     expect(screenText(renderer)).toContain('As senhas não coincidem.');
 

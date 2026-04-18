@@ -7,6 +7,7 @@ import { useTransientMessage } from '@/hooks/use-transient-message';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { Button } from '@/components/ui/button';
 import { useUpdateUserPassword } from '@/hooks/queries/use-profile';
+import { localizeSupabaseError } from '@lib/api-error';
 
 export const PasswordCard = () => {
   const { colors } = useTheme();
@@ -22,8 +23,8 @@ export const PasswordCard = () => {
     setValidationError(null);
     setSuccess(null);
     updatePasswordMutation.reset();
-    if (newPassword.length < 6) {
-      setValidationError('A nova senha deve ter ao menos 6 caracteres.');
+    if (newPassword.length < 8) {
+      setValidationError('A nova senha deve ter ao menos 8 caracteres.');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -44,7 +45,7 @@ export const PasswordCard = () => {
   };
 
   const errorMessage =
-    validationError ?? (updatePasswordMutation.error ? updatePasswordMutation.error.message : null);
+    validationError ?? (updatePasswordMutation.error ? localizeSupabaseError(updatePasswordMutation.error.message) : null);
 
   return (
     <View
@@ -104,7 +105,7 @@ export const PasswordCard = () => {
             setValidationError(null);
             updatePasswordMutation.reset();
           }}
-          placeholder="Mínimo 6 caracteres"
+          placeholder="Mínimo 8 caracteres"
           placeholderTextColor={colors.text.muted}
           secureTextEntry
           autoCapitalize="none"
@@ -151,6 +152,7 @@ export const PasswordCard = () => {
         label="Confirmar nova senha"
         variant="primary"
         loading={updatePasswordMutation.isPending}
+        loadingLabel="Salvando…"
         onPress={handleSave}
         disabled={updatePasswordMutation.isPending}
       />

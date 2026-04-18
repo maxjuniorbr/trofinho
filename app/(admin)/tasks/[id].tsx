@@ -23,6 +23,7 @@ import {
   type AssignmentWithChild,
 } from '@lib/tasks';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
+import { localizeRpcError } from '@lib/api-error';
 import { consumeNavigationFeedback } from '@lib/navigation-feedback';
 import { formatDate, toDateString } from '@lib/utils';
 import {
@@ -386,7 +387,7 @@ export default function TaskDetailAdminScreen() {
             setActions((prev) => ({ ...prev, [assignment.id]: null }));
           },
           onError: (err) => {
-            setErrors((prev) => ({ ...prev, [assignment.id]: err.message }));
+            setErrors((prev) => ({ ...prev, [assignment.id]: localizeRpcError(err.message) }));
             setActions((prev) => ({ ...prev, [assignment.id]: null }));
           },
         },
@@ -422,7 +423,7 @@ export default function TaskDetailAdminScreen() {
             setNotes((prev) => ({ ...prev, [assignment.id]: '' }));
           },
           onError: (err) => {
-            setErrors((prev) => ({ ...prev, [assignment.id]: err.message }));
+            setErrors((prev) => ({ ...prev, [assignment.id]: localizeRpcError(err.message) }));
             setActions((prev) => ({ ...prev, [assignment.id]: null }));
           },
         },
@@ -446,7 +447,7 @@ export default function TaskDetailAdminScreen() {
         setFeedbackKey((k) => k + 1);
       },
       onError: (err) => {
-        setFeedbackMessage(err.message);
+        setFeedbackMessage(localizeRpcError(err.message));
         setFeedbackVariant('warning');
         setFeedbackKey((k) => k + 1);
       },
@@ -471,7 +472,7 @@ export default function TaskDetailAdminScreen() {
         setFeedbackKey((k) => k + 1);
       },
       onError: (err) => {
-        setFeedbackMessage(err.message);
+        setFeedbackMessage(localizeRpcError(err.message));
         setFeedbackVariant('warning');
         setFeedbackKey((k) => k + 1);
       },
@@ -544,7 +545,7 @@ export default function TaskDetailAdminScreen() {
     if (assignmentsQuery.error) {
       return (
         <View style={styles.feedbackWrapper}>
-          <InlineMessage message={assignmentsQuery.error.message} variant="error" />
+          <InlineMessage message={localizeRpcError(assignmentsQuery.error.message)} variant="error" />
         </View>
       );
     }

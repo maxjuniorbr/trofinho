@@ -6,6 +6,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
 import { hapticSuccess } from '@lib/haptics';
+import { localizeRpcError } from '@lib/api-error';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Trophy, CheckCircle2 } from 'lucide-react-native';
 import { HomeFooterBar } from '@/components/ui/home-footer-bar';
@@ -73,7 +74,6 @@ export default function ChildPrizesScreen() {
       await refetchAll();
     } catch (e) {
       Sentry.captureException(e);
-      console.error(e);
     } finally {
       setRefreshing(false);
     }
@@ -98,17 +98,17 @@ export default function ChildPrizesScreen() {
         prizeId: prize.id,
         opts: profile?.familia_id
           ? {
-              familiaId: profile.familia_id,
-              childName: profile.nome ?? '',
-              prizeName: prize.nome,
-              childUserId: profile.id,
-            }
+            familiaId: profile.familia_id,
+            childName: profile.nome ?? '',
+            prizeName: prize.nome,
+            childUserId: profile.id,
+          }
           : undefined,
       });
       hapticSuccess();
       setSuccess(`Resgate de "${prize.nome}" solicitado! Aguarde a confirmação 🎉`);
     } catch (e) {
-      setRedemptionError(e instanceof Error ? e.message : 'Não foi possível solicitar o resgate.');
+      setRedemptionError(e instanceof Error ? localizeRpcError(e.message) : 'Não foi possível solicitar o resgate.');
     } finally {
       setRedeeming(null);
     }

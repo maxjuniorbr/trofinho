@@ -13,7 +13,7 @@ import { FormFooter } from '@/components/ui/form-footer';
 
 type RegisterField = 'name' | 'email' | 'password' | 'confirmPassword';
 
-const MIN_PASSWORD_LENGTH = 6;
+const MIN_PASSWORD_LENGTH = 8;
 
 type PasswordCheck = Readonly<{ label: string; ok: boolean }>;
 
@@ -274,7 +274,7 @@ function makeStyles() {
       justifyContent: 'center',
     },
     checkBadgeOn: {
-      backgroundColor: '#20C55D',
+      backgroundColor: heroPalette.checkOn,
     },
     checkBadgeOff: {
       backgroundColor: heroPalette.surfaceChip,
@@ -284,7 +284,7 @@ function makeStyles() {
       fontSize: typography.size.xs,
     },
     checkLabelOn: {
-      color: '#7EF1A8',
+      color: heroPalette.checkOnText,
     },
     checkLabelOff: {
       color: heroPalette.textOnNavySubtle,
@@ -313,7 +313,7 @@ function makeStyles() {
     },
     secondaryButtonAccent: {
       fontFamily: typography.family.bold,
-      color: '#FAC114',
+      color: heroPalette.borderFocus,
     },
   });
 }

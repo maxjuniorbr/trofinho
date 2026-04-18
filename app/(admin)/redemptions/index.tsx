@@ -1,4 +1,5 @@
 import { Alert, StyleSheet, Text, View, RefreshControl, Modal } from 'react-native';
+import { localizeRpcError } from '@lib/api-error';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo, useCallback } from 'react';
@@ -189,7 +190,7 @@ export default function AdminRedemptionsScreen() {
           },
           onError: (err) => {
             setProcessingId(null);
-            setActionError(err.message);
+            setActionError(localizeRpcError(err.message));
           },
         },
       );
@@ -212,7 +213,7 @@ export default function AdminRedemptionsScreen() {
           },
           onError: (err) => {
             setProcessingId(null);
-            setActionError(err.message);
+            setActionError(localizeRpcError(err.message));
           },
         },
       );

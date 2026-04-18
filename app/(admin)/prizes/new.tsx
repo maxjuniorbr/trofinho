@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react-native';
 import { StyleSheet, Text, View } from 'react-native';
+import { localizeRpcError } from '@lib/api-error';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useState } from 'react';
@@ -74,7 +75,7 @@ export default function NewPrizeScreen() {
           router.dismissTo('/(admin)/prizes');
         },
         onError: (err) => {
-          setError(err.message);
+          setError(localizeRpcError(err.message));
         },
       },
     );

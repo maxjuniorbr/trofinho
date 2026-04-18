@@ -38,7 +38,7 @@ export const BrandLogo = ({
 }: BrandLogoProps) => {
   const tokens = SIZE_TOKENS[size];
   const styles = useMemo(() => makeStyles(tokens), [tokens]);
-  const textColor = variant === 'onDark' ? heroPalette.textOnNavy : '#030711';
+  const textColor = variant === 'onDark' ? heroPalette.textOnNavy : heroPalette.textOnLight;
 
   return (
     <View style={styles.container} accessibilityRole="image" accessibilityLabel="Trofinho">
@@ -92,7 +92,7 @@ function makeStyles(tokens: SizeTokens) {
       fontFamily: typography.family.black,
       fontSize: tokens.monoFontSize,
       lineHeight: tokens.monoFontSize,
-      color: '#FAC114',
+      color: heroPalette.borderFocus,
       letterSpacing: -0.5,
     },
     brandText: {

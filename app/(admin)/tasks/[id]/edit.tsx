@@ -1,6 +1,7 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Sentry from '@sentry/react-native';
+import { localizeRpcError } from '@lib/api-error';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { getTaskEditState } from '@lib/tasks';
@@ -115,7 +116,7 @@ export default function EditTaskScreen() {
           });
         },
         onError: (err) => {
-          setFormError(err.message);
+          setFormError(localizeRpcError(err.message));
         },
       },
     );

@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { LogoutButton } from '@/components/ui/logout-button';
@@ -100,8 +100,13 @@ export default function ChildProfileScreen() {
     }
   };
 
+  useEffect(() => {
+    if (!isLoading && !authUser) {
+      router.replace('/(auth)/login');
+    }
+  }, [isLoading, authUser, router]);
+
   if (!isLoading && !authUser) {
-    router.replace('/(auth)/login');
     return null;
   }
 

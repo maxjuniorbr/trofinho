@@ -16,6 +16,7 @@ import {
 export function useAdminNotifInbox(): {
   items: Notif[];
   isLoading: boolean;
+  isError: boolean;
 } {
   const tasksQuery = useAdminTasks();
   const redemptionsQuery = useAdminRedemptions();
@@ -35,6 +36,7 @@ export function useAdminNotifInbox(): {
   return {
     items,
     isLoading: tasksQuery.isLoading || redemptionsQuery.isLoading,
+    isError: tasksQuery.isError || redemptionsQuery.isError,
   };
 }
 
@@ -49,6 +51,7 @@ export function useAdminUnreadNotifCount(): number {
 export function useChildNotifInbox(): {
   items: Notif[];
   isLoading: boolean;
+  isError: boolean;
 } {
   const assignmentsQuery = useChildAssignments();
   const redemptionsQuery = useChildRedemptions();
@@ -71,6 +74,7 @@ export function useChildNotifInbox(): {
   return {
     items,
     isLoading: assignmentsQuery.isLoading || redemptionsQuery.isLoading,
+    isError: assignmentsQuery.isError || redemptionsQuery.isError,
   };
 }
 
