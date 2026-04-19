@@ -29,6 +29,7 @@ import { signOut } from '@lib/auth';
 import { setNotificationPrefs, type NotificationPrefs } from '@lib/notifications';
 import {
   useProfile,
+  useFamily,
   useCurrentAuthUser,
   useNotificationPrefs,
   useDeleteAccount,
@@ -51,11 +52,18 @@ export default function ProfileScreen() {
   );
 
   const profileQuery = useProfile();
+  const familyQuery = useFamily(profileQuery.data?.familia_id);
   const authUserQuery = useCurrentAuthUser();
   const notificationPrefsQuery = useNotificationPrefs();
-  const { isLoading } = combineQueryStates(profileQuery, authUserQuery, notificationPrefsQuery);
+  const { isLoading } = combineQueryStates(
+    profileQuery,
+    familyQuery,
+    authUserQuery,
+    notificationPrefsQuery,
+  );
 
   const profile = profileQuery.data ?? null;
+  const family = familyQuery.data ?? null;
   const authUser = authUserQuery.data ?? null;
   const email = authUser?.email ?? '';
   const avatarUri = authUser?.avatarUrl ?? null;
@@ -77,6 +85,7 @@ export default function ProfileScreen() {
   const effectivePrefs = notificationPreferences ?? notificationPrefsQuery.data ?? null;
   const effectiveAvatarUri = localAvatarUri ?? avatarUri;
   const effectiveName = localName ?? profile?.nome ?? 'A';
+  const familyDisplayName = family ? `Família ${family.nome}` : effectiveName;
 
   const handleSignOut = async () => {
     setLoggingOut(true);
@@ -150,10 +159,24 @@ export default function ProfileScreen() {
             showsVerticalScrollIndicator={false}
           >
             <AvatarSection
-              name={effectiveName}
+              name={familyDisplayName}
+              email={email}
               avatarUri={effectiveAvatarUri}
               onAvatarChange={setLocalAvatarUri}
             />
+
+            {/* Aparência */}
+            <ThemeCard />
+
+            {/* Notificações */}
+            {effectivePrefs ? (
+              <NotificationCard
+                preferences={effectivePrefs}
+                saving={savingNotificationPreferences}
+                error={notificationPreferencesError}
+                onPreferencesChange={handleNotificationPreferencesChange}
+              />
+            ) : null}
 
             {/* Dados pessoais */}
             <SectionCard title="Dados pessoais" colors={colors} styles={styles}>
@@ -176,19 +199,6 @@ export default function ProfileScreen() {
                 styles={styles}
               />
             </SectionCard>
-
-            {/* Aparência */}
-            <ThemeCard />
-
-            {/* Notificações */}
-            {effectivePrefs ? (
-              <NotificationCard
-                preferences={effectivePrefs}
-                saving={savingNotificationPreferences}
-                error={notificationPreferencesError}
-                onPreferencesChange={handleNotificationPreferencesChange}
-              />
-            ) : null}
 
             {/* Ferramentas */}
             <SectionCard title="Ferramentas" colors={colors} styles={styles}>
