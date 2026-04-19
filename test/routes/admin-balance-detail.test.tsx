@@ -407,6 +407,7 @@ describe('ChildBalanceAdminScreen', () => {
     const renderer = render(React.createElement(ChildBalanceAdminScreen));
     const text = allText(renderer);
     expect(text).toContain('Atividades de hoje');
+    expect(text).not.toContain('Atividades de hoje ·');
     expect(text).toContain('Arrumar o quarto');
   });
 

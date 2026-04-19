@@ -6,7 +6,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { TrendingUp, PiggyBank, Settings, Wallet, AlertTriangle } from 'lucide-react-native';
 import { hapticSuccess } from '@lib/haptics';
-import { formatDate, toDateString } from '@lib/utils';
+import { toDateString } from '@lib/utils';
 import {
   getTransactionCategory,
   getTransactionTypeLabel,
@@ -57,7 +57,6 @@ export default function ChildBalanceAdminScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const { from: todayFrom, to: todayTo } = useMemo(todayRange, []);
-  const todayLabel = formatDate(new Date());
 
   const balanceQuery = useBalance(filho_id);
   const transactionsQuery = useTransactionsByPeriod(filho_id, todayFrom, todayTo);
@@ -439,7 +438,7 @@ export default function ChildBalanceAdminScreen() {
             <PenaltyButton onPress={() => setModalType('penalizar')} />
 
             <View style={styles.historicoHeader}>
-              <Text style={styles.secaoTitulo}>Atividades de hoje · {todayLabel}</Text>
+              <Text style={styles.secaoTitulo}>Atividades de hoje</Text>
             </View>
             {todayTransactions.length === 0 ? (
               <Text style={styles.vazio}>Nenhuma movimentação hoje.</Text>
