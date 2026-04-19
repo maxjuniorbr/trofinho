@@ -6,7 +6,7 @@ import {
   prepareImageUpload,
   resolveStorageUrl,
   resolveStorageUrls,
-  uploadImageToPublicBucket,
+  uploadImageToBucket,
 } from './storage';
 
 const resizeImageMock = vi.hoisted(() => vi.fn((uri: string) => Promise.resolve(uri)));
@@ -30,7 +30,6 @@ vi.mock('./api-error', () => ({
 
 const storageBucketMock = vi.hoisted(() => ({
   upload: vi.fn(),
-  getPublicUrl: vi.fn(),
 }));
 
 const supabaseMock = vi.hoisted(() => ({
@@ -48,7 +47,6 @@ describe('storage', () => {
     inferImageExtensionMock.mockReset();
     inferImageContentTypeMock.mockReset();
     storageBucketMock.upload.mockReset();
-    storageBucketMock.getPublicUrl.mockReset();
     supabaseMock.storage.from.mockReset().mockReturnValue(storageBucketMock);
   });
 
@@ -83,7 +81,7 @@ describe('storage', () => {
     });
   });
 
-  describe('uploadImageToPublicBucket', () => {
+  describe('uploadImageToBucket', () => {
     const setupMocks = (ext = 'jpg', contentType = 'image/jpeg') => {
       const buffer = new ArrayBuffer(8);
       readImageAsArrayBufferMock.mockResolvedValue(buffer);
@@ -95,11 +93,8 @@ describe('storage', () => {
     it('uploads to the correct path with upsert true by default', async () => {
       const buffer = setupMocks();
       storageBucketMock.upload.mockResolvedValue({ error: null });
-      storageBucketMock.getPublicUrl.mockReturnValue({
-        data: { publicUrl: 'https://cdn.example.com/bucket/img/capa.jpg' },
-      });
 
-      const result = await uploadImageToPublicBucket({
+      const result = await uploadImageToBucket({
         bucket: 'premios',
         imageUri: 'file:///photo.jpg',
         pathWithoutExtension: 'img/capa',
@@ -110,21 +105,17 @@ describe('storage', () => {
         contentType: 'image/jpeg',
         upsert: true,
       });
-      expect(result.error).toBeNull();
-      expect(result.path).toBe('img/capa.jpg');
-      expect(result.publicUrl).toMatch(
-        /^https:\/\/cdn\.example\.com\/bucket\/img\/capa\.jpg\?t=\d+$/,
-      );
+      expect(result).toEqual({
+        error: null,
+        path: 'img/capa.jpg',
+      });
     });
 
     it('respects upsert: false', async () => {
       setupMocks();
       storageBucketMock.upload.mockResolvedValue({ error: null });
-      storageBucketMock.getPublicUrl.mockReturnValue({
-        data: { publicUrl: 'https://cdn.example.com/bucket/img.jpg' },
-      });
 
-      await uploadImageToPublicBucket({
+      await uploadImageToBucket({
         bucket: 'premios',
         imageUri: 'file:///photo.jpg',
         pathWithoutExtension: 'img',
@@ -138,13 +129,13 @@ describe('storage', () => {
       );
     });
 
-    it('returns upload error without calling getPublicUrl', async () => {
+    it('returns upload error', async () => {
       setupMocks();
       storageBucketMock.upload.mockResolvedValue({
         error: { message: 'Storage quota exceeded' },
       });
 
-      const result = await uploadImageToPublicBucket({
+      const result = await uploadImageToBucket({
         bucket: 'premios',
         imageUri: 'file:///photo.jpg',
         pathWithoutExtension: 'img/capa',
@@ -153,15 +144,13 @@ describe('storage', () => {
       expect(result).toEqual({
         error: 'Storage quota exceeded',
         path: null,
-        publicUrl: null,
       });
-      expect(storageBucketMock.getPublicUrl).not.toHaveBeenCalled();
     });
 
     it('returns fallback error when prepareImageUpload throws', async () => {
       resizeImageMock.mockRejectedValue(new Error('resize failed'));
 
-      const result = await uploadImageToPublicBucket({
+      const result = await uploadImageToBucket({
         bucket: 'premios',
         imageUri: 'file:///photo.jpg',
         pathWithoutExtension: 'img/capa',
@@ -170,14 +159,13 @@ describe('storage', () => {
       expect(result).toEqual({
         error: 'resize failed',
         path: null,
-        publicUrl: null,
       });
     });
 
     it('returns generic fallback for non-Error throws', async () => {
       resizeImageMock.mockRejectedValue({ code: 'UNKNOWN' });
 
-      const result = await uploadImageToPublicBucket({
+      const result = await uploadImageToBucket({
         bucket: 'premios',
         imageUri: 'file:///photo.jpg',
         pathWithoutExtension: 'img/capa',
@@ -186,26 +174,7 @@ describe('storage', () => {
       expect(result).toEqual({
         error: 'Erro ao fazer upload da imagem',
         path: null,
-        publicUrl: null,
       });
-    });
-
-    it('appends cache-busting timestamp to publicUrl', async () => {
-      setupMocks();
-      storageBucketMock.upload.mockResolvedValue({ error: null });
-      storageBucketMock.getPublicUrl.mockReturnValue({
-        data: { publicUrl: 'https://cdn.example.com/img.jpg' },
-      });
-
-      vi.spyOn(Date, 'now').mockReturnValue(1700000000000);
-
-      const result = await uploadImageToPublicBucket({
-        bucket: 'premios',
-        imageUri: 'file:///photo.jpg',
-        pathWithoutExtension: 'img',
-      });
-
-      expect(result.publicUrl).toBe('https://cdn.example.com/img.jpg?t=1700000000000');
     });
   });
 
@@ -220,7 +189,6 @@ describe('storage', () => {
           inferImageExtensionMock.mockReset();
           inferImageContentTypeMock.mockReset();
           storageBucketMock.upload.mockReset();
-          storageBucketMock.getPublicUrl.mockReset();
           supabaseMock.storage.from.mockReset().mockReturnValue(storageBucketMock);
           resizeImageMock.mockReset().mockImplementation((uri: string) => Promise.resolve(uri));
 
@@ -228,11 +196,8 @@ describe('storage', () => {
           inferImageExtensionMock.mockReturnValue(ext);
           inferImageContentTypeMock.mockReturnValue('image/jpeg');
           storageBucketMock.upload.mockResolvedValue({ error: null });
-          storageBucketMock.getPublicUrl.mockReturnValue({
-            data: { publicUrl: `https://cdn.example.com/${basePath}.${ext}` },
-          });
 
-          const result = await uploadImageToPublicBucket({
+          const result = await uploadImageToBucket({
             bucket: 'test',
             imageUri: `file:///photo.${ext}`,
             pathWithoutExtension: basePath,

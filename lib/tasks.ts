@@ -1,4 +1,5 @@
 import * as Crypto from 'expo-crypto';
+import * as Sentry from '@sentry/react-native';
 import { localizeRpcError, extractErrorMessage } from './api-error';
 import { toDateString, formatDate } from './utils';
 import { dispatchPushNotification } from './push';
@@ -323,10 +324,12 @@ export async function approveAssignment(
       taskTitle: opts.taskTitle,
       entityId: assignmentId,
     });
-  } else if (__DEV__) {
-    console.warn(
-      `[push] Not dispatching 'tarefa_aprovada' for '${opts.taskTitle}': Missing required recipient (userId).`,
-    );
+  } else {
+    Sentry.addBreadcrumb({
+      category: 'push',
+      message: `Skipped 'tarefa_aprovada' for '${opts.taskTitle}': missing recipient userId`,
+      level: 'warning',
+    });
   }
 
   return { error: null };
@@ -350,10 +353,12 @@ export async function rejectAssignment(
       taskTitle: opts.taskTitle,
       entityId: assignmentId,
     });
-  } else if (__DEV__) {
-    console.warn(
-      `[push] Not dispatching 'tarefa_rejeitada' for '${opts.taskTitle}': Missing required recipient (userId).`,
-    );
+  } else {
+    Sentry.addBreadcrumb({
+      category: 'push',
+      message: `Skipped 'tarefa_rejeitada' for '${opts.taskTitle}': missing recipient userId`,
+      level: 'warning',
+    });
   }
 
   return { error: null };

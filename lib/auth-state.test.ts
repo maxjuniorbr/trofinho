@@ -5,6 +5,8 @@ import type { UserProfile } from './auth';
 
 vi.mock('@sentry/react-native', () => ({
   addBreadcrumb: vi.fn(),
+  captureException: vi.fn(),
+  captureMessage: vi.fn(),
 }));
 
 describe('createAuthStateHandler', () => {

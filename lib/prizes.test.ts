@@ -20,7 +20,7 @@ import {
 } from './redemptions';
 import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@lib/status';
 
-const uploadImageToPublicBucketMock = vi.hoisted(() => vi.fn());
+const uploadImageToBucketMock = vi.hoisted(() => vi.fn());
 const dispatchPushNotificationMock = vi.hoisted(() => vi.fn());
 
 const storageBucketMock = vi.hoisted(() => ({
@@ -43,7 +43,7 @@ vi.mock('./supabase', () => ({
 }));
 
 vi.mock('./storage', () => ({
-  uploadImageToPublicBucket: uploadImageToPublicBucketMock,
+  uploadImageToBucket: uploadImageToBucketMock,
   resolveStorageUrl: vi.fn(async (_b: string, v: string | null) => v),
   resolveStorageUrls: vi.fn(async (_b: string, vs: (string | null)[]) => vs),
 }));
@@ -99,7 +99,7 @@ function createEqQuery(result: QueryResult) {
 
 describe('prizes', () => {
   beforeEach(() => {
-    uploadImageToPublicBucketMock.mockReset();
+    uploadImageToBucketMock.mockReset();
     dispatchPushNotificationMock.mockReset();
     storageBucketMock.remove.mockReset().mockResolvedValue({ error: null });
     supabaseMock.from.mockReset();
@@ -161,10 +161,9 @@ describe('prizes', () => {
       .mockReturnValueOnce(insertQuery)
       .mockReturnValueOnce(updateQuery);
 
-    uploadImageToPublicBucketMock.mockResolvedValue({
+    uploadImageToBucketMock.mockResolvedValue({
       error: null,
       path: 'prize-new/capa.jpg',
-      publicUrl: 'https://cdn.example.com/prize-new/capa.jpg?t=1',
     });
 
     const result = await createPrize({
@@ -229,10 +228,9 @@ describe('prizes', () => {
   });
 
   it('uploads the prize image before calling the edit rpc', async () => {
-    uploadImageToPublicBucketMock.mockResolvedValue({
+    uploadImageToBucketMock.mockResolvedValue({
       error: null,
       path: 'prize-2/capa.jpg',
-      publicUrl: 'https://cdn.example.com/prize-2/capa.jpg?t=2',
     });
     supabaseMock.rpc.mockResolvedValue({ data: null, error: null });
 
@@ -246,11 +244,11 @@ describe('prizes', () => {
       }),
     ).resolves.toEqual({
       error: null,
-      imageUrl: 'https://cdn.example.com/prize-2/capa.jpg?t=2',
+      imageUrl: 'prize-2/capa.jpg',
       pointsMessage: null,
     });
 
-    expect(uploadImageToPublicBucketMock).toHaveBeenCalledWith({
+    expect(uploadImageToBucketMock).toHaveBeenCalledWith({
       bucket: 'premios',
       imageUri: 'file:///data/user/0/com.trofinho/cache/prize.jpg',
       imageOptions: { maxDimension: 768, compress: 0.65 },
@@ -261,7 +259,7 @@ describe('prizes', () => {
       p_nome: 'Cinema',
       p_descricao: 'Sessão especial',
       p_custo_pontos: 120,
-      p_imagem_url: 'https://cdn.example.com/prize-2/capa.jpg?t=2',
+      p_imagem_url: 'prize-2/capa.jpg',
       p_ativo: false,
     });
   });
@@ -462,9 +460,9 @@ describe('prizes', () => {
   });
 
   it('returns upload errors when the prize image upload fails', async () => {
-    uploadImageToPublicBucketMock
-      .mockResolvedValueOnce({ error: 'upload failed', publicUrl: null })
-      .mockResolvedValueOnce({ error: null, publicUrl: null });
+    uploadImageToBucketMock
+      .mockResolvedValueOnce({ error: 'upload failed', path: null })
+      .mockResolvedValueOnce({ error: null, path: null });
 
     const input = {
       nome: 'A',

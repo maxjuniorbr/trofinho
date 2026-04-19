@@ -1,6 +1,8 @@
+import * as Sentry from '@sentry/react-native';
+
 import { localizeRpcError, localizeSupabaseError } from './api-error';
 import { deviceStorage } from './device-storage';
-import { resolveStorageUrl, uploadImageToPublicBucket } from './storage';
+import { resolveStorageUrl, uploadImageToBucket } from './storage';
 import { supabase } from './supabase';
 
 const AVATAR_BUCKET = 'avatars';
@@ -31,7 +33,21 @@ export async function signUp(email: string, password: string): Promise<{ error: 
   const { error } = await supabase.auth.signUp({ email, password });
 
   if (error) {
-    return { error: localizeSupabaseError(error.message) };
+    // Avoid leaking whether the email is already registered (user enumeration).
+    // For weak/invalid password errors we still want to surface the actionable message.
+    const message = error.message;
+    if (message.includes('User already registered')) {
+      Sentry.addBreadcrumb({
+        category: 'auth',
+        level: 'info',
+        message: 'signUp: already-registered email collapsed to generic message',
+      });
+      return {
+        error:
+          'Não foi possível concluir o cadastro. Verifique o e-mail e a senha e tente novamente.',
+      };
+    }
+    return { error: localizeSupabaseError(message) };
   }
 
   return { error: null };
@@ -61,10 +77,17 @@ export async function signOut(): Promise<void> {
       if (deviceId) {
         query = query.eq('device_id', deviceId);
       }
-      await query;
+      const { error: deleteError } = await query;
+      if (deleteError) {
+        Sentry.captureMessage('signOut: failed to clean up push token', {
+          level: 'warning',
+          extra: { message: deleteError.message, hasDeviceId: Boolean(deviceId) },
+        });
+      }
     }
-  } catch {
-    // Best-effort cleanup — do not block sign-out
+  } catch (err) {
+    // Best-effort cleanup — do not block sign-out, but surface for diagnostics.
+    Sentry.captureException(err, { tags: { stage: 'signOut.cleanup' } });
   }
   await supabase.auth.signOut({ scope: 'local' });
 }
@@ -175,13 +198,13 @@ export async function updateUserAvatar(
     return { url: null, error: 'Sessão expirada. Faça login novamente.' };
   }
 
-  const uploadResult = await uploadImageToPublicBucket({
+  const uploadResult = await uploadImageToBucket({
     bucket: AVATAR_BUCKET,
     imageUri,
     pathWithoutExtension: `${authData.user.id}/avatar`,
   });
 
-  if (uploadResult.error || !uploadResult.publicUrl) {
+  if (uploadResult.error || !uploadResult.path) {
     return {
       url: null,
       error: uploadResult.error ?? 'Erro ao fazer upload do avatar',
@@ -189,7 +212,7 @@ export async function updateUserAvatar(
   }
 
   const { error: metaError } = await supabase.auth.updateUser({
-    data: { avatar_url: uploadResult.publicUrl },
+    data: { avatar_url: uploadResult.path },
   });
 
   if (metaError) {
@@ -207,8 +230,11 @@ export async function updateUserAvatar(
 
   // Best-effort sync to filhos table so admin views show the avatar
   await supabase.rpc('sincronizar_avatar_filho', {
-    p_avatar_url: uploadResult.publicUrl,
+    p_avatar_url: uploadResult.path,
   });
 
-  return { url: uploadResult.publicUrl, error: null };
+  // Resolve to a signed URL for immediate display by the caller.
+  const signedUrl = await resolveStorageUrl(AVATAR_BUCKET, uploadResult.path);
+
+  return { url: signedUrl, error: null };
 }

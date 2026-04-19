@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react-native';
+
 const authErrorMatchers = [
   ['User already registered', 'Este e-mail já está cadastrado.'],
   ['Invalid login credentials', 'E-mail ou senha incorretos.'],
@@ -67,7 +69,18 @@ const rpcErrorMatchers = [
 
 export function localizeRpcError(message: string, fallback?: string): string {
   const matchedEntry = rpcErrorMatchers.find(([matcher]) => message.includes(matcher));
-  return matchedEntry?.[1] ?? fallback ?? 'Algo deu errado. Tente novamente.';
+  if (matchedEntry) return matchedEntry[1];
+
+  // No matcher hit — log to Sentry so we can discover untranslated RPC errors
+  // in production and add them to the matcher table over time.
+  // Lazy import to avoid circular deps and keep this module lightweight.
+  Sentry.captureMessage('localizeRpcError: unmatched RPC error', {
+    level: 'warning',
+    tags: { subsystem: 'api-error' },
+    extra: { message, fallback: fallback ?? null },
+  });
+
+  return fallback ?? 'Algo deu errado. Tente novamente.';
 }
 
 export function extractErrorMessage(error: unknown, fallback: string): string {

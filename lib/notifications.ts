@@ -4,6 +4,7 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Crypto from 'expo-crypto';
 import * as Device from 'expo-device';
 import type { NotificationPermissionsStatus, NotificationTriggerInput } from 'expo-notifications';
+import * as Sentry from '@sentry/react-native';
 import { deviceStorage } from './device-storage';
 import { supabase } from './supabase';
 
@@ -239,17 +240,21 @@ async function scheduleNotification(
 
 export async function registerForPushNotifications(): Promise<string | null> {
   if (isExpoGo()) {
-    if (__DEV__) {
-      console.warn('[push-registration] Skipped: running in Expo Go (push not supported)');
-    }
+    Sentry.addBreadcrumb({
+      category: 'push-registration',
+      message: 'Skipped: running in Expo Go (push not supported)',
+      level: 'info',
+    });
     return null;
   }
 
   const Notifications = await getNotificationsModule();
   if (!Notifications) {
-    if (__DEV__) {
-      console.warn('[push-registration] Skipped: expo-notifications module not available');
-    }
+    Sentry.addBreadcrumb({
+      category: 'push-registration',
+      message: 'Skipped: expo-notifications module not available',
+      level: 'warning',
+    });
     return null;
   }
 
@@ -269,16 +274,20 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   if (!hasGrantedNotificationPermission(permissions, Notifications)) {
-    if (__DEV__) {
-      console.warn('[push-registration] Skipped: notification permission denied');
-    }
+    Sentry.addBreadcrumb({
+      category: 'push-registration',
+      message: 'Skipped: notification permission denied',
+      level: 'info',
+    });
     return null;
   }
 
   if (!Device.isDevice) {
-    if (__DEV__) {
-      console.warn('[push-registration] Skipped: not a physical device (emulator/simulator)');
-    }
+    Sentry.addBreadcrumb({
+      category: 'push-registration',
+      message: 'Skipped: not a physical device (emulator/simulator)',
+      level: 'info',
+    });
     return null;
   }
 
@@ -286,9 +295,11 @@ export async function registerForPushNotifications(): Promise<string | null> {
     projectId: getExpoProjectId(),
   });
 
-  if (__DEV__) {
-    console.log('[push-registration] Token obtained:', token.data);
-  }
+  Sentry.addBreadcrumb({
+    category: 'push-registration',
+    message: 'Token obtained',
+    level: 'info',
+  });
 
   return token.data;
 }

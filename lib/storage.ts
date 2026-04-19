@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native';
 import { extractErrorMessage } from './api-error';
 import {
   inferImageContentType,
@@ -17,7 +18,7 @@ export type PreparedImageUpload = Readonly<{
   extension: string;
 }>;
 
-type UploadImageToPublicBucketInput = Readonly<{
+type UploadImageToBucketInput = Readonly<{
   bucket: string;
   imageUri: string;
   pathWithoutExtension: string;
@@ -25,10 +26,9 @@ type UploadImageToPublicBucketInput = Readonly<{
   upsert?: boolean;
 }>;
 
-type UploadImageToPublicBucketResult = Readonly<{
+type UploadImageToBucketResult = Readonly<{
   error: string | null;
   path: string | null;
-  publicUrl: string | null;
 }>;
 
 export async function prepareImageUpload(
@@ -45,13 +45,21 @@ export async function prepareImageUpload(
   };
 }
 
-export async function uploadImageToPublicBucket({
+/**
+ * Uploads an image to a Supabase Storage bucket and returns the storage path.
+ *
+ * The returned `path` is what should be persisted in the database. To display the
+ * image, callers must run it through `resolveStorageUrl(bucket, path)` which
+ * issues a short-lived signed URL (buckets are private — see migration
+ * `20260424200001_private_avatar_premio_buckets`).
+ */
+export async function uploadImageToBucket({
   bucket,
   imageUri,
   imageOptions,
   pathWithoutExtension,
   upsert = true,
-}: UploadImageToPublicBucketInput): Promise<UploadImageToPublicBucketResult> {
+}: UploadImageToBucketInput): Promise<UploadImageToBucketResult> {
   try {
     const { buffer, contentType, extension } = await prepareImageUpload(imageUri, imageOptions);
     const path = `${pathWithoutExtension}.${extension}`;
@@ -65,22 +73,17 @@ export async function uploadImageToPublicBucket({
       return {
         error: uploadError.message,
         path: null,
-        publicUrl: null,
       };
     }
-
-    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
 
     return {
       error: null,
       path,
-      publicUrl: `${data.publicUrl}?t=${Date.now()}`,
     };
   } catch (error) {
     return {
       error: extractErrorMessage(error, 'Erro ao fazer upload da imagem'),
       path: null,
-      publicUrl: null,
     };
   }
 }
@@ -160,7 +163,16 @@ export async function resolveStorageUrls(
     .from(bucket)
     .createSignedUrls(pathValues, SIGNED_URL_EXPIRY_S);
 
-  if (error || !data) return results;
+  if (error || !data) {
+    // Batch failed entirely — capture for observability so we can detect
+    // "auth degraded" / bucket misconfig vs the per-item missing-object case
+    // (which is handled below by the `?? null` fallback).
+    Sentry.captureException(error ?? new Error('createSignedUrls returned no data'), {
+      tags: { subsystem: 'storage', operation: 'resolveStorageUrls', bucket },
+      extra: { batchSize: pathValues.length },
+    });
+    return results;
+  }
 
   pathIndices.forEach((origIdx, dataIdx) => {
     results[origIdx] = data[dataIdx]?.signedUrl ?? null;

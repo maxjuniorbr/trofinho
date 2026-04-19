@@ -32,7 +32,7 @@ import {
 } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, spacing, typography } from '@/constants/theme';
+import { radii, spacing, staticTextColors, typography } from '@/constants/theme';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ListScreenSkeleton } from '@/components/ui/skeleton';
@@ -60,7 +60,7 @@ function getBalanceHeaderColors(colors: ThemeColors) {
         bg: colors.bg.elevated,
         boxBg: colors.bg.muted,
         border: colors.border.subtle,
-        text: '#FFFFFF',
+        text: staticTextColors.inverse,
         textMuted: 'rgba(255, 255, 255, 0.7)',
       }),
   };

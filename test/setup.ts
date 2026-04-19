@@ -208,6 +208,9 @@ vi.mock('expo-secure-store', () => ({
 
 vi.mock('@sentry/react-native', () => ({
   captureException: vi.fn(),
+  captureMessage: vi.fn(),
+  addBreadcrumb: vi.fn(),
+  setTag: vi.fn(),
   init: vi.fn(),
   wrap: (component: unknown) => component,
   ReactNavigationInstrumentation: vi.fn(),

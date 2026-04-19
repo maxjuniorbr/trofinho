@@ -16,7 +16,6 @@ export function ErrorBoundary({ error, retry }: RouteErrorFallbackProps) {
 
   useEffect(() => {
     Sentry.captureException(error);
-    console.error(error);
   }, [error]);
 
   return (

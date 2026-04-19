@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native';
 import { localizeRpcError } from './api-error';
 import { dispatchPushNotification } from './push';
 import { supabase } from './supabase';
@@ -63,10 +64,12 @@ export async function confirmRedemption(
       userId: opts.userId,
       prizeName: opts.prizeName,
     });
-  } else if (__DEV__) {
-    console.warn(
-      `[push] Not dispatching 'resgate_confirmado' for '${opts.prizeName}': Missing required recipient (userId).`,
-    );
+  } else {
+    Sentry.addBreadcrumb({
+      category: 'push',
+      message: `Skipped 'resgate_confirmado' for '${opts.prizeName}': missing recipient userId`,
+      level: 'warning',
+    });
   }
 
   return { error: null };
@@ -88,10 +91,12 @@ export async function cancelRedemption(
         userId: opts.userId,
         prizeName: opts.prizeName,
       });
-    } else if (__DEV__) {
-      console.warn(
-        `[push] Not dispatching 'resgate_cancelado' for '${opts.prizeName}': Missing required recipient (userId).`,
-      );
+    } else {
+      Sentry.addBreadcrumb({
+        category: 'push',
+        message: `Skipped 'resgate_cancelado' for '${opts.prizeName}': missing recipient userId`,
+        level: 'warning',
+      });
     }
   }
 
@@ -142,10 +147,12 @@ export async function requestRedemption(
       ...(data ? { redemptionId: data } : {}),
       ...(opts.childUserId ? { childUserId: opts.childUserId } : {}),
     });
-  } else if (__DEV__) {
-    console.warn(
-      "[push] Not dispatching 'resgate_solicitado': Missing profile context (familiaId).",
-    );
+  } else {
+    Sentry.addBreadcrumb({
+      category: 'push',
+      message: "Skipped 'resgate_solicitado': missing profile context (familiaId)",
+      level: 'warning',
+    });
   }
   // RPC solicitar_resgate returns the redemption ID as text
   return { data: data, error: null };

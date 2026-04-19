@@ -92,6 +92,8 @@ vi.mock('lucide-react-native', () => ({
 
 vi.mock('@sentry/react-native', () => ({
   captureException: vi.fn(),
+  captureMessage: vi.fn(),
+  addBreadcrumb: vi.fn(),
 }));
 
 vi.mock('@lib/utils', () => ({

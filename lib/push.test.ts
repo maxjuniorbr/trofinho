@@ -22,6 +22,8 @@ vi.mock('./supabase', () => ({
 
 vi.mock('@sentry/react-native', () => ({
   captureException: captureExceptionMock,
+  captureMessage: vi.fn(),
+  addBreadcrumb: vi.fn(),
 }));
 
 describe('dispatchPushNotification', () => {

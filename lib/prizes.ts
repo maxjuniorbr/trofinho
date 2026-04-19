@@ -1,5 +1,5 @@
 import { localizeRpcError } from './api-error';
-import { resolveStorageUrl, resolveStorageUrls, uploadImageToPublicBucket } from './storage';
+import { resolveStorageUrl, resolveStorageUrls, uploadImageToBucket } from './storage';
 import { supabase } from './supabase';
 
 export type Prize = {
@@ -117,17 +117,17 @@ export async function createPrize(input: PrizeInput): Promise<{
   if (error) return { data: null, error: localizeRpcError(error.message) };
 
   if (input.imageUri && data) {
-    const uploadResult = await uploadImageToPublicBucket({
+    const uploadResult = await uploadImageToBucket({
       bucket: 'premios',
       imageUri: input.imageUri,
       imageOptions: PRIZE_IMAGE_OPTIONS,
       pathWithoutExtension: `${data.id}/capa`,
     });
 
-    if (uploadResult.publicUrl) {
+    if (uploadResult.path) {
       const { error: updateError } = await supabase
         .from('premios')
-        .update({ imagem_url: uploadResult.publicUrl })
+        .update({ imagem_url: uploadResult.path })
         .eq('id', data.id);
 
       if (updateError && uploadResult.path) {
@@ -138,7 +138,7 @@ export async function createPrize(input: PrizeInput): Promise<{
       }
 
       if (!updateError) {
-        data.imagem_url = uploadResult.publicUrl;
+        data.imagem_url = uploadResult.path;
       }
     }
   }
@@ -154,14 +154,14 @@ export async function updatePrize(
   let uploadedPath: string | null = null;
 
   if (input.imageUri) {
-    const uploadResult = await uploadImageToPublicBucket({
+    const uploadResult = await uploadImageToBucket({
       bucket: 'premios',
       imageUri: input.imageUri,
       imageOptions: PRIZE_IMAGE_OPTIONS,
       pathWithoutExtension: `${id}/capa`,
     });
 
-    if (uploadResult.error || !uploadResult.publicUrl) {
+    if (uploadResult.error || !uploadResult.path) {
       return {
         error: uploadResult.error ?? 'Não foi possível fazer upload da imagem do prêmio.',
         imageUrl: null,
@@ -169,7 +169,7 @@ export async function updatePrize(
       };
     }
 
-    nextImageUrl = uploadResult.publicUrl;
+    nextImageUrl = uploadResult.path;
     uploadedPath = uploadResult.path;
   }
 

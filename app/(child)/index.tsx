@@ -33,7 +33,7 @@ import {
   combineQueryStates,
 } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
-import { radii, spacing, typography, type ThemeColors } from '@/constants/theme';
+import { radii, spacing, staticTextColors, typography, type ThemeColors } from '@/constants/theme';
 import { NotificationPermissionBanner } from '@/components/ui/notification-permission-banner';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { InlineMessage } from '@/components/ui/inline-message';
@@ -71,7 +71,7 @@ function getSummaryColors(colors: ThemeColors) {
       bg: colors.bg.elevated,
       boxBg: colors.bg.muted,
       border: colors.border.subtle,
-      text: '#FFFFFF',
+      text: staticTextColors.inverse,
       textMuted: 'rgba(255, 255, 255, 0.7)',
     };
 }
@@ -380,7 +380,7 @@ function makeStyles() {
     bellBadgeText: {
       fontFamily: typography.family.black,
       fontSize: 10,
-      color: '#FFFFFF',
+      color: staticTextColors.inverse,
     },
 
     avatarWrapper: { position: 'relative' },

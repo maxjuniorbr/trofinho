@@ -23,7 +23,7 @@ import {
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, spacing, typography, gradients } from '@/constants/theme';
+import { radii, spacing, staticTextColors, typography, gradients } from '@/constants/theme';
 import { HeaderIconButton } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -596,7 +596,7 @@ function makeStyles(colors: ThemeColors) {
       fontSize: typography.size['3xl'],
       fontFamily: typography.family.extrabold,
       fontVariant: ['tabular-nums'],
-      color: '#FFFFFF',
+      color: staticTextColors.inverse,
     },
     balanceCardUnit: {
       fontSize: typography.size.xxs,

@@ -81,7 +81,23 @@ export async function dispatchPushNotification(
     }
 
     if (__DEV__) {
-      console.log(`[push] Evento '${event}' processado:`, data);
+      Sentry.addBreadcrumb({
+        category: 'push',
+        message: `Evento '${event}' processado`,
+        level: 'info',
+        data: data as Record<string, unknown> | undefined,
+      });
+    }
+
+    // Surface partial-failure: the edge function returns
+    // { sent: number, failed: number } when it fans out to multiple tokens.
+    const result = data as { failed?: number; sent?: number } | null;
+    if (result && typeof result.failed === 'number' && result.failed > 0) {
+      Sentry.captureMessage('push: partial delivery failure', {
+        level: 'warning',
+        tags: { subsystem: 'push', event },
+        extra: { failed: result.failed, sent: result.sent ?? 0, familiaId },
+      });
     }
   } catch (err) {
     Sentry.captureException(err, {

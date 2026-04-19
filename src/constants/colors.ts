@@ -13,6 +13,13 @@ const sharedTextColors = {
   onBrandMuted: 'rgba(42, 36, 16, 0.75)',
 } as const;
 
+/**
+ * Theme-independent text tokens for use in static `StyleSheet.create` blocks
+ * where the runtime `colors` object isn't available (e.g. fixed white text on
+ * the brand gradient). Prefer `colors.text.*` whenever a theme-aware path exists.
+ */
+export const staticTextColors = sharedTextColors;
+
 const sharedOverlayColors = {
   scrim: 'rgba(0, 0, 0, 0.45)',
   scrimSoft: 'rgba(0, 0, 0, 0.4)',

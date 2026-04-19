@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native';
 import { localizeRpcError } from './api-error';
 import { dispatchPushNotification } from './push';
 import { supabase } from './supabase';
@@ -77,10 +78,12 @@ export async function confirmPiggyBankWithdrawal(
       userId: opts.userId,
       amount: String(opts.amount),
     });
-  } else if (__DEV__) {
-    console.warn(
-      `[push] Not dispatching 'resgate_cofrinho_confirmado': Missing required recipient (userId).`,
-    );
+  } else {
+    Sentry.addBreadcrumb({
+      category: 'push',
+      message: "Skipped 'resgate_cofrinho_confirmado': missing recipient userId",
+      level: 'warning',
+    });
   }
 
   return { error: null };

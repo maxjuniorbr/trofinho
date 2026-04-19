@@ -57,6 +57,9 @@ export function validateRequest(
   if (typeof name !== 'string' || name.trim() === '') {
     return { valid: false, error: 'name must be a non-empty string' };
   }
+  if (name.trim().length > 60) {
+    return { valid: false, error: 'name must be at most 60 characters' };
+  }
   if (typeof email !== 'string' || email.trim() === '') {
     return { valid: false, error: 'email must be a non-empty string' };
   }
@@ -185,7 +188,21 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
 
   if (rpcError) {
     // Rollback: delete the orphan auth user immediately via admin API (no 5-min window)
-    await adminClient.auth.admin.deleteUser(userId);
+    const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId);
+
+    if (deleteError) {
+      // Both the RPC and the rollback failed — surface for diagnostics so we can
+      // reconcile the orphan auth user manually. Edge functions don't have Sentry
+      // wired yet, so we use structured stderr that the Supabase log drain captures.
+      console.error(
+        JSON.stringify({
+          event: 'register-child.rollback-failed',
+          userId,
+          rpcError: rpcError.message,
+          deleteError: deleteError.message,
+        }),
+      );
+    }
 
     return new Response(JSON.stringify({ error: rpcError.message }), {
       status: 422,

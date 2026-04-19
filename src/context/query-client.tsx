@@ -9,6 +9,11 @@ const queryClient = new QueryClient({
       staleTime: 30_000,
       gcTime: 5 * 60_000,
     },
+    mutations: {
+      // Mutations are not idempotent by default — never auto-retry to avoid
+      // duplicate writes (double-approve, double-charge, etc.).
+      retry: 0,
+    },
   },
 });
 

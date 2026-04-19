@@ -33,7 +33,6 @@ const storageBucketMock = vi.hoisted(() => ({
     data: { signedUrl: 'https://signed-url' },
     error: null,
   }),
-  getPublicUrl: vi.fn(),
   remove: vi.fn().mockResolvedValue({ error: null }),
   upload: vi.fn(),
 }));
@@ -117,7 +116,6 @@ describe('auth', () => {
     fileArrayBufferMock.mockReset();
     fileConstructorMock.mockClear();
     storageBucketMock.upload.mockReset();
-    storageBucketMock.getPublicUrl.mockReset();
     storageBucketMock.remove.mockReset().mockResolvedValue({ error: null });
 
     supabaseMock.auth.getUser.mockReset();
@@ -225,7 +223,8 @@ describe('auth', () => {
     });
 
     await expect(signUp('max@example.com', mockPassword)).resolves.toEqual({
-      error: 'Este e-mail já está cadastrado.',
+      error:
+        'Não foi possível concluir o cadastro. Verifique o e-mail e a senha e tente novamente.',
     });
   });
 
@@ -383,16 +382,12 @@ describe('auth', () => {
   });
 
   it('uploads an avatar from the local file system and updates the user metadata', async () => {
-    vi.spyOn(Date, 'now').mockReturnValue(1234);
     fileArrayBufferMock.mockResolvedValue(new ArrayBuffer(4));
     supabaseMock.auth.getUser.mockResolvedValue({
       data: { user: { id: 'user-1' } },
       error: null,
     });
     storageBucketMock.upload.mockResolvedValue({ error: null });
-    storageBucketMock.getPublicUrl.mockReturnValue({
-      data: { publicUrl: 'https://cdn.example.com/user-1/avatar.png' },
-    });
     supabaseMock.auth.updateUser.mockResolvedValue({ error: null });
 
     const result = await updateUserAvatar('/test/avatar.png?cache=1');
@@ -404,16 +399,15 @@ describe('auth', () => {
       { contentType: 'image/png', upsert: true },
     );
     expect(supabaseMock.auth.updateUser).toHaveBeenCalledWith({
-      data: { avatar_url: 'https://cdn.example.com/user-1/avatar.png?t=1234' },
+      data: { avatar_url: 'user-1/avatar.png' },
     });
     expect(result).toEqual({
-      url: 'https://cdn.example.com/user-1/avatar.png?t=1234',
+      url: 'https://signed-url',
       error: null,
     });
   });
 
   it('falls back to fetch for remote avatars and cleans up uploaded file when metadata update fails', async () => {
-    vi.spyOn(Date, 'now').mockReturnValue(5678);
     const arrayBuffer = new ArrayBuffer(8);
     fetchMock.mockResolvedValue({
       ok: true,
@@ -424,9 +418,6 @@ describe('auth', () => {
       error: null,
     });
     storageBucketMock.upload.mockResolvedValue({ error: null });
-    storageBucketMock.getPublicUrl.mockReturnValue({
-      data: { publicUrl: 'https://cdn.example.com/user-2/avatar.webp' },
-    });
     supabaseMock.auth.updateUser.mockResolvedValue({
       error: { message: 'metadata failed' },
     });

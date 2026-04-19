@@ -26,7 +26,7 @@ import {
   combineQueryStates,
 } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
-import { radii, shadows, spacing, typography } from '@/constants/theme';
+import { radii, shadows, spacing, staticTextColors, typography } from '@/constants/theme';
 import { gradients, heroPalette } from '@/constants/shadows';
 import { Avatar } from '@/components/ui/avatar';
 import { NotificationPermissionBanner } from '@/components/ui/notification-permission-banner';
@@ -373,7 +373,7 @@ function makeStyles() {
     bellBadgeText: {
       fontFamily: typography.family.black,
       fontSize: 10,
-      color: '#FFFFFF',
+      color: staticTextColors.inverse,
     },
     heroSub: { fontFamily: typography.family.bold, fontSize: typography.size.sm },
     heroTitle: {

@@ -125,8 +125,8 @@ vi.mock('@shopify/flash-list', () => ({
       ListHeaderComponent,
       data && data.length > 0
         ? data.map((item) =>
-            React.createElement(React.Fragment, { key: item.id as string }, renderItem({ item })),
-          )
+          React.createElement(React.Fragment, { key: item.id as string }, renderItem({ item })),
+        )
         : null,
     ),
 }));
@@ -143,6 +143,8 @@ vi.mock('lucide-react-native', () => ({
 
 vi.mock('@sentry/react-native', () => ({
   captureException: vi.fn(),
+  captureMessage: vi.fn(),
+  addBreadcrumb: vi.fn(),
 }));
 
 vi.mock('@lib/haptics', () => ({

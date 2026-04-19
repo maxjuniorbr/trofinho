@@ -81,6 +81,30 @@ async function fetchImageWithTimeout(uri: string): Promise<Response> {
   }
 }
 
+async function readBufferStreaming(stream: ReadableStream<Uint8Array>): Promise<ArrayBuffer> {
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!value) continue;
+    total += value.byteLength;
+    if (total > MAX_IMAGE_BYTES) {
+      await reader.cancel().catch(() => {});
+      throw new Error(SIZE_ERROR);
+    }
+    chunks.push(value);
+  }
+  const merged = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return merged.buffer;
+}
+
 export async function readImageAsArrayBuffer(imageUri: string): Promise<ArrayBuffer> {
   const normalizedUri = imageUri.split('?')[0] ?? imageUri;
 
@@ -98,6 +122,14 @@ export async function readImageAsArrayBuffer(imageUri: string): Promise<ArrayBuf
   const contentLength = Number(response.headers?.get('content-length') ?? 0);
   if (contentLength > MAX_IMAGE_BYTES) {
     throw new Error(SIZE_ERROR);
+  }
+
+  // Try streaming read so we can abort early if the body exceeds the cap even
+  // when the server omits a content-length header. Falls back to arrayBuffer()
+  // when the response has no readable stream (e.g. RN polyfills, mocks).
+  const stream = (response as unknown as { body?: ReadableStream<Uint8Array> | null }).body;
+  if (stream) {
+    return readBufferStreaming(stream);
   }
 
   const buffer = await response.arrayBuffer();

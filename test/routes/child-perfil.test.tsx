@@ -73,6 +73,8 @@ vi.mock('expo-router', () => ({
 
 vi.mock('@sentry/react-native', () => ({
   captureException: vi.fn(),
+  captureMessage: vi.fn(),
+  addBreadcrumb: vi.fn(),
 }));
 
 vi.mock('@lib/auth', () => ({
