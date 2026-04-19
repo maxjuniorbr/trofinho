@@ -47,6 +47,19 @@ import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 
 type DateLine = { label: string; date: string };
 
+function formatValidatedDateLine(
+  label: string,
+  assignment: AssignmentWithChild,
+): DateLine | null {
+  const date = assignment.validada_em ?? assignment.concluida_em;
+  if (!date) return null;
+  let formatted = formatDate(date);
+  if (assignment.competencia && toDateString(new Date(date)) !== assignment.competencia) {
+    formatted += ' · Tarefa de ' + formatDate(assignment.competencia + 'T12:00:00');
+  }
+  return { label, date: formatted };
+}
+
 function getAssignmentDateLine(assignment: AssignmentWithChild): DateLine | null {
   switch (assignment.status) {
     case 'pendente': {
@@ -57,31 +70,16 @@ function getAssignmentDateLine(assignment: AssignmentWithChild): DateLine | null
       if (assignment.competencia === today) {
         return { label: 'Para ', date: 'hoje' };
       }
-      // Append T12:00:00 so the date-only string parses as local noon, not UTC midnight
       return { label: 'Não realizada em ', date: formatDate(assignment.competencia + 'T12:00:00') };
     }
     case 'aguardando_validacao':
       return assignment.concluida_em
         ? { label: 'Enviada em ', date: formatDate(assignment.concluida_em) }
         : null;
-    case 'aprovada': {
-      const date = assignment.validada_em ?? assignment.concluida_em;
-      if (!date) return null;
-      let formatted = formatDate(date);
-      if (assignment.competencia && toDateString(new Date(date)) !== assignment.competencia) {
-        formatted += ' · Tarefa de ' + formatDate(assignment.competencia + 'T12:00:00');
-      }
-      return { label: 'Aprovada em ', date: formatted };
-    }
-    case 'rejeitada': {
-      const date = assignment.validada_em ?? assignment.concluida_em;
-      if (!date) return null;
-      let formatted = formatDate(date);
-      if (assignment.competencia && toDateString(new Date(date)) !== assignment.competencia) {
-        formatted += ' · Tarefa de ' + formatDate(assignment.competencia + 'T12:00:00');
-      }
-      return { label: 'Rejeitada em ', date: formatted };
-    }
+    case 'aprovada':
+      return formatValidatedDateLine('Aprovada em ', assignment);
+    case 'rejeitada':
+      return formatValidatedDateLine('Rejeitada em ', assignment);
   }
 }
 

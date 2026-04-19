@@ -27,6 +27,12 @@ import { getSafeHorizontalPadding, getSafeTopPadding } from '@lib/safe-area';
 
 type FilterKey = 'all' | 'ganhos' | 'gastos' | 'cofrinho';
 
+const CATEGORY_COLORS: Record<TransactionCategory, (c: ThemeColors) => string> = {
+    ganho: (c) => c.semantic.success,
+    cofrinho: (c) => c.semantic.info,
+    gasto: (c) => c.semantic.error,
+};
+
 const FILTER_CATEGORIES: Record<Exclude<FilterKey, 'all'>, TransactionCategory> = {
     ganhos: 'ganho',
     gastos: 'gasto',
@@ -329,26 +335,18 @@ export default function ChildBalanceHistoryScreen() {
                                         <Text style={[styles.txDesc, { color: colors.text.muted }]} numberOfLines={1}>
                                             {tx.descricao}
                                         </Text>
-                                        {(() => {
-                                            const dates = formatTransactionDates(tx);
-                                            return dates.showRecordedPhrase ? (
-                                                <Text style={[styles.txSecondaryDate, { color: colors.text.muted }]}>
-                                                    {dates.recordedPhrase}
-                                                </Text>
-                                            ) : null;
-                                        })()}
+                                        {formatTransactionDates(tx).showRecordedPhrase && (
+                                            <Text style={[styles.txSecondaryDate, { color: colors.text.muted }]}>
+                                                {formatTransactionDates(tx).recordedPhrase}
+                                            </Text>
+                                        )}
                                     </View>
                                     <View style={styles.txRight}>
                                         <Text
                                             style={[
                                                 styles.txValue,
                                                 {
-                                                    color: (() => {
-                                                        const cat = getTransactionCategory(tx.tipo);
-                                                        if (cat === 'ganho') return colors.semantic.success;
-                                                        if (cat === 'cofrinho') return colors.semantic.info;
-                                                        return colors.semantic.error;
-                                                    })(),
+                                                    color: CATEGORY_COLORS[getTransactionCategory(tx.tipo)](colors),
                                                 },
                                             ]}
                                         >

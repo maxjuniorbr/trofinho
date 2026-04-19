@@ -142,13 +142,16 @@ export function NotificationsScreen({
         showsVerticalScrollIndicator={false}
         overScrollMode="never"
       >
-        {isLoading ? (
+        {isLoading && (
           <View style={{ paddingTop: 64, alignItems: 'center' }}>
             <ActivityIndicator size="large" color={colors.accent.admin} />
           </View>
-        ) : groups.length === 0 ? (
+        )}
+        {!isLoading && groups.length === 0 && (
           <NotifEmptyState filter={filter} colors={colors} />
-        ) : (
+        )}
+        {!isLoading &&
+          groups.length > 0 &&
           groups.map(([group, list]) => (
             <View key={group} style={styles.group}>
               <Text style={[styles.groupLabel, { color: colors.text.muted }]}>{group}</Text>
@@ -162,8 +165,7 @@ export function NotificationsScreen({
                 />
               ))}
             </View>
-          ))
-        )}
+          ))}
       </ScrollView>
     </SafeScreenFrame>
   );
@@ -198,9 +200,9 @@ function NotifCard({ notif, colors, styles, onPress }: NotifCardProps) {
       ]}
     >
       <View
-        style={[styles.iconBox, { backgroundColor: colors.semantic[typeStyle.bgKey] as string }]}
+        style={[styles.iconBox, { backgroundColor: colors.semantic[typeStyle.bgKey] }]}
       >
-        <Icon size={20} color={colors.semantic[typeStyle.fgKey] as string} strokeWidth={2.4} />
+        <Icon size={20} color={colors.semantic[typeStyle.fgKey]} strokeWidth={2.4} />
       </View>
       <View style={styles.cardBody}>
         <View style={styles.titleRow}>

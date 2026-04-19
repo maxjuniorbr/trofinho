@@ -26,7 +26,7 @@ type ChangePasswordSheetProps = Readonly<{
 const RULES = [
   { test: (pw: string) => pw.length >= 8, label: 'Pelo menos 8 caracteres' },
   { test: (pw: string) => /[A-Z]/.test(pw), label: 'Uma letra maiúscula' },
-  { test: (pw: string) => /[0-9]/.test(pw), label: 'Um número' },
+  { test: (pw: string) => /\d/.test(pw), label: 'Um número' },
 ] as const;
 
 export function ChangePasswordSheet({ visible, onClose }: ChangePasswordSheetProps) {

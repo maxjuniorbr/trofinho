@@ -34,7 +34,7 @@ export function WeekdaySelector({ value, onChange, disabled = false }: WeekdaySe
 
         return (
           <Pressable
-            key={dow}
+            key={label}
             style={[
               styles.circle,
               active ? styles.circleActive : styles.circleInactive,
