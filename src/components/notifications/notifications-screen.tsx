@@ -119,20 +119,20 @@ export function NotificationsScreen({
                         backgroundColor: active ? 'rgba(0,0,0,0.15)' : colors.bg.surface,
                       },
                     ]}
-                >
-                  <Text
-                    style={[
-                      styles.filterBadgeText,
-                      { color: active ? colors.text.onBrand : colors.text.primary },
-                    ]}
                   >
-                    {f.count}
-                  </Text>
-                </View>
-              ) : null}
-            </Pressable>
-          );
-        })}
+                    <Text
+                      style={[
+                        styles.filterBadgeText,
+                        { color: active ? colors.text.onBrand : colors.text.primary },
+                      ]}
+                    >
+                      {f.count}
+                    </Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            );
+          })}
         </View>
       ) : null}
 
