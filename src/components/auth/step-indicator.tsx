@@ -76,16 +76,19 @@ function makeStyles() {
         labelActive: {
             fontFamily: typography.family.bold,
             fontSize: typography.size.xxs,
+            letterSpacing: 1.2,
             color: heroPalette.borderFocus,
         },
         labelDone: {
-            fontFamily: typography.family.medium,
+            fontFamily: typography.family.bold,
             fontSize: typography.size.xxs,
+            letterSpacing: 1.2,
             color: 'rgba(250, 193, 20, 0.55)',
         },
         labelInactive: {
-            fontFamily: typography.family.medium,
+            fontFamily: typography.family.bold,
             fontSize: typography.size.xxs,
+            letterSpacing: 1.2,
             color: 'rgba(255, 255, 255, 0.35)',
         },
     });
