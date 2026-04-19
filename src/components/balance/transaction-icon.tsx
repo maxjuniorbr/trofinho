@@ -36,19 +36,14 @@ export function TransactionIcon({ type, style, size = 16 }: TransactionIconProps
   const category = getTransactionCategory(type);
   const Icon = TRANSACTION_ICONS[type];
 
-  const bgColor =
-    category === 'ganho'
-      ? colors.semantic.successBg
-      : category === 'cofrinho'
-        ? colors.semantic.infoBg
-        : colors.semantic.errorBg;
+  const colorMap = {
+    ganho: { bg: colors.semantic.successBg, fg: colors.semantic.successText },
+    cofrinho: { bg: colors.semantic.infoBg, fg: colors.semantic.infoText },
+    gasto: { bg: colors.semantic.errorBg, fg: colors.semantic.errorText },
+  } as const;
 
-  const iconColor =
-    category === 'ganho'
-      ? colors.semantic.successText
-      : category === 'cofrinho'
-        ? colors.semantic.infoText
-        : colors.semantic.errorText;
+  const bgColor = colorMap[category].bg;
+  const iconColor = colorMap[category].fg;
 
   return (
     <View style={[styles.base, { backgroundColor: bgColor }, style]}>

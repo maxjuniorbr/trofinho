@@ -37,6 +37,26 @@ export function ChildViewSheet({ childId, onClose }: ChildViewSheetProps) {
   const [feedbackKey, setFeedbackKey] = useState(0);
   const visibleFeedback = useTransientMessage(feedbackMessage, { resetKey: feedbackKey });
 
+  const showFeedback = (message: string, variant: 'success' | 'error') => {
+    setFeedbackMessage(message);
+    setFeedbackVariant(variant);
+    setFeedbackKey((k) => k + 1);
+  };
+
+  const executeDeactivate = useCallback((childId: string, childName: string) => {
+    deactivateMutation.mutate(childId, {
+      onSuccess: () => showFeedback(`${childName} foi desativado.`, 'success'),
+      onError: (err) => showFeedback(localizeRpcError(err.message), 'error'),
+    });
+  }, [deactivateMutation]);
+
+  const executeReactivate = useCallback((childId: string, childName: string) => {
+    reactivateMutation.mutate(childId, {
+      onSuccess: () => showFeedback(`${childName} foi reativado.`, 'success'),
+      onError: (err) => showFeedback(localizeRpcError(err.message), 'error'),
+    });
+  }, [reactivateMutation]);
+
   const handleDeactivate = useCallback(() => {
     if (!child) return;
     Alert.alert(
@@ -47,24 +67,11 @@ export function ChildViewSheet({ childId, onClose }: ChildViewSheetProps) {
         {
           text: 'Desativar',
           style: 'destructive',
-          onPress: () => {
-            deactivateMutation.mutate(child.id, {
-              onSuccess: () => {
-                setFeedbackMessage(`${child.nome} foi desativado.`);
-                setFeedbackVariant('success');
-                setFeedbackKey((k) => k + 1);
-              },
-              onError: (err) => {
-                setFeedbackMessage(localizeRpcError(err.message));
-                setFeedbackVariant('error');
-                setFeedbackKey((k) => k + 1);
-              },
-            });
-          },
+          onPress: () => executeDeactivate(child.id, child.nome),
         },
       ],
     );
-  }, [child, deactivateMutation]);
+  }, [child, executeDeactivate]);
 
   const handleReactivate = useCallback(() => {
     if (!child) return;
@@ -75,24 +82,11 @@ export function ChildViewSheet({ childId, onClose }: ChildViewSheetProps) {
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Reativar',
-          onPress: () => {
-            reactivateMutation.mutate(child.id, {
-              onSuccess: () => {
-                setFeedbackMessage(`${child.nome} foi reativado.`);
-                setFeedbackVariant('success');
-                setFeedbackKey((k) => k + 1);
-              },
-              onError: (err) => {
-                setFeedbackMessage(localizeRpcError(err.message));
-                setFeedbackVariant('error');
-                setFeedbackKey((k) => k + 1);
-              },
-            });
-          },
+          onPress: () => executeReactivate(child.id, child.nome),
         },
       ],
     );
-  }, [child, reactivateMutation]);
+  }, [child, executeReactivate]);
 
   return (
     <Modal visible={childId !== null} transparent animationType="slide" onRequestClose={onClose}>

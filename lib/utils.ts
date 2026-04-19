@@ -1,12 +1,10 @@
 export function formatDate(date: Date | string): string {
-  const d =
-    typeof date === 'string' ? new Date(date + (date.includes('T') ? '' : 'T00:00:00')) : date;
+  const d = toLocalDate(date);
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 export function formatDateShort(date: Date | string): string {
-  const d =
-    typeof date === 'string' ? new Date(date + (date.includes('T') ? '' : 'T00:00:00')) : date;
+  const d = toLocalDate(date);
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 }
 
@@ -25,9 +23,9 @@ export function parseDate(value: string): Date | null {
 }
 
 function toLocalDate(value: Date | string): Date {
-  return typeof value === 'string'
-    ? new Date(value + (value.includes('T') ? '' : 'T00:00:00'))
-    : value;
+  if (typeof value !== 'string') return value;
+  const suffix = value.includes('T') ? '' : 'T00:00:00';
+  return new Date(value + suffix);
 }
 
 function startOfDay(date: Date): Date {

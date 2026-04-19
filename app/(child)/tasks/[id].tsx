@@ -297,17 +297,12 @@ export default function ChildTaskDetailScreen() {
         latestAssignment.tarefas,
       );
       if (!completionState.canComplete) {
-        if (completionState.reason) {
-          setCompletionError(completionState.reason);
-        }
+        setCompletionError(completionState.reason ?? null);
         return;
       }
 
       const imageUri = latestAssignment.tarefas.exige_evidencia ? await pickEvidenceImage() : null;
-
-      if (latestAssignment.tarefas.exige_evidencia && !imageUri) {
-        return;
-      }
+      if (latestAssignment.tarefas.exige_evidencia && !imageUri) return;
 
       await completeMutation.mutateAsync({
         assignmentId: latestAssignment.id,
@@ -332,7 +327,6 @@ export default function ChildTaskDetailScreen() {
 
   const handleCancelSubmission = async () => {
     if (!assignment) return;
-
     setCancelError(null);
 
     const latestResult = await refetch();
@@ -347,9 +341,7 @@ export default function ChildTaskDetailScreen() {
       latestAssignment.tarefas,
     );
     if (!cancellationState.canCancel) {
-      if (cancellationState.reason) {
-        setCancelError(cancellationState.reason);
-      }
+      setCancelError(cancellationState.reason ?? null);
       return;
     }
 

@@ -36,7 +36,7 @@ type PiggyConfigSheetProps = Readonly<{
     saving: boolean;
 }>;
 
-const sanitizeDigits = (value: string) => value.replace(/[^0-9]/g, '');
+const sanitizeDigits = (value: string) => value.replaceAll(/\D/g, '');
 const clamp = (value: number, min: number, max: number) =>
     Math.max(min, Math.min(max, value));
 

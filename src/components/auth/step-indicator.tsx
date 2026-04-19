@@ -37,13 +37,13 @@ export const StepIndicator = ({ currentStep, totalSteps = 2, labels }: StepIndic
         >
             <View style={styles.bars}>
                 {Array.from({ length: totalSteps }, (_, i) => (
-                    <View key={i} style={[styles.bar, { backgroundColor: getBarColor(i) }]} />
+                    <View key={`bar-${i}`} style={[styles.bar, { backgroundColor: getBarColor(i) }]} />
                 ))}
             </View>
             {labels ? (
                 <View style={styles.labels}>
                     {labels.map((label, i) => (
-                        <Text key={i} style={getLabelStyle(i)} allowFontScaling={false}>
+                        <Text key={label} style={getLabelStyle(i)} allowFontScaling={false}>
                             {i + 1 < currentStep ? `${label} ✓` : label}
                         </Text>
                     ))}
