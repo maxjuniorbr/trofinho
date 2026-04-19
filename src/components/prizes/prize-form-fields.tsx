@@ -64,10 +64,10 @@ export function PrizeFormFields({
         <TextInput
           style={styles.input}
           value={cost}
-          onChangeText={onCostChange}
+          onChangeText={(v) => onCostChange(v.replace(/[^0-9]/g, ''))}
           placeholder="Ex: 50"
           placeholderTextColor={colors.text.muted}
-          keyboardType="numeric"
+          keyboardType="number-pad"
           returnKeyType="done"
           maxLength={7}
           accessibilityLabel="Custo em pontos do prêmio"

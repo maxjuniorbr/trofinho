@@ -1,27 +1,11 @@
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { X } from 'lucide-react-native';
+import { BottomSheetModal } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/button';
-import { HeaderIconButton } from '@/components/ui/screen-header';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { TaskFormFields } from '@/components/tasks/task-form-fields';
 import { useChildrenList, useCreateTask, useProfile, useUpdateTask } from '@/hooks/queries';
-import {
-  ALL_DAYS,
-  getTaskEditState,
-  type TaskDetail,
-  type TaskEditState,
-} from '@lib/tasks';
+import { ALL_DAYS, getTaskEditState, type TaskDetail, type TaskEditState } from '@lib/tasks';
 import { localizeRpcError } from '@lib/api-error';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
@@ -250,78 +234,70 @@ export function TaskFormSheet({ visible, mode, task, onClose, onSuccess }: TaskF
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
-      <KeyboardAvoidingView
-        style={[styles.overlay, { backgroundColor: colors.overlay.scrim }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <BottomSheetModal
+      visible={visible}
+      onClose={handleClose}
+      sheetStyle={styles.sheet}
+      closeLabel={isEdit ? 'Fechar edição de tarefa' : 'Fechar nova tarefa'}
+    >
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.text.primary }]}>{title}</Text>
+      </View>
+
+      <ScrollView
+        overScrollMode="never"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
       >
-        <View style={[styles.sheet, { backgroundColor: colors.bg.surface }]}>
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.text.primary }]}>{title}</Text>
-            <HeaderIconButton icon={X} onPress={handleClose} accessibilityLabel="Fechar" />
-          </View>
+        {error ? <InlineMessage message={error} variant="error" /> : null}
 
-          <ScrollView
-            overScrollMode="never"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.content}
-            keyboardShouldPersistTaps="handled"
-          >
-            {error ? <InlineMessage message={error} variant="error" /> : null}
+        {isEdit && editState?.infoMessage ? (
+          <InlineMessage message={editState.infoMessage} variant="info" />
+        ) : null}
 
-            {isEdit && editState?.infoMessage ? (
-              <InlineMessage message={editState.infoMessage} variant="info" />
-            ) : null}
+        <TaskFormFields
+          title={titulo}
+          description={descricao}
+          points={pontos}
+          diasSemana={diasSemana}
+          requiresEvidence={exigeEvidencia}
+          onTitleChange={setTitulo}
+          onDescriptionChange={setDescricao}
+          onPointsChange={setPontos}
+          onDiasSemanaChange={setDiasSemana}
+          onRequiresEvidenceChange={setExigeEvidencia}
+          autoFocusTitle={!isEdit}
+          weekdaysEditable={!isEdit || (editState?.canEdit ?? true)}
+          pointsEditable={!isEdit || (editState?.canEditPoints ?? true)}
+        />
 
-            <TaskFormFields
-              title={titulo}
-              description={descricao}
-              points={pontos}
-              diasSemana={diasSemana}
-              requiresEvidence={exigeEvidencia}
-              onTitleChange={setTitulo}
-              onDescriptionChange={setDescricao}
-              onPointsChange={setPontos}
-              onDiasSemanaChange={setDiasSemana}
-              onRequiresEvidenceChange={setExigeEvidencia}
-              autoFocusTitle={!isEdit}
-              weekdaysEditable={!isEdit || (editState?.canEdit ?? true)}
-              pointsEditable={!isEdit || (editState?.canEditPoints ?? true)}
-            />
+        {isEdit ? null : (
+          <>
+            <Text style={[styles.secaoTitulo, { color: colors.text.primary }]}>
+              Atribuir para *
+            </Text>
+            {renderChildrenSection()}
+          </>
+        )}
 
-            {isEdit ? null : (
-              <>
-                <Text style={[styles.secaoTitulo, { color: colors.text.primary }]}>
-                  Atribuir para *
-                </Text>
-                {renderChildrenSection()}
-              </>
-            )}
-
-            <Button
-              label={submitLabel}
-              loadingLabel={isEdit ? 'Salvando…' : 'Criando…'}
-              onPress={handleSubmit}
-              loading={isSaving}
-              disabled={isEdit && editState ? !editState.canEdit : false}
-              accessibilityLabel={submitLabel}
-            />
-          </ScrollView>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+        <Button
+          label={submitLabel}
+          loadingLabel={isEdit ? 'Salvando…' : 'Criando…'}
+          onPress={handleSubmit}
+          loading={isSaving}
+          disabled={isEdit && editState ? !editState.canEdit : false}
+          accessibilityLabel={submitLabel}
+        />
+      </ScrollView>
+    </BottomSheetModal>
   );
 }
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    overlay: { flex: 1, justifyContent: 'flex-end' },
     sheet: {
-      borderTopLeftRadius: radii.xl,
-      borderTopRightRadius: radii.xl,
-      padding: spacing['6'],
-      paddingBottom: spacing['12'],
-      maxHeight: '90%',
+      maxHeight: '80%',
     },
     header: {
       flexDirection: 'row',

@@ -1,16 +1,7 @@
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Eye, EyeOff, Lock, X } from 'lucide-react-native';
-import { HeaderIconButton } from '@/components/ui/screen-header';
+import { Check, Eye, EyeOff, Lock } from 'lucide-react-native';
+import { BottomSheetModal } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/button';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { useUpdateUserPassword } from '@/hooks/queries/use-profile';
@@ -24,9 +15,9 @@ type ChangePasswordSheetProps = Readonly<{
 }>;
 
 const RULES = [
-  { test: (pw: string) => pw.length >= 8, label: 'Pelo menos 8 caracteres' },
-  { test: (pw: string) => /[A-Z]/.test(pw), label: 'Uma letra maiúscula' },
-  { test: (pw: string) => /\d/.test(pw), label: 'Um número' },
+  { key: 'length', test: (pw: string) => pw.length >= 8, label: 'Pelo menos 8 caracteres' },
+  { key: 'uppercase', test: (pw: string) => /[A-Z]/.test(pw), label: 'Uma letra maiúscula' },
+  { key: 'number', test: (pw: string) => /\d/.test(pw), label: 'Um número' },
 ] as const;
 
 export function ChangePasswordSheet({ visible, onClose }: ChangePasswordSheetProps) {
@@ -52,7 +43,7 @@ export function ChangePasswordSheet({ visible, onClose }: ChangePasswordSheetPro
 
   useEffect(() => clearCloseTimer, [clearCloseTimer]);
 
-  const ruleResults = RULES.map((r) => ({ ok: r.test(next), label: r.label }));
+  const ruleResults = RULES.map((r) => ({ key: r.key, ok: r.test(next), label: r.label }));
   const passwordsMatch = next.length > 0 && next === confirm;
   const canSubmit = current.length > 0 && ruleResults.every((r) => r.ok) && passwordsMatch;
 
@@ -92,137 +83,132 @@ export function ChangePasswordSheet({ visible, onClose }: ChangePasswordSheetPro
     : null;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
-      <KeyboardAvoidingView
-        style={[styles.overlay, { backgroundColor: colors.overlay.scrim }]}
-        behavior="padding"
-      >
-        <View style={[styles.sheet, { backgroundColor: colors.bg.surface }]}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={[styles.headerIcon, { backgroundColor: colors.accent.adminBg }]}>
-              <Lock size={18} color={colors.accent.adminDim} strokeWidth={2.4} />
-            </View>
-            <View style={styles.headerText}>
-              <Text style={[styles.title, { color: colors.text.primary }]}>Alterar senha</Text>
-              <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-                Informe a senha atual e escolha uma nova
-              </Text>
-            </View>
-            <HeaderIconButton icon={X} onPress={handleClose} accessibilityLabel="Fechar" />
+    <BottomSheetModal
+      visible={visible}
+      onClose={handleClose}
+      sheetStyle={styles.sheet}
+      closeLabel="Fechar alteração de senha"
+    >
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={[styles.headerIcon, { backgroundColor: colors.accent.adminBg }]}>
+          <Lock size={18} color={colors.accent.adminDim} strokeWidth={2.4} />
+        </View>
+        <View style={styles.headerText}>
+          <Text style={[styles.title, { color: colors.text.primary }]}>Alterar senha</Text>
+          <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
+            Informe a senha atual e escolha uma nova
+          </Text>
+        </View>
+      </View>
+
+      {success ? (
+        <View style={styles.successContainer}>
+          <View style={[styles.successIcon, { backgroundColor: colors.semantic.successBg }]}>
+            <Check size={28} color={colors.semantic.success} strokeWidth={2.4} />
+          </View>
+          <Text style={[styles.successTitle, { color: colors.text.primary }]}>Senha alterada!</Text>
+          <Text style={[styles.successDesc, { color: colors.text.secondary }]}>
+            Use a nova senha no próximo login.
+          </Text>
+        </View>
+      ) : (
+        <ScrollView
+          overScrollMode="never"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
+          {errorMessage ? <InlineMessage message={errorMessage} variant="error" /> : null}
+
+          <PasswordField
+            label="Senha atual"
+            value={current}
+            onChangeText={(v) => {
+              setCurrent(v);
+              updatePasswordMutation.reset();
+            }}
+            secureTextEntry={!showCurrent}
+            onToggleVisibility={() => setShowCurrent((p) => !p)}
+            colors={colors}
+            styles={styles}
+          />
+
+          <PasswordField
+            label="Nova senha"
+            value={next}
+            onChangeText={(v) => {
+              setNext(v);
+              updatePasswordMutation.reset();
+            }}
+            secureTextEntry={!showNext}
+            onToggleVisibility={() => setShowNext((p) => !p)}
+            colors={colors}
+            styles={styles}
+          />
+
+          {/* Live strength rules */}
+          <View style={styles.rulesContainer}>
+            {ruleResults.map((r) => (
+              <View key={r.key} style={styles.ruleRow}>
+                <View
+                  style={[
+                    styles.ruleDot,
+                    {
+                      backgroundColor: r.ok ? colors.semantic.successBg : colors.bg.muted,
+                    },
+                  ]}
+                >
+                  <Check
+                    size={10}
+                    color={r.ok ? colors.semantic.success : colors.text.muted}
+                    strokeWidth={2.5}
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.ruleLabel,
+                    {
+                      color: r.ok ? colors.semantic.success : colors.text.secondary,
+                    },
+                  ]}
+                >
+                  {r.label}
+                </Text>
+              </View>
+            ))}
           </View>
 
-          {success ? (
-            <View style={styles.successContainer}>
-              <View style={[styles.successIcon, { backgroundColor: colors.semantic.successBg }]}>
-                <Check size={28} color={colors.semantic.success} strokeWidth={2.4} />
-              </View>
-              <Text style={[styles.successTitle, { color: colors.text.primary }]}>
-                Senha alterada!
-              </Text>
-              <Text style={[styles.successDesc, { color: colors.text.secondary }]}>
-                Use a nova senha no próximo login.
-              </Text>
-            </View>
-          ) : (
-            <ScrollView
-              overScrollMode="never"
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.content}
-              keyboardShouldPersistTaps="handled"
-            >
-              {errorMessage ? <InlineMessage message={errorMessage} variant="error" /> : null}
+          <PasswordField
+            label="Confirmar nova senha"
+            value={confirm}
+            onChangeText={(v) => {
+              setConfirm(v);
+              updatePasswordMutation.reset();
+            }}
+            secureTextEntry={!showConfirm}
+            onToggleVisibility={() => setShowConfirm((p) => !p)}
+            colors={colors}
+            styles={styles}
+          />
 
-              <PasswordField
-                label="Senha atual"
-                value={current}
-                onChangeText={(v) => {
-                  setCurrent(v);
-                  updatePasswordMutation.reset();
-                }}
-                secureTextEntry={!showCurrent}
-                onToggleVisibility={() => setShowCurrent((p) => !p)}
-                colors={colors}
-                styles={styles}
-              />
+          {confirm.length > 0 && !passwordsMatch ? (
+            <Text style={[styles.mismatchError, { color: colors.semantic.error }]}>
+              As senhas não coincidem.
+            </Text>
+          ) : null}
 
-              <PasswordField
-                label="Nova senha"
-                value={next}
-                onChangeText={(v) => {
-                  setNext(v);
-                  updatePasswordMutation.reset();
-                }}
-                secureTextEntry={!showNext}
-                onToggleVisibility={() => setShowNext((p) => !p)}
-                colors={colors}
-                styles={styles}
-              />
-
-              {/* Live strength rules */}
-              <View style={styles.rulesContainer}>
-                {ruleResults.map((r) => (
-                  <View key={r.label} style={styles.ruleRow}>
-                    <View
-                      style={[
-                        styles.ruleDot,
-                        {
-                          backgroundColor: r.ok ? colors.semantic.successBg : colors.bg.muted,
-                        },
-                      ]}
-                    >
-                      <Check
-                        size={10}
-                        color={r.ok ? colors.semantic.success : colors.text.muted}
-                        strokeWidth={2.5}
-                      />
-                    </View>
-                    <Text
-                      style={[
-                        styles.ruleLabel,
-                        {
-                          color: r.ok ? colors.semantic.success : colors.text.secondary,
-                        },
-                      ]}
-                    >
-                      {r.label}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-
-              <PasswordField
-                label="Confirmar nova senha"
-                value={confirm}
-                onChangeText={(v) => {
-                  setConfirm(v);
-                  updatePasswordMutation.reset();
-                }}
-                secureTextEntry={!showConfirm}
-                onToggleVisibility={() => setShowConfirm((p) => !p)}
-                colors={colors}
-                styles={styles}
-              />
-
-              {confirm.length > 0 && !passwordsMatch ? (
-                <Text style={[styles.mismatchError, { color: colors.semantic.error }]}>
-                  As senhas não coincidem.
-                </Text>
-              ) : null}
-
-              <Button
-                label="Salvar nova senha"
-                loadingLabel="Salvando…"
-                onPress={handleSubmit}
-                loading={updatePasswordMutation.isPending}
-                disabled={!canSubmit}
-                accessibilityLabel="Salvar nova senha"
-              />
-            </ScrollView>
-          )}
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+          <Button
+            label="Salvar nova senha"
+            loadingLabel="Salvando…"
+            onPress={handleSubmit}
+            loading={updatePasswordMutation.isPending}
+            disabled={!canSubmit}
+            accessibilityLabel="Salvar nova senha"
+          />
+        </ScrollView>
+      )}
+    </BottomSheetModal>
   );
 }
 
@@ -289,13 +275,8 @@ const PasswordField = ({
 
 function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
-    overlay: { flex: 1, justifyContent: 'flex-end' },
     sheet: {
-      borderTopLeftRadius: radii.xl,
-      borderTopRightRadius: radii.xl,
-      padding: spacing['6'],
-      paddingBottom: spacing['12'],
-      maxHeight: '90%',
+      maxHeight: '80%',
     },
     header: {
       flexDirection: 'row',

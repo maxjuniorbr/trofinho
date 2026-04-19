@@ -1,15 +1,6 @@
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useCallback, useState } from 'react';
-import { X } from 'lucide-react-native';
-import { HeaderIconButton } from '@/components/ui/screen-header';
+import { BottomSheetModal } from '@/components/ui/bottom-sheet';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { InlineMessage } from '@/components/ui/inline-message';
@@ -17,7 +8,7 @@ import { useChildDetail, useDeactivateChild, useReactivateChild } from '@/hooks/
 import { localizeRpcError } from '@lib/api-error';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { useTheme } from '@/context/theme-context';
-import { radii, spacing, typography } from '@/constants/theme';
+import { spacing, typography } from '@/constants/theme';
 
 type ChildViewSheetProps = Readonly<{
   childId: string | null;
@@ -43,19 +34,25 @@ export function ChildViewSheet({ childId, onClose }: ChildViewSheetProps) {
     setFeedbackKey((k) => k + 1);
   };
 
-  const executeDeactivate = useCallback((childId: string, childName: string) => {
-    deactivateMutation.mutate(childId, {
-      onSuccess: () => showFeedback(`${childName} foi desativado.`, 'success'),
-      onError: (err) => showFeedback(localizeRpcError(err.message), 'error'),
-    });
-  }, [deactivateMutation]);
+  const executeDeactivate = useCallback(
+    (childId: string, childName: string) => {
+      deactivateMutation.mutate(childId, {
+        onSuccess: () => showFeedback(`${childName} foi desativado.`, 'success'),
+        onError: (err) => showFeedback(localizeRpcError(err.message), 'error'),
+      });
+    },
+    [deactivateMutation],
+  );
 
-  const executeReactivate = useCallback((childId: string, childName: string) => {
-    reactivateMutation.mutate(childId, {
-      onSuccess: () => showFeedback(`${childName} foi reativado.`, 'success'),
-      onError: (err) => showFeedback(localizeRpcError(err.message), 'error'),
-    });
-  }, [reactivateMutation]);
+  const executeReactivate = useCallback(
+    (childId: string, childName: string) => {
+      reactivateMutation.mutate(childId, {
+        onSuccess: () => showFeedback(`${childName} foi reativado.`, 'success'),
+        onError: (err) => showFeedback(localizeRpcError(err.message), 'error'),
+      });
+    },
+    [reactivateMutation],
+  );
 
   const handleDeactivate = useCallback(() => {
     if (!child) return;
@@ -89,86 +86,78 @@ export function ChildViewSheet({ childId, onClose }: ChildViewSheetProps) {
   }, [child, executeReactivate]);
 
   return (
-    <Modal visible={childId !== null} transparent animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        style={[styles.overlay, { backgroundColor: colors.overlay.scrim }]}
-        behavior="padding"
-      >
-        <View style={[styles.sheet, { backgroundColor: colors.bg.surface }]}>
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.text.primary }]}>
-              {child?.nome ?? 'Dados do Filho'}
-            </Text>
-            <HeaderIconButton icon={X} onPress={onClose} accessibilityLabel="Fechar" />
-          </View>
+    <BottomSheetModal
+      visible={childId !== null}
+      onClose={onClose}
+      sheetStyle={styles.sheet}
+      closeLabel="Fechar dados do filho"
+    >
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.text.primary }]}>
+          {child?.nome ?? 'Dados do Filho'}
+        </Text>
+      </View>
 
-          {isLoading || !child ? (
-            <View style={styles.loading}>
-              <Text style={{ color: colors.text.muted }}>Carregando…</Text>
-            </View>
-          ) : (
-            <ScrollView
-              overScrollMode="never"
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.content}
-            >
-              {visibleFeedback ? (
-                <InlineMessage message={visibleFeedback} variant={feedbackVariant} />
-              ) : null}
-
-              {!child.ativo && (
-                <View style={styles.deactivatedSection}>
-                  <InlineMessage message="Este filho está desativado." variant="warning" />
-                  <Button
-                    variant="outline"
-                    label="Reativar"
-                    onPress={handleReactivate}
-                    loading={reactivateMutation.isPending}
-                    loadingLabel="Reativando…"
-                    accessibilityLabel={`Reativar ${child.nome}`}
-                  />
-                </View>
-              )}
-
-              <Input
-                label="Nome"
-                value={child.nome}
-                editable={false}
-                accessibilityLabel="Nome do filho"
-              />
-
-              <Input
-                label="E-mail"
-                value={child.email ?? 'Sem conta vinculada'}
-                editable={false}
-                accessibilityLabel="E-mail do filho"
-              />
-
-              {child.ativo && (
-                <Button
-                  variant="danger"
-                  label="Desativar"
-                  onPress={handleDeactivate}
-                  loading={deactivateMutation.isPending}
-                  loadingLabel="Desativando…"
-                  accessibilityLabel={`Desativar ${child.nome}`}
-                />
-              )}
-            </ScrollView>
-          )}
+      {isLoading || !child ? (
+        <View style={styles.loading}>
+          <Text style={{ color: colors.text.muted }}>Carregando…</Text>
         </View>
-      </KeyboardAvoidingView>
-    </Modal>
+      ) : (
+        <ScrollView
+          overScrollMode="never"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.content}
+        >
+          {visibleFeedback ? (
+            <InlineMessage message={visibleFeedback} variant={feedbackVariant} />
+          ) : null}
+
+          {!child.ativo && (
+            <View style={styles.deactivatedSection}>
+              <InlineMessage message="Este filho está desativado." variant="warning" />
+              <Button
+                variant="outline"
+                label="Reativar"
+                onPress={handleReactivate}
+                loading={reactivateMutation.isPending}
+                loadingLabel="Reativando…"
+                accessibilityLabel={`Reativar ${child.nome}`}
+              />
+            </View>
+          )}
+
+          <Input
+            label="Nome"
+            value={child.nome}
+            editable={false}
+            accessibilityLabel="Nome do filho"
+          />
+
+          <Input
+            label="E-mail"
+            value={child.email ?? 'Sem conta vinculada'}
+            editable={false}
+            accessibilityLabel="E-mail do filho"
+          />
+
+          {child.ativo && (
+            <Button
+              variant="danger"
+              label="Desativar"
+              onPress={handleDeactivate}
+              loading={deactivateMutation.isPending}
+              loadingLabel="Desativando…"
+              accessibilityLabel={`Desativar ${child.nome}`}
+            />
+          )}
+        </ScrollView>
+      )}
+    </BottomSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
-    borderTopLeftRadius: radii.xl,
-    borderTopRightRadius: radii.xl,
-    padding: spacing['6'],
-    paddingBottom: spacing['12'],
     maxHeight: '85%',
   },
   header: {

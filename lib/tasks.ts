@@ -293,6 +293,7 @@ export type PendingValidationItem = AssignmentWithChild & {
   tarefas: {
     id: string;
     titulo: string;
+    descricao: string | null;
     pontos: number;
     exige_evidencia: boolean;
     familia_id: string;
@@ -310,7 +311,7 @@ export async function listPendingValidations(): Promise<{
   const { data, error } = await supabase
     .from('atribuicoes')
     .select(
-      'id, tarefa_id, filho_id, status, pontos_snapshot, evidencia_url, nota_rejeicao, concluida_em, validada_em, validada_por, created_at, competencia, tentativas, filhos(nome, usuario_id), tarefas!inner(id, titulo, pontos, exige_evidencia, familia_id, arquivada_em)',
+      'id, tarefa_id, filho_id, status, pontos_snapshot, evidencia_url, nota_rejeicao, concluida_em, validada_em, validada_por, created_at, competencia, tentativas, filhos(nome, usuario_id), tarefas!inner(id, titulo, descricao, pontos, exige_evidencia, familia_id, arquivada_em)',
     )
     .eq('status', 'aguardando_validacao')
     .is('tarefas.arquivada_em', null)

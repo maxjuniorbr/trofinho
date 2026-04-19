@@ -1,14 +1,8 @@
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useMemo } from 'react';
-import {
-  Archive,
-  ArchiveRestore,
-  Eye,
-  Pause,
-  Pencil,
-  Play,
-} from 'lucide-react-native';
+import { Archive, ArchiveRestore, Eye, Pause, Pencil, Play } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
+import { BottomSheetModal } from '@/components/ui/bottom-sheet';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, spacing, typography } from '@/constants/theme';
@@ -130,53 +124,46 @@ export function TaskActionSheet({
   }
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable
-        style={[styles.overlay, { backgroundColor: colors.overlay.scrim }]}
-        onPress={onClose}
-        accessibilityRole="button"
-        accessibilityLabel="Fechar menu"
-      >
-        <Pressable style={[styles.sheet, { backgroundColor: colors.bg.surface }]} onPress={() => { }}>
-          <Text style={[styles.title, { color: colors.text.primary }]} numberOfLines={2}>
-            {taskTitle}
-          </Text>
-          <View style={styles.actions}>
-            {actions.map((action) => {
-              const Icon = action.icon;
-              const isDanger = action.tone === 'danger';
-              const tint = isDanger ? colors.semantic.error : colors.text.primary;
-              return (
-                <Pressable
-                  key={action.key}
-                  style={({ pressed }) => [
-                    styles.actionRow,
-                    { backgroundColor: pressed ? colors.bg.muted : 'transparent' },
-                  ]}
-                  onPress={action.onPress}
-                  accessibilityRole="button"
-                  accessibilityLabel={action.label}
-                >
-                  <View style={[styles.iconCircle, { backgroundColor: colors.bg.muted }]}>
-                    <Icon size={18} color={tint} strokeWidth={2} />
-                  </View>
-                  <Text style={[styles.actionLabel, { color: tint }]}>{action.label}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
+    <BottomSheetModal
+      visible={visible}
+      onClose={onClose}
+      contentStyle={styles.sheetContent}
+      closeLabel="Fechar menu"
+    >
+      <Text style={[styles.title, { color: colors.text.primary }]} numberOfLines={2}>
+        {taskTitle}
+      </Text>
+      <View style={styles.actions}>
+        {actions.map((action) => {
+          const Icon = action.icon;
+          const isDanger = action.tone === 'danger';
+          const tint = isDanger ? colors.semantic.error : colors.text.primary;
+          return (
+            <Pressable
+              key={action.key}
+              style={({ pressed }) => [
+                styles.actionRow,
+                { backgroundColor: pressed ? colors.bg.muted : 'transparent' },
+              ]}
+              onPress={action.onPress}
+              accessibilityRole="button"
+              accessibilityLabel={action.label}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: colors.bg.muted }]}>
+                <Icon size={18} color={tint} strokeWidth={2} />
+              </View>
+              <Text style={[styles.actionLabel, { color: tint }]}>{action.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </BottomSheetModal>
   );
 }
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    overlay: { flex: 1, justifyContent: 'flex-end' },
-    sheet: {
-      borderTopLeftRadius: radii.xl,
-      borderTopRightRadius: radii.xl,
+    sheetContent: {
       paddingHorizontal: spacing['5'],
       paddingTop: spacing['5'],
       paddingBottom: spacing['10'],
