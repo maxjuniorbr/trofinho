@@ -84,40 +84,41 @@ export function NotificationsScreen({
     <SafeScreenFrame bottomInset>
       <ScreenHeader title="Notificações" onBack={onBack} />
 
-      {/* Filters */}
-      <View style={styles.filtersRow}>
-        {filters.map((f) => {
-          const active = filter === f.key;
-          return (
-            <Pressable
-              key={f.key}
-              onPress={() => setFilter(f.key)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-              accessibilityLabel={`${f.label}, ${f.count}`}
-              style={[
-                styles.filterPill,
-                {
-                  backgroundColor: active ? colors.accent.admin : colors.bg.muted,
-                },
-              ]}
-            >
-              <Text
+      {/* Filters — hidden when there are no items */}
+      {items.length > 0 ? (
+        <View style={styles.filtersRow}>
+          {filters.map((f) => {
+            const active = filter === f.key;
+            return (
+              <Pressable
+                key={f.key}
+                onPress={() => setFilter(f.key)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={`${f.label}, ${f.count}`}
                 style={[
-                  styles.filterLabel,
-                  { color: active ? colors.text.onBrand : colors.text.secondary },
+                  styles.filterPill,
+                  {
+                    backgroundColor: active ? colors.accent.admin : colors.bg.muted,
+                  },
                 ]}
               >
-                {f.label}
-              </Text>
-              {f.count > 0 ? (
-                <View
+                <Text
                   style={[
-                    styles.filterBadge,
-                    {
-                      backgroundColor: active ? 'rgba(0,0,0,0.15)' : colors.bg.surface,
-                    },
+                    styles.filterLabel,
+                    { color: active ? colors.text.onBrand : colors.text.secondary },
                   ]}
+                >
+                  {f.label}
+                </Text>
+                {f.count > 0 ? (
+                  <View
+                    style={[
+                      styles.filterBadge,
+                      {
+                        backgroundColor: active ? 'rgba(0,0,0,0.15)' : colors.bg.surface,
+                      },
+                    ]}
                 >
                   <Text
                     style={[
@@ -132,7 +133,8 @@ export function NotificationsScreen({
             </Pressable>
           );
         })}
-      </View>
+        </View>
+      ) : null}
 
       {/* List */}
       <ScrollView
