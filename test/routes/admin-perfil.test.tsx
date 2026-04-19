@@ -29,6 +29,13 @@ const authUserMock = vi.hoisted(() => ({
   refetch: vi.fn(),
 }));
 
+const familyMock = vi.hoisted(() => ({
+  data: { nome: 'Silva' } as Record<string, unknown> | undefined,
+  isLoading: false,
+  error: null as Error | null,
+  refetch: vi.fn(),
+}));
+
 const notifPrefsMock = vi.hoisted(() => ({
   data: { tarefa_concluida: true, resgate_solicitado: true, valorizacao: true } as Record<
     string,
@@ -84,6 +91,7 @@ vi.mock('@lib/notifications', () => ({
 
 vi.mock('@/hooks/queries', () => ({
   useProfile: () => profileMock,
+  useFamily: () => familyMock,
   useCurrentAuthUser: () => authUserMock,
   useNotificationPrefs: () => notifPrefsMock,
   useDeleteAccount: () => deleteAccountMock,
@@ -166,6 +174,23 @@ function render(element: React.ReactElement) {
   return renderer;
 }
 
+function profileBlockMarkers(renderer: ReactTestRenderer): string[] {
+  const markers: string[] = [];
+  renderer.root.findAll((node) => {
+    if (node.type === 'AvatarSection') markers.push('usuario');
+    if (node.type === 'ThemeCard') markers.push('aparencia');
+    if (node.type === 'NotificationCard') markers.push('notificacoes');
+    if (node.type === 'Text') {
+      if (node.props.children === 'Dados pessoais') markers.push('dados');
+      if (node.props.children === 'Segurança') markers.push('seguranca');
+      if (node.props.children === 'Ferramentas') markers.push('ferramentas');
+      if (node.props.children === 'Sobre') markers.push('sobre');
+    }
+    return false;
+  });
+  return markers;
+}
+
 describe('ProfileScreen (admin)', () => {
   beforeEach(() => {
     routerMock.back.mockReset();
@@ -177,6 +202,8 @@ describe('ProfileScreen (admin)', () => {
     profileMock.isLoading = false;
     authUserMock.data = { email: 'max@example.com', avatarUrl: null };
     authUserMock.isLoading = false;
+    familyMock.data = { nome: 'Silva' };
+    familyMock.isLoading = false;
     notifPrefsMock.data = { tarefa_concluida: true, resgate_solicitado: true, valorizacao: true };
     notifPrefsMock.isLoading = false;
   });
@@ -196,11 +223,26 @@ describe('ProfileScreen (admin)', () => {
 
   it('renders profile components when data is available', () => {
     const renderer = render(<ProfileScreen />);
-    expect(renderer.root.findAllByType('AvatarSection' as never).length).toBe(1);
+    const avatar = renderer.root.findByType('AvatarSection' as never);
+    expect(avatar.props.name).toBe('Família Silva');
+    expect(avatar.props.email).toBe('max@example.com');
     expect(renderer.root.findAllByType('PersonalDataSheet' as never).length).toBe(1);
     expect(renderer.root.findAllByType('ThemeCard' as never).length).toBe(1);
     expect(renderer.root.findAllByType('NotificationCard' as never).length).toBe(1);
     expect(renderer.root.findAllByType('ChangePasswordSheet' as never).length).toBe(1);
+  });
+
+  it('renders profile blocks in the requested admin order', () => {
+    const renderer = render(<ProfileScreen />);
+    expect(profileBlockMarkers(renderer)).toEqual([
+      'usuario',
+      'aparencia',
+      'notificacoes',
+      'dados',
+      'seguranca',
+      'ferramentas',
+      'sobre',
+    ]);
   });
 
   it('renders logout button', () => {

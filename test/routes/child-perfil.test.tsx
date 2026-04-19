@@ -58,8 +58,10 @@ vi.mock('react-native', () => ({
   ActivityIndicator: createHostComponent('ActivityIndicator'),
   Alert: { alert: vi.fn() },
   KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
+  Pressable: createHostComponent('Pressable'),
   ScrollView: createHostComponent('ScrollView'),
   StyleSheet: { create: <T,>(styles: T) => styles },
+  Text: createHostComponent('Text'),
   View: createHostComponent('View'),
 }));
 
@@ -83,6 +85,13 @@ vi.mock('@lib/auth', () => ({
 
 vi.mock('@lib/notifications', () => ({
   setNotificationPrefs: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('lucide-react-native', () => ({
+  ChevronRight: createHostComponent('ChevronRight'),
+  Info: createHostComponent('Info'),
+  Lock: createHostComponent('Lock'),
+  User: createHostComponent('User'),
 }));
 
 vi.mock('@/hooks/queries', () => ({
@@ -112,6 +121,16 @@ vi.mock('@/components/profile/avatar-section', () => ({
   AvatarSection: (props: Record<string, unknown>) => React.createElement('AvatarSection', props),
 }));
 
+vi.mock('@/components/profile/personal-data-sheet', () => ({
+  PersonalDataSheet: (props: Record<string, unknown>) =>
+    React.createElement('PersonalDataSheet', props),
+}));
+
+vi.mock('@/components/profile/change-password-sheet', () => ({
+  ChangePasswordSheet: (props: Record<string, unknown>) =>
+    React.createElement('ChangePasswordSheet', props),
+}));
+
 vi.mock('@/components/profile/theme-card', () => ({
   ThemeCard: (props: Record<string, unknown>) => React.createElement('ThemeCard', props),
 }));
@@ -129,8 +148,14 @@ vi.mock('@/context/theme-context', () => ({
   useTheme: () => ({
     colors: {
       statusBar: 'dark',
-      bg: { canvas: '#fff' },
+      bg: { canvas: '#fff', surface: '#fff', muted: '#eee' },
       accent: { filho: '#3366CC' },
+      border: { subtle: '#ddd' },
+      text: {
+        primary: '#111',
+        secondary: '#555',
+        muted: '#777',
+      },
     },
   }),
 }));
@@ -141,6 +166,22 @@ function render(element: React.ReactElement) {
     renderer = create(element);
   });
   return renderer;
+}
+
+function profileBlockMarkers(renderer: ReactTestRenderer): string[] {
+  const markers: string[] = [];
+  renderer.root.findAll((node) => {
+    if (node.type === 'AvatarSection') markers.push('usuario');
+    if (node.type === 'ThemeCard') markers.push('aparencia');
+    if (node.type === 'NotificationCard') markers.push('notificacoes');
+    if (node.type === 'Text') {
+      if (node.props.children === 'Dados pessoais') markers.push('dados');
+      if (node.props.children === 'Segurança') markers.push('seguranca');
+      if (node.props.children === 'Sobre') markers.push('sobre');
+    }
+    return false;
+  });
+  return markers;
 }
 
 describe('ChildProfileScreen', () => {
@@ -173,6 +214,7 @@ describe('ChildProfileScreen', () => {
     const renderer = render(<ChildProfileScreen />);
     const avatar = renderer.root.findByType('AvatarSection' as never);
     expect(avatar.props.name).toBe('João');
+    expect(avatar.props.email).toBe('joao@example.com');
     expect(avatar.props.role).toBe('filho');
   });
 
@@ -211,12 +253,24 @@ describe('ChildProfileScreen', () => {
     expect(signOutMock).toHaveBeenCalled();
   });
 
-  it('does not render PersonalDataCard or PasswordCard (child role)', () => {
+  it('renders personal data and password sheets', () => {
     const renderer = render(<ChildProfileScreen />);
-    const personalData = renderer.root.findAllByType('PersonalDataCard' as never);
-    const password = renderer.root.findAllByType('PasswordCard' as never);
-    expect(personalData.length).toBe(0);
-    expect(password.length).toBe(0);
+    const personalData = renderer.root.findAllByType('PersonalDataSheet' as never);
+    const password = renderer.root.findAllByType('ChangePasswordSheet' as never);
+    expect(personalData.length).toBe(1);
+    expect(password.length).toBe(1);
+  });
+
+  it('renders profile blocks in the requested child order', () => {
+    const renderer = render(<ChildProfileScreen />);
+    expect(profileBlockMarkers(renderer)).toEqual([
+      'usuario',
+      'aparencia',
+      'notificacoes',
+      'dados',
+      'seguranca',
+      'sobre',
+    ]);
   });
 
   it('renders screen header with correct title', () => {
