@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useMemo } from 'react';
 import { ArrowRight, Lock, Mail, User } from 'lucide-react-native';
@@ -61,14 +61,12 @@ export default function RegisterScreen() {
     // Pass the name to onboarding for pre-filling. The auth state handler
     // would also redirect to onboarding, but without the name param, so we
     // navigate explicitly here. Keep loading state until the redirect lands.
-    router.replace({ pathname: '/(auth)/onboarding', params: { name: name.trim() } });
+    router.replace({ pathname: '/(auth)/onboarding', params: { name: name.trim(), email: email.trim() } });
   };
 
   return (
     <AuthHeroScreen
       topBarCenter={<BrandLogo size="sm" variant="onDark" withText />}
-      onBack={() => router.back()}
-      backAccessibilityLabel="Voltar"
     >
       <StepIndicator currentStep={1} labels={['Conta', 'Família']} />
 
@@ -157,13 +155,13 @@ export default function RegisterScreen() {
         <View style={styles.formActions}>
           <FormFooter message={shouldShowError ? error : null} includeSafeBottom={false}>
             <Button
-              label="Criar conta"
+              label="Continuar"
               loadingLabel="Criando conta…"
               loading={loading}
               onPress={handleSignUp}
               size="lg"
               trailingIcon={ArrowRight}
-              accessibilityLabel={loading ? 'Criando conta' : 'Criar conta'}
+              accessibilityLabel={loading ? 'Criando conta' : 'Continuar'}
               accessibilityState={{ busy: loading }}
             />
 
@@ -172,6 +170,20 @@ export default function RegisterScreen() {
               <Text style={styles.termsAccent}>Política de Privacidade</Text>.
             </Text>
           </FormFooter>
+        </View>
+
+        <View style={styles.footerPush}>
+          <Pressable
+            style={({ pressed }) => [styles.secondaryButton, { opacity: pressed ? 0.65 : 1 }]}
+            onPress={() => router.back()}
+            disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel="Entrar"
+          >
+            <Text style={styles.secondaryButtonText}>
+              Já tem conta? <Text style={styles.secondaryButtonAccent}>Entrar</Text>
+            </Text>
+          </Pressable>
         </View>
       </View>
     </AuthHeroScreen>
@@ -222,6 +234,22 @@ function makeStyles() {
     termsAccent: {
       fontFamily: typography.family.semibold,
       color: heroPalette.textOnNavyMuted,
+    },
+    footerPush: {
+      marginTop: 'auto',
+    },
+    secondaryButton: {
+      paddingVertical: spacing['3'],
+      alignItems: 'center',
+    },
+    secondaryButtonText: {
+      fontFamily: typography.family.medium,
+      fontSize: typography.size.sm,
+      color: heroPalette.textOnNavyMuted,
+    },
+    secondaryButtonAccent: {
+      fontFamily: typography.family.bold,
+      color: heroPalette.borderFocus,
     },
   });
 }

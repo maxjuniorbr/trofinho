@@ -20,9 +20,6 @@ export function resolveNavDecision(
   const seg1 = segments[1] as string | undefined;
 
   if (profile === null) {
-    // Onboarding requires an active session — if signed out while on it,
-    // redirect to login instead of staying on a screen that can't work.
-    if (seg1 === 'onboarding') return '/(auth)/login';
     return inAuth ? null : '/(auth)/login';
   }
 
@@ -31,7 +28,10 @@ export function resolveNavDecision(
   const roleHome: NavTarget = profile.papel === 'admin' ? '/(admin)/' : '/(child)/';
 
   if (!profile.familia_id) {
-    return seg1 === 'onboarding' ? null : '/(auth)/onboarding';
+    // Allow both onboarding (already there) and register (mid-flow — register
+    // itself does router.replace to onboarding with name/email params, so the
+    // nav guard must not race it with a param-less redirect).
+    return seg1 === 'onboarding' || seg1 === 'register' ? null : '/(auth)/onboarding';
   }
 
   if (inAuth) return roleHome;

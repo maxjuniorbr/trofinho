@@ -15,13 +15,14 @@ const routerMock = vi.hoisted(() => ({
 
 const authMocks = vi.hoisted(() => ({
   createFamily: vi.fn(),
+  getCurrentAuthUser: vi.fn(),
   signIn: vi.fn(),
   signOut: vi.fn(),
   signUp: vi.fn(),
 }));
 
 const localSearchParamsState = vi.hoisted(() => ({
-  value: {} as { name?: string },
+  value: {} as { name?: string; email?: string },
 }));
 
 vi.mock('expo-router', () => ({
@@ -107,6 +108,7 @@ describe('auth screens', () => {
     routerMock.replace.mockReset();
 
     authMocks.createFamily.mockReset();
+    authMocks.getCurrentAuthUser.mockReset().mockResolvedValue(null);
     authMocks.signIn.mockReset();
     authMocks.signOut.mockReset();
     authMocks.signUp.mockReset();
@@ -196,14 +198,14 @@ describe('auth screens', () => {
     });
 
     const renderer = render(<RegisterScreen />);
-    await pressButton(renderer, 'Criar conta');
+    await pressButton(renderer, 'Continuar');
     expect(screenText(renderer)).toContain('Informe seu nome.');
 
     changeInput(renderer, 0, 'Max');
     changeInput(renderer, 1, 'max@example.com');
     changeInput(renderer, 2, '12345678');
 
-    await pressButton(renderer, 'Criar conta');
+    await pressButton(renderer, 'Continuar');
 
     expect(authMocks.signUp).toHaveBeenCalledWith('max@example.com', '12345678');
     expect(screenText(renderer)).toContain('Este e-mail já está cadastrado.');
@@ -217,16 +219,16 @@ describe('auth screens', () => {
     changeInput(renderer, 1, 'max@example.com');
     changeInput(renderer, 2, '12345678');
 
-    await pressButton(renderer, 'Criar conta');
+    await pressButton(renderer, 'Continuar');
     expect(routerMock.replace).toHaveBeenCalledWith({
       pathname: '/(auth)/onboarding',
-      params: { name: 'Max' },
+      params: { name: 'Max', email: 'max@example.com' },
     });
   });
 
-  it('navigates back to login via back chip on register', async () => {
+  it('navigates back to login via footer link on register', async () => {
     const renderer = render(<RegisterScreen />);
-    await pressButton(renderer, 'Voltar');
+    await pressButton(renderer, 'Entrar');
     expect(routerMock.back).toHaveBeenCalled();
   });
 
@@ -242,20 +244,20 @@ describe('auth screens', () => {
 
     changeInput(renderer, 0, 'Max');
     changeInput(renderer, 1, 'email-invalido');
-    await pressButton(renderer, 'Criar conta');
+    await pressButton(renderer, 'Continuar');
     expect(screenText(renderer)).toContain('E-mail inválido.');
 
     changeInput(renderer, 1, 'max@example.com');
-    await pressButton(renderer, 'Criar conta');
+    await pressButton(renderer, 'Continuar');
     expect(screenText(renderer)).toContain('Crie uma senha.');
 
     changeInput(renderer, 2, '123');
-    await pressButton(renderer, 'Criar conta');
+    await pressButton(renderer, 'Continuar');
     expect(screenText(renderer)).toContain('A senha deve ter pelo menos 8 caracteres.');
   });
 
   it('prefills onboarding with the routed name and validates required data', async () => {
-    localSearchParamsState.value = { name: 'Max' };
+    localSearchParamsState.value = { name: 'Max', email: 'max@example.com' };
     const renderer = render(<OnboardingScreen />);
 
     expect(renderer.root.findAllByType(TextInput)[1]?.props.value).toBe('Max');
@@ -279,7 +281,7 @@ describe('auth screens', () => {
   });
 
   it('creates the family, surfaces errors, and delegates navigation to auth state handler', async () => {
-    localSearchParamsState.value = { name: 'Max' };
+    localSearchParamsState.value = { name: 'Max', email: 'max@example.com' };
     authMocks.createFamily
       .mockResolvedValueOnce({ error: 'Algo deu errado. Tente novamente.' })
       .mockResolvedValueOnce({ error: null });
@@ -297,19 +299,19 @@ describe('auth screens', () => {
   });
 
   it('shows confirmation alert and signs out when register user confirms exit', async () => {
-    localSearchParamsState.value = { name: 'Max' };
+    localSearchParamsState.value = { name: 'Max', email: 'max@example.com' };
     authMocks.signOut.mockResolvedValue(undefined);
     const renderer = render(<OnboardingScreen />);
 
-    // The top-bar back chip triggers the alert.
-    await pressButton(renderer, 'Voltar');
+    // The footer link triggers the alert.
+    await pressButton(renderer, 'Criar família depois');
 
     expect(alertSpy).toHaveBeenCalledTimes(1);
     expect(alertSpy).toHaveBeenCalledWith(
-      'Sair do cadastro?',
+      'Sair da criação da família?',
       expect.any(String),
       expect.arrayContaining([
-        expect.objectContaining({ text: 'Continuar', style: 'cancel' }),
+        expect.objectContaining({ text: 'Continuar criando', style: 'cancel' }),
         expect.objectContaining({ text: 'Sair', style: 'destructive' }),
       ]),
     );
@@ -322,22 +324,24 @@ describe('auth screens', () => {
     });
 
     expect(authMocks.signOut).toHaveBeenCalled();
+    expect(routerMock.replace).toHaveBeenCalledWith('/(auth)/login');
   });
 
-  it('signs out when orphan user confirms exit via back chip (no params.name)', async () => {
+  it('signs out when orphan user confirms exit via footer link (no params.name)', async () => {
     localSearchParamsState.value = {};
     authMocks.signOut.mockResolvedValue(undefined);
+    authMocks.getCurrentAuthUser.mockResolvedValue({ email: 'orphan@example.com', avatarUrl: null });
 
     const renderer = render(<OnboardingScreen />);
 
-    await pressButton(renderer, 'Voltar');
+    await pressButton(renderer, 'Criar família depois');
 
     expect(alertSpy).toHaveBeenCalledTimes(1);
     expect(alertSpy).toHaveBeenCalledWith(
       'Sair da criação da família?',
       expect.any(String),
       expect.arrayContaining([
-        expect.objectContaining({ text: 'Continuar', style: 'cancel' }),
+        expect.objectContaining({ text: 'Continuar criando', style: 'cancel' }),
         expect.objectContaining({ text: 'Sair', style: 'destructive' }),
       ]),
     );
@@ -349,5 +353,6 @@ describe('auth screens', () => {
     });
 
     expect(authMocks.signOut).toHaveBeenCalled();
+    expect(routerMock.replace).toHaveBeenCalledWith('/(auth)/login');
   });
 });
