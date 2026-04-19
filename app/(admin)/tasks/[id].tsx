@@ -28,7 +28,7 @@ import {
   isRecurring,
   type AssignmentWithChild,
 } from '@lib/tasks';
-import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
+import { getAssignmentStatusLabel, getAssignmentStatusTone } from '@lib/status';
 import { localizeRpcError } from '@lib/api-error';
 import { consumeNavigationFeedback } from '@lib/navigation-feedback';
 import { formatDate, toDateString } from '@lib/utils';
@@ -49,6 +49,7 @@ import { ListFooter } from '@/components/ui/list-footer';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { TaskActionSheet, type TaskActionState } from '@/components/tasks/task-action-sheet';
 import { TaskFormSheet } from '@/components/tasks/task-form-sheet';
+import { TaskPointsPill } from '@/components/tasks/task-points-pill';
 
 type DateLine = { label: string; date: string };
 
@@ -118,7 +119,7 @@ type AssignmentRowProps = Readonly<{
 
 const AssignmentRow = ({ assignment, colors, styles, isLast }: AssignmentRowProps) => {
   const dateLine = getAssignmentDateLine(assignment);
-  const statusColor = getAssignmentStatusColor(assignment.status, colors);
+  const statusTone = getAssignmentStatusTone(assignment.status, colors);
   const StatusIcon = getRowStatusIcon(assignment.status);
 
   return (
@@ -131,8 +132,8 @@ const AssignmentRow = ({ assignment, colors, styles, isLast }: AssignmentRowProp
         },
       ]}
     >
-      <View style={[styles.atribRowIcon, { backgroundColor: statusColor + '20' }]}>
-        <StatusIcon size={14} color={statusColor} strokeWidth={2} />
+      <View style={[styles.atribRowIcon, { backgroundColor: statusTone.background }]}>
+        <StatusIcon size={14} color={statusTone.foreground} strokeWidth={2} />
       </View>
       <View style={styles.atribRowInfo}>
         <Text style={[styles.atribRowNome, { color: colors.text.primary }]}>
@@ -145,7 +146,7 @@ const AssignmentRow = ({ assignment, colors, styles, isLast }: AssignmentRowProp
         ) : null}
       </View>
       <View style={styles.atribRowRight}>
-        <Text style={[styles.atribRowStatus, { color: statusColor }]}>
+        <Text style={[styles.atribRowStatus, { color: statusTone.foreground }]}>
           {getRowStatusLabel(assignment)}
         </Text>
         {dateLine ? (
@@ -170,7 +171,10 @@ export default function TaskDetailAdminScreen() {
   const navFeedback = consumeNavigationFeedback('admin-task-detail');
   const visibleUpdated = useTransientMessage(navFeedback?.message ?? null);
 
-  const [feedback, setFeedback] = useState<{ message: string; variant: 'success' | 'warning' | 'error' } | null>(null);
+  const [feedback, setFeedback] = useState<{
+    message: string;
+    variant: 'success' | 'warning' | 'error';
+  } | null>(null);
   const [feedbackKey, setFeedbackKey] = useState(0);
   const visibleFeedback = useTransientMessage(feedback?.message ?? null, { resetKey: feedbackKey });
   const [showAction, setShowAction] = useState(false);
@@ -332,11 +336,7 @@ export default function TaskDetailAdminScreen() {
                 <Text style={[styles.cardTitulo, { color: colors.text.primary }]}>
                   {task.titulo}
                 </Text>
-                <View style={[styles.pontosTag, { backgroundColor: colors.accent.adminBg }]}>
-                  <Text style={[styles.pontosTexto, { color: colors.accent.admin }]}>
-                    {task.pontos} pts
-                  </Text>
-                </View>
+                <TaskPointsPill points={task.pontos} size="md" />
               </View>
               {task.descricao ? (
                 <Text style={[styles.descricao, { color: colors.text.secondary }]}>
@@ -352,13 +352,9 @@ export default function TaskDetailAdminScreen() {
                 </Text>
               </View>
               {task.exige_evidencia ? (
-                <View
-                  style={[styles.tagEvidencia, { backgroundColor: colors.semantic.warningBg }]}
-                >
-                  <Camera size={12} color={colors.semantic.warningText} strokeWidth={2} />
-                  <Text
-                    style={[styles.tagEvidenciaTexto, { color: colors.semantic.warningText }]}
-                  >
+                <View style={[styles.tagEvidencia, { backgroundColor: colors.bg.muted }]}>
+                  <Camera size={12} color={colors.text.muted} strokeWidth={2} />
+                  <Text style={[styles.tagEvidenciaTexto, { color: colors.text.muted }]}>
                     Exige foto
                   </Text>
                 </View>
@@ -491,12 +487,6 @@ function makeStyles(colors: ThemeColors) {
       fontFamily: typography.family.bold,
       marginRight: spacing['2'],
     },
-    pontosTag: {
-      borderRadius: radii.md,
-      paddingVertical: spacing['1'],
-      paddingHorizontal: spacing['2'],
-    },
-    pontosTexto: { fontSize: typography.size.sm, fontFamily: typography.family.bold },
     descricao: { fontSize: typography.size.sm, marginBottom: spacing['2'], lineHeight: 20 },
     metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     meta: { fontSize: typography.size.xs },

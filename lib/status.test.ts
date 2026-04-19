@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   getAssignmentStatusLabel,
   getAssignmentStatusColor,
+  getAssignmentStatusTone,
   getRedemptionStatusLabel,
   getRedemptionStatusColor,
 } from './status';
@@ -42,6 +43,17 @@ describe('getAssignmentStatusColor', () => {
     ['rejeitada', '#FF1744'],
   ] as const)('returns correct color for %s', (status, expected) => {
     expect(getAssignmentStatusColor(status, mockColors)).toBe(expected);
+  });
+});
+
+describe('getAssignmentStatusTone', () => {
+  it.each([
+    ['pendente', { foreground: '#FFB300', background: '#FFF8E1', text: '#E65100' }],
+    ['aguardando_validacao', { foreground: '#2979FF', background: '#E3F2FD', text: '#0D47A1' }],
+    ['aprovada', { foreground: '#00C853', background: '#E8F5E9', text: '#1B5E20' }],
+    ['rejeitada', { foreground: '#FF1744', background: '#FFEBEE', text: '#B71C1C' }],
+  ] as const)('returns semantic tone for %s', (status, expected) => {
+    expect(getAssignmentStatusTone(status, mockColors)).toEqual(expected);
   });
 });
 

@@ -137,7 +137,7 @@ export function TaskActionSheet({
         accessibilityRole="button"
         accessibilityLabel="Fechar menu"
       >
-        <Pressable style={[styles.sheet, { backgroundColor: colors.bg.surface }]} onPress={() => {}}>
+        <Pressable style={[styles.sheet, { backgroundColor: colors.bg.surface }]} onPress={() => { }}>
           <Text style={[styles.title, { color: colors.text.primary }]} numberOfLines={2}>
             {taskTitle}
           </Text>

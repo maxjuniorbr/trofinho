@@ -16,7 +16,7 @@ import {
   formatWeekdays,
   type ChildAssignment,
 } from '@lib/tasks';
-import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
+import { getAssignmentStatusLabel, getAssignmentStatusTone } from '@lib/status';
 import { formatDate } from '@lib/utils';
 import {
   useChildAssignment,
@@ -28,6 +28,7 @@ import {
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
+import { TaskPointsPill } from '@/components/tasks/task-points-pill';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { StickyFooterScreen } from '@/components/ui/sticky-footer-screen';
@@ -144,9 +145,7 @@ function PendingFooter({
   const label = requiresEvidence ? 'Tirar foto e concluir' : 'Concluir tarefa';
   return (
     <>
-      {completionReason ? (
-        <InlineMessage message={completionReason} variant="warning" />
-      ) : null}
+      {completionReason ? <InlineMessage message={completionReason} variant="warning" /> : null}
       {!completionReason && completionError ? (
         <InlineMessage message={completionError} variant="error" />
       ) : null}
@@ -185,7 +184,7 @@ function AwaitingFooter({
     <>
       <View style={styles.awaitingBox}>
         <View style={styles.statusRow}>
-          <Clock size={14} color={colors.accent.filho} strokeWidth={2} />
+          <Clock size={14} color={colors.semantic.info} strokeWidth={2} />
           <Text style={styles.awaitingText}>Aguardando validação do responsável</Text>
         </View>
       </View>
@@ -564,6 +563,7 @@ export default function ChildTaskDetailScreen() {
   }
 
   const task = assignment.tarefas;
+  const statusTone = getAssignmentStatusTone(assignment.status, colors);
   const completionState = getAssignmentCompletionState(assignment, task);
   const cancellationState = getAssignmentCancellationState(assignment, task);
   const retryState = getAssignmentRetryState(assignment);
@@ -605,13 +605,8 @@ export default function ChildTaskDetailScreen() {
         footer={footer}
       >
         <StatusBar style={colors.statusBar} />
-        <View
-          style={[
-            styles.statusBadge,
-            { backgroundColor: getAssignmentStatusColor(assignment.status, colors) },
-          ]}
-        >
-          <Text style={[styles.statusBadgeText, { color: colors.text.inverse }]}>
+        <View style={[styles.statusBadge, { backgroundColor: statusTone.background }]}>
+          <Text style={[styles.statusBadgeText, { color: statusTone.text }]}>
             {getAssignmentStatusLabel(assignment.status)}
           </Text>
         </View>
@@ -619,9 +614,7 @@ export default function ChildTaskDetailScreen() {
         {validationLine ? <Text style={styles.dateLine}>{validationLine}</Text> : null}
 
         {assignment.status === 'aguardando_validacao' && assignment.concluida_em ? (
-          <Text style={styles.dateLine}>
-            Enviada em {formatDate(assignment.concluida_em)}
-          </Text>
+          <Text style={styles.dateLine}>Enviada em {formatDate(assignment.concluida_em)}</Text>
         ) : null}
 
         {visibleFeedback ? (
@@ -639,9 +632,7 @@ export default function ChildTaskDetailScreen() {
         <View style={styles.card}>
           <View style={styles.cardTop}>
             <Text style={styles.cardTitle}>{task.titulo}</Text>
-            <View style={styles.pointsTag}>
-              <Text style={styles.pointsText}>{getAssignmentPoints(assignment)} pts</Text>
-            </View>
+            <TaskPointsPill points={getAssignmentPoints(assignment)} size="md" />
           </View>
           {task.descricao ? <Text style={styles.description}>{task.descricao}</Text> : null}
           <View style={styles.metaRow}>
@@ -653,7 +644,7 @@ export default function ChildTaskDetailScreen() {
           {task.exige_evidencia ? (
             <View style={styles.evidenceTag}>
               <View style={styles.evidenceTagRow}>
-                <Camera size={12} color={colors.semantic.warningText} strokeWidth={2} />
+                <Camera size={12} color={colors.text.muted} strokeWidth={2} />
                 <Text style={styles.evidenceTagText}>Enviar foto como prova</Text>
               </View>
             </View>
@@ -741,17 +732,6 @@ function makeStyles(colors: ThemeColors) {
       color: colors.text.primary,
       marginRight: spacing['2'],
     },
-    pointsTag: {
-      backgroundColor: colors.accent.filhoBg,
-      borderRadius: radii.md,
-      paddingVertical: spacing['1'],
-      paddingHorizontal: spacing['2'],
-    },
-    pointsText: {
-      fontSize: typography.size.sm,
-      fontFamily: typography.family.bold,
-      color: colors.accent.filho,
-    },
     description: {
       fontSize: typography.size.sm,
       color: colors.text.secondary,
@@ -761,7 +741,7 @@ function makeStyles(colors: ThemeColors) {
     metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     meta: { fontSize: typography.size.xs, color: colors.text.muted },
     evidenceTag: {
-      backgroundColor: colors.semantic.warningBg,
+      backgroundColor: colors.bg.muted,
       borderRadius: radii.sm,
       paddingVertical: spacing['1'],
       paddingHorizontal: spacing['2'],
@@ -771,7 +751,7 @@ function makeStyles(colors: ThemeColors) {
     evidenceTagRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     evidenceTagText: {
       fontSize: typography.size.xs,
-      color: colors.semantic.warningText,
+      color: colors.text.muted,
       fontFamily: typography.family.semibold,
     },
     evidenceBox: { marginBottom: spacing['4'] },
@@ -839,7 +819,7 @@ function makeStyles(colors: ThemeColors) {
     footerMessage: { marginTop: spacing['2'] },
     statusRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1.5'] },
     awaitingBox: {
-      backgroundColor: colors.accent.filhoBg,
+      backgroundColor: colors.semantic.infoBg,
       borderRadius: radii.xl,
       padding: spacing['3'],
       alignItems: 'center',
@@ -847,7 +827,7 @@ function makeStyles(colors: ThemeColors) {
     },
     awaitingText: {
       fontSize: typography.size.sm,
-      color: colors.accent.filho,
+      color: colors.semantic.infoText,
       fontFamily: typography.family.semibold,
     },
     approvedBox: {

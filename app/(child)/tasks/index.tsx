@@ -6,6 +6,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { RefreshCw, Camera } from 'lucide-react-native';
 import { HomeFooterBar } from '@/components/ui/home-footer-bar';
+import { TaskPointsPill } from '@/components/tasks/task-points-pill';
 import { useChildFooterItems } from '@/hooks/use-footer-items';
 import {
   getAssignmentPoints,
@@ -16,7 +17,7 @@ import {
   type AssignmentStatus,
 } from '@lib/tasks';
 import { formatDate, toDateString } from '@lib/utils';
-import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
+import { getAssignmentStatusLabel, getAssignmentStatusTone } from '@lib/status';
 import { useChildAssignments, useDiscardRejection } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
@@ -129,11 +130,13 @@ function TaskCardBadges({
   colors: ThemeColors;
   styles: ReturnType<typeof makeStyles>;
 }>) {
+  const statusTone = getAssignmentStatusTone(item.status, colors);
+
   return (
     <>
       {isInactive ? (
-        <View style={styles.inactiveTag}>
-          <Text style={styles.inactiveTagText}>Desativada</Text>
+        <View style={[styles.inactiveTag, { backgroundColor: colors.bg.muted }]}>
+          <Text style={[styles.inactiveTagText, { color: colors.text.muted }]}>Desativada</Text>
         </View>
       ) : null}
       <View style={styles.freqRow}>
@@ -155,15 +158,8 @@ function TaskCardBadges({
         </View>
       ) : null}
       {filter === 'historico' ? (
-        <View
-          style={[
-            styles.statusTag,
-            { backgroundColor: getAssignmentStatusColor(item.status, colors) + '20' },
-          ]}
-        >
-          <Text
-            style={[styles.statusText, { color: getAssignmentStatusColor(item.status, colors) }]}
-          >
+        <View style={[styles.statusTag, { backgroundColor: statusTone.background }]}>
+          <Text style={[styles.statusText, { color: statusTone.text }]}>
             {getAssignmentStatusLabel(item.status)}
           </Text>
         </View>
@@ -232,9 +228,7 @@ function TaskCard({ item, filter, colors, styles, router }: Readonly<TaskCardPro
         <Text style={styles.cardTitle} numberOfLines={2}>
           {item.tarefas.titulo}
         </Text>
-        <View style={styles.pointsTag}>
-          <Text style={styles.pointsText}>{getAssignmentPoints(item)} pts</Text>
-        </View>
+        <TaskPointsPill points={getAssignmentPoints(item)} />
       </View>
       <TaskCardBadges
         item={item}
@@ -397,20 +391,8 @@ function makeStyles(colors: ThemeColors) {
       color: colors.text.primary,
       marginRight: spacing['2'],
     },
-    pointsTag: {
-      backgroundColor: colors.brand.subtle,
-      borderRadius: radii.full,
-      paddingVertical: spacing['1'],
-      paddingHorizontal: spacing['2'],
-    },
-    pointsText: {
-      fontSize: typography.size.xs,
-      fontFamily: typography.family.bold,
-      color: colors.brand.dim,
-    },
     inactiveTag: {
       alignSelf: 'flex-start',
-      backgroundColor: colors.semantic.warningBg,
       borderRadius: radii.sm,
       paddingVertical: spacing['1'],
       paddingHorizontal: spacing['2'],
@@ -419,7 +401,6 @@ function makeStyles(colors: ThemeColors) {
     inactiveTagText: {
       fontSize: typography.size.xs,
       fontFamily: typography.family.semibold,
-      color: colors.semantic.warningText,
     },
     freqRow: {
       flexDirection: 'row',

@@ -19,14 +19,43 @@ export function getAssignmentStatusColor(
   status: AssignmentStatus,
   colors: Pick<ThemeColors, 'semantic'>,
 ): string {
-  const map: Record<AssignmentStatus, string> = {
-    pendente: colors.semantic.warning,
-    aguardando_validacao: colors.semantic.info,
-    aprovada: colors.semantic.success,
-    rejeitada: colors.semantic.error,
-  };
+  return getAssignmentStatusTone(status, colors).foreground;
+}
 
-  return map[status];
+export function getAssignmentStatusTone(
+  status: AssignmentStatus,
+  colors: Pick<ThemeColors, 'semantic'>,
+): {
+  foreground: string;
+  background: string;
+  text: string;
+} {
+  switch (status) {
+    case 'pendente':
+      return {
+        foreground: colors.semantic.warning,
+        background: colors.semantic.warningBg,
+        text: colors.semantic.warningText,
+      };
+    case 'aguardando_validacao':
+      return {
+        foreground: colors.semantic.info,
+        background: colors.semantic.infoBg,
+        text: colors.semantic.infoText,
+      };
+    case 'aprovada':
+      return {
+        foreground: colors.semantic.success,
+        background: colors.semantic.successBg,
+        text: colors.semantic.successText,
+      };
+    case 'rejeitada':
+      return {
+        foreground: colors.semantic.error,
+        background: colors.semantic.errorBg,
+        text: colors.semantic.errorText,
+      };
+  }
 }
 
 export function getRedemptionStatusLabel(status: RedemptionStatus): string {

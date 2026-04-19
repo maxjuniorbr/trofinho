@@ -309,8 +309,7 @@ export const useUnarchiveTask = () => {
 export const useDiscardRejection = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (assignmentId: string) =>
-      mutationFnAdapter(() => discardRejection(assignmentId))(),
+    mutationFn: (assignmentId: string) => mutationFnAdapter(() => discardRejection(assignmentId))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
     },

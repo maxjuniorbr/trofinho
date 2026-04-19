@@ -7,11 +7,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { HeaderIconButton } from '@/components/ui/screen-header';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { Input } from '@/components/ui/input';
-import {
-  useApproveAssignment,
-  usePendingValidations,
-  useRejectAssignment,
-} from '@/hooks/queries';
+import { TaskPointsPill } from '@/components/tasks/task-points-pill';
+import { useApproveAssignment, usePendingValidations, useRejectAssignment } from '@/hooks/queries';
 import type { PendingValidationItem } from '@lib/tasks';
 import { localizeRpcError } from '@lib/api-error';
 import { useTheme } from '@/context/theme-context';
@@ -186,11 +183,7 @@ export function ReviewStack({ visible, onClose }: ReviewStackProps) {
             </Text>
 
             <View style={styles.metaRow}>
-              <View style={[styles.pointsTag, { backgroundColor: colors.accent.adminBg }]}>
-                <Text style={[styles.pointsText, { color: colors.accent.admin }]}>
-                  {current.pontos_snapshot} pts
-                </Text>
-              </View>
+              <TaskPointsPill points={current.pontos_snapshot} />
               {current.tarefas.exige_evidencia ? (
                 <View style={[styles.tag, { backgroundColor: colors.bg.muted }]}>
                   <Camera size={12} color={colors.text.muted} strokeWidth={2} />
@@ -298,7 +291,7 @@ export function ReviewStack({ visible, onClose }: ReviewStackProps) {
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
       <View style={[styles.screen, { backgroundColor: colors.bg.canvas }]}>
-        {(!current || isLoading || error) ? renderHeader('') : null}
+        {!current || isLoading || error ? renderHeader('') : null}
         {renderBody()}
       </View>
     </Modal>
@@ -375,12 +368,6 @@ function makeStyles(colors: ThemeColors) {
       fontFamily: typography.family.bold,
     },
     metaRow: { flexDirection: 'row', gap: spacing['2'], flexWrap: 'wrap' },
-    pointsTag: {
-      borderRadius: radii.md,
-      paddingHorizontal: spacing['2'],
-      paddingVertical: spacing['1'],
-    },
-    pointsText: { fontSize: typography.size.xs, fontFamily: typography.family.bold },
     tag: {
       flexDirection: 'row',
       alignItems: 'center',

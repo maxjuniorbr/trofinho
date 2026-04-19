@@ -24,6 +24,7 @@ import { SegmentedBar, type SegmentOption } from '@/components/ui/segmented-bar'
 import { ReviewStack } from '@/components/tasks/review-stack';
 import { TaskActionSheet, type TaskActionState } from '@/components/tasks/task-action-sheet';
 import { TaskFormSheet } from '@/components/tasks/task-form-sheet';
+import { TaskPointsPill } from '@/components/tasks/task-points-pill';
 import { useAdminFooterItems } from '@/hooks/use-footer-items';
 import {
   useAdminTasks,
@@ -49,7 +50,7 @@ import { consumeNavigationFeedback, type NavigationFeedback } from '@lib/navigat
 import { formatDate } from '@lib/utils';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, shadows, spacing, typography } from '@/constants/theme';
+import { radii, shadows, spacing, typography, withAlpha } from '@/constants/theme';
 
 type TabKey = 'ativas' | 'feitas' | 'arquivo';
 
@@ -87,7 +88,7 @@ const AdminTaskCard = ({
         shadows.card,
         {
           backgroundColor: colors.bg.surface,
-          borderColor: aguardando > 0 ? colors.accent.adminDim : colors.border.subtle,
+          borderColor: aguardando > 0 ? withAlpha(colors.semantic.info, 0.4) : colors.border.subtle,
           opacity: resolveOpacity(pressed),
         },
       ]}
@@ -101,11 +102,9 @@ const AdminTaskCard = ({
             {item.titulo}
           </Text>
           {isInactive && !isArchived ? (
-            <View style={[styles.statusPill, { backgroundColor: colors.semantic.warningBg }]}>
-              <PauseCircle size={11} color={colors.semantic.warningText} strokeWidth={2} />
-              <Text style={[styles.statusPillText, { color: colors.semantic.warningText }]}>
-                Pausada
-              </Text>
+            <View style={[styles.statusPill, { backgroundColor: colors.bg.muted }]}>
+              <PauseCircle size={11} color={colors.text.muted} strokeWidth={2} />
+              <Text style={[styles.statusPillText, { color: colors.text.muted }]}>Pausada</Text>
             </View>
           ) : null}
           {isArchived ? (
@@ -115,9 +114,7 @@ const AdminTaskCard = ({
             </View>
           ) : null}
         </View>
-        <View style={[styles.pontosTag, { backgroundColor: colors.brand.subtle }]}>
-          <Text style={[styles.pontosTexto, { color: colors.brand.dim }]}>{item.pontos} pts</Text>
-        </View>
+        <TaskPointsPill points={item.pontos} />
       </View>
       <View style={styles.freqRow}>
         <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
@@ -173,9 +170,7 @@ const ApprovedFeedRow = ({ item, colors, styles }: ApprovedFeedRowProps) => (
         {item.filho_nome} · {formatDate(item.validada_em)}
       </Text>
     </View>
-    <View style={[styles.feedPoints, { backgroundColor: colors.accent.adminBg }]}>
-      <Text style={[styles.feedPointsText, { color: colors.accent.admin }]}>+{item.pontos}</Text>
-    </View>
+    <TaskPointsPill points={item.pontos} prefix="+" suffix="" />
   </View>
 );
 
@@ -460,9 +455,7 @@ export default function AdminTasksScreen() {
         onEndReachedThreshold={0.3}
         ListHeaderComponent={<View style={{ height: spacing['3'] }} />}
         ListFooterComponent={<ListFooter loading={approvedFeed.isFetchingNextPage} />}
-        renderItem={({ item }) => (
-          <ApprovedFeedRow item={item} colors={colors} styles={styles} />
-        )}
+        renderItem={({ item }) => <ApprovedFeedRow item={item} colors={colors} styles={styles} />}
       />
     );
   };
@@ -475,13 +468,11 @@ export default function AdminTasksScreen() {
 
   const actionState: TaskActionState | null = actionTask
     ? {
-      isArchived: actionTask.arquivada_em !== null,
-      isInactive: actionTask.ativo === false,
-      hasPendingReview: actionTask.atribuicoes.some(
-        (a) => a.status === 'aguardando_validacao',
-      ),
-      canEdit: actionTask.arquivada_em === null && actionTask.ativo !== false,
-    }
+        isArchived: actionTask.arquivada_em !== null,
+        isInactive: actionTask.ativo === false,
+        hasPendingReview: actionTask.atribuicoes.some((a) => a.status === 'aguardando_validacao'),
+        canEdit: actionTask.arquivada_em === null && actionTask.ativo !== false,
+      }
     : null;
 
   return (
@@ -506,8 +497,8 @@ export default function AdminTasksScreen() {
           style={({ pressed }) => [
             styles.banner,
             {
-              backgroundColor: colors.accent.adminBg,
-              borderColor: colors.accent.adminDim,
+              backgroundColor: colors.semantic.infoBg,
+              borderColor: withAlpha(colors.semantic.info, 0.3),
               opacity: pressed ? 0.9 : 1,
             },
           ]}
@@ -515,8 +506,8 @@ export default function AdminTasksScreen() {
           accessibilityRole="button"
           accessibilityLabel={`Revisar ${pendingCount} entregas pendentes`}
         >
-          <View style={[styles.bannerIcon, { backgroundColor: colors.accent.admin + '33' }]}>
-            <Eye size={16} color={colors.accent.admin} strokeWidth={2} />
+          <View style={[styles.bannerIcon, { backgroundColor: colors.bg.surface }]}>
+            <Eye size={16} color={colors.semantic.info} strokeWidth={2} />
           </View>
           <View style={styles.bannerText}>
             <Text style={[styles.bannerTitle, { color: colors.text.primary }]}>
@@ -528,7 +519,7 @@ export default function AdminTasksScreen() {
               Toque para revisar uma a uma
             </Text>
           </View>
-          <Text style={[styles.bannerCta, { color: colors.accent.admin }]}>Revisar →</Text>
+          <Text style={[styles.bannerCta, { color: colors.semantic.info }]}>Revisar →</Text>
         </Pressable>
       ) : null}
 
@@ -614,12 +605,6 @@ function makeStyles(colors: ThemeColors) {
       alignSelf: 'flex-start',
     },
     statusPillText: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
-    pontosTag: {
-      borderRadius: radii.full,
-      paddingHorizontal: spacing['2'],
-      paddingVertical: spacing['1'],
-    },
-    pontosTexto: { fontSize: typography.size.xs, fontFamily: typography.family.bold },
     freqRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -681,11 +666,5 @@ function makeStyles(colors: ThemeColors) {
     feedInfo: { flex: 1 },
     feedTitle: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
     feedSub: { fontSize: typography.size.xs, marginTop: spacing['0.5'] },
-    feedPoints: {
-      borderRadius: radii.md,
-      paddingHorizontal: spacing['2'],
-      paddingVertical: spacing['1'],
-    },
-    feedPointsText: { fontSize: typography.size.xs, fontFamily: typography.family.bold },
   });
 }
