@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-compat';
-import { Pressable, Text, TextInput } from 'react-native';
+import { Alert, Pressable, Text, TextInput } from 'react-native';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import LoginScreen from '../../app/(auth)/login';
@@ -99,6 +99,8 @@ function getButton(renderer: ReactTestRenderer, label: string) {
 }
 
 describe('auth screens', () => {
+  const alertSpy = vi.mocked(Alert.alert);
+
   beforeEach(() => {
     routerMock.back.mockReset();
     routerMock.push.mockReset();
@@ -108,6 +110,8 @@ describe('auth screens', () => {
     authMocks.signIn.mockReset();
     authMocks.signOut.mockReset();
     authMocks.signUp.mockReset();
+
+    alertSpy.mockReset();
 
     localSearchParamsState.value = {};
   });
@@ -198,7 +202,6 @@ describe('auth screens', () => {
     changeInput(renderer, 0, 'Max');
     changeInput(renderer, 1, 'max@example.com');
     changeInput(renderer, 2, '12345678');
-    changeInput(renderer, 3, '12345678');
 
     await pressButton(renderer, 'Criar conta');
 
@@ -206,22 +209,24 @@ describe('auth screens', () => {
     expect(screenText(renderer)).toContain('Este e-mail já está cadastrado.');
   });
 
-  it('navigates to onboarding after registration and supports going back', async () => {
+  it('navigates to onboarding after registration', async () => {
     authMocks.signUp.mockResolvedValue({ error: null });
 
     const renderer = render(<RegisterScreen />);
     changeInput(renderer, 0, 'Max');
     changeInput(renderer, 1, 'max@example.com');
     changeInput(renderer, 2, '12345678');
-    changeInput(renderer, 3, '12345678');
 
     await pressButton(renderer, 'Criar conta');
     expect(routerMock.replace).toHaveBeenCalledWith({
       pathname: '/(auth)/onboarding',
       params: { name: 'Max' },
     });
+  });
 
-    await pressButton(renderer, 'Voltar ao login');
+  it('navigates back to login via back chip on register', async () => {
+    const renderer = render(<RegisterScreen />);
+    await pressButton(renderer, 'Voltar');
     expect(routerMock.back).toHaveBeenCalled();
   });
 
@@ -234,8 +239,6 @@ describe('auth screens', () => {
     blurInput(renderer, 1);
     focusInput(renderer, 2);
     blurInput(renderer, 2);
-    focusInput(renderer, 3);
-    blurInput(renderer, 3);
 
     changeInput(renderer, 0, 'Max');
     changeInput(renderer, 1, 'email-invalido');
@@ -249,14 +252,6 @@ describe('auth screens', () => {
     changeInput(renderer, 2, '123');
     await pressButton(renderer, 'Criar conta');
     expect(screenText(renderer)).toContain('A senha deve ter pelo menos 8 caracteres.');
-
-    changeInput(renderer, 2, '12345678');
-    changeInput(renderer, 3, '87654321');
-    await pressButton(renderer, 'Criar conta');
-    expect(screenText(renderer)).toContain('As senhas não coincidem.');
-
-    const backButton = getButton(renderer, 'Voltar ao login');
-    expect(backButton.props.style({ pressed: true })[1].opacity).toBe(0.65);
   });
 
   it('prefills onboarding with the routed name and validates required data', async () => {
@@ -281,9 +276,6 @@ describe('auth screens', () => {
     changeInput(renderer, 0, 'Familia Silva');
     await pressButton(renderer, 'Criar família');
     expect(screenText(renderer)).toContain('Informe seu nome.');
-
-    const backButton = getButton(renderer, 'Voltar ao login');
-    expect(backButton.props.style({ pressed: true })[1].opacity).toBe(0.65);
   });
 
   it('creates the family, surfaces errors, and delegates navigation to auth state handler', async () => {
@@ -291,7 +283,6 @@ describe('auth screens', () => {
     authMocks.createFamily
       .mockResolvedValueOnce({ error: 'Algo deu errado. Tente novamente.' })
       .mockResolvedValueOnce({ error: null });
-    authMocks.signOut.mockResolvedValue(undefined);
 
     const renderer = render(<OnboardingScreen />);
     changeInput(renderer, 0, 'Familia Silva');
@@ -303,10 +294,60 @@ describe('auth screens', () => {
     // layout auth state handler navigates to /(admin)/.
     await pressButton(renderer, 'Criar família');
     expect(routerMock.replace).not.toHaveBeenCalled();
+  });
 
-    // Logout delegates to auth state handler too.
-    await pressButton(renderer, 'Voltar ao login');
+  it('shows confirmation alert and signs out when register user confirms exit', async () => {
+    localSearchParamsState.value = { name: 'Max' };
+    authMocks.signOut.mockResolvedValue(undefined);
+    const renderer = render(<OnboardingScreen />);
+
+    // The top-bar back chip triggers the alert.
+    await pressButton(renderer, 'Voltar');
+
+    expect(alertSpy).toHaveBeenCalledTimes(1);
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Sair do cadastro?',
+      expect.any(String),
+      expect.arrayContaining([
+        expect.objectContaining({ text: 'Continuar', style: 'cancel' }),
+        expect.objectContaining({ text: 'Sair', style: 'destructive' }),
+      ]),
+    );
+
+    // Confirm exit via the alert's destructive button.
+    const buttons = alertSpy.mock.calls[0][2] as { text: string; onPress?: () => void }[];
+    const sairButton = buttons.find((b) => b.text === 'Sair');
+    await act(async () => {
+      await sairButton!.onPress!();
+    });
+
     expect(authMocks.signOut).toHaveBeenCalled();
-    expect(routerMock.replace).not.toHaveBeenCalled();
+  });
+
+  it('signs out when orphan user confirms exit via back chip (no params.name)', async () => {
+    localSearchParamsState.value = {};
+    authMocks.signOut.mockResolvedValue(undefined);
+
+    const renderer = render(<OnboardingScreen />);
+
+    await pressButton(renderer, 'Voltar');
+
+    expect(alertSpy).toHaveBeenCalledTimes(1);
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Sair da criação da família?',
+      expect.any(String),
+      expect.arrayContaining([
+        expect.objectContaining({ text: 'Continuar', style: 'cancel' }),
+        expect.objectContaining({ text: 'Sair', style: 'destructive' }),
+      ]),
+    );
+
+    const buttons = alertSpy.mock.calls[0][2] as { text: string; onPress?: () => void }[];
+    const sairButton = buttons.find((b) => b.text === 'Sair');
+    await act(async () => {
+      await sairButton!.onPress!();
+    });
+
+    expect(authMocks.signOut).toHaveBeenCalled();
   });
 });

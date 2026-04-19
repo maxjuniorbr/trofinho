@@ -358,4 +358,34 @@ describe('createAuthStateHandler', () => {
       level: 'error',
     });
   });
+
+  it('produces orphan profile when getProfile returns null but session has user', async () => {
+    getProfile.mockResolvedValue(null);
+
+    const handler = createAuthStateHandler({
+      getProfile,
+      onProfileChange,
+      onReadyChange,
+    });
+
+    handler.handleAuthStateChange('SIGNED_IN', {
+      access_token: 'token',
+      user: { id: 'orphan-user-1' },
+    } as never);
+    await vi.runAllTimersAsync();
+
+    expect(onProfileChange).toHaveBeenCalledWith({
+      id: 'orphan-user-1',
+      familia_id: '',
+      papel: 'admin',
+      nome: '',
+      avatarUrl: null,
+    });
+    expect(onReadyChange).toHaveBeenCalledWith(true);
+    expect(Sentry.addBreadcrumb).toHaveBeenCalledWith({
+      category: 'auth',
+      message: 'orphan_user_detected',
+      level: 'warning',
+    });
+  });
 });

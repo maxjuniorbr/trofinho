@@ -49,9 +49,13 @@ describe('resolveNavDecision', () => {
       expect(resolveNavDecision(true, null, [])).toBe('/(auth)/login');
     });
 
-    it('returns null when already in auth group', () => {
+    it('returns null when already in auth group (login or register)', () => {
       expect(resolveNavDecision(true, null, ['(auth)', 'login'])).toBeNull();
       expect(resolveNavDecision(true, null, ['(auth)', 'register'])).toBeNull();
+    });
+
+    it('redirects to login when signed out on onboarding', () => {
+      expect(resolveNavDecision(true, null, ['(auth)', 'onboarding'])).toBe('/(auth)/login');
     });
   });
 

@@ -74,6 +74,28 @@ export function createAuthStateHandler({
 
       getProfile()
         .then((profile) => {
+          // Orphan user: valid auth session but no `usuarios` row (e.g. user
+          // signed up then abandoned onboarding). Produce a minimal profile
+          // with empty familia_id so the nav guard redirects to onboarding
+          // instead of login, giving the user a chance to complete setup.
+          if (!profile && session?.user?.id) {
+            Sentry.addBreadcrumb({
+              category: 'auth',
+              message: 'orphan_user_detected',
+              level: 'warning',
+            });
+            applyResolvedProfile(
+              {
+                id: session.user.id,
+                familia_id: '',
+                papel: 'admin',
+                nome: '',
+                avatarUrl: null,
+              },
+              currentRequestId,
+            );
+            return;
+          }
           applyResolvedProfile(profile, currentRequestId);
         })
         .catch(() => {

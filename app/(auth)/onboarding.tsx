@@ -1,11 +1,13 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useState, useMemo } from 'react';
+import { Home, User } from 'lucide-react-native';
 import { createFamily, signOut } from '@lib/auth';
-import { useTheme } from '@/context/theme-context';
-import { spacing, typography } from '@/constants/theme';
-import { AuthShell } from '@/components/auth/auth-shell';
-import { AuthTextField } from '@/components/auth/auth-text-field';
+import { heroPalette, spacing, typography } from '@/constants/theme';
+import { AuthHeroScreen } from '@/components/auth/auth-hero-screen';
+import { AuthDarkField } from '@/components/auth/auth-dark-field';
+import { BrandLogo } from '@/components/auth/brand-logo';
+import { StepIndicator } from '@/components/auth/step-indicator';
 import { Button } from '@/components/ui/button';
 import { FormFooter } from '@/components/ui/form-footer';
 
@@ -13,19 +15,19 @@ type OnboardingField = 'familyName' | 'adminName';
 
 export default function OnboardingScreen() {
   const params = useLocalSearchParams<{ name?: string }>();
-  const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(), []);
 
   const [familyName, setFamilyName] = useState('');
   const [adminName, setAdminName] = useState(params.name ?? '');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loggingOut, setLoggingOut] = useState(false);
   const [focusedField, setFocusedField] = useState<OnboardingField | null>(null);
   const shouldShowError = Boolean(error);
-  const isBusy = loading || loggingOut;
   const submitLabel = loading ? 'Criando família…' : 'Criar família';
-  const backLabel = loggingOut ? 'Saindo…' : 'Voltar para o login';
+
+  // When arriving from register, params.name is always set (required field).
+  // Absence means the nav guard redirected an orphan user after login.
+  const isFromRegister = Boolean(params.name);
 
   const validate = (): string | null => {
     if (!familyName.trim()) return 'Informe o nome da família.';
@@ -53,93 +55,135 @@ export default function OnboardingScreen() {
     // Keep the button in loading state until the redirect happens.
   };
 
-  const handleBack = async () => {
-    setLoggingOut(true);
+  const confirmAndLeave = async () => {
     await signOut();
     // Navigation is handled by the root layout auth state handler.
   };
 
-  return (
-    <AuthShell
-      headerTitle="Configurar Família"
-      onBack={handleBack}
-      backLabel="Login"
-      title="Criar sua família"
-      subtitle="Você será o administrador e poderá convidar os filhos depois."
-    >
-      <AuthTextField
-        label="Nome da família"
-        focused={focusedField === 'familyName'}
-        placeholder="Ex: Família Silva"
-        value={familyName}
-        onChangeText={(value) => {
-          setFamilyName(value);
-          setError('');
-        }}
-        onFocus={() => setFocusedField('familyName')}
-        onBlur={() => setFocusedField(null)}
-        autoCapitalize="words"
-        maxLength={60}
-        editable={!isBusy}
-        accessibilityLabel="Campo de nome da família"
-      />
+  const handleBack = () => {
+    const title = isFromRegister
+      ? 'Sair do cadastro?'
+      : 'Sair da criação da família?';
+    const message = isFromRegister
+      ? 'Sua conta já foi criada. Você poderá fazer login e criar a família depois.'
+      : 'Você pode criar sua família na próxima vez que entrar.';
 
-      <AuthTextField
-        label="Seu nome"
-        focused={focusedField === 'adminName'}
-        placeholder="Como quer ser chamado"
-        value={adminName}
-        onChangeText={(value) => {
-          setAdminName(value);
-          setError('');
-        }}
-        onFocus={() => setFocusedField('adminName')}
-        onBlur={() => setFocusedField(null)}
-        autoCapitalize="words"
-        maxLength={60}
-        editable={!isBusy}
-        accessibilityLabel="Campo de nome do administrador"
-      />
-      <FormFooter message={shouldShowError ? error : null}>
-        <Button
-          label="Criar família"
-          loadingLabel="Criando família…"
-          loading={loading}
-          onPress={handleCreateFamily}
-          size="lg"
-          accessibilityLabel={submitLabel}
-          accessibilityState={{ busy: loading }}
+    Alert.alert(title, message, [
+      { text: 'Continuar', style: 'cancel' },
+      { text: 'Sair', style: 'destructive', onPress: confirmAndLeave },
+    ]);
+  };
+
+  return (
+    <AuthHeroScreen
+      topBarCenter={<BrandLogo size="sm" variant="onDark" withText />}
+      onBack={handleBack}
+      backAccessibilityLabel="Voltar"
+    >
+      {isFromRegister ? <StepIndicator currentStep={2} labels={['Conta', 'Família']} /> : null}
+
+      <View style={styles.header}>
+        <Text style={styles.kicker} allowFontScaling={false}>
+          {isFromRegister ? 'Conta criada ✓' : 'Configurar família'}
+        </Text>
+        <Text style={styles.title} allowFontScaling={false}>
+          Criar sua família
+        </Text>
+        <Text style={styles.subtitle}>
+          {isFromRegister
+            ? 'Agora configure sua família para começar a usar o app.'
+            : 'Você será o administrador e poderá convidar os filhos depois.'}
+        </Text>
+      </View>
+
+      <View style={styles.form}>
+        <AuthDarkField
+          label="Nome da família"
+          focused={focusedField === 'familyName'}
+          placeholder="Ex: Família Silva"
+          value={familyName}
+          onChangeText={(value) => {
+            setFamilyName(value);
+            setError('');
+          }}
+          onFocus={() => setFocusedField('familyName')}
+          onBlur={() => setFocusedField(null)}
+          autoCapitalize="words"
+          maxLength={60}
+          editable={!loading}
+          accessibilityLabel="Campo de nome da família"
+          leftIcon={Home}
         />
 
-        <Pressable
-          style={({ pressed }) => {
-            const opacity = isBusy ? 0.55 : 1;
-
-            return [styles.secondaryButton, { opacity: !isBusy && pressed ? 0.65 : opacity }];
+        <AuthDarkField
+          label="Seu nome"
+          focused={focusedField === 'adminName'}
+          placeholder="Como quer ser chamado"
+          value={adminName}
+          onChangeText={(value) => {
+            setAdminName(value);
+            setError('');
           }}
-          onPress={handleBack}
-          disabled={isBusy}
-          accessibilityRole="button"
-          accessibilityLabel="Voltar ao login"
-        >
-          <Text style={[styles.secondaryButtonText, { color: colors.text.secondary }]}>
-            {backLabel}
-          </Text>
-        </Pressable>
-      </FormFooter>
-    </AuthShell>
+          onFocus={() => setFocusedField('adminName')}
+          onBlur={() => setFocusedField(null)}
+          autoCapitalize="words"
+          maxLength={60}
+          editable={!loading}
+          accessibilityLabel="Campo de nome do administrador"
+          leftIcon={User}
+        />
+
+        <View style={styles.formActions}>
+          <FormFooter message={shouldShowError ? error : null} includeSafeBottom={false}>
+            <Button
+              label="Criar família"
+              loadingLabel="Criando família…"
+              loading={loading}
+              onPress={handleCreateFamily}
+              size="lg"
+              accessibilityLabel={submitLabel}
+              accessibilityState={{ busy: loading }}
+            />
+          </FormFooter>
+        </View>
+      </View>
+    </AuthHeroScreen>
   );
 }
 
 function makeStyles() {
   return StyleSheet.create({
-    secondaryButton: {
-      paddingVertical: spacing['3'],
-      alignItems: 'center',
+    header: {
+      marginTop: spacing['6'],
     },
-    secondaryButtonText: {
+    kicker: {
+      fontFamily: typography.family.bold,
+      fontSize: typography.size.xxs,
+      letterSpacing: 1.4,
+      textTransform: 'uppercase',
+      color: 'rgba(250, 193, 20, 0.90)',
+    },
+    title: {
+      marginTop: spacing['2'],
+      fontFamily: typography.family.black,
+      fontSize: typography.size['3xl'],
+      lineHeight: typography.lineHeight['3xl'],
+      color: heroPalette.textOnNavy,
+      letterSpacing: -0.4,
+    },
+    subtitle: {
+      marginTop: spacing['2'],
       fontFamily: typography.family.medium,
       fontSize: typography.size.sm,
+      lineHeight: typography.lineHeight.sm,
+      color: heroPalette.textOnNavyMuted,
+    },
+    form: {
+      marginTop: spacing['6'],
+      flex: 1,
+    },
+    formActions: {
+      marginTop: spacing['4'],
     },
   });
 }

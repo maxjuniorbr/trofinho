@@ -1,21 +1,20 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useMemo } from 'react';
-import { ArrowRight, Check, Lock, Mail, User } from 'lucide-react-native';
+import { ArrowRight, Lock, Mail, User } from 'lucide-react-native';
 import { signUp } from '@lib/auth';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
 import { heroPalette, spacing, typography } from '@/constants/theme';
 import { AuthHeroScreen } from '@/components/auth/auth-hero-screen';
-import { AuthDarkField } from '@/components/auth/auth-dark-field';
+import { AuthDarkField, DarkPasswordToggle } from '@/components/auth/auth-dark-field';
 import { BrandLogo } from '@/components/auth/brand-logo';
+import { StepIndicator } from '@/components/auth/step-indicator';
 import { Button } from '@/components/ui/button';
 import { FormFooter } from '@/components/ui/form-footer';
 
-type RegisterField = 'name' | 'email' | 'password' | 'confirmPassword';
+type RegisterField = 'name' | 'email' | 'password';
 
 const MIN_PASSWORD_LENGTH = 8;
-
-type PasswordCheck = Readonly<{ label: string; ok: boolean }>;
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -24,25 +23,11 @@ export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<RegisterField | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const shouldShowError = Boolean(error);
-
-  const passwordChecks: readonly PasswordCheck[] = useMemo(
-    () => [
-      {
-        label: `Mínimo ${MIN_PASSWORD_LENGTH} caracteres`,
-        ok: password.length >= MIN_PASSWORD_LENGTH,
-      },
-      {
-        label: 'Senhas iguais',
-        ok: confirmPassword.length > 0 && password === confirmPassword,
-      },
-    ],
-    [password, confirmPassword],
-  );
 
   const validate = (): string | null => {
     const emailValue = email.trim();
@@ -53,7 +38,6 @@ export default function RegisterScreen() {
     if (password.length < MIN_PASSWORD_LENGTH) {
       return `A senha deve ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres.`;
     }
-    if (password !== confirmPassword) return 'As senhas não coincidem.';
     return null;
   };
 
@@ -81,7 +65,13 @@ export default function RegisterScreen() {
   };
 
   return (
-    <AuthHeroScreen topBarCenter={<BrandLogo size="sm" variant="onDark" withText />}>
+    <AuthHeroScreen
+      topBarCenter={<BrandLogo size="sm" variant="onDark" withText />}
+      onBack={() => router.back()}
+      backAccessibilityLabel="Voltar"
+    >
+      <StepIndicator currentStep={1} labels={['Conta', 'Família']} />
+
       <View style={styles.header}>
         <Text style={styles.title} allowFontScaling={false}>
           Crie sua conta
@@ -143,86 +133,45 @@ export default function RegisterScreen() {
           }}
           onFocus={() => setFocusedField('password')}
           onBlur={() => setFocusedField(null)}
-          secureTextEntry
+          secureTextEntry={!showPassword}
           autoComplete="new-password"
           textContentType="newPassword"
           maxLength={128}
           editable={!loading}
           accessibilityLabel="Campo de senha"
           leftIcon={Lock}
+          rightAction={
+            <DarkPasswordToggle
+              visible={showPassword}
+              onToggle={() => setShowPassword(!showPassword)}
+            />
+          }
         />
 
-        <AuthDarkField
-          label="Confirmar senha"
-          focused={focusedField === 'confirmPassword'}
-          placeholder="Repita a senha"
-          value={confirmPassword}
-          onChangeText={(value) => {
-            setConfirmPassword(value);
-            setError('');
-          }}
-          onFocus={() => setFocusedField('confirmPassword')}
-          onBlur={() => setFocusedField(null)}
-          secureTextEntry
-          autoComplete="new-password"
-          textContentType="newPassword"
-          maxLength={128}
-          editable={!loading}
-          accessibilityLabel="Campo de confirmar senha"
-          leftIcon={Lock}
-        />
-
-        {password.length > 0 ? (
-          <View style={styles.checks}>
-            {passwordChecks.map((check) => (
-              <View key={check.label} style={styles.checkRow}>
-                <View
-                  style={[styles.checkBadge, check.ok ? styles.checkBadgeOn : styles.checkBadgeOff]}
-                >
-                  {check.ok ? (
-                    <Check size={10} color={heroPalette.textOnNavy} strokeWidth={3} />
-                  ) : null}
-                </View>
-                <Text
-                  style={[styles.checkLabel, check.ok ? styles.checkLabelOn : styles.checkLabelOff]}
-                >
-                  {check.label}
-                </Text>
-              </View>
-            ))}
-          </View>
+        {password.length > 0 && password.length < MIN_PASSWORD_LENGTH ? (
+          <Text style={styles.passwordHint}>
+            Mínimo {MIN_PASSWORD_LENGTH} caracteres
+          </Text>
         ) : null}
 
-        <FormFooter message={shouldShowError ? error : null} includeSafeBottom={false}>
-          <Button
-            label="Criar conta"
-            loadingLabel="Criando conta…"
-            loading={loading}
-            onPress={handleSignUp}
-            size="lg"
-            trailingIcon={ArrowRight}
-            accessibilityLabel={loading ? 'Criando conta' : 'Criar conta'}
-            accessibilityState={{ busy: loading }}
-          />
+        <View style={styles.formActions}>
+          <FormFooter message={shouldShowError ? error : null} includeSafeBottom={false}>
+            <Button
+              label="Criar conta"
+              loadingLabel="Criando conta…"
+              loading={loading}
+              onPress={handleSignUp}
+              size="lg"
+              trailingIcon={ArrowRight}
+              accessibilityLabel={loading ? 'Criando conta' : 'Criar conta'}
+              accessibilityState={{ busy: loading }}
+            />
 
-          <Text style={styles.terms}>
-            Ao continuar, você concorda com os <Text style={styles.termsAccent}>Termos</Text> e a{' '}
-            <Text style={styles.termsAccent}>Política de Privacidade</Text>.
-          </Text>
-        </FormFooter>
-
-        <View style={styles.footerPush}>
-          <Pressable
-            style={({ pressed }) => [styles.secondaryButton, { opacity: pressed ? 0.65 : 1 }]}
-            onPress={() => router.back()}
-            disabled={loading}
-            accessibilityRole="button"
-            accessibilityLabel="Voltar ao login"
-          >
-            <Text style={styles.secondaryButtonText}>
-              Já tem conta? <Text style={styles.secondaryButtonAccent}>Entrar</Text>
+            <Text style={styles.terms}>
+              Ao continuar, você concorda com os <Text style={styles.termsAccent}>Termos</Text> e a{' '}
+              <Text style={styles.termsAccent}>Política de Privacidade</Text>.
             </Text>
-          </Pressable>
+          </FormFooter>
         </View>
       </View>
     </AuthHeroScreen>
@@ -252,42 +201,14 @@ function makeStyles() {
       marginTop: spacing['6'],
       flex: 1,
     },
-    footerPush: {
-      marginTop: 'auto',
+    formActions: {
+      marginTop: spacing['4'],
     },
-    checks: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: spacing['3'],
-      marginTop: spacing['3'],
-    },
-    checkRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing['1.5'],
-    },
-    checkBadge: {
-      width: 16,
-      height: 16,
-      borderRadius: 8,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    checkBadgeOn: {
-      backgroundColor: heroPalette.checkOn,
-    },
-    checkBadgeOff: {
-      backgroundColor: heroPalette.surfaceChip,
-    },
-    checkLabel: {
+    passwordHint: {
       fontFamily: typography.family.semibold,
       fontSize: typography.size.xs,
-    },
-    checkLabelOn: {
-      color: heroPalette.checkOnText,
-    },
-    checkLabelOff: {
       color: heroPalette.textOnNavySubtle,
+      marginTop: spacing['2'],
     },
     terms: {
       marginTop: spacing['1'],
@@ -301,19 +222,6 @@ function makeStyles() {
     termsAccent: {
       fontFamily: typography.family.semibold,
       color: heroPalette.textOnNavyMuted,
-    },
-    secondaryButton: {
-      paddingVertical: spacing['3'],
-      alignItems: 'center',
-    },
-    secondaryButtonText: {
-      fontFamily: typography.family.medium,
-      fontSize: typography.size.sm,
-      color: heroPalette.textOnNavyMuted,
-    },
-    secondaryButtonAccent: {
-      fontFamily: typography.family.bold,
-      color: heroPalette.borderFocus,
     },
   });
 }

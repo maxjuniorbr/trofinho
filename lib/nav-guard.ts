@@ -20,6 +20,9 @@ export function resolveNavDecision(
   const seg1 = segments[1] as string | undefined;
 
   if (profile === null) {
+    // Onboarding requires an active session — if signed out while on it,
+    // redirect to login instead of staying on a screen that can't work.
+    if (seg1 === 'onboarding') return '/(auth)/login';
     return inAuth ? null : '/(auth)/login';
   }
 
