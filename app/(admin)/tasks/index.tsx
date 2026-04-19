@@ -104,7 +104,7 @@ const AdminTaskCard = ({ item, colors, styles, onPress }: AdminTaskCardProps) =>
       </View>
     </Pressable>
   );
-}
+};
 
 export default function AdminTasksScreen() {
   const router = useRouter();
@@ -202,6 +202,7 @@ export default function AdminTasksScreen() {
             icon={Plus}
             onPress={() => router.push('/(admin)/tasks/new')}
             accessibilityLabel="Criar tarefa"
+            tone="accent"
           />
         }
       />

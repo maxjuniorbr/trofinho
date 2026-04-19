@@ -228,6 +228,7 @@ describe('AdminPrizesScreen', () => {
         (node.type as string) === 'HeaderIconButton' &&
         node.props.accessibilityLabel === 'Criar pr\u00eamio',
     )[0];
+    expect(addBtn.props.tone).toBe('accent');
     act(() => {
       addBtn.props.onPress();
     });
