@@ -133,8 +133,13 @@ vi.mock('@lib/tasks', () => ({
   getAssignmentRetryState: () => ({ canRetry: false, attemptsLeft: 0, reason: null }),
 }));
 
-vi.mock('@/constants/status', () => ({
+vi.mock('@lib/status', () => ({
   getAssignmentStatusColor: () => '#308CE8',
+  getAssignmentStatusTone: () => ({
+    foreground: '#308CE8',
+    background: '#E5F2FF',
+    text: '#0F4D8A',
+  }),
   getAssignmentStatusLabel: (status: string) => status,
 }));
 

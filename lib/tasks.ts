@@ -290,7 +290,13 @@ export async function listApprovedAssignments(
 }
 
 export type PendingValidationItem = AssignmentWithChild & {
-  tarefas: { id: string; titulo: string; pontos: number; exige_evidencia: boolean; familia_id: string };
+  tarefas: {
+    id: string;
+    titulo: string;
+    pontos: number;
+    exige_evidencia: boolean;
+    familia_id: string;
+  };
 };
 
 /**
@@ -316,9 +322,7 @@ export async function listPendingValidations(): Promise<{
   const items = data ?? [];
   if (items.length === 0) return { data: [], error: null };
 
-  const paths = items.map((a) =>
-    a.evidencia_url ? normalizeEvidencePath(a.evidencia_url) : null,
-  );
+  const paths = items.map((a) => (a.evidencia_url ? normalizeEvidencePath(a.evidencia_url) : null));
   const validEntries = paths
     .map((path, index) => (path ? { path, index } : null))
     .filter((e): e is { path: string; index: number } => e !== null);
@@ -612,10 +616,7 @@ export function getAssignmentCancellationState(
     };
   }
 
-  if (
-    assignment.competencia !== null &&
-    assignment.competencia < toDateString(referenceDate)
-  ) {
+  if (assignment.competencia !== null && assignment.competencia < toDateString(referenceDate)) {
     return {
       canCancel: false,
       reason: 'Não é possível cancelar o envio de uma tarefa de data anterior.',
@@ -756,9 +757,7 @@ export function buildTaskDeactivateMessage(
 
 export const buildTaskPauseMessage = buildTaskDeactivateMessage;
 
-export function buildTaskArchiveMessage(
-  assignments: { status: AssignmentStatus }[],
-): string {
+export function buildTaskArchiveMessage(assignments: { status: AssignmentStatus }[]): string {
   const parts: string[] = [];
   const pendingCount = assignments.filter((a) => a.status === 'pendente').length;
   const awaitingCount = assignments.filter((a) => a.status === 'aguardando_validacao').length;
@@ -796,9 +795,7 @@ export async function unarchiveTask(taskId: string): Promise<{ error: string | n
   return { error: null };
 }
 
-export async function discardRejection(
-  assignmentId: string,
-): Promise<{ error: string | null }> {
+export async function discardRejection(assignmentId: string): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('descartar_rejeicao_atribuicao', {
     p_atribuicao_id: assignmentId,
   });

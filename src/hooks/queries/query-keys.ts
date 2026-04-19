@@ -1,8 +1,10 @@
 export const queryKeys = {
   tasks: {
     all: ['tasks'] as const,
-    lists: () => [...queryKeys.tasks.all, 'list'] as const,    archivedLists: () => [...queryKeys.tasks.all, 'archived'] as const,
-    approvedFeed: () => [...queryKeys.tasks.all, 'approved-feed'] as const,    details: () => [...queryKeys.tasks.all, 'detail'] as const,
+    lists: () => [...queryKeys.tasks.all, 'list'] as const,
+    archivedLists: () => [...queryKeys.tasks.all, 'archived'] as const,
+    approvedFeed: () => [...queryKeys.tasks.all, 'approved-feed'] as const,
+    details: () => [...queryKeys.tasks.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.tasks.details(), id] as const,
     pendingCount: () => [...queryKeys.tasks.all, 'pending-count'] as const,
     pendingValidations: () => [...queryKeys.tasks.all, 'pending-validations'] as const,
