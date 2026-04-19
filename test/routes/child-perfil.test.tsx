@@ -253,12 +253,30 @@ describe('ChildProfileScreen', () => {
     expect(signOutMock).toHaveBeenCalled();
   });
 
-  it('renders personal data and password sheets', () => {
+  it('keeps profile sheets closed initially and opens them from menu rows', () => {
     const renderer = render(<ChildProfileScreen />);
-    const personalData = renderer.root.findAllByType('PersonalDataSheet' as never);
-    const password = renderer.root.findAllByType('ChangePasswordSheet' as never);
-    expect(personalData.length).toBe(1);
-    expect(password.length).toBe(1);
+    const personalDataSheet = renderer.root.findByType('PersonalDataSheet' as never);
+    const passwordSheet = renderer.root.findByType('ChangePasswordSheet' as never);
+
+    expect(personalDataSheet.props.visible).toBe(false);
+    expect(passwordSheet.props.visible).toBe(false);
+
+    const personalDataRow = renderer.root
+      .findAllByType('Pressable' as never)
+      .find((node) => node.props.accessibilityLabel === 'Alterar dados pessoais')!;
+    const passwordRow = renderer.root
+      .findAllByType('Pressable' as never)
+      .find((node) => node.props.accessibilityLabel === 'Alterar senha')!;
+
+    act(() => {
+      personalDataRow.props.onPress();
+    });
+    expect(renderer.root.findByType('PersonalDataSheet' as never).props.visible).toBe(true);
+
+    act(() => {
+      passwordRow.props.onPress();
+    });
+    expect(renderer.root.findByType('ChangePasswordSheet' as never).props.visible).toBe(true);
   });
 
   it('renders profile blocks in the requested child order', () => {

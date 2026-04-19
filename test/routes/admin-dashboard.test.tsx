@@ -231,12 +231,6 @@ describe('AdminHomeScreen', () => {
     expect(text).toContain('Família Silva');
   });
 
-  it('renders family name', () => {
-    const renderer = render(<AdminHomeScreen />);
-    const text = allText(renderer);
-    expect(text).toContain('Família Silva');
-  });
-
   it('renders children list with balances', () => {
     const renderer = render(<AdminHomeScreen />);
     const text = allText(renderer);
@@ -259,6 +253,34 @@ describe('AdminHomeScreen', () => {
     expect(text).toContain('Pedro');
     expect(text).toContain('Bia');
     expect(text).not.toContain('Lia');
+  });
+
+  it('renders empty children state with management actions', () => {
+    childrenMock.data = [];
+    balancesMock.data = [];
+
+    const renderer = render(<AdminHomeScreen />);
+    const text = allText(renderer);
+
+    expect(text).toContain('Filhos');
+    expect(text).toContain('Gerenciar');
+    expect(text).toContain('Nenhum filho cadastrado');
+    expect(text).toContain('Adicionar filho');
+
+    const manageButton = renderer.root.findAll(
+      (node) => node.props.accessibilityLabel === 'Gerenciar filhos',
+    )[0];
+    const addButton = renderer.root.findAll(
+      (node) => node.props.accessibilityLabel === 'Adicionar filho',
+    )[0];
+
+    act(() => {
+      manageButton.props.onPress();
+      addButton.props.onPress();
+    });
+
+    expect(routerMock.push).toHaveBeenCalledWith('/(admin)/children');
+    expect(routerMock.push).toHaveBeenCalledTimes(2);
   });
 
   it('renders family summary card with totals', () => {
