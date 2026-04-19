@@ -2,6 +2,7 @@ import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'rea
 import { Image } from 'expo-image';
 import { useCallback, useMemo, useState } from 'react';
 import { Camera, Check, X } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { HeaderIconButton } from '@/components/ui/screen-header';
@@ -24,6 +25,7 @@ type Mode = 'view' | 'rejecting';
 
 export function ReviewStack({ visible, onClose }: ReviewStackProps) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const { data: items = [], isLoading, error, refetch } = usePendingValidations();
@@ -134,11 +136,13 @@ export function ReviewStack({ visible, onClose }: ReviewStackProps) {
           <View style={[styles.doneCircle, { backgroundColor: colors.semantic.successBg }]}>
             <Check size={36} color={colors.semantic.success} strokeWidth={3} />
           </View>
-          <Text style={[styles.doneTitle, { color: colors.text.primary }]}>Tudo em dia!</Text>
+          <Text style={[styles.doneTitle, { color: colors.text.primary }]}>Revisão concluída.</Text>
           <Text style={[styles.doneSubtitle, { color: colors.text.muted }]}>
-            Você revisou todas as entregas pendentes.
+            Você passou por todas as entregas da fila.
           </Text>
-          <Button label="Voltar para a lista" onPress={handleClose} />
+          <View style={styles.doneButtonWrapper}>
+            <Button label="Voltar para a lista" onPress={handleClose} />
+          </View>
         </View>
       );
     }
@@ -148,6 +152,8 @@ export function ReviewStack({ visible, onClose }: ReviewStackProps) {
 
     return (
       <>
+        {renderHeader(`${reviewIndex} de ${total}`)}
+
         <View style={styles.progressTrack}>
           <View
             style={[
@@ -282,16 +288,16 @@ export function ReviewStack({ visible, onClose }: ReviewStackProps) {
             </Pressable>
           </View>
         </View>
-
-        {renderHeader(`${reviewIndex} de ${total}`)}
       </>
     );
   };
 
+  const showStandaloneHeader = isLoading || !!error;
+
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
-      <View style={[styles.screen, { backgroundColor: colors.bg.canvas }]}>
-        {!current || isLoading || error ? renderHeader('') : null}
+      <View style={[styles.screen, { backgroundColor: colors.bg.canvas, paddingTop: insets.top }]}>
+        {showStandaloneHeader ? renderHeader('') : null}
         {renderBody()}
       </View>
     </Modal>
@@ -302,7 +308,6 @@ function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     screen: {
       flex: 1,
-      paddingTop: spacing['8'],
     },
     header: {
       flexDirection: 'row',
@@ -326,6 +331,7 @@ function makeStyles(colors: ThemeColors) {
     progressTrack: {
       height: 4,
       marginHorizontal: spacing['4'],
+      marginBottom: spacing['4'],
       backgroundColor: colors.bg.muted,
       borderRadius: radii.full,
       overflow: 'hidden',
@@ -408,6 +414,7 @@ function makeStyles(colors: ThemeColors) {
       fontFamily: typography.family.bold,
       marginBottom: spacing['2'],
     },
+    doneButtonWrapper: { width: '100%', maxWidth: 240 },
     doneSubtitle: {
       fontSize: typography.size.md,
       textAlign: 'center',
