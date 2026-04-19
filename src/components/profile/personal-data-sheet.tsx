@@ -1,14 +1,7 @@
-import {
-  KeyboardAvoidingView,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, User, X } from 'lucide-react-native';
-import { HeaderIconButton } from '@/components/ui/screen-header';
+import { Check, User } from 'lucide-react-native';
+import { BottomSheetModal } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { InlineMessage } from '@/components/ui/inline-message';
@@ -91,90 +84,88 @@ export function PersonalDataSheet({
   }, [name, updateNameMutation, onNameUpdated, handleClose, clearCloseTimer]);
 
   const errorMessage =
-    validationError ?? (updateNameMutation.error ? localizeSupabaseError(updateNameMutation.error.message) : null);
+    validationError ??
+    (updateNameMutation.error ? localizeSupabaseError(updateNameMutation.error.message) : null);
 
   const canSubmit = name.trim().length > 0 && name.trim() !== (profile?.nome ?? '');
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
-      <KeyboardAvoidingView
-        style={[styles.overlay, { backgroundColor: colors.overlay.scrim }]}
-        behavior="padding"
-      >
-        <View style={[styles.sheet, { backgroundColor: colors.bg.surface }]}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={[styles.headerIcon, { backgroundColor: colors.accent.adminBg }]}>
-              <User size={18} color={colors.accent.adminDim} strokeWidth={2.4} />
-            </View>
-            <View style={styles.headerText}>
-              <Text style={[styles.title, { color: colors.text.primary }]}>Dados pessoais</Text>
-              <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-                Altere seu nome de exibição
-              </Text>
-            </View>
-            <HeaderIconButton icon={X} onPress={handleClose} accessibilityLabel="Fechar" />
-          </View>
-
-          {success ? (
-            <View style={styles.successContainer}>
-              <View style={[styles.successIcon, { backgroundColor: colors.semantic.successBg }]}>
-                <Check size={28} color={colors.semantic.success} strokeWidth={2.4} />
-              </View>
-              <Text style={[styles.successTitle, { color: colors.text.primary }]}>
-                Nome atualizado!
-              </Text>
-              <Text style={[styles.successDesc, { color: colors.text.secondary }]}>
-                Seu nome de exibição foi alterado.
-              </Text>
-            </View>
-          ) : (
-            <ScrollView
-              overScrollMode="never"
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.content}
-              keyboardShouldPersistTaps="handled"
-            >
-              {errorMessage ? <InlineMessage message={errorMessage} variant="error" /> : null}
-
-              <Input
-                label="Nome completo"
-                value={name}
-                onChangeText={(v) => {
-                  setName(v);
-                  setValidationError(null);
-                  updateNameMutation.reset();
-                }}
-                placeholder="Seu nome"
-                autoCapitalize="words"
-                autoCorrect={false}
-                maxLength={60}
-                accessibilityLabel="Nome completo"
-                noMarginBottom
-              />
-
-              <Input
-                label="E-mail"
-                value={email}
-                editable={false}
-                accessibilityLabel="E-mail (não editável)"
-                noMarginBottom
-              />
-
-              <Button
-                label="Salvar alterações"
-                loadingLabel="Salvando…"
-                variant="primary"
-                loading={updateNameMutation.isPending}
-                onPress={handleSave}
-                disabled={!canSubmit || updateNameMutation.isPending}
-                accessibilityLabel="Salvar alterações"
-              />
-            </ScrollView>
-          )}
+    <BottomSheetModal
+      visible={visible}
+      onClose={handleClose}
+      sheetStyle={styles.sheet}
+      closeLabel="Fechar dados pessoais"
+    >
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={[styles.headerIcon, { backgroundColor: colors.accent.adminBg }]}>
+          <User size={18} color={colors.accent.adminDim} strokeWidth={2.4} />
         </View>
-      </KeyboardAvoidingView>
-    </Modal>
+        <View style={styles.headerText}>
+          <Text style={[styles.title, { color: colors.text.primary }]}>Dados pessoais</Text>
+          <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
+            Altere seu nome de exibição
+          </Text>
+        </View>
+      </View>
+
+      {success ? (
+        <View style={styles.successContainer}>
+          <View style={[styles.successIcon, { backgroundColor: colors.semantic.successBg }]}>
+            <Check size={28} color={colors.semantic.success} strokeWidth={2.4} />
+          </View>
+          <Text style={[styles.successTitle, { color: colors.text.primary }]}>
+            Nome atualizado!
+          </Text>
+          <Text style={[styles.successDesc, { color: colors.text.secondary }]}>
+            Seu nome de exibição foi alterado.
+          </Text>
+        </View>
+      ) : (
+        <ScrollView
+          overScrollMode="never"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
+          {errorMessage ? <InlineMessage message={errorMessage} variant="error" /> : null}
+
+          <Input
+            label="Nome completo"
+            value={name}
+            onChangeText={(v) => {
+              setName(v);
+              setValidationError(null);
+              updateNameMutation.reset();
+            }}
+            placeholder="Seu nome"
+            autoCapitalize="words"
+            autoCorrect={false}
+            maxLength={60}
+            accessibilityLabel="Nome completo"
+            noMarginBottom
+          />
+
+          <Input
+            label="E-mail"
+            value={email}
+            editable={false}
+            accessibilityLabel="E-mail (não editável)"
+            noMarginBottom
+          />
+
+          <Button
+            label="Salvar alterações"
+            loadingLabel="Salvando…"
+            variant="primary"
+            loading={updateNameMutation.isPending}
+            onPress={handleSave}
+            disabled={!canSubmit || updateNameMutation.isPending}
+            accessibilityLabel="Salvar alterações"
+          />
+        </ScrollView>
+      )}
+    </BottomSheetModal>
   );
 }
 
@@ -182,17 +173,9 @@ export function PersonalDataSheet({
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    overlay: {
-      flex: 1,
-      justifyContent: 'flex-end',
-    },
     sheet: {
-      borderTopLeftRadius: radii.xl,
-      borderTopRightRadius: radii.xl,
       borderCurve: 'continuous',
-      padding: spacing['6'],
-      paddingBottom: spacing['12'],
-      maxHeight: '90%',
+      maxHeight: '80%',
     },
     header: {
       flexDirection: 'row',

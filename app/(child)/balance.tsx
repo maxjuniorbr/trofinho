@@ -1,14 +1,5 @@
 import * as Sentry from '@sentry/react-native';
-import {
-  StyleSheet,
-  Text,
-  View,
-  Pressable,
-  Modal,
-  TextInput,
-  KeyboardAvoidingView,
-  RefreshControl,
-} from 'react-native';
+import { StyleSheet, Text, View, Pressable, TextInput, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo } from 'react';
@@ -41,6 +32,7 @@ import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { TransactionIcon } from '@/components/balance/transaction-icon';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { ListFooter } from '@/components/ui/list-footer';
+import { BottomSheetModal } from '@/components/ui/bottom-sheet';
 import { getSafeBottomPadding } from '@lib/safe-area';
 import { calculateNetAmount, getMinimumWithdrawalAmount } from '@lib/piggy-bank-withdrawal';
 import { useTransientMessage } from '@/hooks/use-transient-message';
@@ -50,19 +42,19 @@ function getBalanceHeaderColors(colors: ThemeColors) {
   return {
     ...(isLight
       ? {
-        bg: colors.bg.surface,
-        boxBg: colors.bg.muted,
-        border: colors.border.subtle,
-        text: colors.text.primary,
-        textMuted: colors.text.secondary,
-      }
+          bg: colors.bg.surface,
+          boxBg: colors.bg.muted,
+          border: colors.border.subtle,
+          text: colors.text.primary,
+          textMuted: colors.text.secondary,
+        }
       : {
-        bg: colors.bg.elevated,
-        boxBg: colors.bg.muted,
-        border: colors.border.subtle,
-        text: staticTextColors.inverse,
-        textMuted: 'rgba(255, 255, 255, 0.7)',
-      }),
+          bg: colors.bg.elevated,
+          boxBg: colors.bg.muted,
+          border: colors.border.subtle,
+          text: staticTextColors.inverse,
+          textMuted: 'rgba(255, 255, 255, 0.7)',
+        }),
   };
 }
 
@@ -345,173 +337,177 @@ export default function ChildBalanceScreen() {
     ) : null;
 
   const renderTransferModal = () => (
-    <Modal visible={modalVisible} transparent animationType="slide">
-      <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
-        <View
-          style={[styles.modalBox, { paddingBottom: getSafeBottomPadding(insets, spacing['12']) }]}
-        >
-          <Text style={styles.modalTitle}>Guardar no cofrinho</Text>
-          <Text style={styles.modalSub}>
-            Saldo disponível:{' '}
-            <Text style={{ fontFamily: typography.family.bold }}>{freeBalance}</Text> pts
-          </Text>
-          <Text style={styles.modalHint}>
-            Pontos guardados no cofrinho ficam seguros e rendem valorização.
-          </Text>
-          <View style={styles.quickAmountRow}>
-            {[Math.floor(freeBalance / 2), freeBalance]
-              .filter((v, i, arr) => v > 0 && arr.indexOf(v) === i)
-              .map((v) => {
-                const label = v === freeBalance ? 'Tudo' : `${v}`;
-                const isSelected = amountStr === String(v);
-                return (
-                  <Pressable
-                    key={label}
-                    style={[
-                      styles.quickAmountPill,
-                      {
-                        backgroundColor: isSelected ? colors.accent.filho : colors.bg.muted,
-                      },
-                    ]}
-                    onPress={() => setAmountStr(String(v))}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${label} pontos`}
-                  >
-                    <Text
-                      style={[
-                        styles.quickAmountText,
-                        { color: isSelected ? colors.text.inverse : colors.text.primary },
-                      ]}
-                    >
-                      {label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-          </View>
-          <TextInput
-            style={styles.modalInput}
-            value={amountStr}
-            onChangeText={setAmountStr}
-            placeholder="Ou digite o valor"
-            placeholderTextColor={colors.text.muted}
-            keyboardType="number-pad"
-            maxLength={6}
-            autoFocus
+    <BottomSheetModal
+      visible={modalVisible}
+      onClose={() => setModalVisible(false)}
+      contentStyle={[
+        styles.modalBox,
+        { paddingBottom: getSafeBottomPadding(insets, spacing['12']) },
+      ]}
+      scrimColor={colors.overlay.scrimSoft}
+      closeLabel="Fechar transferência para o cofrinho"
+    >
+      <Text style={styles.modalTitle}>Guardar no cofrinho</Text>
+      <Text style={styles.modalSub}>
+        Saldo disponível: <Text style={{ fontFamily: typography.family.bold }}>{freeBalance}</Text>{' '}
+        pts
+      </Text>
+      <Text style={styles.modalHint}>
+        Pontos guardados no cofrinho ficam seguros e rendem valorização.
+      </Text>
+      <View style={styles.quickAmountRow}>
+        {[Math.floor(freeBalance / 2), freeBalance]
+          .filter((v, i, arr) => v > 0 && arr.indexOf(v) === i)
+          .map((v) => {
+            const label = v === freeBalance ? 'Tudo' : `${v}`;
+            const isSelected = amountStr === String(v);
+            return (
+              <Pressable
+                key={v}
+                style={[
+                  styles.quickAmountPill,
+                  {
+                    backgroundColor: isSelected ? colors.accent.filho : colors.bg.muted,
+                  },
+                ]}
+                onPress={() => setAmountStr(String(v))}
+                accessibilityRole="button"
+                accessibilityLabel={`${label} pontos`}
+              >
+                <Text
+                  style={[
+                    styles.quickAmountText,
+                    { color: isSelected ? colors.text.inverse : colors.text.primary },
+                  ]}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
+      </View>
+      <TextInput
+        style={styles.modalInput}
+        value={amountStr}
+        onChangeText={setAmountStr}
+        placeholder="Ou digite o valor"
+        placeholderTextColor={colors.text.muted}
+        keyboardType="number-pad"
+        maxLength={6}
+        autoFocus
+      />
+      {modalError ? <InlineMessage message={modalError} variant="error" /> : null}
+      <View style={styles.modalBtns}>
+        <View style={styles.modalBtnFlex}>
+          <Button
+            variant="secondary"
+            label="Cancelar"
+            onPress={() => setModalVisible(false)}
+            accessibilityLabel="Cancelar transferência"
           />
-          {modalError ? <InlineMessage message={modalError} variant="error" /> : null}
-          <View style={styles.modalBtns}>
-            <View style={styles.modalBtnFlex}>
-              <Button
-                variant="secondary"
-                label="Cancelar"
-                onPress={() => setModalVisible(false)}
-                accessibilityLabel="Cancelar transferência"
-              />
-            </View>
-            <View style={styles.modalBtnFlex}>
-              <Button
-                variant="primary"
-                label="Guardar"
-                loading={transferMutation.isPending}
-                loadingLabel="Guardando…"
-                onPress={handleTransfer}
-                accessibilityLabel="Confirmar transferência para cofrinho"
-              />
-            </View>
-          </View>
         </View>
-      </KeyboardAvoidingView>
-    </Modal>
+        <View style={styles.modalBtnFlex}>
+          <Button
+            variant="primary"
+            label="Guardar"
+            loading={transferMutation.isPending}
+            loadingLabel="Guardando…"
+            onPress={handleTransfer}
+            accessibilityLabel="Confirmar transferência para cofrinho"
+          />
+        </View>
+      </View>
+    </BottomSheetModal>
   );
 
   const renderWithdrawModal = () => (
-    <Modal visible={withdrawModalVisible} transparent animationType="slide">
-      <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
-        <View
-          style={[styles.modalBox, { paddingBottom: getSafeBottomPadding(insets, spacing['12']) }]}
-        >
-          <Text style={styles.modalTitle}>Retirar do cofrinho</Text>
-          <Text style={styles.modalSub}>
-            Cofrinho: <Text style={{ fontFamily: typography.family.bold }}>{piggyBank}</Text> pts
-          </Text>
-          {withdrawalRate > 0 ? (
-            <Text style={styles.modalHint}>
-              Taxa de resgate: {withdrawalRate}% · mínimo {minimumWithdrawal} pts{withdrawFeeText}
-            </Text>
-          ) : null}
-          {withdrawFeeText ? (
-            <Text style={[styles.modalHint, { fontStyle: 'italic', marginTop: -spacing['1'] }]}>
-              Valor final pode variar se a taxa for alterada antes da aprovação.
-            </Text>
-          ) : null}
-          <View style={styles.quickAmountRow}>
-            {[minimumWithdrawal, Math.floor(piggyBank / 2), piggyBank]
-              .filter(
-                (v, i, arr) => v >= minimumWithdrawal && v <= piggyBank && arr.indexOf(v) === i,
-              )
-              .map((v) => {
-                const label = v === piggyBank ? 'Tudo' : `${v}`;
-                const isSelected = amountStr === String(v);
-                return (
-                  <Pressable
-                    key={label}
-                    style={[
-                      styles.quickAmountPill,
-                      {
-                        backgroundColor: isSelected ? colors.accent.filho : colors.bg.muted,
-                      },
-                    ]}
-                    onPress={() => setAmountStr(String(v))}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${label} pontos`}
-                  >
-                    <Text
-                      style={[
-                        styles.quickAmountText,
-                        { color: isSelected ? colors.text.inverse : colors.text.primary },
-                      ]}
-                    >
-                      {label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-          </View>
-          <TextInput
-            style={styles.modalInput}
-            value={amountStr}
-            onChangeText={setAmountStr}
-            placeholder="Ou digite o valor"
-            placeholderTextColor={colors.text.muted}
-            keyboardType="number-pad"
-            maxLength={6}
-            autoFocus
+    <BottomSheetModal
+      visible={withdrawModalVisible}
+      onClose={() => setWithdrawModalVisible(false)}
+      contentStyle={[
+        styles.modalBox,
+        { paddingBottom: getSafeBottomPadding(insets, spacing['12']) },
+      ]}
+      scrimColor={colors.overlay.scrimSoft}
+      closeLabel="Fechar resgate do cofrinho"
+    >
+      <Text style={styles.modalTitle}>Retirar do cofrinho</Text>
+      <Text style={styles.modalSub}>
+        Cofrinho: <Text style={{ fontFamily: typography.family.bold }}>{piggyBank}</Text> pts
+      </Text>
+      {withdrawalRate > 0 ? (
+        <Text style={styles.modalHint}>
+          Taxa de resgate: {withdrawalRate}% · mínimo {minimumWithdrawal} pts{withdrawFeeText}
+        </Text>
+      ) : null}
+      {withdrawFeeText ? (
+        <Text style={[styles.modalHint, { fontStyle: 'italic', marginTop: -spacing['1'] }]}>
+          Valor final pode variar se a taxa for alterada antes da aprovação.
+        </Text>
+      ) : null}
+      <View style={styles.quickAmountRow}>
+        {[minimumWithdrawal, Math.floor(piggyBank / 2), piggyBank]
+          .filter((v, i, arr) => v >= minimumWithdrawal && v <= piggyBank && arr.indexOf(v) === i)
+          .map((v) => {
+            const label = v === piggyBank ? 'Tudo' : `${v}`;
+            const isSelected = amountStr === String(v);
+            return (
+              <Pressable
+                key={v}
+                style={[
+                  styles.quickAmountPill,
+                  {
+                    backgroundColor: isSelected ? colors.accent.filho : colors.bg.muted,
+                  },
+                ]}
+                onPress={() => setAmountStr(String(v))}
+                accessibilityRole="button"
+                accessibilityLabel={`${label} pontos`}
+              >
+                <Text
+                  style={[
+                    styles.quickAmountText,
+                    { color: isSelected ? colors.text.inverse : colors.text.primary },
+                  ]}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
+      </View>
+      <TextInput
+        style={styles.modalInput}
+        value={amountStr}
+        onChangeText={setAmountStr}
+        placeholder="Ou digite o valor"
+        placeholderTextColor={colors.text.muted}
+        keyboardType="number-pad"
+        maxLength={6}
+        autoFocus
+      />
+      {modalError ? <InlineMessage message={modalError} variant="error" /> : null}
+      <View style={styles.modalBtns}>
+        <View style={styles.modalBtnFlex}>
+          <Button
+            variant="secondary"
+            label="Cancelar"
+            onPress={() => setWithdrawModalVisible(false)}
+            accessibilityLabel="Cancelar resgate"
           />
-          {modalError ? <InlineMessage message={modalError} variant="error" /> : null}
-          <View style={styles.modalBtns}>
-            <View style={styles.modalBtnFlex}>
-              <Button
-                variant="secondary"
-                label="Cancelar"
-                onPress={() => setWithdrawModalVisible(false)}
-                accessibilityLabel="Cancelar resgate"
-              />
-            </View>
-            <View style={styles.modalBtnFlex}>
-              <Button
-                variant="primary"
-                label="Solicitar"
-                loading={withdrawalMutation.isPending}
-                loadingLabel="Solicitando…"
-                onPress={handleWithdrawal}
-                accessibilityLabel="Confirmar solicitação de resgate do cofrinho"
-              />
-            </View>
-          </View>
         </View>
-      </KeyboardAvoidingView>
-    </Modal>
+        <View style={styles.modalBtnFlex}>
+          <Button
+            variant="primary"
+            label="Solicitar"
+            loading={withdrawalMutation.isPending}
+            loadingLabel="Solicitando…"
+            onPress={handleWithdrawal}
+            accessibilityLabel="Confirmar solicitação de resgate do cofrinho"
+          />
+        </View>
+      </View>
+    </BottomSheetModal>
   );
 
   return (
@@ -837,15 +833,7 @@ function makeStyles(colors: ThemeColors) {
 
     pendingWithdrawalBox: { marginBottom: spacing['3'] },
 
-    modalOverlay: {
-      flex: 1,
-      justifyContent: 'flex-end',
-      backgroundColor: colors.overlay.scrimSoft,
-    },
     modalBox: {
-      backgroundColor: colors.bg.surface,
-      borderTopLeftRadius: radii.xl,
-      borderTopRightRadius: radii.xl,
       padding: spacing['6'],
       paddingBottom: spacing['12'],
       gap: spacing['4'],

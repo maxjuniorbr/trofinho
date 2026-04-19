@@ -1,8 +1,6 @@
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -11,6 +9,7 @@ import {
 } from 'react-native';
 import { useState } from 'react';
 import { AlertTriangle } from 'lucide-react-native';
+import { BottomSheetModal } from '@/components/ui/bottom-sheet';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 import { FormFooter } from '@/components/ui/form-footer';
@@ -84,91 +83,83 @@ export function PenaltyModal({ visible, childName, onClose, onApply }: PenaltyMo
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
-      <KeyboardAvoidingView
-        style={[styles.overlay, { backgroundColor: colors.overlay.scrim }]}
-        behavior="padding"
-      >
-        <View style={[styles.box, { backgroundColor: colors.bg.surface }]}>
-          <Text style={[styles.title, { color: colors.text.primary }]}>
-            Penalização — {childName}
-          </Text>
+    <BottomSheetModal
+      visible={visible}
+      onClose={handleClose}
+      contentStyle={styles.box}
+      closeLabel="Fechar penalização"
+    >
+      <Text style={[styles.title, { color: colors.text.primary }]}>Penalização — {childName}</Text>
 
-          <Text style={[styles.label, { color: colors.text.secondary }]}>Valor (pontos) *</Text>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: colors.bg.canvas,
-                borderColor: colors.border.default,
-                color: colors.text.primary,
-              },
-            ]}
-            value={amount}
-            onChangeText={setAmount}
-            placeholder="Ex: 10"
-            placeholderTextColor={colors.text.muted}
-            keyboardType="number-pad"
-            maxLength={5}
-            accessibilityLabel="Valor da penalidade em pontos"
-          />
+      <Text style={[styles.label, { color: colors.text.secondary }]}>Valor (pontos) *</Text>
+      <TextInput
+        style={[
+          styles.input,
+          {
+            backgroundColor: colors.bg.canvas,
+            borderColor: colors.border.default,
+            color: colors.text.primary,
+          },
+        ]}
+        value={amount}
+        onChangeText={setAmount}
+        placeholder="Ex: 10"
+        placeholderTextColor={colors.text.muted}
+        keyboardType="number-pad"
+        maxLength={5}
+        accessibilityLabel="Valor da penalidade em pontos"
+      />
 
-          <Text style={[styles.label, { color: colors.text.secondary }]}>Motivo *</Text>
-          <TextInput
+      <Text style={[styles.label, { color: colors.text.secondary }]}>Motivo *</Text>
+      <TextInput
+        style={[
+          styles.input,
+          styles.inputMultiline,
+          {
+            backgroundColor: colors.bg.canvas,
+            borderColor: colors.border.default,
+            color: colors.text.primary,
+          },
+        ]}
+        value={description}
+        onChangeText={setDescription}
+        placeholder="Descreva o motivo…"
+        placeholderTextColor={colors.text.muted}
+        multiline
+        maxLength={200}
+        accessibilityLabel="Motivo da penalidade"
+      />
+      <FormFooter message={error ?? warning} variant={warning ? 'warning' : 'error'} compact>
+        <View style={styles.buttons}>
+          <Pressable
+            style={[styles.btn, styles.btnCancel, { borderColor: colors.border.default }]}
+            onPress={handleClose}
+            accessibilityRole="button"
+            accessibilityLabel="Cancelar"
+          >
+            <Text style={[styles.btnCancelText, { color: colors.text.secondary }]}>Cancelar</Text>
+          </Pressable>
+          <Pressable
             style={[
-              styles.input,
-              styles.inputMultiline,
-              {
-                backgroundColor: colors.bg.canvas,
-                borderColor: colors.border.default,
-                color: colors.text.primary,
-              },
+              styles.btn,
+              styles.btnConfirm,
+              { backgroundColor: colors.semantic.error },
+              saving && styles.btnDisabled,
             ]}
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Descreva o motivo…"
-            placeholderTextColor={colors.text.muted}
-            multiline
-            maxLength={200}
-            accessibilityLabel="Motivo da penalidade"
-          />
-          <FormFooter message={error ?? warning} variant={warning ? 'warning' : 'error'} compact>
-            <View style={styles.buttons}>
-              <Pressable
-                style={[styles.btn, styles.btnCancel, { borderColor: colors.border.default }]}
-                onPress={handleClose}
-                accessibilityRole="button"
-                accessibilityLabel="Cancelar"
-              >
-                <Text style={[styles.btnCancelText, { color: colors.text.secondary }]}>
-                  Cancelar
-                </Text>
-              </Pressable>
-              <Pressable
-                style={[
-                  styles.btn,
-                  styles.btnConfirm,
-                  { backgroundColor: colors.semantic.error },
-                  saving && styles.btnDisabled,
-                ]}
-                onPress={handleApply}
-                disabled={saving}
-                accessibilityRole="button"
-                accessibilityLabel="Penalizar"
-              >
-                {saving ? (
-                  <ActivityIndicator color={colors.text.inverse} />
-                ) : (
-                  <Text style={[styles.btnConfirmText, { color: colors.text.inverse }]}>
-                    Penalizar
-                  </Text>
-                )}
-              </Pressable>
-            </View>
-          </FormFooter>
+            onPress={handleApply}
+            disabled={saving}
+            accessibilityRole="button"
+            accessibilityLabel="Penalizar"
+          >
+            {saving ? (
+              <ActivityIndicator color={colors.text.inverse} />
+            ) : (
+              <Text style={[styles.btnConfirmText, { color: colors.text.inverse }]}>Penalizar</Text>
+            )}
+          </Pressable>
         </View>
-      </KeyboardAvoidingView>
-    </Modal>
+      </FormFooter>
+    </BottomSheetModal>
   );
 }
 
@@ -191,10 +182,7 @@ export function PenaltyButton({ onPress }: Readonly<{ onPress: () => void }>) {
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end' },
   box: {
-    borderTopLeftRadius: radii.xl,
-    borderTopRightRadius: radii.xl,
     padding: spacing['6'],
     paddingBottom: spacing['12'],
     gap: spacing['3'],

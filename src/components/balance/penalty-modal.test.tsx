@@ -29,9 +29,11 @@ vi.mock('react-native', () => {
     Alert: alertMock,
     KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
     Modal: createHostComponent('Modal'),
+    Platform: { OS: 'ios', select: (obj: Record<string, unknown>) => obj.ios },
     Pressable: createHostComponent('Pressable'),
     StyleSheet: {
       create: <T,>(styles: T) => styles,
+      absoluteFillObject: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
     },
     Text: createHostComponent('Text'),
     TextInput: createHostComponent('TextInput'),

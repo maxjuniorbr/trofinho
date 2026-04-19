@@ -96,6 +96,7 @@ const createHostComponent = vi.hoisted(() => {
 vi.mock('react-native', () => ({
   KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
   Modal: createHostComponent('Modal'),
+  Platform: { OS: 'ios', select: (obj: Record<string, unknown>) => obj.ios },
   Pressable: createHostComponent('Pressable'),
   RefreshControl: createHostComponent('RefreshControl'),
   StyleSheet: { create: <T,>(styles: T) => styles, hairlineWidth: 0.5 },
@@ -114,6 +115,11 @@ vi.mock('expo-router', () => ({
 
 vi.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 34, left: 0, right: 0 }),
+  SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
+  initialWindowMetrics: {
+    frame: { x: 0, y: 0, width: 0, height: 0 },
+    insets: { top: 0, right: 0, bottom: 34, left: 0 },
+  },
 }));
 
 vi.mock('@shopify/flash-list', () => ({

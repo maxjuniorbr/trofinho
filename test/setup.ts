@@ -105,6 +105,7 @@ vi.mock('lucide-react-native', () => ({
   ShieldCheck: createIcon('ShieldCheck'),
   Palette: createIcon('Palette'),
   Lock: createIcon('Lock'),
+  Settings: createIcon('Settings'),
   ImagePlus: createIcon('ImagePlus'),
   Maximize2: createIcon('Maximize2'),
   RotateCcw: createIcon('RotateCcw'),
@@ -171,11 +172,63 @@ vi.mock('react-native', () => ({
   StyleSheet: {
     create: <T>(styles: T) => styles,
     flatten: flattenStyle,
+    absoluteFillObject: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+    },
   },
   Text: createHostComponent('Text'),
   TextInput: createHostComponent('TextInput'),
   View: createHostComponent('View'),
 }));
+
+vi.mock('react-native-gesture-handler', () => {
+  const createPanGesture = () => {
+    const gesture = {
+      activeOffsetX: vi.fn(() => gesture),
+      activeOffsetY: vi.fn(() => gesture),
+      onEnd: vi.fn(() => gesture),
+      onUpdate: vi.fn(() => gesture),
+    };
+    return gesture;
+  };
+
+  return {
+    Gesture: {
+      Pan: vi.fn(createPanGesture),
+    },
+    GestureDetector: ({ children, ...props }: Props) =>
+      React.createElement('GestureDetector', props, children),
+    GestureHandlerRootView: createHostComponent('GestureHandlerRootView'),
+  };
+});
+
+vi.mock('react-native-reanimated', () => {
+  const AnimatedView = createHostComponent('Animated.View');
+
+  return {
+    __esModule: true,
+    default: {
+      View: AnimatedView,
+    },
+    FadeIn: { duration: vi.fn(() => ({})) },
+    FadeOut: { duration: vi.fn(() => ({})) },
+    interpolate: vi.fn(
+      (_value: number, _inputRange: number[], outputRange: number[]) => outputRange[0] ?? 0,
+    ),
+    runOnJS: (fn: (...args: unknown[]) => unknown) => fn,
+    useAnimatedStyle: (factory: () => unknown) => factory(),
+    useSharedValue: (value: unknown) => ({ value }),
+    withSpring: (value: unknown) => value,
+    withTiming: (value: unknown, _config?: unknown, callback?: (finished?: boolean) => void) => {
+      callback?.(true);
+      return value;
+    },
+  };
+});
 
 vi.mock('expo-status-bar', () => ({
   StatusBar: (props: Record<string, unknown>) => React.createElement('StatusBar', props),
@@ -219,6 +272,11 @@ vi.mock('@sentry/react-native', () => ({
 
 vi.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
+  SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
+  initialWindowMetrics: {
+    frame: { x: 0, y: 0, width: 0, height: 0 },
+    insets: { top: 0, right: 0, bottom: 0, left: 0 },
+  },
 }));
 
 /**
