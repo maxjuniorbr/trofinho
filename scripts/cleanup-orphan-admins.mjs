@@ -3,7 +3,6 @@
  *
  * 1. Lists admin users whose families have NO children (filhos).
  * 2. Deletes them (familia cascade → usuarios + push_tokens, then auth user).
- * 3. Creates fresh test admin-without-children accounts for today's testing.
  *
  * Usage: node scripts/cleanup-orphan-admins.mjs [--dry-run]
  *
@@ -24,31 +23,6 @@ const PROTECTED_AUTH_IDS = new Set([
 ]);
 
 const DRY_RUN = process.argv.includes('--dry-run');
-
-const today = new Date();
-const dd = String(today.getDate()).padStart(2, '0');
-const mm = String(today.getMonth() + 1).padStart(2, '0');
-const yyyy = today.getFullYear();
-const dateTag = `${dd}${mm}${yyyy}`; // e.g. 19042026
-
-// Test accounts to create after cleanup (admin only, no children = orphan state)
-const TEST_ACCOUNTS = [
-  {
-    email: `maxjuniorbr+teste1.${dateTag}@gmail.com`,
-    nome: 'Família Teste 1',
-    adminNome: 'Admin Teste 1',
-  },
-  {
-    email: `maxjuniorbr+teste2.${dateTag}@gmail.com`,
-    nome: 'Família Teste 2',
-    adminNome: 'Admin Teste 2',
-  },
-  {
-    email: `maxjuniorbr+teste3.${dateTag}@gmail.com`,
-    nome: 'Família Teste 3',
-    adminNome: 'Admin Teste 3',
-  },
-];
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 if (!SERVICE_ROLE_KEY) {

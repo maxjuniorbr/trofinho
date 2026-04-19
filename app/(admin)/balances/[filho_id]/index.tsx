@@ -4,10 +4,16 @@ import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { TrendingUp, PiggyBank, Settings, Wallet, AlertTriangle, ChevronLeft } from 'lucide-react-native';
+import { TrendingUp, PiggyBank, Settings, Wallet, AlertTriangle } from 'lucide-react-native';
 import { hapticSuccess } from '@lib/haptics';
 import { formatDate, toDateString } from '@lib/utils';
-import { getTransactionCategory, getTransactionTypeLabel, isCredit, calculateProjection, formatTransactionDates } from '@lib/balances';
+import {
+  getTransactionCategory,
+  getTransactionTypeLabel,
+  isCredit,
+  calculateProjection,
+  formatTransactionDates,
+} from '@lib/balances';
 import {
   useBalance,
   useTransactionsByPeriod,
@@ -24,10 +30,9 @@ import { useTransientMessage } from '@/hooks/use-transient-message';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, spacing, staticTextColors, typography, gradients } from '@/constants/theme';
-import { HeaderIconButton } from '@/components/ui/screen-header';
+import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Avatar } from '@/components/ui/avatar';
 import { PenaltyModal, PenaltyButton } from '@/components/balance/penalty-modal';
 import { PiggyConfigSheet } from '@/components/balance/piggy-config-sheet';
 import { TransactionIcon } from '@/components/balance/transaction-icon';
@@ -35,8 +40,6 @@ import { InlineMessage } from '@/components/ui/inline-message';
 import { Button } from '@/components/ui/button';
 import { LinearGradient } from 'expo-linear-gradient';
 import { calculateNetAmount } from '@lib/piggy-bank-withdrawal';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getSafeHorizontalPadding, getSafeTopPadding } from '@lib/safe-area';
 
 type ModalType = 'penalizar' | 'config' | null;
 
@@ -51,7 +54,6 @@ export default function ChildBalanceAdminScreen() {
   const { filho_id, nome } = useLocalSearchParams<{ filho_id: string; nome: string }>();
   const router = useRouter();
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const { from: todayFrom, to: todayTo } = useMemo(todayRange, []);
@@ -65,7 +67,6 @@ export default function ChildBalanceAdminScreen() {
 
   const balance = balanceQuery.data ?? null;
   const todayTransactions = transactionsQuery.data ?? [];
-
 
   const [modalType, setModalType] = useState<ModalType>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -106,7 +107,9 @@ export default function ChildBalanceAdminScreen() {
         setSuccessMessage('Penalidade aplicada com sucesso.');
         return { error: null };
       } catch (e) {
-        return { error: e instanceof Error ? localizeRpcError(e.message) : 'Erro ao aplicar penalidade.' };
+        return {
+          error: e instanceof Error ? localizeRpcError(e.message) : 'Erro ao aplicar penalidade.',
+        };
       }
     },
     [filho_id, penaltyMutation],
@@ -128,7 +131,9 @@ export default function ChildBalanceAdminScreen() {
       hapticSuccess();
       setSuccessMessage('Resgate do cofrinho aprovado com sucesso.');
     } catch (e) {
-      setSuccessMessage(e instanceof Error ? localizeRpcError(e.message) : 'Erro ao aprovar resgate.');
+      setSuccessMessage(
+        e instanceof Error ? localizeRpcError(e.message) : 'Erro ao aprovar resgate.',
+      );
     }
   }, [pendingWithdrawal, confirmWithdrawalMutation, profile, balance]);
 
@@ -155,7 +160,9 @@ export default function ChildBalanceAdminScreen() {
               hapticSuccess();
               setSuccessMessage('Resgate do cofrinho rejeitado.');
             } catch (e) {
-              setSuccessMessage(e instanceof Error ? localizeRpcError(e.message) : 'Erro ao rejeitar resgate.');
+              setSuccessMessage(
+                e instanceof Error ? localizeRpcError(e.message) : 'Erro ao rejeitar resgate.',
+              );
             }
           },
         },
@@ -204,7 +211,6 @@ export default function ChildBalanceAdminScreen() {
   const projection = calculateProjection(cofrinho, appreciationRate);
   const hasAppreciationConfigured = appreciationRate > 0;
   const childName = nome ?? childDetail?.nome ?? 'Filho';
-  const childAvatar = childDetail?.avatar_url ?? null;
 
   const pendingWithdrawalBanner = (() => {
     if (!pendingWithdrawal) return null;
@@ -266,41 +272,18 @@ export default function ChildBalanceAdminScreen() {
     <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
 
-      {/* Custom header: back + avatar + name + gear */}
-      <View
-        style={[
-          styles.customHeader,
-          {
-            paddingTop: getSafeTopPadding(insets, spacing['3']),
-            ...getSafeHorizontalPadding(insets, spacing['4']),
-            backgroundColor: colors.bg.surface,
-            borderBottomColor: colors.border.subtle,
-          },
-        ]}
-      >
-        <HeaderIconButton
-          icon={ChevronLeft}
-          onPress={() => {
-            if (router.canGoBack()) {
-              router.back();
-            } else {
-              router.replace('/(admin)/');
-            }
-          }}
-          accessibilityLabel="Voltar"
-        />
-        <View style={styles.headerCenter}>
-          <Avatar name={childName} size={32} imageUri={childAvatar} />
-          <Text style={[styles.headerName, { color: colors.text.primary }]} numberOfLines={1}>
-            {childName}
-          </Text>
-        </View>
-        <HeaderIconButton
-          icon={Settings}
-          onPress={() => setModalType('config')}
-          accessibilityLabel="Configurar cofrinho"
-        />
-      </View>
+      <ScreenHeader
+        title="Gestão de Pontos"
+        onBack={() => router.back()}
+        backLabel="Início"
+        rightAction={
+          <HeaderIconButton
+            icon={Settings}
+            onPress={() => setModalType('config')}
+            accessibilityLabel="Configurar cofrinho"
+          />
+        }
+      />
 
       <FlashList
         data={todayTransactions}
@@ -334,9 +317,7 @@ export default function ChildBalanceAdminScreen() {
                   <Wallet size={14} color="rgba(255,255,255,0.7)" strokeWidth={2} />
                   <Text style={styles.balanceCardLabel}>SALDO LIVRE</Text>
                 </View>
-                <Text style={styles.balanceCardValue}>
-                  {saldoLivre.toLocaleString('pt-BR')}
-                </Text>
+                <Text style={styles.balanceCardValue}>{saldoLivre.toLocaleString('pt-BR')}</Text>
                 <Text style={styles.balanceCardUnit}>pontos</Text>
               </LinearGradient>
 
@@ -400,16 +381,11 @@ export default function ChildBalanceAdminScreen() {
                     <Text style={[styles.rulesRateValue, { color: colors.text.primary }]}>
                       {appreciationRate}%
                     </Text>
-                    <Text style={[styles.rulesRateUnit, { color: colors.text.muted }]}>
-                      ao mês
-                    </Text>
+                    <Text style={[styles.rulesRateUnit, { color: colors.text.muted }]}>ao mês</Text>
                   </View>
                   {projection > 0 && cofrinho > 0 ? (
                     <View
-                      style={[
-                        styles.projectionBox,
-                        { backgroundColor: colors.semantic.successBg },
-                      ]}
+                      style={[styles.projectionBox, { backgroundColor: colors.semantic.successBg }]}
                     >
                       <View style={styles.projectionRow}>
                         <TrendingUp size={12} color={colors.semantic.successText} strokeWidth={2} />
@@ -545,25 +521,6 @@ export default function ChildBalanceAdminScreen() {
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    customHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingBottom: spacing['3'],
-      borderBottomWidth: 1,
-    },
-    headerCenter: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing['2'],
-      marginHorizontal: spacing['3'],
-    },
-    headerName: {
-      fontSize: typography.size.md,
-      fontFamily: typography.family.extrabold,
-      flex: 1,
-    },
     lista: { padding: spacing['5'], paddingBottom: spacing['12'] },
     balanceCards: {
       flexDirection: 'row',
