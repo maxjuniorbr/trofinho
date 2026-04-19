@@ -1,54 +1,24 @@
-import {
-  Alert,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-  ActivityIndicator,
-} from 'react-native';
+import { RefreshControl, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import {
-  Archive,
-  ArchiveRestore,
-  Camera,
-  CheckCircle2,
-  Clock,
-  MoreVertical,
-  Pencil,
-  RefreshCw,
-  XCircle,
-} from 'lucide-react-native';
-import {
-  buildTaskArchiveMessage,
-  formatWeekdays,
-  isRecurring,
-  type AssignmentWithChild,
-} from '@lib/tasks';
+import { Camera, CheckCircle2, Clock, RefreshCw, XCircle } from 'lucide-react-native';
+import { formatWeekdays, isRecurring, type AssignmentWithChild } from '@lib/tasks';
 import { getAssignmentStatusLabel, getAssignmentStatusTone } from '@lib/status';
 import { localizeRpcError } from '@lib/api-error';
 import { consumeNavigationFeedback } from '@lib/navigation-feedback';
 import { formatDate, toDateString } from '@lib/utils';
-import {
-  useArchiveTask,
-  useTaskAssignments,
-  useTaskDetail,
-  useUnarchiveTask,
-} from '@/hooks/queries';
+import { useTaskAssignments, useTaskDetail } from '@/hooks/queries';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
-import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { ListFooter } from '@/components/ui/list-footer';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
-import { TaskActionSheet, type TaskActionState } from '@/components/tasks/task-action-sheet';
-import { TaskFormSheet } from '@/components/tasks/task-form-sheet';
 import { TaskPointsPill } from '@/components/tasks/task-points-pill';
 
 type DateLine = { label: string; date: string };
@@ -165,28 +135,9 @@ export default function TaskDetailAdminScreen() {
 
   const { data: task, isLoading, error, refetch, isFetching } = useTaskDetail(id);
   const assignmentsQuery = useTaskAssignments(id);
-  const archiveMutation = useArchiveTask();
-  const unarchiveMutation = useUnarchiveTask();
 
   const navFeedback = consumeNavigationFeedback('admin-task-detail');
   const visibleUpdated = useTransientMessage(navFeedback?.message ?? null);
-
-  const [feedback, setFeedback] = useState<{
-    message: string;
-    variant: 'success' | 'warning' | 'error';
-  } | null>(null);
-  const [feedbackKey, setFeedbackKey] = useState(0);
-  const visibleFeedback = useTransientMessage(feedback?.message ?? null, { resetKey: feedbackKey });
-  const [showAction, setShowAction] = useState(false);
-  const [showEdit, setShowEdit] = useState(false);
-
-  const showFeedback = useCallback(
-    (message: string, variant: 'success' | 'warning' | 'error' = 'success') => {
-      setFeedback({ message, variant });
-      setFeedbackKey((k) => k + 1);
-    },
-    [],
-  );
 
   const paginated = useMemo(
     () => assignmentsQuery.data?.pages.flatMap((p) => p.data) ?? [],
@@ -196,33 +147,6 @@ export default function TaskDetailAdminScreen() {
   const handleRefresh = useCallback(async () => {
     await Promise.all([refetch(), assignmentsQuery.refetch()]);
   }, [refetch, assignmentsQuery]);
-
-  const handleArchive = useCallback(() => {
-    if (!task) return;
-    Alert.alert('Arquivar tarefa?', buildTaskArchiveMessage(task.atribuicoes), [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Arquivar',
-        style: 'destructive',
-        onPress: () =>
-          archiveMutation.mutate(task.id, {
-            onSuccess: () => {
-              showFeedback('Tarefa arquivada.');
-              router.back();
-            },
-            onError: (err) => showFeedback(localizeRpcError(err.message), 'error'),
-          }),
-      },
-    ]);
-  }, [task, archiveMutation, showFeedback, router]);
-
-  const handleUnarchive = useCallback(() => {
-    if (!task) return;
-    unarchiveMutation.mutate(task.id, {
-      onSuccess: () => showFeedback('Tarefa desarquivada.'),
-      onError: (err) => showFeedback(localizeRpcError(err.message), 'error'),
-    });
-  }, [task, unarchiveMutation, showFeedback]);
 
   if (isLoading) {
     return (
@@ -250,12 +174,6 @@ export default function TaskDetailAdminScreen() {
 
   const isArchived = task.arquivada_em !== null;
   const isInactive = task.ativo === false;
-  const actionState: TaskActionState = {
-    isArchived,
-    isInactive,
-    hasPendingReview: task.atribuicoes.some((a) => a.status === 'aguardando_validacao'),
-    canEdit: !isArchived && !isInactive,
-  };
 
   const renderHistoricoFeedback = () => {
     if (assignmentsQuery.error) {
@@ -281,18 +199,7 @@ export default function TaskDetailAdminScreen() {
   return (
     <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader
-        title="Detalhes"
-        onBack={() => router.back()}
-        backLabel="Tarefas"
-        rightAction={
-          <HeaderIconButton
-            icon={MoreVertical}
-            onPress={() => setShowAction(true)}
-            accessibilityLabel="Abrir menu da tarefa"
-          />
-        }
-      />
+      <ScreenHeader title="Detalhes" onBack={() => router.back()} backLabel="Tarefas" />
 
       <FlashList
         data={paginated}
@@ -307,12 +214,6 @@ export default function TaskDetailAdminScreen() {
         }
         ListHeaderComponent={
           <>
-            {visibleFeedback && feedback ? (
-              <View style={styles.feedbackWrapper}>
-                <InlineMessage message={visibleFeedback} variant={feedback.variant} />
-              </View>
-            ) : null}
-
             {visibleUpdated ? (
               <View style={styles.feedbackWrapper}>
                 <InlineMessage message={visibleUpdated} variant="success" />
@@ -359,41 +260,6 @@ export default function TaskDetailAdminScreen() {
                   </Text>
                 </View>
               ) : null}
-
-              <View style={styles.lifecycleRow}>
-                {actionState.canEdit ? (
-                  <Pressable
-                    style={[styles.lifecycleBtn, { borderColor: colors.border.default }]}
-                    onPress={() => setShowEdit(true)}
-                  >
-                    <Pencil size={14} color={colors.text.primary} strokeWidth={2} />
-                    <Text style={[styles.lifecycleBtnText, { color: colors.text.primary }]}>
-                      Editar
-                    </Text>
-                  </Pressable>
-                ) : null}
-                {isArchived ? (
-                  <Pressable
-                    style={[styles.lifecycleBtn, { borderColor: colors.border.default }]}
-                    onPress={handleUnarchive}
-                  >
-                    <ArchiveRestore size={14} color={colors.text.primary} strokeWidth={2} />
-                    <Text style={[styles.lifecycleBtnText, { color: colors.text.primary }]}>
-                      Desarquivar
-                    </Text>
-                  </Pressable>
-                ) : (
-                  <Pressable
-                    style={[styles.lifecycleBtn, { borderColor: colors.semantic.error }]}
-                    onPress={handleArchive}
-                  >
-                    <Archive size={14} color={colors.semantic.error} strokeWidth={2} />
-                    <Text style={[styles.lifecycleBtnText, { color: colors.semantic.error }]}>
-                      Arquivar
-                    </Text>
-                  </Pressable>
-                )}
-              </View>
             </View>
 
             <View style={[styles.historicoHeader, { borderBottomColor: colors.border.subtle }]}>
@@ -418,26 +284,6 @@ export default function TaskDetailAdminScreen() {
         }}
         onEndReachedThreshold={0.3}
         ListFooterComponent={<ListFooter loading={assignmentsQuery.isFetchingNextPage} />}
-      />
-
-      <TaskFormSheet
-        visible={showEdit}
-        mode="edit"
-        task={task}
-        onClose={() => setShowEdit(false)}
-        onSuccess={(message) => showFeedback(message)}
-      />
-
-      <TaskActionSheet
-        visible={showAction}
-        taskTitle={task.titulo}
-        state={actionState}
-        onClose={() => setShowAction(false)}
-        onEdit={() => setShowEdit(true)}
-        onPause={undefined}
-        onResume={undefined}
-        onArchive={handleArchive}
-        onUnarchive={handleUnarchive}
       />
     </SafeScreenFrame>
   );
@@ -501,19 +347,6 @@ function makeStyles(colors: ThemeColors) {
       gap: spacing['1'],
     },
     tagEvidenciaTexto: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
-    lifecycleRow: { flexDirection: 'row', gap: spacing['2'], marginTop: spacing['3'] },
-    lifecycleBtn: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: spacing['1'],
-      borderWidth: 1,
-      borderRadius: radii.md,
-      paddingVertical: spacing['2'],
-      minHeight: 40,
-    },
-    lifecycleBtnText: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
     secaoTitulo: { fontSize: typography.size.md, fontFamily: typography.family.bold },
     historicoHeader: {
       borderBottomWidth: 1,
