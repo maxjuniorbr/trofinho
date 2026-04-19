@@ -244,6 +244,23 @@ describe('AdminHomeScreen', () => {
     expect(text).toContain('Pedro');
   });
 
+  it('limits the dashboard children cards to the first three children', () => {
+    childrenMock.data = [
+      { id: 'c1', nome: 'Ana' },
+      { id: 'c2', nome: 'Pedro' },
+      { id: 'c3', nome: 'Bia' },
+      { id: 'c4', nome: 'Lia' },
+    ];
+
+    const renderer = render(<AdminHomeScreen />);
+    const text = allText(renderer);
+
+    expect(text).toContain('Ana');
+    expect(text).toContain('Pedro');
+    expect(text).toContain('Bia');
+    expect(text).not.toContain('Lia');
+  });
+
   it('renders family summary card with totals', () => {
     const renderer = render(<AdminHomeScreen />);
     const text = allText(renderer);

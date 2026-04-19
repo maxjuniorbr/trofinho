@@ -12,7 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import { Bell, ChevronRight, TrendingUp, Wallet, UserPlus } from 'lucide-react-native';
+import { Bell, ChevronRight, TrendingUp, Wallet } from 'lucide-react-native';
 import { getGreeting } from '@lib/utils';
 import { isNotificationPermissionDenied } from '@lib/notifications';
 import { useAdminUnreadNotifCount } from '@/hooks/use-notification-inbox';
@@ -127,6 +127,7 @@ export default function AdminHomeScreen() {
   const totalLivre = balances.reduce((acc, s) => acc + s.saldo_livre, 0);
   const totalCofrinho = balances.reduce((acc, s) => acc + s.cofrinho, 0);
   const totalPoints = totalLivre + totalCofrinho;
+  const visibleChildren = children.slice(0, 3);
 
   return (
     <SafeScreenFrame topInset bottomInset={false}>
@@ -217,60 +218,60 @@ export default function AdminHomeScreen() {
           </LinearGradient>
         </View>
 
-        {children.length > 0 ? (
+        <View>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Filhos</Text>
+            <Pressable
+              onPress={() => router.push('/(admin)/children')}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Gerenciar filhos"
+              style={({ pressed }) => [styles.sectionLink, pressed && { opacity: 0.65 }]}
+            >
+              <Text style={[styles.sectionLinkText, { color: colors.accent.adminDim }]}>
+                Gerenciar
+              </Text>
+              <ChevronRight size={14} color={colors.accent.adminDim} strokeWidth={2.25} />
+            </Pressable>
+          </View>
           <View style={styles.childrenList}>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Filhos</Text>
-              <Pressable
-                onPress={() => router.push('/(admin)/children')}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel="Gerenciar filhos"
-                style={({ pressed }) => [styles.sectionLink, pressed && { opacity: 0.65 }]}
-              >
-                <Text style={[styles.sectionLinkText, { color: colors.accent.adminDim }]}>
-                  Gerenciar
-                </Text>
-                <ChevronRight size={14} color={colors.accent.adminDim} strokeWidth={2} />
-              </Pressable>
-            </View>
-            {children.map((item) => {
-              const saldo = balancesMap.get(item.id);
-              const pts = saldo ? saldo.saldo_livre + saldo.cofrinho : 0;
-              const cofrinhoPercent =
-                pts > 0 ? Math.round(((saldo?.cofrinho ?? 0) / pts) * 100) : 0;
-              const appreciation = saldo?.indice_valorizacao ?? 0;
-              return (
-                <Pressable
-                  key={item.id}
-                  style={({ pressed }) => [
-                    styles.childCard,
-                    { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-                    pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
-                  ]}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/(admin)/balances/[filho_id]',
-                      params: { filho_id: item.id, nome: item.nome },
-                    })
-                  }
-                  accessibilityRole="button"
-                  accessibilityLabel={`${item.nome}, ${pts} pontos, ver saldo`}
-                >
-                  <Avatar name={item.nome} size={40} imageUri={item.avatar_url} />
-                  <View style={styles.childBody}>
-                    <View style={styles.childNameRow}>
-                      <Text
-                        style={[styles.childName, { color: colors.text.primary }]}
-                        numberOfLines={1}
-                      >
-                        {item.nome}
-                      </Text>
-                      <Text style={[styles.childPoints, { color: colors.text.primary }]}>
-                        {pts.toLocaleString('pt-BR')}
-                      </Text>
-                    </View>
-                    {pts > 0 ? (
+            {visibleChildren.length > 0 ? (
+              visibleChildren.map((item) => {
+                const saldo = balancesMap.get(item.id);
+                const pts = saldo ? saldo.saldo_livre + saldo.cofrinho : 0;
+                const cofrinhoPercent =
+                  pts > 0 ? Math.round(((saldo?.cofrinho ?? 0) / pts) * 100) : 0;
+                const appreciation = saldo?.indice_valorizacao ?? 0;
+                return (
+                  <Pressable
+                    key={item.id}
+                    style={({ pressed }) => [
+                      styles.childCard,
+                      { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+                      pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
+                    ]}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/(admin)/balances/[filho_id]',
+                        params: { filho_id: item.id, nome: item.nome },
+                      })
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={`${item.nome}, ${pts} pontos, ver saldo`}
+                  >
+                    <Avatar name={item.nome} size={40} imageUri={item.avatar_url} />
+                    <View style={styles.childBody}>
+                      <View style={styles.childNameRow}>
+                        <Text
+                          style={[styles.childName, { color: colors.text.primary }]}
+                          numberOfLines={1}
+                        >
+                          {item.nome}
+                        </Text>
+                        <Text style={[styles.childPoints, { color: colors.text.primary }]}>
+                          {pts.toLocaleString('pt-BR')}
+                        </Text>
+                      </View>
                       <View style={styles.childProgressRow}>
                         <View
                           style={[styles.childProgressTrack, { backgroundColor: colors.bg.muted }]}
@@ -289,50 +290,49 @@ export default function AdminHomeScreen() {
                           {cofrinhoPercent}% cofrinho
                         </Text>
                       </View>
-                    ) : null}
-                    {appreciation > 0 ? (
-                      <View style={styles.childAppreciationRow}>
-                        <TrendingUp size={12} color={colors.semantic.success} strokeWidth={2} />
-                        <Text
-                          style={[styles.childAppreciation, { color: colors.semantic.success }]}
-                        >
-                          {appreciation}% ao mês
-                        </Text>
-                      </View>
-                    ) : null}
-                  </View>
-                  <ChevronRight size={16} color={colors.text.muted} strokeWidth={1.75} />
+                      {appreciation > 0 ? (
+                        <View style={styles.childAppreciationRow}>
+                          <TrendingUp size={12} color={colors.semantic.success} strokeWidth={2} />
+                          <Text
+                            style={[styles.childAppreciation, { color: colors.semantic.success }]}
+                          >
+                            {appreciation}% ao mês
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    <ChevronRight size={16} color={colors.text.muted} strokeWidth={1.75} />
+                  </Pressable>
+                );
+              })
+            ) : (
+              <View
+                style={[
+                  styles.emptyState,
+                  { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+                ]}
+              >
+                <Text style={[styles.emptyStateText, { color: colors.text.secondary }]}>
+                  Nenhum filho cadastrado
+                </Text>
+                <Pressable
+                  onPress={() => router.push('/(admin)/children')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Adicionar filho"
+                  style={({ pressed }) => [
+                    styles.emptyStateButton,
+                    { backgroundColor: colors.accent.admin },
+                    pressed && { opacity: 0.85 },
+                  ]}
+                >
+                  <Text style={[styles.emptyStateButtonText, { color: colors.text.onBrand }]}>
+                    Adicionar filho
+                  </Text>
                 </Pressable>
-              );
-            })}
+              </View>
+            )}
           </View>
-        ) : (
-          <View
-            style={[
-              styles.emptyState,
-              { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-            ]}
-          >
-            <UserPlus size={32} color={colors.text.muted} strokeWidth={1.5} />
-            <Text style={[styles.emptyStateText, { color: colors.text.secondary }]}>
-              Nenhum filho cadastrado
-            </Text>
-            <Pressable
-              onPress={() => router.push('/(admin)/children')}
-              accessibilityRole="button"
-              accessibilityLabel="Adicionar filho"
-              style={({ pressed }) => [
-                styles.emptyStateButton,
-                { backgroundColor: colors.accent.admin },
-                pressed && { opacity: 0.85 },
-              ]}
-            >
-              <Text style={[styles.emptyStateButtonText, { color: colors.text.onBrand }]}>
-                Adicionar filho
-              </Text>
-            </Pressable>
-          </View>
-        )}
+        </View>
       </ScrollView>
       <HomeFooterBar items={footerItems} activeRoute="index" onNavigate={handleNavigate} />
     </SafeScreenFrame>
@@ -450,18 +450,18 @@ function makeStyles() {
       justifyContent: 'space-between',
       marginBottom: spacing['3'],
     },
-    sectionTitle: { fontFamily: typography.family.bold, fontSize: typography.size.md },
+    sectionTitle: { fontFamily: typography.family.black, fontSize: typography.size.md },
     sectionLink: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing['0.5'],
     },
     sectionLinkText: {
-      fontFamily: typography.family.semibold,
+      fontFamily: typography.family.extrabold,
       fontSize: typography.size.xs,
     },
 
-    childrenList: { gap: spacing['2'] },
+    childrenList: { gap: spacing['2'] + spacing['0.5'] },
     childCard: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -469,15 +469,16 @@ function makeStyles() {
       borderRadius: radii.xl,
       borderCurve: 'continuous',
       borderWidth: 1,
-      padding: spacing['4'],
+      padding: spacing['3'] + spacing['0.5'],
       ...shadows.card,
     },
-    childBody: { flex: 1, gap: spacing['1'] },
+    childBody: { flex: 1, minWidth: 0 },
     childNameRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: spacing['2'],
+      marginBottom: spacing['1'],
     },
     childName: { fontFamily: typography.family.bold, fontSize: typography.size.sm, flex: 1 },
     childPoints: {
@@ -485,8 +486,13 @@ function makeStyles() {
       fontSize: typography.size.md,
       fontVariant: ['tabular-nums'],
     },
-    childProgressRow: { gap: spacing['0.5'] },
+    childProgressRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['2'],
+    },
     childProgressTrack: {
+      flex: 1,
       height: 6,
       borderRadius: radii.full,
       overflow: 'hidden',
@@ -498,11 +504,13 @@ function makeStyles() {
     childMeta: {
       fontFamily: typography.family.medium,
       fontSize: typography.size.xxs,
+      flexShrink: 0,
     },
     childAppreciationRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing['0.5'],
+      marginTop: spacing['1'],
     },
     childAppreciation: {
       fontFamily: typography.family.semibold,
@@ -521,11 +529,13 @@ function makeStyles() {
     emptyStateText: {
       fontFamily: typography.family.semibold,
       fontSize: typography.size.sm,
+      textAlign: 'center',
     },
     emptyStateButton: {
       paddingVertical: spacing['2'],
       paddingHorizontal: spacing['4'],
       borderRadius: radii.md,
+      ...shadows.goldButton,
     },
     emptyStateButtonText: {
       fontFamily: typography.family.bold,
