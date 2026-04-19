@@ -11,6 +11,7 @@ import {
   getAssignmentCancellationState,
   getAssignmentCompletionState,
   getAssignmentPoints,
+  getAssignmentRetryState,
   isRecurring,
   formatWeekdays,
   type ChildAssignment,
@@ -21,6 +22,7 @@ import {
   useChildAssignment,
   useCancelAssignmentSubmission,
   useCompleteAssignment,
+  useDiscardRejection,
   useProfile,
 } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
@@ -122,114 +124,248 @@ function EvidenceSection({
   );
 }
 
+type FooterStyles = ReturnType<typeof makeStyles>;
+
+type PendingFooterProps = Readonly<{
+  requiresEvidence: boolean;
+  completing: boolean;
+  completionReason: string | null;
+  completionError: string | null;
+  onComplete: () => void;
+}>;
+
+function PendingFooter({
+  requiresEvidence,
+  completing,
+  completionReason,
+  completionError,
+  onComplete,
+}: PendingFooterProps) {
+  const label = requiresEvidence ? 'Tirar foto e concluir' : 'Concluir tarefa';
+  return (
+    <>
+      {completionReason ? (
+        <InlineMessage message={completionReason} variant="warning" />
+      ) : null}
+      {!completionReason && completionError ? (
+        <InlineMessage message={completionError} variant="error" />
+      ) : null}
+      {completionReason ? null : (
+        <Button
+          variant="primary"
+          label={label}
+          loading={completing}
+          loadingLabel="Concluindo…"
+          onPress={onComplete}
+          accessibilityLabel={label}
+        />
+      )}
+    </>
+  );
+}
+
+type AwaitingFooterProps = Readonly<{
+  canceling: boolean;
+  cancelReason: string | null;
+  cancelError: string | null;
+  onCancelSubmission: () => void;
+  colors: ThemeColors;
+  styles: FooterStyles;
+}>;
+
+function AwaitingFooter({
+  canceling,
+  cancelReason,
+  cancelError,
+  onCancelSubmission,
+  colors,
+  styles,
+}: AwaitingFooterProps) {
+  return (
+    <>
+      <View style={styles.awaitingBox}>
+        <View style={styles.statusRow}>
+          <Clock size={14} color={colors.accent.filho} strokeWidth={2} />
+          <Text style={styles.awaitingText}>Aguardando validação do responsável</Text>
+        </View>
+      </View>
+      {cancelReason ? (
+        <View style={styles.footerMessage}>
+          <InlineMessage message={cancelReason} variant="warning" />
+        </View>
+      ) : null}
+      {!cancelReason && cancelError ? (
+        <View style={styles.footerMessage}>
+          <InlineMessage message={cancelError} variant="error" />
+        </View>
+      ) : null}
+      {cancelReason ? null : (
+        <Button
+          variant="danger"
+          label="Cancelar envio"
+          loading={canceling}
+          loadingLabel="Cancelando…"
+          onPress={onCancelSubmission}
+          accessibilityLabel="Cancelar envio da tarefa"
+        />
+      )}
+    </>
+  );
+}
+
+type RejectedFooterProps = Readonly<{
+  retryReason: string | null;
+  attemptsLeft: number;
+  canRetry: boolean;
+  completing: boolean;
+  discarding: boolean;
+  completionError: string | null;
+  discardError: string | null;
+  onRetry: () => void;
+  onDiscardRejection: () => void;
+}>;
+
+function RejectedFooter({
+  retryReason,
+  attemptsLeft,
+  canRetry,
+  completing,
+  discarding,
+  completionError,
+  discardError,
+  onRetry,
+  onDiscardRejection,
+}: RejectedFooterProps) {
+  const retryLabel = `Refazer e reenviar (${attemptsLeft} restante${attemptsLeft === 1 ? '' : 's'})`;
+  return (
+    <>
+      {retryReason ? <InlineMessage message={retryReason} variant="warning" /> : null}
+      {!retryReason && completionError ? (
+        <InlineMessage message={completionError} variant="error" />
+      ) : null}
+      {discardError ? <InlineMessage message={discardError} variant="error" /> : null}
+      {canRetry ? (
+        <Button
+          variant="primary"
+          label={retryLabel}
+          loading={completing}
+          loadingLabel="Concluindo…"
+          onPress={onRetry}
+          accessibilityLabel="Refazer e reenviar a tarefa"
+        />
+      ) : null}
+      <Button
+        variant="secondary"
+        label="Descartar feedback"
+        loading={discarding}
+        loadingLabel="Descartando…"
+        onPress={onDiscardRejection}
+        accessibilityLabel="Descartar feedback de rejeição"
+      />
+    </>
+  );
+}
+
+type ApprovedFooterProps = Readonly<{
+  assignment: ChildAssignment;
+  onBack: () => void;
+  colors: ThemeColors;
+  styles: FooterStyles;
+}>;
+
+function ApprovedFooter({ assignment, onBack, colors, styles }: ApprovedFooterProps) {
+  return (
+    <>
+      <View style={styles.approvedBox}>
+        <View style={styles.statusRow}>
+          <Trophy size={14} color={colors.semantic.success} strokeWidth={2} />
+          <Text style={styles.approvedText}>
+            Parabéns! {getAssignmentPoints(assignment)} pontos creditados no seu saldo 🎉
+          </Text>
+        </View>
+      </View>
+      <Button
+        variant="secondary"
+        label="Voltar às tarefas"
+        onPress={onBack}
+        accessibilityLabel="Voltar à lista de tarefas"
+      />
+    </>
+  );
+}
+
 type StatusFooterProps = Readonly<{
   assignment: ChildAssignment;
   completing: boolean;
   canceling: boolean;
+  discarding: boolean;
   completionReason: string | null;
   completionError: string | null;
   cancelError: string | null;
   cancelReason: string | null;
+  retryReason: string | null;
+  attemptsLeft: number;
+  canRetry: boolean;
+  discardError: string | null;
   onComplete: () => void;
+  onRetry: () => void;
+  onDiscardRejection: () => void;
   onCancelSubmission: () => void;
   onBack: () => void;
   colors: ThemeColors;
-  styles: ReturnType<typeof makeStyles>;
+  styles: FooterStyles;
 }>;
 
-function StatusFooter({
-  assignment,
-  completing,
-  canceling,
-  completionReason,
-  completionError,
-  cancelError,
-  cancelReason,
-  onComplete,
-  onCancelSubmission,
-  onBack,
-  colors,
-  styles,
-}: StatusFooterProps) {
-  if (assignment.status === 'pendente') {
-    const requiresEvidence = assignment.tarefas.exige_evidencia;
-    return (
-      <>
-        {completionReason && <InlineMessage message={completionReason} variant="warning" />}
-        {!completionReason && completionError && (
-          <InlineMessage message={completionError} variant="error" />
-        )}
-        {!completionReason && (
-          <Button
-            variant="primary"
-            label={requiresEvidence ? 'Tirar foto e concluir' : 'Concluir tarefa'}
-            loading={completing}
-            loadingLabel="Concluindo…"
-            onPress={onComplete}
-            accessibilityLabel={
-              requiresEvidence ? 'Tirar foto e concluir tarefa' : 'Concluir tarefa'
-            }
-          />
-        )}
-      </>
-    );
-  }
-
-  if (assignment.status === 'aguardando_validacao') {
-    return (
-      <>
-        <View style={styles.awaitingBox}>
-          <View style={styles.statusRow}>
-            <Clock size={14} color={colors.accent.filho} strokeWidth={2} />
-            <Text style={styles.awaitingText}>Aguardando validação do responsável</Text>
-          </View>
-        </View>
-        {cancelReason && (
-          <View style={styles.footerMessage}>
-            <InlineMessage message={cancelReason} variant="warning" />
-          </View>
-        )}
-        {!cancelReason && cancelError && (
-          <View style={styles.footerMessage}>
-            <InlineMessage message={cancelError} variant="error" />
-          </View>
-        )}
-        {!cancelReason && (
-          <Button
-            variant="danger"
-            label="Cancelar envio"
-            loading={canceling}
-            loadingLabel="Cancelando…"
-            onPress={onCancelSubmission}
-            accessibilityLabel="Cancelar envio da tarefa"
-          />
-        )}
-      </>
-    );
-  }
-
-  if (assignment.status === 'aprovada') {
-    return (
-      <>
-        <View style={styles.approvedBox}>
-          <View style={styles.statusRow}>
-            <Trophy size={14} color={colors.semantic.success} strokeWidth={2} />
-            <Text style={styles.approvedText}>
-              Parabéns! {getAssignmentPoints(assignment)} pontos creditados no seu saldo 🎉
-            </Text>
-          </View>
-        </View>
-        <Button
-          variant="secondary"
-          label="Voltar às tarefas"
-          onPress={onBack}
-          accessibilityLabel="Voltar à lista de tarefas"
+function StatusFooter(props: StatusFooterProps) {
+  const { assignment } = props;
+  switch (assignment.status) {
+    case 'pendente':
+      return (
+        <PendingFooter
+          requiresEvidence={assignment.tarefas.exige_evidencia}
+          completing={props.completing}
+          completionReason={props.completionReason}
+          completionError={props.completionError}
+          onComplete={props.onComplete}
         />
-      </>
-    );
+      );
+    case 'aguardando_validacao':
+      return (
+        <AwaitingFooter
+          canceling={props.canceling}
+          cancelReason={props.cancelReason}
+          cancelError={props.cancelError}
+          onCancelSubmission={props.onCancelSubmission}
+          colors={props.colors}
+          styles={props.styles}
+        />
+      );
+    case 'rejeitada':
+      return (
+        <RejectedFooter
+          retryReason={props.retryReason}
+          attemptsLeft={props.attemptsLeft}
+          canRetry={props.canRetry}
+          completing={props.completing}
+          discarding={props.discarding}
+          completionError={props.completionError}
+          discardError={props.discardError}
+          onRetry={props.onRetry}
+          onDiscardRejection={props.onDiscardRejection}
+        />
+      );
+    case 'aprovada':
+      return (
+        <ApprovedFooter
+          assignment={assignment}
+          onBack={props.onBack}
+          colors={props.colors}
+          styles={props.styles}
+        />
+      );
+    default:
+      return null;
   }
-
-  return null;
 }
 
 async function pickEvidenceImage(): Promise<string | null> {
@@ -252,6 +388,13 @@ async function pickEvidenceImage(): Promise<string | null> {
   return result.assets[0].uri;
 }
 
+function computeInactiveTaskMessage(assignment: ChildAssignment): string | null {
+  if (assignment.tarefas.ativo !== false || assignment.status === 'pendente') return null;
+  return assignment.status === 'aguardando_validacao'
+    ? 'Esta tarefa foi desativada pelo responsável. O envio atual segue apenas para acompanhamento e não pode mais ser alterado.'
+    : 'Esta tarefa foi desativada pelo responsável. Volte para a lista para acompanhar as demais tarefas.';
+}
+
 export default function ChildTaskDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -262,9 +405,11 @@ export default function ChildTaskDetailScreen() {
   const { data: profile } = useProfile();
   const completeMutation = useCompleteAssignment();
   const cancelMutation = useCancelAssignmentSubmission();
+  const discardMutation = useDiscardRejection();
 
   const [completionError, setCompletionError] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [discardError, setDiscardError] = useState<string | null>(null);
   const [imgLoading, setImgLoading] = useState(true);
   const [imgError, setImgError] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
@@ -276,9 +421,36 @@ export default function ChildTaskDetailScreen() {
     useCallback(() => {
       setCompletionError(null);
       setCancelError(null);
+      setDiscardError(null);
       refetch();
     }, [refetch]),
   );
+
+  const runCompletion = async (latest: ChildAssignment) => {
+    const completionState = getAssignmentCompletionState(latest, latest.tarefas);
+    if (!completionState.canComplete) {
+      setCompletionError(completionState.reason ?? null);
+      return;
+    }
+
+    const imageUri = latest.tarefas.exige_evidencia ? await pickEvidenceImage() : null;
+    if (latest.tarefas.exige_evidencia && !imageUri) return;
+
+    await completeMutation.mutateAsync({
+      assignmentId: latest.id,
+      imageUri,
+      opts: {
+        familiaId: latest.tarefas.familia_id,
+        childName: profile?.nome ?? '',
+        taskTitle: latest.tarefas.titulo,
+        taskId: latest.tarefas.id,
+        childUserId: profile?.id,
+      },
+    });
+    hapticSuccess();
+    setFeedbackMessage('Tarefa enviada com sucesso! 🚀');
+    setFeedbackKey((k) => k + 1);
+  };
 
   const handleComplete = async () => {
     if (!assignment) return;
@@ -290,39 +462,24 @@ export default function ChildTaskDetailScreen() {
         setCompletionError(latestResult.error.message);
         return;
       }
-
-      const latestAssignment = latestResult.data ?? assignment;
-      const completionState = getAssignmentCompletionState(
-        latestAssignment,
-        latestAssignment.tarefas,
-      );
-      if (!completionState.canComplete) {
-        setCompletionError(completionState.reason ?? null);
-        return;
-      }
-
-      const imageUri = latestAssignment.tarefas.exige_evidencia ? await pickEvidenceImage() : null;
-      if (latestAssignment.tarefas.exige_evidencia && !imageUri) return;
-
-      await completeMutation.mutateAsync({
-        assignmentId: latestAssignment.id,
-        imageUri,
-        opts: {
-          familiaId: latestAssignment.tarefas.familia_id,
-          childName: profile?.nome ?? '',
-          taskTitle: latestAssignment.tarefas.titulo,
-          taskId: latestAssignment.tarefas.id,
-          childUserId: profile?.id,
-        },
-      });
-      hapticSuccess();
-      setFeedbackMessage('Tarefa enviada com sucesso! 🚀');
-      setFeedbackKey((k) => k + 1);
+      await runCompletion(latestResult.data ?? assignment);
     } catch (error_) {
       setCompletionError(
         error_ instanceof Error ? error_.message : 'Não foi possível concluir a tarefa agora.',
       );
     }
+  };
+
+  const handleDiscardRejection = () => {
+    if (!assignment) return;
+    setDiscardError(null);
+    discardMutation.mutate(assignment.id, {
+      onSuccess: () => {
+        setFeedbackMessage('Feedback descartado.');
+        setFeedbackKey((k) => k + 1);
+      },
+      onError: (err) => setDiscardError(err.message),
+    });
   };
 
   const handleCancelSubmission = async () => {
@@ -409,31 +566,32 @@ export default function ChildTaskDetailScreen() {
   const task = assignment.tarefas;
   const completionState = getAssignmentCompletionState(assignment, task);
   const cancellationState = getAssignmentCancellationState(assignment, task);
+  const retryState = getAssignmentRetryState(assignment);
   const validationLine = buildValidationLine(assignment);
-  let inactiveTaskMessage: string | null = null;
-  if (task.ativo === false && assignment.status !== 'pendente') {
-    inactiveTaskMessage =
-      assignment.status === 'aguardando_validacao'
-        ? 'Esta tarefa foi desativada pelo responsável. O envio atual segue apenas para acompanhamento e não pode mais ser alterado.'
-        : 'Esta tarefa foi desativada pelo responsável. Volte para a lista para acompanhar as demais tarefas.';
-  }
-  const footer =
-    assignment.status === 'rejeitada' ? undefined : (
-      <StatusFooter
-        assignment={assignment}
-        completing={completeMutation.isPending}
-        canceling={cancelMutation.isPending}
-        completionReason={completionState.reason}
-        completionError={completionError}
-        cancelError={cancelError}
-        cancelReason={cancellationState.reason}
-        onComplete={handleComplete}
-        onCancelSubmission={handleCancelSubmission}
-        onBack={() => router.back()}
-        colors={colors}
-        styles={styles}
-      />
-    );
+  const inactiveTaskMessage = computeInactiveTaskMessage(assignment);
+  const footer = (
+    <StatusFooter
+      assignment={assignment}
+      completing={completeMutation.isPending}
+      canceling={cancelMutation.isPending}
+      discarding={discardMutation.isPending}
+      completionReason={completionState.reason}
+      completionError={completionError}
+      cancelError={cancelError}
+      cancelReason={cancellationState.reason}
+      retryReason={retryState.reason}
+      attemptsLeft={retryState.attemptsLeft}
+      canRetry={retryState.canRetry && task.ativo !== false}
+      discardError={discardError}
+      onComplete={handleComplete}
+      onRetry={handleComplete}
+      onDiscardRejection={handleDiscardRejection}
+      onCancelSubmission={handleCancelSubmission}
+      onBack={() => router.back()}
+      colors={colors}
+      styles={styles}
+    />
+  );
 
   return (
     <>

@@ -9,6 +9,7 @@ import { HomeFooterBar } from '@/components/ui/home-footer-bar';
 import { useChildFooterItems } from '@/hooks/use-footer-items';
 import {
   getAssignmentPoints,
+  getAssignmentRetryState,
   isRecurring,
   formatWeekdays,
   type ChildAssignment,
@@ -16,7 +17,7 @@ import {
 } from '@lib/tasks';
 import { formatDate, toDateString } from '@lib/utils';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
-import { useChildAssignments } from '@/hooks/queries';
+import { useChildAssignments, useDiscardRejection } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -171,6 +172,46 @@ function TaskCardBadges({
   );
 }
 
+function RejectedActions({
+  item,
+  styles,
+}: Readonly<{ item: ChildAssignment; styles: ReturnType<typeof makeStyles> }>) {
+  const discardMutation = useDiscardRejection();
+  const retryState = getAssignmentRetryState(item);
+  const plural = retryState.attemptsLeft === 1 ? '' : 's';
+  const hint = retryState.canRetry
+    ? `${retryState.attemptsLeft} tentativa${plural} restante${plural}`
+    : 'Sem tentativas restantes';
+
+  const handleDiscard = () => {
+    Alert.alert('Descartar feedback?', 'A tarefa volta para "Para fazer".', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Descartar',
+        style: 'destructive',
+        onPress: () => discardMutation.mutate(item.id),
+      },
+    ]);
+  };
+
+  return (
+    <View style={styles.rejectedActions}>
+      <Text style={styles.rejectedHint}>{hint}</Text>
+      <Pressable
+        onPress={handleDiscard}
+        disabled={discardMutation.isPending}
+        accessibilityRole="button"
+        accessibilityLabel="Descartar feedback de rejeição"
+        hitSlop={8}
+      >
+        <Text style={styles.rejectedDiscardLink}>
+          {discardMutation.isPending ? 'Descartando…' : 'Descartar feedback'}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
 function TaskCard({ item, filter, colors, styles, router }: Readonly<TaskCardProps>) {
   const dateLine = getAssignmentDateLine(item, filter);
   const isInactive = item.tarefas.ativo === false;
@@ -178,6 +219,7 @@ function TaskCard({ item, filter, colors, styles, router }: Readonly<TaskCardPro
   const recurring = isRecurring(item.tarefas.dias_semana);
   const showEvidenceHint = item.tarefas.exige_evidencia && filter === 'pendente';
   const { handlePress, accessibilityLabel } = getTaskCardAction(item, isUnavailable, router);
+  const isRejected = item.status === 'rejeitada';
 
   return (
     <Pressable
@@ -204,6 +246,7 @@ function TaskCard({ item, filter, colors, styles, router }: Readonly<TaskCardPro
         colors={colors}
         styles={styles}
       />
+      {isRejected ? <RejectedActions item={item} styles={styles} /> : null}
     </Pressable>
   );
 }
@@ -406,5 +449,22 @@ function makeStyles(colors: ThemeColors) {
       alignSelf: 'flex-start',
     },
     statusText: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
+    rejectedActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: spacing['2'],
+    },
+    rejectedHint: {
+      fontSize: typography.size.xs,
+      color: colors.semantic.warningText,
+      fontFamily: typography.family.semibold,
+    },
+    rejectedDiscardLink: {
+      fontSize: typography.size.xs,
+      color: colors.accent.filho,
+      fontFamily: typography.family.semibold,
+      textDecorationLine: 'underline',
+    },
   });
 }

@@ -130,6 +130,7 @@ vi.mock('@lib/tasks', () => ({
 
     return { canCancel: true, reason: null };
   },
+  getAssignmentRetryState: () => ({ canRetry: false, attemptsLeft: 0, reason: null }),
 }));
 
 vi.mock('@/constants/status', () => ({
@@ -167,6 +168,7 @@ vi.mock('@/hooks/queries', () => ({
   useProfile: () => profileMock,
   useCompleteAssignment: () => completeMutationMock,
   useCancelAssignmentSubmission: () => cancelMutationMock,
+  useDiscardRejection: () => ({ mutate: vi.fn(), isPending: false }),
   useTasksLiveSync: () => undefined,
 }));
 
