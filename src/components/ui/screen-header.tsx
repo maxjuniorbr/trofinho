@@ -94,29 +94,29 @@ export function ScreenHeader({
         },
       ]}
     >
-      {onBack ? (
-        <HeaderIconButton
-          icon={ChevronLeft}
-          onPress={() => {
-            if (router.canGoBack()) {
-              onBack();
-            } else {
-              router.replace(role === 'filho' ? '/(child)/' : '/(admin)/');
-            }
-          }}
-          accessibilityLabel={`Voltar para ${displayLabel}`}
-          role={role}
-          tone={resolvedBackTone}
-        />
-      ) : (
-        <View style={styles.side} />
-      )}
+      <View style={styles.titleGroup}>
+        {onBack ? (
+          <HeaderIconButton
+            icon={ChevronLeft}
+            onPress={() => {
+              if (router.canGoBack()) {
+                onBack();
+              } else {
+                router.replace(role === 'filho' ? '/(child)/' : '/(admin)/');
+              }
+            }}
+            accessibilityLabel={`Voltar para ${displayLabel}`}
+            role={role}
+            tone={resolvedBackTone}
+          />
+        ) : null}
 
-      <Text style={[styles.title, { color: colors.text.primary }]} numberOfLines={1}>
-        {title}
-      </Text>
+        <Text style={[styles.title, { color: colors.text.primary }]} numberOfLines={1}>
+          {title}
+        </Text>
+      </View>
 
-      <View style={styles.side}>{rightAction ?? null}</View>
+      {rightAction ? <View style={styles.rightAction}>{rightAction}</View> : null}
     </View>
   );
 }
@@ -126,11 +126,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: spacing['3'],
     paddingBottom: spacing['3'],
   },
-  side: {
-    minWidth: 40,
+  titleGroup: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['3'],
   },
+  rightAction: { flexShrink: 0 },
   iconButton: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -141,7 +147,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.size.lg,
     fontFamily: typography.family.bold,
-    flex: 1,
-    textAlign: 'center',
+    flexShrink: 1,
+    textAlign: 'left',
   },
 });

@@ -271,6 +271,7 @@ describe('AdminTasksScreen', () => {
   it('navigates to new task screen', () => {
     const renderer = render(<AdminTasksScreen />);
     const addBtn = renderer.root.findByType('HeaderIconButton' as never);
+    expect(addBtn.props.tone).toBe('accent');
     act(() => {
       addBtn.props.onPress();
     });

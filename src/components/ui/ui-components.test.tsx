@@ -239,6 +239,9 @@ describe('ui components', () => {
     const onBack = vi.fn();
     const renderer = render(<ScreenHeader title="Perfil" onBack={onBack} />);
     const backButton = renderer.root.findByType(Pressable);
+    const title = renderer.root
+      .findAllByType(Text)
+      .find((node) => node.props.children === 'Perfil')!;
 
     await act(async () => {
       backButton.props.onPress();
@@ -251,6 +254,7 @@ describe('ui components', () => {
       lightColors.bg.muted,
     );
     expect(flattenStyle(backButton.props.style({ pressed: false })).width).toBe(40);
+    expect(flattenStyle(title.props.style).textAlign).toBe('left');
   });
 
   it('falls back to route replacement when the stack cannot go back', async () => {

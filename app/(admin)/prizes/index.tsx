@@ -167,6 +167,7 @@ export default function AdminPrizesScreen() {
             icon={Plus}
             onPress={() => router.push('/(admin)/prizes/new' as never)}
             accessibilityLabel="Criar prêmio"
+            tone="accent"
           />
         }
       />
