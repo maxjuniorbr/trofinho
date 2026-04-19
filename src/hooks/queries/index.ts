@@ -12,6 +12,7 @@ export {
   useChildAssignments,
   useChildAssignment,
   usePendingValidationCount,
+  usePendingValidations,
   useCreateTask,
   useUpdateTask,
   useApproveAssignment,
@@ -21,6 +22,11 @@ export {
   useDeactivateTask,
   useReactivateTask,
   useRenewRecurringTasks,
+  useArchivedTasks,
+  useApprovedAssignmentsFeed,
+  useArchiveTask,
+  useUnarchiveTask,
+  useDiscardRejection,
 } from './use-tasks';
 export {
   useBalance,

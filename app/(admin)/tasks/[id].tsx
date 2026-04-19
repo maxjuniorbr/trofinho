@@ -1,25 +1,31 @@
 import {
   Alert,
+  Pressable,
+  RefreshControl,
   StyleSheet,
-  Switch,
   Text,
   View,
-  Pressable,
-  TextInput,
   ActivityIndicator,
-  RefreshControl,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback, useMemo } from 'react';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { RefreshCw, Camera, Pencil, CheckCircle2, XCircle, Clock } from 'lucide-react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-  getTaskEditState,
-  buildTaskDeactivateMessage,
-  isRecurring,
+  Archive,
+  ArchiveRestore,
+  Camera,
+  CheckCircle2,
+  Clock,
+  MoreVertical,
+  Pencil,
+  RefreshCw,
+  XCircle,
+} from 'lucide-react-native';
+import {
+  buildTaskArchiveMessage,
   formatWeekdays,
+  isRecurring,
   type AssignmentWithChild,
 } from '@lib/tasks';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
@@ -27,12 +33,10 @@ import { localizeRpcError } from '@lib/api-error';
 import { consumeNavigationFeedback } from '@lib/navigation-feedback';
 import { formatDate, toDateString } from '@lib/utils';
 import {
-  useTaskDetail,
+  useArchiveTask,
   useTaskAssignments,
-  useApproveAssignment,
-  useRejectAssignment,
-  useDeactivateTask,
-  useReactivateTask,
+  useTaskDetail,
+  useUnarchiveTask,
 } from '@/hooks/queries';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { useTheme } from '@/context/theme-context';
@@ -41,16 +45,17 @@ import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { InlineMessage } from '@/components/ui/inline-message';
-import { FullscreenImageViewer } from '@/components/ui/fullscreen-image-viewer';
 import { ListFooter } from '@/components/ui/list-footer';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
+import { TaskActionSheet, type TaskActionState } from '@/components/tasks/task-action-sheet';
+import { TaskFormSheet } from '@/components/tasks/task-form-sheet';
 
 type DateLine = { label: string; date: string };
 
-function formatValidatedDateLine(
+const formatValidatedDateLine = (
   label: string,
   assignment: AssignmentWithChild,
-): DateLine | null {
+): DateLine | null => {
   const date = assignment.validada_em ?? assignment.concluida_em;
   if (!date) return null;
   let formatted = formatDate(date);
@@ -58,9 +63,9 @@ function formatValidatedDateLine(
     formatted += ' · Tarefa de ' + formatDate(assignment.competencia + 'T12:00:00');
   }
   return { label, date: formatted };
-}
+};
 
-function getAssignmentDateLine(assignment: AssignmentWithChild): DateLine | null {
+const getAssignmentDateLine = (assignment: AssignmentWithChild): DateLine | null => {
   switch (assignment.status) {
     case 'pendente': {
       if (!assignment.competencia) {
@@ -81,14 +86,7 @@ function getAssignmentDateLine(assignment: AssignmentWithChild): DateLine | null
     case 'rejeitada':
       return formatValidatedDateLine('Rejeitada em ', assignment);
   }
-}
-
-type AssignmentRowProps = Readonly<{
-  assignment: AssignmentWithChild;
-  colors: ThemeColors;
-  styles: ReturnType<typeof makeStyles>;
-  isLast: boolean;
-}>;
+};
 
 const getRowStatusLabel = (assignment: AssignmentWithChild): string => {
   if (
@@ -111,6 +109,13 @@ const getRowStatusIcon = (status: AssignmentWithChild['status']) => {
   return map[status];
 };
 
+type AssignmentRowProps = Readonly<{
+  assignment: AssignmentWithChild;
+  colors: ThemeColors;
+  styles: ReturnType<typeof makeStyles>;
+  isLast: boolean;
+}>;
+
 const AssignmentRow = ({ assignment, colors, styles, isLast }: AssignmentRowProps) => {
   const dateLine = getAssignmentDateLine(assignment);
   const statusColor = getAssignmentStatusColor(assignment.status, colors);
@@ -130,9 +135,11 @@ const AssignmentRow = ({ assignment, colors, styles, isLast }: AssignmentRowProp
         <StatusIcon size={14} color={statusColor} strokeWidth={2} />
       </View>
       <View style={styles.atribRowInfo}>
-        <Text style={styles.atribRowNome}>{assignment.filhos.nome}</Text>
+        <Text style={[styles.atribRowNome, { color: colors.text.primary }]}>
+          {assignment.filhos.nome}
+        </Text>
         {assignment.nota_rejeicao ? (
-          <Text style={styles.atribRowNota} numberOfLines={2}>
+          <Text style={[styles.atribRowNota, { color: colors.text.muted }]} numberOfLines={2}>
             {assignment.nota_rejeicao}
           </Text>
         ) : null}
@@ -141,200 +148,13 @@ const AssignmentRow = ({ assignment, colors, styles, isLast }: AssignmentRowProp
         <Text style={[styles.atribRowStatus, { color: statusColor }]}>
           {getRowStatusLabel(assignment)}
         </Text>
-        {dateLine ? <Text style={styles.atribRowData}>{dateLine.date}</Text> : null}
+        {dateLine ? (
+          <Text style={[styles.atribRowData, { color: colors.text.muted }]}>{dateLine.date}</Text>
+        ) : null}
       </View>
     </View>
   );
-}
-
-type AssignmentCardProps = Readonly<{
-  assignment: AssignmentWithChild;
-  action: 'rejecting' | 'processing' | null;
-  note: string;
-  assignmentError: string;
-  imageState?: 'loading' | 'loaded' | 'error';
-  colors: ThemeColors;
-  styles: ReturnType<typeof makeStyles>;
-  onApprove: () => void;
-  onReject: () => void;
-  onStartReject: () => void;
-  onCancelReject: () => void;
-  onNoteChange: (value: string) => void;
-  onImageStateChange: (state: 'loading' | 'loaded' | 'error') => void;
-  onImagePress: (url: string) => void;
-}>;
-
-const AssignmentCard = ({
-  assignment,
-  action,
-  note,
-  assignmentError,
-  imageState,
-  colors,
-  styles,
-  onApprove,
-  onReject,
-  onStartReject,
-  onCancelReject,
-  onNoteChange,
-  onImageStateChange,
-  onImagePress,
-}: AssignmentCardProps) => {
-  const processing = action === 'processing';
-  const statusColor = getAssignmentStatusColor(assignment.status, colors);
-  const isRejecting = action === 'rejecting';
-  const evidenceUrl = assignment.evidencia_url ?? undefined;
-  const dateLine = getAssignmentDateLine(assignment);
-
-  return (
-    <View style={styles.atribCard}>
-      <View style={styles.atribTopo}>
-        <Text style={styles.filhoNome}>{assignment.filhos.nome}</Text>
-        <View style={[styles.statusTag, { backgroundColor: statusColor + '20' }]}>
-          <Text style={[styles.statusTexto, { color: statusColor }]}>
-            {getAssignmentStatusLabel(assignment.status)}
-          </Text>
-        </View>
-      </View>
-      {dateLine ? (
-        <Text style={styles.dataLinha}>
-          {dateLine.label}
-          {dateLine.date}
-        </Text>
-      ) : null}
-
-      {evidenceUrl &&
-        (imageState === 'error' ? (
-          <View
-            style={[
-              styles.evidenciaImgWrapper,
-              styles.evidenciaFallback,
-              { backgroundColor: colors.bg.muted },
-            ]}
-          >
-            <Text style={[styles.evidenciaFallbackText, { color: colors.text.muted }]}>
-              Não foi possível carregar a imagem
-            </Text>
-          </View>
-        ) : (
-          <Pressable
-            style={styles.evidenciaImgWrapper}
-            onPress={() => onImagePress(evidenceUrl)}
-            accessibilityRole="button"
-            accessibilityLabel="Ver foto em tela cheia"
-          >
-            <Image
-              source={evidenceUrl}
-              style={styles.evidenciaImg}
-              contentFit="cover"
-              transition={200}
-              onLoadStart={() => onImageStateChange('loading')}
-              onLoad={() => onImageStateChange('loaded')}
-              onError={() => onImageStateChange('error')}
-            />
-            {imageState !== 'loaded' && (
-              <View style={styles.evidenciaLoading}>
-                <ActivityIndicator size="small" color={colors.accent.admin} />
-              </View>
-            )}
-          </Pressable>
-        ))}
-
-      {assignment.nota_rejeicao ? (
-        <View style={styles.notaRejeicaoBox}>
-          <Text style={styles.notaRejeicaoLabel}>Motivo da rejeição:</Text>
-          <Text style={styles.notaRejeicaoTexto}>{assignment.nota_rejeicao}</Text>
-        </View>
-      ) : null}
-
-      {assignment.status === 'aguardando_validacao' && (
-        <View style={styles.acoesBox}>
-          {isRejecting ? (
-            <>
-              <TextInput
-                style={styles.inputNota}
-                value={note}
-                onChangeText={onNoteChange}
-                placeholder="Motivo da rejeição (obrigatório)"
-                placeholderTextColor={colors.text.muted}
-                multiline
-                maxLength={500}
-                accessibilityLabel="Motivo da rejeição"
-              />
-              <View style={styles.botoesRejeitar}>
-                <Pressable
-                  style={[styles.botaoAcao, styles.botaoCancelar]}
-                  onPress={onCancelReject}
-                  disabled={processing}
-                >
-                  <Text style={styles.botaoCancelarTexto}>Cancelar</Text>
-                </Pressable>
-                <Pressable
-                  style={[
-                    styles.botaoAcao,
-                    styles.botaoRejeitar,
-                    processing && styles.botaoDesabilitado,
-                  ]}
-                  onPress={() => {
-                    Alert.alert(
-                      'Rejeitar tarefa?',
-                      'A tarefa será rejeitada e o filho será notificado.',
-                      [
-                        { text: 'Cancelar', style: 'cancel' },
-                        { text: 'Rejeitar', style: 'destructive', onPress: onReject },
-                      ],
-                    );
-                  }}
-                  disabled={processing}
-                >
-                  {processing ? (
-                    <ActivityIndicator color={colors.text.inverse} size="small" />
-                  ) : (
-                    <Text style={styles.botaoRejeitarTexto}>Confirmar rejeição</Text>
-                  )}
-                </Pressable>
-              </View>
-            </>
-          ) : (
-            <View style={styles.botoesValidar}>
-              <Pressable
-                style={[
-                  styles.botaoAcao,
-                  styles.botaoRejeitar,
-                  processing && styles.botaoDesabilitado,
-                ]}
-                onPress={onStartReject}
-                disabled={processing}
-              >
-                <Text style={styles.botaoRejeitarTexto}>Rejeitar</Text>
-              </Pressable>
-              <Pressable
-                style={[
-                  styles.botaoAcao,
-                  styles.botaoAprovar,
-                  processing && styles.botaoDesabilitado,
-                ]}
-                onPress={onApprove}
-                disabled={processing}
-              >
-                {processing ? (
-                  <ActivityIndicator color={colors.text.inverse} size="small" />
-                ) : (
-                  <Text style={styles.botaoAprovarTexto}>Aprovar ✓</Text>
-                )}
-              </Pressable>
-            </View>
-          )}
-          {assignmentError ? (
-            <View style={styles.erroAtribWrapper}>
-              <InlineMessage message={assignmentError} variant="error" />
-            </View>
-          ) : null}
-        </View>
-      )}
-    </View>
-  );
-}
+};
 
 export default function TaskDetailAdminScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -344,167 +164,27 @@ export default function TaskDetailAdminScreen() {
 
   const { data: task, isLoading, error, refetch, isFetching } = useTaskDetail(id);
   const assignmentsQuery = useTaskAssignments(id);
-  const approveMutation = useApproveAssignment();
-  const rejectMutation = useRejectAssignment();
-  const deactivateMutation = useDeactivateTask();
-  const reactivateMutation = useReactivateTask();
+  const archiveMutation = useArchiveTask();
+  const unarchiveMutation = useUnarchiveTask();
 
   const navFeedback = consumeNavigationFeedback('admin-task-detail');
-  const visibleUpdatedMessage = useTransientMessage(navFeedback?.message ?? null);
-  const [actions, setActions] = useState<Record<string, 'rejecting' | 'processing' | null>>({});
-  const [notes, setNotes] = useState<Record<string, string>>({});
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [imgStates, setImgStates] = useState<Record<string, 'loading' | 'loaded' | 'error'>>({});
-  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
-  const [feedbackVariant, setFeedbackVariant] = useState<'success' | 'warning'>('success');
+  const visibleUpdated = useTransientMessage(navFeedback?.message ?? null);
+
+  const [feedback, setFeedback] = useState<{ message: string; variant: 'success' | 'warning' | 'error' } | null>(null);
   const [feedbackKey, setFeedbackKey] = useState(0);
-  const visibleFeedback = useTransientMessage(feedbackMessage, { resetKey: feedbackKey });
-  const [fullscreenImageUrl, setFullscreenImageUrl] = useState<string | null>(null);
+  const visibleFeedback = useTransientMessage(feedback?.message ?? null, { resetKey: feedbackKey });
+  const [showAction, setShowAction] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
 
-  const getAction = useCallback((assignmentId: string) => actions[assignmentId] ?? null, [actions]);
-  const getNote = useCallback((assignmentId: string) => notes[assignmentId] ?? '', [notes]);
-  const getError = useCallback((assignmentId: string) => errors[assignmentId] ?? '', [errors]);
-  const getImgState = useCallback((assignmentId: string) => imgStates[assignmentId], [imgStates]);
-
-  const handleApprove = useCallback(
-    (assignment: AssignmentWithChild) => {
-      setActions((prev) => ({ ...prev, [assignment.id]: 'processing' }));
-      setErrors((prev) => ({ ...prev, [assignment.id]: '' }));
-
-      approveMutation.mutate(
-        {
-          assignmentId: assignment.id,
-          opts: {
-            familiaId: task!.familia_id,
-            userId: assignment.filhos.usuario_id,
-            taskTitle: task!.titulo,
-          },
-        },
-        {
-          onSuccess: () => {
-            setActions((prev) => ({ ...prev, [assignment.id]: null }));
-          },
-          onError: (err) => {
-            setErrors((prev) => ({ ...prev, [assignment.id]: localizeRpcError(err.message) }));
-            setActions((prev) => ({ ...prev, [assignment.id]: null }));
-          },
-        },
-      );
+  const showFeedback = useCallback(
+    (message: string, variant: 'success' | 'warning' | 'error' = 'success') => {
+      setFeedback({ message, variant });
+      setFeedbackKey((k) => k + 1);
     },
-    [approveMutation, task],
+    [],
   );
 
-  const handleReject = useCallback(
-    (assignment: AssignmentWithChild) => {
-      const note = notes[assignment.id] ?? '';
-      if (!note.trim()) {
-        setErrors((prev) => ({ ...prev, [assignment.id]: 'Informe o motivo da rejeição.' }));
-        return;
-      }
-
-      setActions((prev) => ({ ...prev, [assignment.id]: 'processing' }));
-      setErrors((prev) => ({ ...prev, [assignment.id]: '' }));
-
-      rejectMutation.mutate(
-        {
-          assignmentId: assignment.id,
-          note: note.trim(),
-          opts: {
-            familiaId: task!.familia_id,
-            userId: assignment.filhos.usuario_id,
-            taskTitle: task!.titulo,
-          },
-        },
-        {
-          onSuccess: () => {
-            setActions((prev) => ({ ...prev, [assignment.id]: null }));
-            setNotes((prev) => ({ ...prev, [assignment.id]: '' }));
-          },
-          onError: (err) => {
-            setErrors((prev) => ({ ...prev, [assignment.id]: localizeRpcError(err.message) }));
-            setActions((prev) => ({ ...prev, [assignment.id]: null }));
-          },
-        },
-      );
-    },
-    [notes, rejectMutation, task],
-  );
-
-  const executeDeactivate = useCallback(() => {
-    if (!task) return;
-    deactivateMutation.mutate(task.id, {
-      onSuccess: (data) => {
-        const count = data?.pendingValidationCount ?? 0;
-        if (count > 0) {
-          setFeedbackMessage(`Tarefa desativada. ${count} atribuições ainda aguardam validação.`);
-          setFeedbackVariant('warning');
-        } else {
-          setFeedbackMessage('Tarefa desativada com sucesso.');
-          setFeedbackVariant('success');
-        }
-        setFeedbackKey((k) => k + 1);
-      },
-      onError: (err) => {
-        setFeedbackMessage(localizeRpcError(err.message));
-        setFeedbackVariant('warning');
-        setFeedbackKey((k) => k + 1);
-      },
-    });
-  }, [task, deactivateMutation]);
-
-  const handleDeactivate = useCallback(() => {
-    if (!task) return;
-    const message = buildTaskDeactivateMessage(task, task.atribuicoes);
-    Alert.alert('Desativar tarefa?', message, [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Desativar', style: 'destructive', onPress: executeDeactivate },
-    ]);
-  }, [task, executeDeactivate]);
-
-  const executeReactivate = useCallback(() => {
-    if (!task) return;
-    reactivateMutation.mutate(task.id, {
-      onSuccess: () => {
-        setFeedbackMessage('Tarefa reativada com sucesso.');
-        setFeedbackVariant('success');
-        setFeedbackKey((k) => k + 1);
-      },
-      onError: (err) => {
-        setFeedbackMessage(localizeRpcError(err.message));
-        setFeedbackVariant('warning');
-        setFeedbackKey((k) => k + 1);
-      },
-    });
-  }, [task, reactivateMutation]);
-
-  const handleReactivate = useCallback(() => {
-    if (!task) return;
-    Alert.alert(
-      'Reativar tarefa?',
-      'A tarefa voltará a aparecer para os filhos e gerar atribuições recorrentes (se aplicável).',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Reativar', onPress: executeReactivate },
-      ],
-    );
-  }, [task, executeReactivate]);
-
-  const handleToggle = useCallback(
-    (value: boolean) => {
-      if (value) {
-        handleReactivate();
-      } else {
-        handleDeactivate();
-      }
-    },
-    [handleDeactivate, handleReactivate],
-  );
-
-  const actionableAssignments = useMemo(
-    () => task?.atribuicoes.filter((a) => a.status === 'aguardando_validacao') ?? [],
-    [task],
-  );
-  const paginatedAssignments = useMemo(
+  const paginated = useMemo(
     () => assignmentsQuery.data?.pages.flatMap((p) => p.data) ?? [],
     [assignmentsQuery.data],
   );
@@ -512,6 +192,33 @@ export default function TaskDetailAdminScreen() {
   const handleRefresh = useCallback(async () => {
     await Promise.all([refetch(), assignmentsQuery.refetch()]);
   }, [refetch, assignmentsQuery]);
+
+  const handleArchive = useCallback(() => {
+    if (!task) return;
+    Alert.alert('Arquivar tarefa?', buildTaskArchiveMessage(task.atribuicoes), [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Arquivar',
+        style: 'destructive',
+        onPress: () =>
+          archiveMutation.mutate(task.id, {
+            onSuccess: () => {
+              showFeedback('Tarefa arquivada.');
+              router.back();
+            },
+            onError: (err) => showFeedback(localizeRpcError(err.message), 'error'),
+          }),
+      },
+    ]);
+  }, [task, archiveMutation, showFeedback, router]);
+
+  const handleUnarchive = useCallback(() => {
+    if (!task) return;
+    unarchiveMutation.mutate(task.id, {
+      onSuccess: () => showFeedback('Tarefa desarquivada.'),
+      onError: (err) => showFeedback(localizeRpcError(err.message), 'error'),
+    });
+  }, [task, unarchiveMutation, showFeedback]);
 
   if (isLoading) {
     return (
@@ -537,23 +244,35 @@ export default function TaskDetailAdminScreen() {
     );
   }
 
-  const editState = getTaskEditState(task);
+  const isArchived = task.arquivada_em !== null;
+  const isInactive = task.ativo === false;
+  const actionState: TaskActionState = {
+    isArchived,
+    isInactive,
+    hasPendingReview: task.atribuicoes.some((a) => a.status === 'aguardando_validacao'),
+    canEdit: !isArchived && !isInactive,
+  };
 
-  const getHistoricoFeedback = () => {
+  const renderHistoricoFeedback = () => {
     if (assignmentsQuery.error) {
       return (
         <View style={styles.feedbackWrapper}>
-          <InlineMessage message={localizeRpcError(assignmentsQuery.error.message)} variant="error" />
+          <InlineMessage
+            message={localizeRpcError(assignmentsQuery.error.message)}
+            variant="error"
+          />
         </View>
       );
     }
-    if (paginatedAssignments.length === 0 && !assignmentsQuery.isLoading) {
-      return <Text style={styles.semHistorico}>Nenhum registro no histórico.</Text>;
+    if (paginated.length === 0 && !assignmentsQuery.isLoading) {
+      return (
+        <Text style={[styles.semHistorico, { color: colors.text.muted }]}>
+          Nenhum registro no histórico.
+        </Text>
+      );
     }
     return null;
   };
-
-  const historicoFeedback = getHistoricoFeedback();
 
   return (
     <SafeScreenFrame bottomInset>
@@ -563,20 +282,17 @@ export default function TaskDetailAdminScreen() {
         onBack={() => router.back()}
         backLabel="Tarefas"
         rightAction={
-          editState.canEdit ? (
-            <HeaderIconButton
-              icon={Pencil}
-              onPress={() => router.push(`/(admin)/tasks/${task.id}/edit` as never)}
-              accessibilityLabel="Editar tarefa"
-            />
-          ) : undefined
+          <HeaderIconButton
+            icon={MoreVertical}
+            onPress={() => setShowAction(true)}
+            accessibilityLabel="Abrir menu da tarefa"
+          />
         }
       />
 
       <FlashList
-        data={paginatedAssignments}
+        data={paginated}
         keyExtractor={(item) => item.id}
-        maintainVisibleContentPosition={{ disabled: true }}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl
@@ -587,90 +303,108 @@ export default function TaskDetailAdminScreen() {
         }
         ListHeaderComponent={
           <>
-            {visibleFeedback ? (
+            {visibleFeedback && feedback ? (
               <View style={styles.feedbackWrapper}>
-                <InlineMessage message={visibleFeedback} variant={feedbackVariant} />
+                <InlineMessage message={visibleFeedback} variant={feedback.variant} />
               </View>
             ) : null}
 
-            {visibleUpdatedMessage ? (
+            {visibleUpdated ? (
               <View style={styles.feedbackWrapper}>
-                <InlineMessage message={visibleUpdatedMessage} variant="success" />
+                <InlineMessage message={visibleUpdated} variant="success" />
               </View>
             ) : null}
 
-            {task.ativo === false && (
+            {isArchived ? (
               <View style={styles.feedbackWrapper}>
-                <InlineMessage message="Esta tarefa está desativada." variant="warning" />
+                <InlineMessage message="Esta tarefa está arquivada." variant="warning" />
               </View>
-            )}
+            ) : null}
 
-            <View style={styles.card}>
+            {!isArchived && isInactive ? (
+              <View style={styles.feedbackWrapper}>
+                <InlineMessage message="Esta tarefa está pausada." variant="warning" />
+              </View>
+            ) : null}
+
+            <View style={[styles.card, { backgroundColor: colors.bg.surface }, shadows.card]}>
               <View style={styles.cardTopo}>
-                <Text style={styles.cardTitulo}>{task.titulo}</Text>
-                <View style={styles.pontosTag}>
-                  <Text style={styles.pontosTexto}>{task.pontos} pts</Text>
+                <Text style={[styles.cardTitulo, { color: colors.text.primary }]}>
+                  {task.titulo}
+                </Text>
+                <View style={[styles.pontosTag, { backgroundColor: colors.accent.adminBg }]}>
+                  <Text style={[styles.pontosTexto, { color: colors.accent.admin }]}>
+                    {task.pontos} pts
+                  </Text>
                 </View>
               </View>
-              {task.descricao ? <Text style={styles.descricao}>{task.descricao}</Text> : null}
+              {task.descricao ? (
+                <Text style={[styles.descricao, { color: colors.text.secondary }]}>
+                  {task.descricao}
+                </Text>
+              ) : null}
               <View style={styles.metaRow}>
                 {isRecurring(task.dias_semana) ? (
                   <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
                 ) : null}
-                <Text style={styles.meta}>{formatWeekdays(task.dias_semana)}</Text>
-              </View>
-              {task.exige_evidencia && (
-                <View style={styles.tagEvidencia}>
-                  <View style={styles.tagEvidenciaRow}>
-                    <Camera size={12} color={colors.semantic.warningText} strokeWidth={2} />
-                    <Text style={styles.tagEvidenciaTexto}>Exige foto</Text>
-                  </View>
-                </View>
-              )}
-              <View style={[styles.switchRow, { borderTopColor: colors.border.subtle }]}>
-                <Text style={[styles.switchLabel, { color: colors.text.secondary }]}>
-                  Tarefa ativa
+                <Text style={[styles.meta, { color: colors.text.muted }]}>
+                  {formatWeekdays(task.dias_semana)}
                 </Text>
-                <Switch
-                  value={task.ativo !== false}
-                  onValueChange={handleToggle}
-                  disabled={deactivateMutation.isPending || reactivateMutation.isPending}
-                  trackColor={{ true: colors.accent.admin, false: colors.border.default }}
-                  thumbColor={colors.bg.surface}
-                  accessibilityLabel="Ativar ou desativar tarefa"
-                />
+              </View>
+              {task.exige_evidencia ? (
+                <View
+                  style={[styles.tagEvidencia, { backgroundColor: colors.semantic.warningBg }]}
+                >
+                  <Camera size={12} color={colors.semantic.warningText} strokeWidth={2} />
+                  <Text
+                    style={[styles.tagEvidenciaTexto, { color: colors.semantic.warningText }]}
+                  >
+                    Exige foto
+                  </Text>
+                </View>
+              ) : null}
+
+              <View style={styles.lifecycleRow}>
+                {actionState.canEdit ? (
+                  <Pressable
+                    style={[styles.lifecycleBtn, { borderColor: colors.border.default }]}
+                    onPress={() => setShowEdit(true)}
+                  >
+                    <Pencil size={14} color={colors.text.primary} strokeWidth={2} />
+                    <Text style={[styles.lifecycleBtnText, { color: colors.text.primary }]}>
+                      Editar
+                    </Text>
+                  </Pressable>
+                ) : null}
+                {isArchived ? (
+                  <Pressable
+                    style={[styles.lifecycleBtn, { borderColor: colors.border.default }]}
+                    onPress={handleUnarchive}
+                  >
+                    <ArchiveRestore size={14} color={colors.text.primary} strokeWidth={2} />
+                    <Text style={[styles.lifecycleBtnText, { color: colors.text.primary }]}>
+                      Desarquivar
+                    </Text>
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    style={[styles.lifecycleBtn, { borderColor: colors.semantic.error }]}
+                    onPress={handleArchive}
+                  >
+                    <Archive size={14} color={colors.semantic.error} strokeWidth={2} />
+                    <Text style={[styles.lifecycleBtnText, { color: colors.semantic.error }]}>
+                      Arquivar
+                    </Text>
+                  </Pressable>
+                )}
               </View>
             </View>
-
-            {actionableAssignments.map((assignment) => (
-              <AssignmentCard
-                key={assignment.id}
-                assignment={assignment}
-                action={getAction(assignment.id)}
-                note={getNote(assignment.id)}
-                assignmentError={getError(assignment.id)}
-                imageState={getImgState(assignment.id)}
-                colors={colors}
-                styles={styles}
-                onApprove={() => handleApprove(assignment)}
-                onReject={() => handleReject(assignment)}
-                onStartReject={() =>
-                  setActions((prev) => ({ ...prev, [assignment.id]: 'rejecting' }))
-                }
-                onCancelReject={() => setActions((prev) => ({ ...prev, [assignment.id]: null }))}
-                onNoteChange={(value) => setNotes((prev) => ({ ...prev, [assignment.id]: value }))}
-                onImageStateChange={(state) =>
-                  setImgStates((prev) => ({ ...prev, [assignment.id]: state }))
-                }
-                onImagePress={(url) => setFullscreenImageUrl(url)}
-              />
-            ))}
 
             <View style={[styles.historicoHeader, { borderBottomColor: colors.border.subtle }]}>
-              <Text style={styles.secaoTitulo}>Histórico</Text>
+              <Text style={[styles.secaoTitulo, { color: colors.text.primary }]}>Histórico</Text>
             </View>
 
-            {historicoFeedback}
+            {renderHistoricoFeedback()}
           </>
         }
         renderItem={({ item, index }) => (
@@ -678,7 +412,7 @@ export default function TaskDetailAdminScreen() {
             assignment={item}
             colors={colors}
             styles={styles}
-            isLast={index === paginatedAssignments.length - 1}
+            isLast={index === paginated.length - 1}
           />
         )}
         onEndReached={() => {
@@ -690,13 +424,25 @@ export default function TaskDetailAdminScreen() {
         ListFooterComponent={<ListFooter loading={assignmentsQuery.isFetchingNextPage} />}
       />
 
-      {fullscreenImageUrl ? (
-        <FullscreenImageViewer
-          visible
-          imageUrl={fullscreenImageUrl}
-          onClose={() => setFullscreenImageUrl(null)}
-        />
-      ) : null}
+      <TaskFormSheet
+        visible={showEdit}
+        mode="edit"
+        task={task}
+        onClose={() => setShowEdit(false)}
+        onSuccess={(message) => showFeedback(message)}
+      />
+
+      <TaskActionSheet
+        visible={showAction}
+        taskTitle={task.titulo}
+        state={actionState}
+        onClose={() => setShowAction(false)}
+        onEdit={() => setShowEdit(true)}
+        onPause={undefined}
+        onResume={undefined}
+        onArchive={handleArchive}
+        onUnarchive={handleUnarchive}
+      />
     </SafeScreenFrame>
   );
 }
@@ -706,34 +452,14 @@ function makeStyles(colors: ThemeColors) {
     center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing['6'] },
     container: { flex: 1 },
     scrollContent: { padding: spacing['4'], paddingBottom: spacing['12'] },
-    feedbackWrapper: {
-      marginBottom: spacing['4'],
-    },
-    switchRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      borderTopWidth: StyleSheet.hairlineWidth,
-      paddingTop: spacing['3'],
-      marginTop: spacing['3'],
-    },
-    switchLabel: {
-      fontSize: typography.size.sm,
-      fontFamily: typography.family.medium,
-    },
-    atribRowList: {
-      borderRadius: radii.lg,
-      borderWidth: StyleSheet.hairlineWidth,
-      overflow: 'hidden',
-      marginBottom: spacing['3'],
-      ...shadows.card,
-    },
+    feedbackWrapper: { marginBottom: spacing['4'] },
     atribRow: {
       flexDirection: 'row',
       alignItems: 'center',
       paddingVertical: spacing['3'],
       paddingHorizontal: spacing['3'],
       gap: spacing['2'],
+      backgroundColor: colors.bg.surface,
     },
     atribRowIcon: {
       width: 30,
@@ -743,29 +469,15 @@ function makeStyles(colors: ThemeColors) {
       justifyContent: 'center',
     },
     atribRowInfo: { flex: 1 },
-    atribRowNome: {
-      fontSize: typography.size.sm,
-      fontFamily: typography.family.semibold,
-      color: colors.text.primary,
-    },
-    atribRowNota: {
-      fontSize: typography.size.xs,
-      color: colors.text.muted,
-      marginTop: spacing['0.5'],
-    },
+    atribRowNome: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
+    atribRowNota: { fontSize: typography.size.xs, marginTop: spacing['0.5'] },
     atribRowRight: { alignItems: 'flex-end' },
     atribRowStatus: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
-    atribRowData: {
-      fontSize: typography.size.xs,
-      color: colors.text.muted,
-      marginTop: spacing['0.5'],
-    },
+    atribRowData: { fontSize: typography.size.xs, marginTop: spacing['0.5'] },
     card: {
-      backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,
       padding: spacing['4'],
       marginBottom: spacing['5'],
-      ...shadows.card,
     },
     cardTopo: {
       flexDirection: 'row',
@@ -777,158 +489,48 @@ function makeStyles(colors: ThemeColors) {
       flex: 1,
       fontSize: typography.size.lg,
       fontFamily: typography.family.bold,
-      color: colors.text.primary,
       marginRight: spacing['2'],
     },
     pontosTag: {
-      backgroundColor: colors.accent.adminBg,
       borderRadius: radii.md,
       paddingVertical: spacing['1'],
       paddingHorizontal: spacing['2'],
     },
-    pontosTexto: {
-      fontSize: typography.size.sm,
-      fontFamily: typography.family.bold,
-      color: colors.accent.admin,
-    },
-    descricao: {
-      fontSize: typography.size.sm,
-      color: colors.text.secondary,
-      marginBottom: spacing['2'],
-      lineHeight: 20,
-    },
+    pontosTexto: { fontSize: typography.size.sm, fontFamily: typography.family.bold },
+    descricao: { fontSize: typography.size.sm, marginBottom: spacing['2'], lineHeight: 20 },
     metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
-    meta: { fontSize: typography.size.xs, color: colors.text.muted },
+    meta: { fontSize: typography.size.xs },
     tagEvidencia: {
-      backgroundColor: colors.semantic.warningBg,
       borderRadius: radii.sm,
       paddingVertical: spacing['1'],
       paddingHorizontal: spacing['2'],
       alignSelf: 'flex-start',
       marginTop: spacing['2'],
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1'],
     },
-    tagEvidenciaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
-    tagEvidenciaTexto: {
-      fontSize: typography.size.xs,
-      color: colors.semantic.warningText,
-      fontFamily: typography.family.semibold,
+    tagEvidenciaTexto: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
+    lifecycleRow: { flexDirection: 'row', gap: spacing['2'], marginTop: spacing['3'] },
+    lifecycleBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing['1'],
+      borderWidth: 1,
+      borderRadius: radii.md,
+      paddingVertical: spacing['2'],
+      minHeight: 40,
     },
-    secaoTitulo: {
-      fontSize: typography.size.md,
-      fontFamily: typography.family.bold,
-      color: colors.text.primary,
-    },
+    lifecycleBtnText: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
+    secaoTitulo: { fontSize: typography.size.md, fontFamily: typography.family.bold },
     historicoHeader: {
       borderBottomWidth: 1,
       paddingBottom: spacing['3'],
       marginTop: spacing['2'],
       marginBottom: spacing['1'],
     },
-    semHistorico: { fontSize: typography.size.sm, color: colors.text.muted, fontStyle: 'italic' },
-    atribCard: {
-      backgroundColor: colors.bg.surface,
-      borderRadius: radii.lg,
-      padding: spacing['3'],
-      marginBottom: spacing['3'],
-      ...shadows.card,
-    },
-    atribTopo: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: spacing['2'],
-    },
-    filhoNome: {
-      fontSize: typography.size.md,
-      fontFamily: typography.family.semibold,
-      color: colors.text.primary,
-    },
-    statusTag: {
-      borderRadius: radii.sm,
-      paddingVertical: spacing['1'],
-      paddingHorizontal: spacing['2'],
-    },
-    statusTexto: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
-    dataLinha: {
-      fontSize: typography.size.xs,
-      color: colors.text.muted,
-      marginBottom: spacing['2'],
-    },
-    evidenciaImgWrapper: {
-      width: '100%',
-      height: 200,
-      borderRadius: radii.lg,
-      overflow: 'hidden',
-      marginBottom: spacing['2'],
-    },
-    evidenciaImg: { width: '100%', height: 200 },
-    evidenciaLoading: {
-      ...StyleSheet.absoluteFillObject,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.bg.muted,
-    },
-    evidenciaFallback: { alignItems: 'center', justifyContent: 'center' },
-    evidenciaFallbackText: {
-      fontSize: typography.size.sm,
-      fontFamily: typography.family.medium,
-      textAlign: 'center',
-    },
-    notaRejeicaoBox: {
-      backgroundColor: colors.semantic.errorBg,
-      borderRadius: radii.md,
-      padding: spacing['3'],
-      marginBottom: spacing['2'],
-    },
-    notaRejeicaoLabel: {
-      fontSize: typography.size.xs,
-      fontFamily: typography.family.bold,
-      color: colors.semantic.error,
-      marginBottom: spacing['1'],
-    },
-    notaRejeicaoTexto: { fontSize: typography.size.sm, color: colors.text.primary },
-    acoesBox: { marginTop: spacing['2'] },
-    inputNota: {
-      borderWidth: 1,
-      borderColor: colors.border.default,
-      borderRadius: radii.md,
-      padding: spacing['3'],
-      fontSize: typography.size.sm,
-      color: colors.text.primary,
-      backgroundColor: colors.bg.surface,
-      minHeight: 72,
-      textAlignVertical: 'top',
-      marginBottom: spacing['2'],
-    },
-    botoesRejeitar: { flexDirection: 'row', gap: spacing['2'] },
-    botoesValidar: { flexDirection: 'row', gap: spacing['2'] },
-    botaoAcao: {
-      flex: 1,
-      borderRadius: radii.md,
-      paddingVertical: spacing['2'],
-      alignItems: 'center',
-      minHeight: 44,
-      justifyContent: 'center',
-    },
-    botaoCancelar: { borderWidth: 1, borderColor: colors.border.default },
-    botaoCancelarTexto: {
-      color: colors.text.secondary,
-      fontFamily: typography.family.semibold,
-      fontSize: typography.size.sm,
-    },
-    botaoRejeitar: { backgroundColor: colors.semantic.error },
-    botaoRejeitarTexto: {
-      color: colors.text.inverse,
-      fontFamily: typography.family.bold,
-      fontSize: typography.size.sm,
-    },
-    botaoAprovar: { backgroundColor: colors.semantic.success },
-    botaoAprovarTexto: {
-      color: colors.text.inverse,
-      fontFamily: typography.family.bold,
-      fontSize: typography.size.sm,
-    },
-    botaoDesabilitado: { opacity: 0.5 },
-    erroAtribWrapper: { marginTop: spacing['2'] },
+    semHistorico: { fontSize: typography.size.sm, fontStyle: 'italic' },
   });
 }

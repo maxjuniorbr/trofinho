@@ -9,8 +9,12 @@ import { supabase } from './supabase';
 export const WEEKDAY_LABELS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'] as const;
 export const WEEKDAY_FULL_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'] as const;
 export const ALL_DAYS = 0b1111111; // 127
+export const MAX_TENTATIVAS = 2;
 
-export const isRecurring = (diasSemana: number): boolean => diasSemana > 0;
+/**
+ * @deprecated Tarefas pontuais foram removidas. Mantido apenas para compat enquanto a UI é migrada.
+ */
+export const isRecurring = (_diasSemana: number): boolean => true;
 
 export const isDayActive = (diasSemana: number, dow: number): boolean =>
   (diasSemana & (1 << dow)) > 0;
@@ -18,7 +22,6 @@ export const isDayActive = (diasSemana: number, dow: number): boolean =>
 export const toggleDay = (diasSemana: number, dow: number): number => diasSemana ^ (1 << dow);
 
 export const formatWeekdays = (diasSemana: number): string => {
-  if (diasSemana === 0) return 'Pontual';
   if (diasSemana === ALL_DAYS) return 'Todos os dias';
   return WEEKDAY_FULL_LABELS.filter((_, i) => isDayActive(diasSemana, i)).join(', ');
 };
@@ -34,6 +37,7 @@ export type Task = {
   criado_por: string | null;
   created_at: string;
   ativo: boolean;
+  arquivada_em: string | null;
 };
 
 export type AssignmentStatus = 'pendente' | 'aguardando_validacao' | 'aprovada' | 'rejeitada';
@@ -51,6 +55,7 @@ export type Assignment = {
   validada_por: string | null;
   created_at: string;
   competencia: string | null;
+  tentativas: number;
 };
 
 export type TaskListItem = {
@@ -60,6 +65,7 @@ export type TaskListItem = {
   dias_semana: number;
   created_at: string;
   ativo: boolean;
+  arquivada_em: string | null;
   atribuicoes: { status: AssignmentStatus }[];
 };
 
@@ -214,7 +220,8 @@ export async function listAdminTasks(
 
   const { data, error } = await supabase
     .from('tarefas')
-    .select('id, titulo, pontos, dias_semana, created_at, ativo, atribuicoes(status)')
+    .select('id, titulo, pontos, dias_semana, created_at, ativo, arquivada_em, atribuicoes(status)')
+    .is('arquivada_em', null)
     .order('created_at', { ascending: false })
     .range(from, to)
     .overrideTypes<TaskListItem[], { merge: false }>();
@@ -223,6 +230,124 @@ export async function listAdminTasks(
   const items = data ?? [];
   const hasMore = items.length > pageSize;
   return { data: hasMore ? items.slice(0, pageSize) : items, hasMore, error: null };
+}
+
+export async function listArchivedTasks(
+  page = 0,
+  pageSize = 20,
+): Promise<{
+  data: TaskListItem[];
+  hasMore: boolean;
+  error: string | null;
+}> {
+  const from = page * pageSize;
+  const to = from + pageSize;
+
+  const { data, error } = await supabase
+    .from('tarefas')
+    .select('id, titulo, pontos, dias_semana, created_at, ativo, arquivada_em, atribuicoes(status)')
+    .not('arquivada_em', 'is', null)
+    .order('arquivada_em', { ascending: false })
+    .range(from, to)
+    .overrideTypes<TaskListItem[], { merge: false }>();
+
+  if (error) return { data: [], hasMore: false, error: localizeRpcError(error.message) };
+  const items = data ?? [];
+  const hasMore = items.length > pageSize;
+  return { data: hasMore ? items.slice(0, pageSize) : items, hasMore, error: null };
+}
+
+export type ApprovedAssignmentFeedItem = {
+  atribuicao_id: string;
+  tarefa_id: string;
+  tarefa_titulo: string;
+  tarefa_arquivada: boolean;
+  filho_id: string;
+  filho_nome: string;
+  pontos: number;
+  validada_em: string;
+  competencia: string | null;
+  evidencia_url: string | null;
+};
+
+export async function listApprovedAssignments(
+  page = 0,
+  pageSize = 20,
+): Promise<{
+  data: ApprovedAssignmentFeedItem[];
+  hasMore: boolean;
+  error: string | null;
+}> {
+  const { data, error } = await supabase.rpc('listar_atribuicoes_aprovadas', {
+    p_limit: pageSize + 1,
+    p_offset: page * pageSize,
+  });
+
+  if (error) return { data: [], hasMore: false, error: localizeRpcError(error.message) };
+  const items = (data ?? []) as ApprovedAssignmentFeedItem[];
+  const hasMore = items.length > pageSize;
+  return { data: hasMore ? items.slice(0, pageSize) : items, hasMore, error: null };
+}
+
+export type PendingValidationItem = AssignmentWithChild & {
+  tarefas: { id: string; titulo: string; pontos: number; exige_evidencia: boolean; familia_id: string };
+};
+
+/**
+ * Returns every assignment currently waiting for admin review across all
+ * non-archived tasks owned by the family. Evidence URLs are signed in batch.
+ */
+export async function listPendingValidations(): Promise<{
+  data: PendingValidationItem[];
+  error: string | null;
+}> {
+  const { data, error } = await supabase
+    .from('atribuicoes')
+    .select(
+      'id, tarefa_id, filho_id, status, pontos_snapshot, evidencia_url, nota_rejeicao, concluida_em, validada_em, validada_por, created_at, competencia, tentativas, filhos(nome, usuario_id), tarefas!inner(id, titulo, pontos, exige_evidencia, familia_id, arquivada_em)',
+    )
+    .eq('status', 'aguardando_validacao')
+    .is('tarefas.arquivada_em', null)
+    .order('concluida_em', { ascending: true })
+    .returns<PendingValidationItem[]>();
+
+  if (error) return { data: [], error: localizeRpcError(error.message) };
+
+  const items = data ?? [];
+  if (items.length === 0) return { data: [], error: null };
+
+  const paths = items.map((a) =>
+    a.evidencia_url ? normalizeEvidencePath(a.evidencia_url) : null,
+  );
+  const validEntries = paths
+    .map((path, index) => (path ? { path, index } : null))
+    .filter((e): e is { path: string; index: number } => e !== null);
+
+  if (validEntries.length === 0) return { data: items, error: null };
+
+  const { data: signedData, error: signedError } = await supabase.storage
+    .from('evidencias')
+    .createSignedUrls(
+      validEntries.map((e) => e.path),
+      EVIDENCE_URL_TTL_SECONDS,
+    );
+
+  const signedMap = new Map<number, string>();
+  if (!signedError && signedData) {
+    for (let i = 0; i < validEntries.length; i++) {
+      const signed = signedData[i];
+      if (signed && !signed.error) {
+        signedMap.set(validEntries[i].index, signed.signedUrl);
+      }
+    }
+  }
+
+  const signed = items.map((a, index) => {
+    const url = signedMap.get(index);
+    return url ? { ...a, evidencia_url: url } : a;
+  });
+
+  return { data: signed, error: null };
 }
 
 export async function getTaskWithAssignments(
@@ -488,13 +613,12 @@ export function getAssignmentCancellationState(
   }
 
   if (
-    isRecurring(task.dias_semana) &&
     assignment.competencia !== null &&
     assignment.competencia < toDateString(referenceDate)
   ) {
     return {
       canCancel: false,
-      reason: 'Não é possível cancelar o envio de uma tarefa recorrente de data anterior.',
+      reason: 'Não é possível cancelar o envio de uma tarefa de data anterior.',
     };
   }
 
@@ -530,52 +654,33 @@ export function getAssignmentCompletionState(
 }
 
 export function getTaskEditState(
-  task: Pick<TaskDetail, 'atribuicoes' | 'dias_semana' | 'ativo'>,
-  pendingDiasSemana?: number,
+  task: Pick<TaskDetail, 'atribuicoes' | 'dias_semana' | 'ativo' | 'arquivada_em'>,
+  _pendingDiasSemana?: number,
 ): TaskEditState {
-  if (task.ativo === false) {
+  if (task.arquivada_em !== null) {
     return {
       canEdit: false,
       canEditPoints: false,
-      errorMessage: 'Esta tarefa está desativada e não pode ser editada.',
+      errorMessage: 'Esta tarefa está arquivada. Desarquive para editar.',
       infoMessage: null,
     };
   }
 
-  // Use the effective value: if the user is toggling weekdays in the form,
-  // use that pending value; otherwise fall back to the persisted one.
-  const effectiveDiasSemana = pendingDiasSemana ?? task.dias_semana;
-
-  if (isRecurring(effectiveDiasSemana)) {
-    return {
-      canEdit: true,
-      canEditPoints: true,
-      errorMessage: null,
-      infoMessage:
-        'Se você alterar os pontos, o novo valor será usado apenas nas próximas atribuições.',
-    };
-  }
-
-  const hasCompletedAssignment = task.atribuicoes.some(
-    (assignment) =>
-      assignment.status === 'aguardando_validacao' || assignment.status === 'aprovada',
-  );
-
-  if (hasCompletedAssignment) {
+  if (task.ativo === false) {
     return {
       canEdit: false,
       canEditPoints: false,
-      errorMessage: 'Esta tarefa já foi concluída e não pode ser editada.',
+      errorMessage: 'Esta tarefa está pausada e não pode ser editada.',
       infoMessage: null,
     };
   }
 
   return {
     canEdit: true,
-    canEditPoints: false,
+    canEditPoints: true,
     errorMessage: null,
     infoMessage:
-      'Os pontos desta tarefa pontual já foram definidos na atribuição criada e não podem ser alterados.',
+      'Se você alterar os pontos, o novo valor será usado apenas nas próximas atribuições.',
   };
 }
 
@@ -620,7 +725,7 @@ export async function reactivateTask(taskId: string): Promise<{
 }
 
 export function buildTaskDeactivateMessage(
-  task: Pick<Task, 'dias_semana'>,
+  _task: Pick<Task, 'dias_semana'>,
   assignments: { status: AssignmentStatus }[],
 ): string {
   const parts: string[] = [];
@@ -636,9 +741,7 @@ export function buildTaskDeactivateMessage(
     );
   }
 
-  if (isRecurring(task.dias_semana)) {
-    parts.push('Novas atribuições recorrentes não serão mais geradas.');
-  }
+  parts.push('Novas atribuições não serão mais geradas enquanto a tarefa estiver pausada.');
 
   if (awaitingCount > 0) {
     parts.push(
@@ -648,7 +751,83 @@ export function buildTaskDeactivateMessage(
     );
   }
 
-  return parts.length > 0 ? parts.join('\n') : 'Esta tarefa será desativada.';
+  return parts.length > 0 ? parts.join('\n') : 'Esta tarefa será pausada.';
+}
+
+export const buildTaskPauseMessage = buildTaskDeactivateMessage;
+
+export function buildTaskArchiveMessage(
+  assignments: { status: AssignmentStatus }[],
+): string {
+  const parts: string[] = [];
+  const pendingCount = assignments.filter((a) => a.status === 'pendente').length;
+  const awaitingCount = assignments.filter((a) => a.status === 'aguardando_validacao').length;
+
+  if (pendingCount > 0) {
+    parts.push(
+      pendingCount === 1
+        ? '1 atribuição pendente será cancelada.'
+        : `${pendingCount} atribuições pendentes serão canceladas.`,
+    );
+  }
+
+  parts.push('A tarefa some da lista ativa, mas o histórico aprovado fica preservado.');
+
+  if (awaitingCount > 0) {
+    parts.push(
+      awaitingCount === 1
+        ? '1 atribuição aguardando validação será mantida para você revisar.'
+        : `${awaitingCount} atribuições aguardando validação serão mantidas para você revisar.`,
+    );
+  }
+
+  return parts.join('\n');
+}
+
+export async function archiveTask(taskId: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('arquivar_tarefa', { p_tarefa_id: taskId });
+  if (error) return { error: localizeRpcError(error.message) };
+  return { error: null };
+}
+
+export async function unarchiveTask(taskId: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('desarquivar_tarefa', { p_tarefa_id: taskId });
+  if (error) return { error: localizeRpcError(error.message) };
+  return { error: null };
+}
+
+export async function discardRejection(
+  assignmentId: string,
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('descartar_rejeicao_atribuicao', {
+    p_atribuicao_id: assignmentId,
+  });
+  if (error) return { error: localizeRpcError(error.message) };
+  return { error: null };
+}
+
+export type AssignmentRetryState = Readonly<{
+  canRetry: boolean;
+  attemptsLeft: number;
+  reason: string | null;
+}>;
+
+export function getAssignmentRetryState(
+  assignment: Pick<Assignment, 'status' | 'tentativas'>,
+): AssignmentRetryState {
+  if (assignment.status !== 'rejeitada') {
+    return { canRetry: false, attemptsLeft: 0, reason: null };
+  }
+  const used = assignment.tentativas ?? 0;
+  const left = Math.max(0, MAX_TENTATIVAS - used);
+  if (left <= 0) {
+    return {
+      canRetry: false,
+      attemptsLeft: 0,
+      reason: 'Você já usou todas as tentativas para esta tarefa.',
+    };
+  }
+  return { canRetry: true, attemptsLeft: left, reason: null };
 }
 
 async function uploadEvidence(

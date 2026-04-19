@@ -91,6 +91,8 @@ type QueryResult = {
 function createOrderQuery(result: QueryResult, orderCallsBeforeResolve = 0) {
   const query = {
     eq: vi.fn().mockReturnThis(),
+    is: vi.fn().mockReturnThis(),
+    not: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
     or: vi.fn().mockReturnThis(),
     order: vi.fn(),
@@ -134,6 +136,7 @@ function createAssignmentWithChild(overrides: Partial<AssignmentWithChild>): Ass
     validada_por: null,
     created_at: '2026-03-21T00:00:00Z',
     competencia: null,
+    tentativas: 0,
     filhos: { nome: 'Lia', usuario_id: null },
     ...overrides,
   };
@@ -168,6 +171,7 @@ describe('tasks', () => {
       pontos: 10,
       dias_semana: 0,
       ativo: true,
+      arquivada_em: null,
       created_at: `2026-03-${id.padStart(2, '0')}T00:00:00Z`,
       atribuicoes: statuses.map((status) => ({ status }) as TaskListItem['atribuicoes'][number]),
     });
@@ -371,7 +375,7 @@ describe('tasks', () => {
         descricao: 'Detalhes',
         pontos: 20,
         exige_evidencia: false,
-        dias_semana: 0,
+        dias_semana: 64,
       }),
     ).resolves.toEqual({ error: 'Algo deu errado. Tente novamente.' });
 
@@ -379,6 +383,7 @@ describe('tasks', () => {
       getTaskEditState({
         dias_semana: 127,
         ativo: true,
+        arquivada_em: null,
         atribuicoes: [
           createAssignmentWithChild({
             status: 'aprovada',
@@ -396,91 +401,29 @@ describe('tasks', () => {
 
     expect(
       getTaskEditState({
-        dias_semana: 0,
-        ativo: true,
-        atribuicoes: [
-          createAssignmentWithChild({
-            status: 'pendente',
-            concluida_em: null,
-          }),
-        ],
-      }),
-    ).toEqual({
-      canEdit: true,
-      canEditPoints: false,
-      errorMessage: null,
-      infoMessage:
-        'Os pontos desta tarefa pontual já foram definidos na atribuição criada e não podem ser alterados.',
-    });
-
-    expect(
-      getTaskEditState({
-        dias_semana: 0,
-        ativo: true,
-        atribuicoes: [
-          createAssignmentWithChild({
-            status: 'aprovada',
-            concluida_em: '2026-03-21T12:00:00Z',
-          }),
-        ],
+        dias_semana: 127,
+        ativo: false,
+        arquivada_em: null,
+        atribuicoes: [],
       }),
     ).toEqual({
       canEdit: false,
       canEditPoints: false,
-      errorMessage: 'Esta tarefa já foi concluída e não pode ser editada.',
+      errorMessage: 'Esta tarefa está pausada e não pode ser editada.',
       infoMessage: null,
     });
 
-    // pendingDiasSemana: switching one-time → recurring unlocks points
     expect(
-      getTaskEditState(
-        {
-          dias_semana: 0,
-          ativo: true,
-          atribuicoes: [createAssignmentWithChild({ status: 'pendente', concluida_em: null })],
-        },
-        127,
-      ),
-    ).toEqual({
-      canEdit: true,
-      canEditPoints: true,
-      errorMessage: null,
-      infoMessage:
-        'Se você alterar os pontos, o novo valor será usado apenas nas próximas atribuições.',
-    });
-
-    // pendingDiasSemana: switching recurring → one-time locks points
-    expect(
-      getTaskEditState(
-        {
-          dias_semana: 127,
-          ativo: true,
-          atribuicoes: [createAssignmentWithChild({ status: 'pendente', concluida_em: null })],
-        },
-        0,
-      ),
-    ).toEqual({
-      canEdit: true,
-      canEditPoints: false,
-      errorMessage: null,
-      infoMessage:
-        'Os pontos desta tarefa pontual já foram definidos na atribuição criada e não podem ser alterados.',
-    });
-
-    // pendingDiasSemana: inactive task ignores pending value
-    expect(
-      getTaskEditState(
-        {
-          dias_semana: 0,
-          ativo: false,
-          atribuicoes: [],
-        },
-        127,
-      ),
+      getTaskEditState({
+        dias_semana: 127,
+        ativo: true,
+        arquivada_em: '2026-03-21T12:00:00Z',
+        atribuicoes: [],
+      }),
     ).toEqual({
       canEdit: false,
       canEditPoints: false,
-      errorMessage: 'Esta tarefa está desativada e não pode ser editada.',
+      errorMessage: 'Esta tarefa está arquivada. Desarquive para editar.',
       infoMessage: null,
     });
 
@@ -525,7 +468,7 @@ describe('tasks', () => {
       ),
     ).toEqual({
       canCancel: false,
-      reason: 'Não é possível cancelar o envio de uma tarefa recorrente de data anterior.',
+      reason: 'Não é possível cancelar o envio de uma tarefa de data anterior.',
     });
 
     expect(
@@ -1275,12 +1218,13 @@ describe('tasks', () => {
         getTaskEditState({
           dias_semana: 127,
           ativo: false,
+          arquivada_em: null,
           atribuicoes: [createAssignmentWithChild({ status: 'pendente' })],
         }),
       ).toEqual({
         canEdit: false,
         canEditPoints: false,
-        errorMessage: 'Esta tarefa está desativada e não pode ser editada.',
+        errorMessage: 'Esta tarefa está pausada e não pode ser editada.',
         infoMessage: null,
       });
     });
@@ -1309,7 +1253,7 @@ describe('tasks', () => {
       fc.assert(
         fc.property(
           fc.record({
-            dias_semana: fc.integer({ min: 0, max: 127 }),
+            dias_semana: fc.integer({ min: 1, max: 127 }),
           }),
           fc.array(
             fc.record({
@@ -1339,9 +1283,7 @@ describe('tasks', () => {
               expect(message).toContain('mantida');
             }
 
-            if (task.dias_semana > 0) {
-              expect(message).toContain('recorrentes');
-            }
+            expect(message).toContain('Novas atribuições');
 
             // Message is never empty
             expect(message.length).toBeGreaterThan(0);
@@ -1372,9 +1314,10 @@ describe('tasks', () => {
             ativo: fc.constant(false as const),
           }),
           (task) => {
-            const result = getTaskEditState(
-              task as Pick<TaskDetail, 'atribuicoes' | 'dias_semana' | 'ativo'>,
-            );
+            const result = getTaskEditState({
+              ...(task as Pick<TaskDetail, 'atribuicoes' | 'dias_semana' | 'ativo'>),
+              arquivada_em: null,
+            });
             expect(result.canEdit).toBe(false);
           },
         ),

@@ -3,6 +3,9 @@ import * as Sentry from '@sentry/react-native';
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   listAdminTasks,
+  listArchivedTasks,
+  listApprovedAssignments,
+  listPendingValidations,
   getTaskWithAssignments,
   listTaskAssignments,
   listChildAssignments,
@@ -16,6 +19,9 @@ import {
   completeAssignment,
   deactivateTask,
   reactivateTask,
+  archiveTask,
+  unarchiveTask,
+  discardRejection,
   renewRecurringTasks,
   type NewTaskInput,
   type UpdateTaskInput,
@@ -253,3 +259,67 @@ export const useReactivateTask = () => {
     },
   });
 };
+
+export const useArchivedTasks = () =>
+  useInfiniteQuery({
+    queryKey: queryKeys.tasks.archivedLists(),
+    queryFn: paginatedQueryFnAdapter(listArchivedTasks, PAGE_SIZES.tasks),
+    initialPageParam: 0,
+    getNextPageParam: (
+      lastPage: PaginatedPage<unknown>,
+      _allPages: unknown[],
+      lastPageParam: number,
+    ) => (lastPage.hasMore ? lastPageParam + 1 : undefined),
+    staleTime: STALE_TIMES.tasks,
+  });
+
+export const useApprovedAssignmentsFeed = () =>
+  useInfiniteQuery({
+    queryKey: queryKeys.tasks.approvedFeed(),
+    queryFn: paginatedQueryFnAdapter(listApprovedAssignments, PAGE_SIZES.tasks),
+    initialPageParam: 0,
+    getNextPageParam: (
+      lastPage: PaginatedPage<unknown>,
+      _allPages: unknown[],
+      lastPageParam: number,
+    ) => (lastPage.hasMore ? lastPageParam + 1 : undefined),
+    staleTime: STALE_TIMES.tasks,
+  });
+
+export const useArchiveTask = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (taskId: string) => mutationFnAdapter(() => archiveTask(taskId))(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+    },
+  });
+};
+
+export const useUnarchiveTask = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (taskId: string) => mutationFnAdapter(() => unarchiveTask(taskId))(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+    },
+  });
+};
+
+export const useDiscardRejection = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (assignmentId: string) =>
+      mutationFnAdapter(() => discardRejection(assignmentId))(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+    },
+  });
+};
+
+export const usePendingValidations = () =>
+  useQuery({
+    queryKey: queryKeys.tasks.pendingValidations(),
+    queryFn: queryFnAdapter(() => listPendingValidations()),
+    staleTime: STALE_TIMES.tasks,
+  });
