@@ -150,6 +150,8 @@ export function inferImageExtension(imageUri: string): string {
 
 export function inferImageContentType(extension: string): string {
   const map: Record<string, string> = {
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
     png: 'image/png',
     webp: 'image/webp',
     heic: 'image/heic',

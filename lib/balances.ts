@@ -185,6 +185,7 @@ export async function listAdminBalances(): Promise<{
     .from('saldos')
     .select('*, filhos(nome, ativo, avatar_url)')
     .order('filhos(nome)')
+    .limit(50)
     .overrideTypes<BalanceWithChild[], { merge: false }>();
 
   if (error) return { data: [], error: localizeRpcError(error.message) };

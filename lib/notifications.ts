@@ -26,9 +26,11 @@ async function getNotificationsModule(): Promise<NotificationsModule | null> {
     return null;
   }
 
-  notificationsModulePromise ??= import('expo-notifications')
-    .then((module) => module)
-    .catch(() => null);
+  notificationsModulePromise ??= import('expo-notifications').catch(() => {
+    // Reset so the next call retries instead of caching the failure forever.
+    notificationsModulePromise = null;
+    return null;
+  });
 
   return notificationsModulePromise;
 }

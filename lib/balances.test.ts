@@ -100,6 +100,7 @@ describe('balances', () => {
     const listQuery = {
       select: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
       returns: vi.fn().mockReturnThis(),
       overrideTypes: vi.fn().mockResolvedValue({ data: null, error: { message: 'list failed' } }),
     };
@@ -164,6 +165,7 @@ describe('balances', () => {
   it('returns empty lists and successful penalty results for remaining branches', async () => {
     const emptyBalancesQuery = {
       order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
       returns: vi.fn().mockReturnThis(),
       overrideTypes: vi.fn().mockResolvedValue({ data: null, error: null }),
       select: vi.fn().mockReturnThis(),
