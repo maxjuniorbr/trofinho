@@ -187,6 +187,7 @@ describe('deriveChildNotifs', () => {
           validada_por: 'admin1',
           created_at: minsAgo(60),
           competencia: null,
+          tentativas: 0,
           tarefas: {
             id: 't1',
             titulo: 'Estudar matemática',
@@ -219,6 +220,7 @@ describe('deriveChildNotifs', () => {
           validada_por: 'admin1',
           created_at: minsAgo(60),
           competencia: null,
+          tentativas: 1,
           tarefas: {
             id: 't1',
             titulo: 'Estudar',
@@ -247,6 +249,7 @@ describe('deriveChildNotifs', () => {
           validada_por: 'admin1',
           created_at: minsAgo(60),
           competencia: null,
+          tentativas: 1,
           tarefas: {
             id: 't1',
             titulo: 'Estudar',
@@ -348,6 +351,7 @@ describe('edge cases: missing and malformed dates', () => {
     validada_por: null,
     created_at: minsAgo(60),
     competencia: null,
+    tentativas: 0,
     tarefas: {
       id: 't1',
       titulo: 'Test',

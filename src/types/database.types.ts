@@ -52,6 +52,7 @@ export type Database = {
           pontos_snapshot: number
           status: Database["public"]["Enums"]["atribuicao_status"]
           tarefa_id: string
+          tentativas: number
           validada_em: string | null
           validada_por: string | null
         }
@@ -67,6 +68,7 @@ export type Database = {
           pontos_snapshot: number
           status?: Database["public"]["Enums"]["atribuicao_status"]
           tarefa_id: string
+          tentativas?: number
           validada_em?: string | null
           validada_por?: string | null
         }
@@ -82,6 +84,7 @@ export type Database = {
           pontos_snapshot?: number
           status?: Database["public"]["Enums"]["atribuicao_status"]
           tarefa_id?: string
+          tentativas?: number
           validada_em?: string | null
           validada_por?: string | null
         }
@@ -475,6 +478,7 @@ export type Database = {
       }
       tarefas: {
         Row: {
+          arquivada_em: string | null
           ativo: boolean
           created_at: string
           criado_por: string | null
@@ -487,6 +491,7 @@ export type Database = {
           titulo: string
         }
         Insert: {
+          arquivada_em?: string | null
           ativo?: boolean
           created_at?: string
           criado_por?: string | null
@@ -499,6 +504,7 @@ export type Database = {
           titulo: string
         }
         Update: {
+          arquivada_em?: string | null
           ativo?: boolean
           created_at?: string
           criado_por?: string | null
@@ -576,6 +582,7 @@ export type Database = {
         Args: { atribuicao_id: string }
         Returns: undefined
       }
+      arquivar_tarefa: { Args: { p_tarefa_id: string }; Returns: undefined }
       avancar_data_valorizacao: {
         Args: {
           p_data_base: string
@@ -648,9 +655,14 @@ export type Database = {
         Returns: string
       }
       cron_sincronizar_valorizacoes: { Args: never; Returns: number }
+      desarquivar_tarefa: { Args: { p_tarefa_id: string }; Returns: undefined }
       desativar_filho: { Args: { p_filho_id: string }; Returns: Json }
       desativar_premio: { Args: { p_premio_id: string }; Returns: number }
       desativar_tarefa: { Args: { p_tarefa_id: string }; Returns: number }
+      descartar_rejeicao_atribuicao: {
+        Args: { p_atribuicao_id: string }
+        Returns: undefined
+      }
       editar_filho: {
         Args: { p_avatar_url?: string; p_filho_id: string; p_nome: string }
         Returns: undefined
@@ -685,6 +697,21 @@ export type Database = {
       }
       limpar_registros_antigos: { Args: never; Returns: Json }
       limpar_usuarios_orfaos_antigos: { Args: never; Returns: Json }
+      listar_atribuicoes_aprovadas: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          atribuicao_id: string
+          competencia: string
+          evidencia_url: string
+          filho_id: string
+          filho_nome: string
+          pontos: number
+          tarefa_arquivada: boolean
+          tarefa_id: string
+          tarefa_titulo: string
+          validada_em: string
+        }[]
+      }
       listar_movimentacoes_por_periodo: {
         Args: { p_filho_id: string; p_from: string; p_to: string }
         Returns: {
