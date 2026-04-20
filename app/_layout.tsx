@@ -42,6 +42,12 @@ Sentry.init({
   integrations: [navigationIntegration],
   enableNativeFramesTracking: !isRunningInExpoGo(),
   environment: __DEV__ ? 'development' : 'production',
+  beforeSend(event) {
+    const value = event.exception?.values?.[0]?.value ?? '';
+    // Filter out network fetch aborts — they're noise from component unmounts / connectivity.
+    if (value === 'abort' || value === 'Aborted' || value === 'AbortError') return null;
+    return event;
+  },
 });
 
 SplashScreen.preventAutoHideAsync();

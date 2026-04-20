@@ -357,7 +357,7 @@ export async function savePushToken(token: string): Promise<void> {
   });
 
   if (error) {
-    throw new Error('Não foi possível salvar o token de notificação.');
+    throw new Error('Não foi possível salvar o token de notificação.', { cause: error });
   }
 }
 

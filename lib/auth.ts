@@ -89,7 +89,12 @@ export async function signOut(): Promise<void> {
     // Best-effort cleanup — do not block sign-out, but surface for diagnostics.
     Sentry.captureException(err, { tags: { stage: 'signOut.cleanup' } });
   }
-  await supabase.auth.signOut({ scope: 'local' });
+
+  try {
+    await supabase.auth.signOut({ scope: 'local' });
+  } catch (err) {
+    Sentry.captureException(err, { tags: { stage: 'signOut.auth' } });
+  }
 }
 
 export async function getProfile(): Promise<UserProfile | null> {
