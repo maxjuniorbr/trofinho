@@ -34,5 +34,3 @@ npm run lint && npm run typecheck && npm test
 ```bash
 npm run test:e2e
 ```
-
-Veja [`.maestro/README.md`](./.maestro/README.md) para detalhes.
