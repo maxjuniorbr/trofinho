@@ -48,16 +48,16 @@ maestro test -e MAESTRO_EMAIL=$MAESTRO_EMAIL -e MAESTRO_PASSWORD=$MAESTRO_PASSWO
 
 ## Flows disponíveis
 
-| Arquivo                        | Fluxo                                                | Setup automático           |
-| ------------------------------ | ---------------------------------------------------- | -------------------------- |
-| `login.yaml`                   | Login com e-mail e senha (fluxo feliz)               | Mata e limpa o app         |
-| `logout.yaml`                  | Logout da conta (fluxo feliz)                        | Login completo via subcall |
-| `login-wrong-password.yaml`    | Login com senha incorreta — valida mensagem de erro  | Mata e limpa o app         |
-| `login-empty-fields.yaml`      | Login sem preencher campos — valida validação client | Mata e limpa o app         |
-| `create-task.yaml`             | Criação de uma nova tarefa                           | Login completo via subcall |
-| `create-account.yaml`          | Cadastro de conta + criação de família (fluxo feliz) | Mata e limpa o app         |
-| `_launch-app.yaml`             | Launch + Expo dev-client handling — helper interno          | Não executar diretamente   |
-| `_logout-steps.yaml`           | Passos de logout sem setup — helper interno          | Não executar diretamente   |
+| Arquivo                     | Fluxo                                                | Setup automático           |
+| --------------------------- | ---------------------------------------------------- | -------------------------- |
+| `login.yaml`                | Login com e-mail e senha (fluxo feliz)               | Mata e limpa o app         |
+| `logout.yaml`               | Logout da conta (fluxo feliz)                        | Login completo via subcall |
+| `login-wrong-password.yaml` | Login com senha incorreta — valida mensagem de erro  | Mata e limpa o app         |
+| `login-empty-fields.yaml`   | Login sem preencher campos — valida validação client | Mata e limpa o app         |
+| `create-task.yaml`          | Criação de uma nova tarefa                           | Login completo via subcall |
+| `create-account.yaml`       | Cadastro de conta + criação de família (fluxo feliz) | Mata e limpa o app         |
+| `_launch-app.yaml`          | Launch + Expo dev-client handling — helper interno   | Não executar diretamente   |
+| `_logout-steps.yaml`        | Passos de logout sem setup — helper interno          | Não executar diretamente   |
 
 ## Boas práticas seguidas
 
