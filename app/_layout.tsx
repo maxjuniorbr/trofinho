@@ -146,12 +146,11 @@ function RootNavigator({
         if (mounted) {
           setPushToken(token);
         }
-        if (!token) {
-          Sentry.captureMessage('push-token: registration returned null', {
-            level: 'warning',
-            tags: { area: 'push-token' },
-          });
-        }
+        // A null token is an expected outcome on emulators, in Expo Go,
+        // when the expo-notifications module is unavailable, or when the
+        // user denies permission. registerForPushNotifications() already
+        // emits a breadcrumb with the specific reason — capturing a Sentry
+        // warning here would only add noise without diagnostic value.
       } catch (error) {
         Sentry.captureException(error, { tags: { area: 'push-token', step: 'register' } });
         if (mounted) {
