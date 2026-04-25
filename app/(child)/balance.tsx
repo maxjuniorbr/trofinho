@@ -42,19 +42,19 @@ function getBalanceHeaderColors(colors: ThemeColors) {
   return {
     ...(isLight
       ? {
-          bg: colors.bg.surface,
-          boxBg: colors.bg.muted,
-          border: colors.border.subtle,
-          text: colors.text.primary,
-          textMuted: colors.text.secondary,
-        }
+        bg: colors.bg.surface,
+        boxBg: colors.bg.muted,
+        border: colors.border.subtle,
+        text: colors.text.primary,
+        textMuted: colors.text.secondary,
+      }
       : {
-          bg: colors.bg.elevated,
-          boxBg: colors.bg.muted,
-          border: colors.border.subtle,
-          text: staticTextColors.inverse,
-          textMuted: 'rgba(255, 255, 255, 0.7)',
-        }),
+        bg: colors.bg.elevated,
+        boxBg: colors.bg.muted,
+        border: colors.border.subtle,
+        text: staticTextColors.inverse,
+        textMuted: 'rgba(255, 255, 255, 0.7)',
+      }),
   };
 }
 
