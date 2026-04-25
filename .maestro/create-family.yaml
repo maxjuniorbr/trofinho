@@ -52,7 +52,7 @@ name: 'Criar família – fluxo feliz'
     visible: 'Campo de nome da família'
     timeout: 20000
 - tapOn: 'Campo de nome da família'
-- inputText: 'Família Maestro'
+- inputText: 'Familia Maestro'
 # Admin name is pre-filled from the register step — no need to edit.
 - hideKeyboard
 - tapOn: 'Criar família'
