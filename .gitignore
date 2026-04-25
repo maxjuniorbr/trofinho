@@ -27,7 +27,6 @@ npm-debug.*
 
 # AI assistants — local config, not shared
 .agents/
-.kiro/
 .github/copilot-instructions.md
 .github/instructions/
 .github/mcp.json
