@@ -37,7 +37,7 @@ yarn-error.*
 .github/instructions/
 .github/mcp.json
 .github/prompts/
-.kiro/
+.local-expo-mcp/
 
 # Supabase local artifacts
 supabase/.branches/
