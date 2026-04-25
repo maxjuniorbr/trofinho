@@ -21,7 +21,7 @@ export default function ChildLayout() {
     <Stack
       screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg.canvas } }}
     >
-      <Stack.Screen name="index" />
+      <Stack.Screen name="index" options={{ animation: 'none' }} />
       <Stack.Screen name="tasks/index" options={{ animation: 'none' }} />
       <Stack.Screen name="tasks/[id]" />
       <Stack.Screen name="balance" />

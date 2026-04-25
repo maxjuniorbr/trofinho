@@ -13,7 +13,7 @@ export default function AdminLayout() {
     <Stack
       screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg.canvas } }}
     >
-      <Stack.Screen name="index" />
+      <Stack.Screen name="index" options={{ animation: 'none' }} />
       <Stack.Screen name="tasks/index" options={{ animation: 'none' }} />
       <Stack.Screen name="tasks/[id]" />
       <Stack.Screen name="children/index" options={{ animation: 'none' }} />
@@ -25,7 +25,7 @@ export default function AdminLayout() {
       <Stack.Screen name="prizes/[id]" />
       <Stack.Screen name="redemptions/index" options={{ animation: 'none' }} />
       <Stack.Screen name="notifications" />
-      <Stack.Screen name="perfil" />
+      <Stack.Screen name="perfil" options={{ animation: 'none' }} />
     </Stack>
   );
 }
