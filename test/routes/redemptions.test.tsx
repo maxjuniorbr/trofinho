@@ -30,19 +30,19 @@ const confirmMutationMock = vi.hoisted(() => ({
 const redemptionsMock = vi.hoisted(() => ({
   data: undefined as
     | {
-        pages: {
-          data: {
-            id: string;
-            status: string;
-            pontos_debitados: number;
-            created_at: string;
-            filhos: { nome: string; usuario_id: string | null };
-            premios: { nome: string };
-          }[];
-          hasMore: boolean;
+      pages: {
+        data: {
+          id: string;
+          status: string;
+          pontos_debitados: number;
+          created_at: string;
+          filhos: { nome: string; usuario_id: string | null };
+          premios: { nome: string };
         }[];
-        pageParams: number[];
-      }
+        hasMore: boolean;
+      }[];
+      pageParams: number[];
+    }
     | undefined,
   isLoading: false,
   error: null as Error | null,
