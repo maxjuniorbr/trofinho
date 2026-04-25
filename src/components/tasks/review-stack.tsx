@@ -21,6 +21,7 @@ import { Image } from 'expo-image';
 import { useCallback, useMemo, useState } from 'react';
 import { Calendar, Camera, Check, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { BottomSheetOverlay } from '@/components/ui/bottom-sheet';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -28,7 +29,7 @@ import { HeaderIconButton } from '@/components/ui/screen-header';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { Input } from '@/components/ui/input';
 import { TaskPointsPill } from '@/components/tasks/task-points-pill';
-import { useApproveAssignment, usePendingValidations, useRejectAssignment } from '@/hooks/queries';
+import { useApproveAssignment, usePendingValidations, useRejectAssignment, queryKeys } from '@/hooks/queries';
 import type { PendingValidationItem } from '@lib/tasks';
 import { localizeRpcError } from '@lib/api-error';
 import { formatDateShort } from '@lib/utils';
@@ -191,22 +192,26 @@ export function ReviewStack({ visible, onClose }: ReviewStackProps) {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
+  const queryClient = useQueryClient();
   const { data: items = [], isLoading, error, refetch } = usePendingValidations();
   const approveMutation = useApproveAssignment();
   const rejectMutation = useRejectAssignment();
 
-  const [index, setIndex] = useState(0);
+  // processedCount tracks how many items have been reviewed this session (for display only).
+  // We always use items[0] as current because each processed item is optimistically removed
+  // from the cache — incrementing an index alongside a shrinking list would skip cards.
+  const [processedCount, setProcessedCount] = useState(0);
   const [showRejectionSheet, setShowRejectionSheet] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const translateX = useSharedValue(0);
   const isExiting = useSharedValue(false);
 
-  const total = items.length;
-  const current: PendingValidationItem | undefined = items[index];
+  const total = processedCount + items.length;
+  const current: PendingValidationItem | undefined = items[0];
 
   const reset = useCallback(() => {
-    setIndex(0);
+    setProcessedCount(0);
     setShowRejectionSheet(false);
     setActionError(null);
     translateX.value = 0;
@@ -218,13 +223,38 @@ export function ReviewStack({ visible, onClose }: ReviewStackProps) {
     onClose();
   }, [reset, onClose]);
 
-  const advance = useCallback(() => {
+  const advance = useCallback(
+    (processedId: string) => {
+      // Optimistically remove the processed item so the next card shows immediately
+      // without waiting for the background refetch triggered by the mutation.
+      queryClient.setQueryData(
+        queryKeys.tasks.pendingValidations(),
+        (old: PendingValidationItem[] | undefined) =>
+          old?.filter((item) => item.id !== processedId) ?? [],
+      );
+      translateX.value = 0;
+      isExiting.value = false;
+      setShowRejectionSheet(false);
+      setActionError(null);
+      setProcessedCount((c) => c + 1);
+    },
+    [translateX, isExiting, queryClient],
+  );
+
+  // Skip: moves the current card to the end of the queue so the admin can review it later.
+  const skip = useCallback(() => {
+    queryClient.setQueryData(
+      queryKeys.tasks.pendingValidations(),
+      (old: PendingValidationItem[] | undefined) => {
+        if (!old || old.length <= 1) return old;
+        const [first, ...rest] = old;
+        return [...rest, first];
+      },
+    );
     translateX.value = 0;
     isExiting.value = false;
-    setShowRejectionSheet(false);
     setActionError(null);
-    setIndex((i) => i + 1);
-  }, [translateX, isExiting]);
+  }, [translateX, isExiting, queryClient]);
 
   /* ── Approve ── */
 
@@ -241,7 +271,7 @@ export function ReviewStack({ visible, onClose }: ReviewStackProps) {
         },
       },
       {
-        onSuccess: () => advance(),
+        onSuccess: () => advance(current.id),
         onError: (err) => {
           translateX.value = withSpring(0);
           isExiting.value = false;
@@ -282,7 +312,7 @@ export function ReviewStack({ visible, onClose }: ReviewStackProps) {
           },
         },
         {
-          onSuccess: () => advance(),
+          onSuccess: () => advance(current.id),
           onError: (err) => setActionError(localizeRpcError(err.message)),
         },
       );
@@ -359,42 +389,49 @@ export function ReviewStack({ visible, onClose }: ReviewStackProps) {
     </View>
   );
 
-  const renderBody = () => {
-    if (isLoading) {
-      return (
-        <View style={styles.center}>
-          <ActivityIndicator color={colors.accent.admin} size="large" />
-        </View>
-      );
-    }
-    if (error) {
-      return (
-        <View style={styles.center}>
-          <EmptyState error={localizeRpcError(error.message)} onRetry={() => refetch()} />
-        </View>
-      );
-    }
-    if (!current) {
-      return (
-        <View style={styles.center}>
-          <View style={[styles.doneCircle, { backgroundColor: colors.semantic.successBg }]}>
-            <Check size={36} color={colors.semantic.success} strokeWidth={3} />
-          </View>
-          <Text style={[styles.doneTitle, { color: colors.text.primary }]}>Revisão concluída.</Text>
-          <Text style={[styles.doneSubtitle, { color: colors.text.muted }]}>
-            Você passou por todas as entregas da fila.
-          </Text>
-          <View style={styles.doneButtonWrapper}>
-            <Button label="Voltar para a lista" onPress={handleClose} />
-          </View>
-        </View>
-      );
-    }
+  const renderLoading = () => (
+    <View style={styles.center}>
+      <ActivityIndicator color={colors.accent.admin} size="large" />
+    </View>
+  );
 
-    const reviewIndex = Math.min(index + 1, total);
-    const progress = total === 0 ? 0 : Math.min(index / total, 1);
-    const submittedDate = current.concluida_em ? formatDateShort(current.concluida_em) : null;
-    const competenciaDate = current.competencia ? formatDateShort(current.competencia) : null;
+  const renderError = (err: Error) => (
+    <View style={styles.center}>
+      <EmptyState error={localizeRpcError(err.message)} onRetry={() => refetch()} />
+    </View>
+  );
+
+  const renderDone = () => (
+    <View style={styles.center}>
+      <View style={[styles.doneCircle, { backgroundColor: colors.semantic.successBg }]}>
+        <Check size={36} color={colors.semantic.success} strokeWidth={3} />
+      </View>
+      <Text style={[styles.doneTitle, { color: colors.text.primary }]}>Revisão concluída.</Text>
+      <Text style={[styles.doneSubtitle, { color: colors.text.muted }]}>
+        Você passou por todas as entregas da fila.
+      </Text>
+      <View style={styles.doneButtonWrapper}>
+        <Button label="Voltar para a lista" onPress={handleClose} />
+      </View>
+    </View>
+  );
+
+  const renderBody = () => {
+    if (isLoading) return renderLoading();
+    if (error) return renderError(error);
+    if (!current) return renderDone();
+    return renderActiveSession(current);
+  };
+
+  const renderActiveSession = (activeCurrent: PendingValidationItem) => {
+    const reviewIndex = processedCount + 1;
+    const progress = total === 0 ? 0 : processedCount / total;
+    const submittedDate = activeCurrent.concluida_em
+      ? formatDateShort(activeCurrent.concluida_em)
+      : null;
+    const competenciaDate = activeCurrent.competencia
+      ? formatDateShort(activeCurrent.competencia)
+      : null;
 
     return (
       <>
@@ -412,7 +449,7 @@ export function ReviewStack({ visible, onClose }: ReviewStackProps) {
         {/* Card stack area */}
         <View style={styles.cardArea}>
           {/* Peek card behind */}
-          {items[index + 1] ? (
+          {items[1] ? (
             <View
               style={[
                 styles.peekCard,
@@ -476,26 +513,26 @@ export function ReviewStack({ visible, onClose }: ReviewStackProps) {
                 contentContainerStyle={styles.cardContent}
               >
                 <Text style={[styles.childLabel, { color: colors.text.muted }]} numberOfLines={1}>
-                  {current.filhos.nome}
+                  {activeCurrent.filhos.nome}
                 </Text>
                 <Text style={[styles.taskTitle, { color: colors.text.primary }]} numberOfLines={3}>
-                  {current.tarefas.titulo}
+                  {activeCurrent.tarefas.titulo}
                 </Text>
 
-                {current.tarefas.descricao ? (
+                {activeCurrent.tarefas.descricao ? (
                   <Text style={[styles.taskDesc, { color: colors.text.muted }]}>
-                    {current.tarefas.descricao}
+                    {activeCurrent.tarefas.descricao}
                   </Text>
                 ) : null}
 
-                {current.evidencia_url ? (
+                {activeCurrent.evidencia_url ? (
                   <View style={[styles.evidenceBox, { backgroundColor: colors.bg.muted }]}>
                     <Image
-                      source={current.evidencia_url}
+                      source={activeCurrent.evidencia_url}
                       style={styles.evidenceImg}
                       contentFit="cover"
                       transition={200}
-                      accessibilityLabel={`Comprovação enviada por ${current.filhos.nome}`}
+                      accessibilityLabel={`Comprovação enviada por ${activeCurrent.filhos.nome}`}
                     />
                     <View style={[styles.evidenceBadge, { backgroundColor: colors.bg.elevated }]}>
                       <Camera size={10} color={colors.text.inverse} strokeWidth={2.5} />
@@ -507,7 +544,7 @@ export function ReviewStack({ visible, onClose }: ReviewStackProps) {
                 ) : null}
 
                 <View style={styles.metaRow}>
-                  <TaskPointsPill points={current.pontos_snapshot} />
+                  <TaskPointsPill points={activeCurrent.pontos_snapshot} />
                   {competenciaDate ? (
                     <View style={[styles.tag, { backgroundColor: colors.bg.muted }]}>
                       <Calendar size={12} color={colors.text.muted} strokeWidth={2} />
@@ -575,7 +612,7 @@ export function ReviewStack({ visible, onClose }: ReviewStackProps) {
             </View>
           </View>
           <Pressable
-            onPress={() => advance()}
+            onPress={() => skip()}
             accessibilityRole="button"
             accessibilityLabel="Pular esta tarefa"
             style={styles.skip}
@@ -587,9 +624,9 @@ export function ReviewStack({ visible, onClose }: ReviewStackProps) {
 
         {/* Rejection sheet overlay */}
         <RejectionSheet
-          key={current.id}
+          key={activeCurrent.id}
           visible={showRejectionSheet}
-          taskTitle={current.tarefas.titulo}
+          taskTitle={activeCurrent.tarefas.titulo}
           loading={rejectMutation.isPending}
           onConfirm={handleConfirmReject}
           onCancel={() => {
