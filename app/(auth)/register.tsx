@@ -4,11 +4,12 @@ import { useState, useMemo } from 'react';
 import { ArrowRight, Lock, Mail, User } from 'lucide-react-native';
 import { signUp } from '@lib/auth';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
-import { heroPalette, spacing, typography } from '@/constants/theme';
+import { spacing, typography } from '@/constants/theme';
 import { AuthHeroScreen } from '@/components/auth/auth-hero-screen';
 import { AuthDarkField, DarkPasswordToggle } from '@/components/auth/auth-dark-field';
 import { BrandLogo } from '@/components/auth/brand-logo';
 import { StepIndicator } from '@/components/auth/step-indicator';
+import { useHeroPalette } from '@/components/auth/use-hero-palette';
 import { Button } from '@/components/ui/button';
 import { FormFooter } from '@/components/ui/form-footer';
 
@@ -18,7 +19,8 @@ const MIN_PASSWORD_LENGTH = 8;
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const styles = useMemo(() => makeStyles(), []);
+  const { palette } = useHeroPalette();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -66,7 +68,7 @@ export default function RegisterScreen() {
 
   return (
     <AuthHeroScreen
-      topBarCenter={<BrandLogo size="sm" variant="onDark" withText />}
+      topBarCenter={<BrandLogo size="sm" withText />}
     >
       <StepIndicator currentStep={1} labels={['Conta', 'Família']} />
 
@@ -190,7 +192,7 @@ export default function RegisterScreen() {
   );
 }
 
-function makeStyles() {
+function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
   return StyleSheet.create({
     header: {
       marginTop: spacing['6'],
@@ -199,7 +201,7 @@ function makeStyles() {
       fontFamily: typography.family.black,
       fontSize: typography.size['3xl'],
       lineHeight: typography.lineHeight['3xl'],
-      color: heroPalette.textOnNavy,
+      color: palette.textOnNavy,
       letterSpacing: -0.4,
     },
     subtitle: {
@@ -207,7 +209,7 @@ function makeStyles() {
       fontFamily: typography.family.medium,
       fontSize: typography.size.sm,
       lineHeight: typography.lineHeight.sm,
-      color: heroPalette.textOnNavyMuted,
+      color: palette.textOnNavyMuted,
     },
     form: {
       marginTop: spacing['6'],
@@ -219,7 +221,7 @@ function makeStyles() {
     passwordHint: {
       fontFamily: typography.family.semibold,
       fontSize: typography.size.xs,
-      color: heroPalette.textOnNavySubtle,
+      color: palette.textOnNavySubtle,
       marginTop: spacing['2'],
     },
     terms: {
@@ -228,12 +230,12 @@ function makeStyles() {
       fontSize: typography.size.xxs,
       lineHeight: typography.lineHeight.xs,
       textAlign: 'center',
-      color: heroPalette.textOnNavySubtle,
+      color: palette.textOnNavySubtle,
       paddingHorizontal: spacing['2'],
     },
     termsAccent: {
       fontFamily: typography.family.semibold,
-      color: heroPalette.textOnNavyMuted,
+      color: palette.textOnNavyMuted,
     },
     footerPush: {
       marginTop: 'auto',
@@ -245,11 +247,11 @@ function makeStyles() {
     secondaryButtonText: {
       fontFamily: typography.family.medium,
       fontSize: typography.size.sm,
-      color: heroPalette.textOnNavyMuted,
+      color: palette.textOnNavyMuted,
     },
     secondaryButtonAccent: {
       fontFamily: typography.family.bold,
-      color: heroPalette.borderFocus,
+      color: palette.borderFocus,
     },
   });
 }

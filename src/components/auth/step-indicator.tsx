@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { heroPalette, radii, spacing, typography } from '@/constants/theme';
+import { withAlpha } from '@/constants/colors';
+import { radii, spacing, typography } from '@/constants/theme';
+import { useHeroPalette } from '@/components/auth/use-hero-palette';
 
 type StepIndicatorProps = Readonly<{
   currentStep: 1 | 2;
@@ -8,12 +10,13 @@ type StepIndicatorProps = Readonly<{
   labels?: readonly string[];
 }>;
 
-const ACTIVE = heroPalette.borderFocus;
-const DONE = 'rgba(250, 193, 20, 0.40)';
-const INACTIVE = 'rgba(255, 255, 255, 0.15)';
-
 export const StepIndicator = ({ currentStep, totalSteps = 2, labels }: StepIndicatorProps) => {
-  const styles = useMemo(() => makeStyles(), []);
+  const { palette } = useHeroPalette();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
+
+  const ACTIVE = palette.borderFocus;
+  const DONE = withAlpha(palette.borderFocus, 0.4);
+  const INACTIVE = withAlpha(palette.textOnNavy, 0.15);
 
   const getBarColor = (index: number): string => {
     const step = index + 1;
@@ -36,14 +39,14 @@ export const StepIndicator = ({ currentStep, totalSteps = 2, labels }: StepIndic
       accessibilityRole="progressbar"
     >
       <View style={styles.bars}>
-        {Array.from({ length: totalSteps }, (_, i) => (
-          <View key={`bar-${i}`} style={[styles.bar, { backgroundColor: getBarColor(i) }]} />
+        {Array.from({ length: totalSteps }, (_, i) => `bar-step-${i + 1}`).map((id, i) => (
+          <View key={id} style={[styles.bar, { backgroundColor: getBarColor(i) }]} />
         ))}
       </View>
       {labels ? (
         <View style={styles.labels}>
           {labels.map((label, i) => (
-            <Text key={`label-${i}`} style={getLabelStyle(i)} allowFontScaling={false}>
+            <Text key={label} style={getLabelStyle(i)} allowFontScaling={false}>
               {i + 1 < currentStep ? `${label} ✓` : label}
             </Text>
           ))}
@@ -53,7 +56,7 @@ export const StepIndicator = ({ currentStep, totalSteps = 2, labels }: StepIndic
   );
 };
 
-function makeStyles() {
+function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
   return StyleSheet.create({
     container: {
       marginTop: spacing['6'],
@@ -77,19 +80,19 @@ function makeStyles() {
       fontFamily: typography.family.bold,
       fontSize: typography.size.xxs,
       letterSpacing: 1.2,
-      color: heroPalette.borderFocus,
+      color: palette.borderFocus,
     },
     labelDone: {
       fontFamily: typography.family.bold,
       fontSize: typography.size.xxs,
       letterSpacing: 1.2,
-      color: 'rgba(250, 193, 20, 0.55)',
+      color: withAlpha(palette.borderFocus, 0.55),
     },
     labelInactive: {
       fontFamily: typography.family.bold,
       fontSize: typography.size.xxs,
       letterSpacing: 1.2,
-      color: 'rgba(255, 255, 255, 0.35)',
+      color: withAlpha(palette.textOnNavy, 0.35),
     },
   });
 }

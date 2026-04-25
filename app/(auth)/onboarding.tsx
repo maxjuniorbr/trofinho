@@ -4,11 +4,12 @@ import { useState, useMemo, useEffect } from 'react';
 import { ArrowRight, Check, Home, ShieldCheck, User } from 'lucide-react-native';
 import { createFamily, getCurrentAuthUser, signOut } from '@lib/auth';
 import { withAlpha } from '@/constants/colors';
-import { heroPalette, radii, spacing, typography } from '@/constants/theme';
+import { radii, spacing, typography } from '@/constants/theme';
 import { AuthHeroScreen } from '@/components/auth/auth-hero-screen';
 import { AuthDarkField } from '@/components/auth/auth-dark-field';
 import { BrandLogo } from '@/components/auth/brand-logo';
 import { StepIndicator } from '@/components/auth/step-indicator';
+import { useHeroPalette } from '@/components/auth/use-hero-palette';
 import { Button } from '@/components/ui/button';
 import { FormFooter } from '@/components/ui/form-footer';
 
@@ -17,7 +18,8 @@ type OnboardingField = 'familyName' | 'adminName';
 export default function OnboardingScreen() {
   const params = useLocalSearchParams<{ name?: string; email?: string }>();
   const router = useRouter();
-  const styles = useMemo(() => makeStyles(), []);
+  const { palette } = useHeroPalette();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
 
   const [familyName, setFamilyName] = useState('');
   const [adminName, setAdminName] = useState(params.name ?? '');
@@ -92,14 +94,14 @@ export default function OnboardingScreen() {
 
   return (
     <AuthHeroScreen
-      topBarCenter={<BrandLogo size="sm" variant="onDark" withText />}
+      topBarCenter={<BrandLogo size="sm" withText />}
     >
       {isFromRegister ? <StepIndicator currentStep={2} labels={['Conta', 'Família']} /> : null}
 
       <View style={styles.header}>
         {isFromRegister ? (
           <View style={styles.kickerChip} accessibilityRole="text">
-            <Check size={12} color={heroPalette.checkOnText} strokeWidth={3} />
+            <Check size={12} color={palette.checkOnText} strokeWidth={3} />
             <Text style={styles.kickerChipText} allowFontScaling={false}>
               Conta criada
             </Text>
@@ -123,7 +125,7 @@ export default function OnboardingScreen() {
       {isFromRegister && params.email ? (
         <View style={styles.banner} accessibilityRole="text" accessibilityLabel="Sua conta está salva">
           <View style={styles.bannerIconBox}>
-            <ShieldCheck size={20} color={heroPalette.checkOnText} strokeWidth={2.5} />
+            <ShieldCheck size={20} color={palette.checkOnText} strokeWidth={2.5} />
           </View>
           <View style={styles.bannerContent}>
             <Text style={styles.bannerLabel} allowFontScaling={false}>
@@ -139,7 +141,7 @@ export default function OnboardingScreen() {
       {!isFromRegister && userEmail ? (
         <View style={styles.banner} accessibilityRole="text" accessibilityLabel="Conta vinculada">
           <View style={styles.bannerIconBox}>
-            <ShieldCheck size={20} color={heroPalette.checkOnText} strokeWidth={2.5} />
+            <ShieldCheck size={20} color={palette.checkOnText} strokeWidth={2.5} />
           </View>
           <View style={styles.bannerContent}>
             <Text style={styles.bannerLabel} allowFontScaling={false}>
@@ -222,7 +224,7 @@ export default function OnboardingScreen() {
   );
 }
 
-function makeStyles() {
+function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
   return StyleSheet.create({
     header: {
       marginTop: spacing['6'],
@@ -235,30 +237,30 @@ function makeStyles() {
       paddingHorizontal: spacing['3'],
       paddingVertical: spacing['1'],
       borderRadius: radii.full,
-      backgroundColor: withAlpha(heroPalette.checkOn, 0.15),
+      backgroundColor: withAlpha(palette.checkOn, 0.15),
       borderWidth: 1,
-      borderColor: withAlpha(heroPalette.checkOn, 0.3),
+      borderColor: withAlpha(palette.checkOn, 0.3),
     },
     kickerChipText: {
       fontFamily: typography.family.bold,
       fontSize: typography.size.xxs,
       letterSpacing: 1.4,
       textTransform: 'uppercase',
-      color: heroPalette.checkOnText,
+      color: palette.checkOnText,
     },
     kickerPlain: {
       fontFamily: typography.family.bold,
       fontSize: typography.size.xxs,
       letterSpacing: 1.4,
       textTransform: 'uppercase',
-      color: 'rgba(250, 193, 20, 0.90)',
+      color: palette.borderFocus,
     },
     title: {
       marginTop: spacing['2'],
       fontFamily: typography.family.black,
       fontSize: typography.size['3xl'],
       lineHeight: typography.lineHeight['3xl'],
-      color: heroPalette.textOnNavy,
+      color: palette.textOnNavy,
       letterSpacing: -0.4,
     },
     subtitle: {
@@ -266,7 +268,7 @@ function makeStyles() {
       fontFamily: typography.family.medium,
       fontSize: typography.size.sm,
       lineHeight: typography.lineHeight.sm,
-      color: heroPalette.textOnNavyMuted,
+      color: palette.textOnNavyMuted,
     },
     banner: {
       flexDirection: 'row',
@@ -276,15 +278,15 @@ function makeStyles() {
       paddingHorizontal: spacing['4'],
       paddingVertical: spacing['3'],
       borderRadius: radii.lg,
-      backgroundColor: withAlpha(heroPalette.checkOn, 0.1),
+      backgroundColor: withAlpha(palette.checkOn, 0.1),
       borderWidth: 1,
-      borderColor: withAlpha(heroPalette.checkOn, 0.25),
+      borderColor: withAlpha(palette.checkOn, 0.25),
     },
     bannerIconBox: {
       width: 40,
       height: 40,
       borderRadius: radii.md,
-      backgroundColor: withAlpha(heroPalette.checkOn, 0.2),
+      backgroundColor: withAlpha(palette.checkOn, 0.2),
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -294,13 +296,13 @@ function makeStyles() {
     bannerLabel: {
       fontFamily: typography.family.bold,
       fontSize: typography.size.sm,
-      color: heroPalette.checkOnText,
+      color: palette.checkOnText,
     },
     bannerEmail: {
       marginTop: 2,
       fontFamily: typography.family.medium,
       fontSize: typography.size.xs,
-      color: '#FFFFFF',
+      color: palette.textOnNavy,
     },
     form: {
       marginTop: spacing['6'],
@@ -319,7 +321,7 @@ function makeStyles() {
     secondaryButtonText: {
       fontFamily: typography.family.medium,
       fontSize: typography.size.sm,
-      color: heroPalette.textOnNavyMuted,
+      color: palette.textOnNavyMuted,
     },
   });
 }

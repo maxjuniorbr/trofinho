@@ -45,17 +45,29 @@ export const gradients = {
     start: { x: 0.5, y: 0 },
     end: { x: 0.5, y: 1 },
   },
-  // Deep navy → mid → light navy (top-to-bottom). Backdrop for the auth hero.
+  // Deep navy → mid → light navy (top-to-bottom). Backdrop for the auth hero
+  // when the device is in dark mode.
   heroNavy: {
     colors: ['#0F1729', '#19233F', '#283B5D'] as const,
     locations: [0, 0.6, 1] as const,
     start: { x: 0.5, y: 0 },
     end: { x: 0.5, y: 1 },
   },
+  // Warm cream → soft gold (top-to-bottom). Light-mode backdrop for the auth
+  // hero. Keeps the brand gold accent visible against a light surface.
+  heroLight: {
+    colors: ['#FFFCF2', '#FFF6D9', '#FFE9A8'] as const,
+    locations: [0, 0.6, 1] as const,
+    start: { x: 0.5, y: 0 },
+    end: { x: 0.5, y: 1 },
+  },
 } as const;
 
-// Fixed brand surfaces used by hero/marketing screens. Independent of the
-// active light/dark theme — these surfaces are always dark navy.
+// Fixed brand surfaces used by hero/marketing screens (auth flow). Keys are
+// kept stable across the dark and light variants so consumers can swap palettes
+// via `useHeroPalette()` without touching call sites. Names like "navyDeep" or
+// "textOnNavy" are legacy semantic labels — in light mode they map to
+// equivalent roles (bg start, primary text on hero, etc).
 export const heroPalette = {
   navyDeep: '#0F1729',
   navyMid: '#19233F',
@@ -75,5 +87,29 @@ export const heroPalette = {
   glowGold: 'rgba(250, 193, 20, 0.12)',
   glowGoldSoft: 'rgba(250, 193, 20, 0.06)',
 } as const;
+
+// Light-mode counterpart of heroPalette. Key names match for swap-safety; the
+// values target a warm cream/gold surface with dark text for legibility.
+// Typed as `Record<keyof typeof heroPalette, string>` (not `typeof heroPalette`)
+// so the literal-typed dark palette doesn't constrain light values.
+export const heroPaletteLight: Record<keyof typeof heroPalette, string> = {
+  navyDeep: '#FFFCF2',
+  navyMid: '#FFF6D9',
+  navyLight: '#FFE9A8',
+  textOnNavy: '#0F1729',
+  textOnNavyMuted: 'rgba(15, 23, 41, 0.72)',
+  textOnNavySubtle: 'rgba(15, 23, 41, 0.55)',
+  textOnNavyFaint: 'rgba(15, 23, 41, 0.40)',
+  surfaceField: '#FFFFFF',
+  surfaceFieldFocus: '#FFFFFF',
+  surfaceChip: 'rgba(15, 23, 41, 0.06)',
+  borderSoft: 'rgba(15, 23, 41, 0.12)',
+  borderFocus: '#C57B0D',
+  textOnLight: '#030711',
+  checkOn: '#20C55D',
+  checkOnText: '#1A6636',
+  glowGold: 'rgba(250, 193, 20, 0.20)',
+  glowGoldSoft: 'rgba(250, 193, 20, 0.10)',
+};
 
 export const easingPop = [0.34, 1.56, 0.64, 1] as const;

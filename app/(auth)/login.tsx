@@ -4,10 +4,11 @@ import { useState, useMemo } from 'react';
 import { Mail, Lock, ArrowRight } from 'lucide-react-native';
 import { signIn } from '@lib/auth';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
-import { heroPalette, spacing, typography } from '@/constants/theme';
+import { spacing, typography } from '@/constants/theme';
 import { AuthHeroScreen } from '@/components/auth/auth-hero-screen';
 import { AuthDarkField, DarkPasswordToggle } from '@/components/auth/auth-dark-field';
 import { BrandLogo } from '@/components/auth/brand-logo';
+import { useHeroPalette } from '@/components/auth/use-hero-palette';
 import { Button } from '@/components/ui/button';
 import { FormFooter } from '@/components/ui/form-footer';
 
@@ -15,7 +16,8 @@ type LoginField = 'email' | 'password';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const styles = useMemo(() => makeStyles(), []);
+  const { palette } = useHeroPalette();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -59,7 +61,7 @@ export default function LoginScreen() {
   return (
     <AuthHeroScreen>
       <View style={styles.header}>
-        <BrandLogo size="md" variant="onDark" />
+        <BrandLogo size="md" />
         <Text style={styles.title} allowFontScaling={false}>
           Bem-vindo{'\n'}de volta.
         </Text>
@@ -152,7 +154,7 @@ export default function LoginScreen() {
   );
 }
 
-function makeStyles() {
+function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
   return StyleSheet.create({
     header: {
       marginTop: spacing['3'],
@@ -162,7 +164,7 @@ function makeStyles() {
       fontFamily: typography.family.black,
       fontSize: typography.size['4xl'],
       lineHeight: typography.lineHeight['4xl'],
-      color: heroPalette.textOnNavy,
+      color: palette.textOnNavy,
       letterSpacing: -0.6,
     },
     subtitle: {
@@ -170,7 +172,7 @@ function makeStyles() {
       fontFamily: typography.family.medium,
       fontSize: typography.size.md,
       lineHeight: typography.lineHeight.md,
-      color: heroPalette.textOnNavyMuted,
+      color: palette.textOnNavyMuted,
       maxWidth: 280,
     },
     form: {
@@ -180,7 +182,7 @@ function makeStyles() {
     forgotText: {
       fontFamily: typography.family.semibold,
       fontSize: typography.size.xs,
-      color: heroPalette.textOnNavyMuted,
+      color: palette.textOnNavyMuted,
       textAlign: 'center',
       marginTop: spacing['3'],
       marginBottom: spacing['2'],
@@ -188,7 +190,7 @@ function makeStyles() {
     forgotBadge: {
       fontFamily: typography.family.medium,
       fontSize: typography.size.xxs,
-      color: heroPalette.textOnNavyMuted,
+      color: palette.textOnNavyMuted,
       opacity: 0.6,
     },
     footerPush: {
@@ -201,11 +203,11 @@ function makeStyles() {
     secondaryButtonText: {
       fontFamily: typography.family.medium,
       fontSize: typography.size.sm,
-      color: heroPalette.textOnNavyMuted,
+      color: palette.textOnNavyMuted,
     },
     secondaryButtonAccent: {
       fontFamily: typography.family.bold,
-      color: heroPalette.borderFocus,
+      color: palette.borderFocus,
     },
   });
 }

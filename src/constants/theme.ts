@@ -8,4 +8,4 @@ export {
 export { spacing } from '@/constants/spacing';
 export { typography } from '@/constants/typography';
 export { radii } from '@/constants/radius';
-export { shadows, gradients, heroPalette, easingPop } from '@/constants/shadows';
+export { shadows, gradients, heroPalette, heroPaletteLight, easingPop } from '@/constants/shadows';

@@ -2,13 +2,19 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { gradients, heroPalette, shadows, typography } from '@/constants/theme';
+import { useHeroPalette } from '@/components/auth/use-hero-palette';
 
 type BrandLogoSize = 'sm' | 'md' | 'lg' | 'xl';
-type BrandLogoVariant = 'default' | 'onDark';
+type BrandLogoVariant = 'default' | 'onDark' | 'auto';
 
 type BrandLogoProps = Readonly<{
   size?: BrandLogoSize;
   withText?: boolean;
+  /**
+   * - `auto` (default for new code): wordmark color follows the active theme.
+   * - `onDark`: legacy alias forcing the wordmark to render on a dark surface.
+   * - `default`: legacy alias forcing the wordmark to render on a light surface.
+   */
   variant?: BrandLogoVariant;
 }>;
 
@@ -28,17 +34,24 @@ const SIZE_TOKENS: Record<BrandLogoSize, SizeTokens> = {
 };
 
 /**
- * Trofinho brand mark — gold "T" monogram on a navy gradient tile.
- * Mature, premium, suitable for tweens (8–14).
+ * Trofinho brand mark — gold "T" monogram on a navy gradient tile. The tile
+ * itself is always navy (brand asset). The optional wordmark color follows
+ * the device theme when `variant="auto"` (or `"onDark"` for legacy callers).
  */
 export const BrandLogo = ({
   size = 'md',
   withText = false,
-  variant = 'default',
+  variant = 'auto',
 }: BrandLogoProps) => {
   const tokens = SIZE_TOKENS[size];
   const styles = useMemo(() => makeStyles(tokens), [tokens]);
-  const textColor = variant === 'onDark' ? heroPalette.textOnNavy : heroPalette.textOnLight;
+  const { palette } = useHeroPalette();
+  const textColor =
+    variant === 'auto'
+      ? palette.textOnNavy
+      : variant === 'onDark'
+        ? heroPalette.textOnNavy
+        : heroPalette.textOnLight;
 
   return (
     <View style={styles.container} accessibilityRole="image" accessibilityLabel="Trofinho">
@@ -102,3 +115,4 @@ function makeStyles(tokens: SizeTokens) {
     },
   });
 }
+

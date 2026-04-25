@@ -1,7 +1,8 @@
 import { useMemo, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { Eye, EyeOff, type LucideIcon } from 'lucide-react-native';
-import { heroPalette, radii, spacing, typography } from '@/constants/theme';
+import { radii, spacing, typography } from '@/constants/theme';
+import { useHeroPalette } from '@/components/auth/use-hero-palette';
 
 type AuthDarkFieldProps = TextInputProps &
   Readonly<{
@@ -12,9 +13,9 @@ type AuthDarkFieldProps = TextInputProps &
   }>;
 
 /**
- * Dark variant of the auth text input. Pairs an uppercase tracked label with a
- * translucent input row sitting on the navy hero gradient. Always uses the
- * fixed hero palette regardless of theme.
+ * Themed auth text input. Pairs an uppercase tracked label with a translucent
+ * input row sitting on the auth hero gradient. Switches palette automatically
+ * to match the device color scheme via `useHeroPalette()`.
  */
 export const AuthDarkField = ({
   label,
@@ -24,7 +25,8 @@ export const AuthDarkField = ({
   style,
   ...inputProps
 }: AuthDarkFieldProps) => {
-  const styles = useMemo(() => makeStyles(), []);
+  const { palette } = useHeroPalette();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   const hasIcon = Boolean(LeftIcon);
 
   return (
@@ -38,19 +40,19 @@ export const AuthDarkField = ({
         style={[
           styles.inputRow,
           {
-            backgroundColor: focused ? heroPalette.surfaceFieldFocus : heroPalette.surfaceField,
-            borderColor: focused ? heroPalette.borderFocus : heroPalette.borderSoft,
+            backgroundColor: focused ? palette.surfaceFieldFocus : palette.surfaceField,
+            borderColor: focused ? palette.borderFocus : palette.borderSoft,
           },
         ]}
       >
         {LeftIcon ? (
-          <LeftIcon size={18} color={heroPalette.textOnNavySubtle} strokeWidth={1.75} />
+          <LeftIcon size={18} color={palette.textOnNavySubtle} strokeWidth={1.75} />
         ) : null}
         <TextInput
           accessibilityLabel={label}
           style={[styles.input, hasIcon ? styles.inputWithIcon : null, style]}
-          placeholderTextColor={heroPalette.textOnNavyFaint}
-          selectionColor={heroPalette.borderFocus}
+          placeholderTextColor={palette.textOnNavyFaint}
+          selectionColor={palette.borderFocus}
           {...inputProps}
         />
         {rightAction ?? null}
@@ -63,6 +65,7 @@ export const DarkPasswordToggle = ({
   visible,
   onToggle,
 }: Readonly<{ visible: boolean; onToggle: () => void }>) => {
+  const { palette } = useHeroPalette();
   const Icon = visible ? EyeOff : Eye;
 
   return (
@@ -72,12 +75,12 @@ export const DarkPasswordToggle = ({
       accessibilityRole="button"
       accessibilityLabel={visible ? 'Ocultar senha' : 'Mostrar senha'}
     >
-      <Icon size={18} color={heroPalette.textOnNavyMuted} strokeWidth={1.75} />
+      <Icon size={18} color={palette.textOnNavyMuted} strokeWidth={1.75} />
     </Pressable>
   );
 };
 
-function makeStyles() {
+function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
   return StyleSheet.create({
     fieldGroup: {
       marginTop: spacing['4'],
@@ -91,7 +94,7 @@ function makeStyles() {
       fontFamily: typography.family.bold,
       fontSize: typography.size.xxs,
       letterSpacing: 1.4,
-      color: heroPalette.textOnNavySubtle,
+      color: palette.textOnNavySubtle,
       textTransform: 'uppercase',
     },
     inputRow: {
@@ -108,10 +111,11 @@ function makeStyles() {
       paddingVertical: spacing['3'],
       fontSize: typography.size.md,
       fontFamily: typography.family.medium,
-      color: heroPalette.textOnNavy,
+      color: palette.textOnNavy,
     },
     inputWithIcon: {
       paddingLeft: 0,
     },
   });
 }
+

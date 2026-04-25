@@ -40,13 +40,16 @@ describe('AuthDarkField', () => {
     );
     const focusedRow = focused.root.findByType(TextInput).parent!;
     const focusedStyle = flatten(focusedRow.props.style);
-    expect(focusedStyle.borderColor).toBe('#FAC114');
+    // Focused border uses the active palette's `borderFocus` (gold variants:
+    // `#FAC114` in dark mode, `#C57B0D` in light mode). Either is valid; the
+    // contract is that it differs from the blurred border.
+    expect(focusedStyle.borderColor).toMatch(/^#(FAC114|C57B0D)$/i);
 
     const blurred = render(
       <AuthDarkField label="Senha" focused={false} value="" onChangeText={() => undefined} />,
     );
     const blurredRow = blurred.root.findByType(TextInput).parent!;
-    expect(flatten(blurredRow.props.style).borderColor).not.toBe('#FAC114');
+    expect(flatten(blurredRow.props.style).borderColor).not.toBe(focusedStyle.borderColor);
   });
 
   it('toggles password visibility through DarkPasswordToggle', () => {

@@ -11,13 +11,14 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { gradients, heroPalette, radii, spacing } from '@/constants/theme';
+import { radii, spacing } from '@/constants/theme';
+import { useHeroPalette } from '@/components/auth/use-hero-palette';
 
 type AuthHeroScreenProps = Readonly<{
   children: ReactNode;
   /**
    * Optional top-bar content rendered above the form area. When `onBack` is
-   * provided, a navy back chip is rendered on the leading edge automatically.
+   * provided, a back chip is rendered on the leading edge automatically.
    */
   topBarRight?: ReactNode;
   topBarCenter?: ReactNode;
@@ -26,10 +27,10 @@ type AuthHeroScreenProps = Readonly<{
 }>;
 
 /**
- * Single-surface dark hero shell used by the auth flow (login, signup,
- * forgot-password). Renders a navy gradient backdrop, two ambient gold halos
- * and a keyboard-aware scrollable content area. Independent of the active
- * light/dark theme — this surface is always dark navy.
+ * Hero shell used by the auth flow (login, signup, forgot-password). Renders
+ * a gradient backdrop with two ambient gold halos and a keyboard-aware
+ * scrollable content area. The surface follows the device color scheme: dark
+ * devices get the navy hero, light devices get the warm cream hero.
  */
 export const AuthHeroScreen = ({
   children,
@@ -39,7 +40,11 @@ export const AuthHeroScreen = ({
   backAccessibilityLabel,
 }: AuthHeroScreenProps) => {
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => makeStyles(insets.top, insets.bottom), [insets.top, insets.bottom]);
+  const { palette, gradient, isDark } = useHeroPalette();
+  const styles = useMemo(
+    () => makeStyles(insets.top, insets.bottom, palette),
+    [insets.top, insets.bottom, palette],
+  );
   const hasTopBar = Boolean(onBack ?? topBarRight ?? topBarCenter);
 
   return (
@@ -49,16 +54,16 @@ export const AuthHeroScreen = ({
     >
       <View style={styles.flex}>
         <LinearGradient
-          colors={gradients.heroNavy.colors}
-          locations={gradients.heroNavy.locations}
-          start={gradients.heroNavy.start}
-          end={gradients.heroNavy.end}
+          colors={gradient.colors}
+          locations={gradient.locations}
+          start={gradient.start}
+          end={gradient.end}
           style={StyleSheet.absoluteFill}
         />
         <View style={styles.glowTopRight} pointerEvents="none" />
         <View style={styles.glowBottomLeft} pointerEvents="none" />
 
-        <StatusBar style="light" />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
 
         <ScrollView
           style={styles.flex}
@@ -78,7 +83,7 @@ export const AuthHeroScreen = ({
                     hitSlop={8}
                     style={({ pressed }) => [styles.backChip, { opacity: pressed ? 0.7 : 1 }]}
                   >
-                    <ChevronLeft size={20} color={heroPalette.textOnNavy} strokeWidth={2} />
+                    <ChevronLeft size={20} color={palette.textOnNavy} strokeWidth={2} />
                   </Pressable>
                 ) : null}
               </View>
@@ -94,9 +99,9 @@ export const AuthHeroScreen = ({
   );
 };
 
-function makeStyles(topInset: number, bottomInset: number) {
+function makeStyles(topInset: number, bottomInset: number, palette: ReturnType<typeof useHeroPalette>['palette']) {
   return StyleSheet.create({
-    flex: { flex: 1, backgroundColor: heroPalette.navyDeep },
+    flex: { flex: 1, backgroundColor: palette.navyDeep },
     glowTopRight: {
       position: 'absolute',
       top: -160,
@@ -104,7 +109,7 @@ function makeStyles(topInset: number, bottomInset: number) {
       width: 400,
       height: 400,
       borderRadius: 200,
-      backgroundColor: heroPalette.glowGold,
+      backgroundColor: palette.glowGold,
       opacity: 0.55,
     },
     glowBottomLeft: {
@@ -114,7 +119,7 @@ function makeStyles(topInset: number, bottomInset: number) {
       width: 400,
       height: 400,
       borderRadius: 200,
-      backgroundColor: heroPalette.glowGoldSoft,
+      backgroundColor: palette.glowGoldSoft,
       opacity: 0.55,
     },
     scrollContent: {
@@ -143,9 +148,9 @@ function makeStyles(topInset: number, bottomInset: number) {
       width: 40,
       height: 40,
       borderRadius: radii.md,
-      backgroundColor: heroPalette.surfaceChip,
+      backgroundColor: palette.surfaceChip,
       borderWidth: 1,
-      borderColor: heroPalette.borderSoft,
+      borderColor: palette.borderSoft,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -154,3 +159,4 @@ function makeStyles(topInset: number, bottomInset: number) {
     },
   });
 }
+
