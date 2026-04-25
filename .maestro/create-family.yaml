@@ -1,5 +1,5 @@
 appId: com.maxjuniorbr.trofinho
-name: 'Criar família – fluxo feliz'
+name: 'Criar conta e família – fluxo feliz'
 ---
 # Generate a unique e-mail for this run: maestro.<timestamp>@trofinho.dev
 # Accounts accumulate in the DB — bulk-delete periodically via admin API.
@@ -27,13 +27,13 @@ name: 'Criar família – fluxo feliz'
     commands:
       - tapOn: 'Reload'
 
-# === Passo 1: Tela de login → navegar para cadastro ===
+# === Passo 1: Tela de login → ir para cadastro ===
 - extendedWaitUntil:
     visible: 'Campo de e-mail'
     timeout: 120000
 - tapOn: 'Criar conta'
 
-# === Passo 2: Tela de cadastro ===
+# === Passo 2: Cadastro de conta (e-mail + senha) ===
 - extendedWaitUntil:
     visible: 'Campo de nome'
     timeout: 15000
@@ -46,8 +46,8 @@ name: 'Criar família – fluxo feliz'
 - hideKeyboard
 - tapOn: 'Continuar'
 
-# === Passo 3: Tela de onboarding (configurar família) ===
-# Account creation triggers navigation to onboarding with name pre-filled.
+# === Passo 3: Onboarding (configurar família) ===
+# O app navega automaticamente para onboarding após o cadastro, com nome pré-preenchido.
 - extendedWaitUntil:
     visible: 'Campo de nome da família'
     timeout: 20000

@@ -18,7 +18,7 @@ Adicione as entradas abaixo se ainda não existirem:
 # .env.local
 MAESTRO_EMAIL=maxteste2@trofinho.dev        # conta de teste existente no Supabase
 MAESTRO_PASSWORD=<senha-da-conta-de-teste>
-MAESTRO_REGISTER_PASSWORD=<senha-para-novos-cadastros>  # usado em create-family
+MAESTRO_REGISTER_PASSWORD=<senha-para-novos-cadastros>  # usado em create-family (cadastro + família)
 ```
 
 Para passar os valores manualmente via CLI:
@@ -34,7 +34,7 @@ maestro test -e MAESTRO_EMAIL=$MAESTRO_EMAIL -e MAESTRO_PASSWORD=$MAESTRO_PASSWO
 npm run test:e2e                  # login + logout em sequência
 npm run test:e2e:login            # só login
 npm run test:e2e:logout           # logout (inclui login como setup)
-npm run test:e2e:create-family    # cadastro + criação de família
+npm run test:e2e:create-family    # cadastro de conta + criação de família
 ```
 
 ## Rodar um flow diretamente
@@ -46,13 +46,13 @@ maestro test -e MAESTRO_EMAIL=$MAESTRO_EMAIL -e MAESTRO_PASSWORD=$MAESTRO_PASSWO
 
 ## Flows disponíveis
 
-| Arquivo                | Fluxo                                     | Setup automático           |
-| ---------------------- | ----------------------------------------- | -------------------------- |
-| `login.yaml`           | Login com e-mail e senha (fluxo feliz)    | Mata e limpa o app         |
-| `logout.yaml`          | Logout da conta (fluxo feliz)             | Login completo via subcall |
-| `create-task.yaml`     | Criação de uma nova tarefa                | Login completo via subcall |
-| `create-family.yaml`   | Cadastro + criação de família (fluxo feliz) | Mata e limpa o app       |
-| `_logout-steps.yaml`   | Passos de logout sem setup — helper interno | Não executar diretamente |
+| Arquivo              | Fluxo                                       | Setup automático           |
+| -------------------- | ------------------------------------------- | -------------------------- |
+| `login.yaml`         | Login com e-mail e senha (fluxo feliz)      | Mata e limpa o app         |
+| `logout.yaml`        | Logout da conta (fluxo feliz)               | Login completo via subcall |
+| `create-task.yaml`   | Criação de uma nova tarefa                  | Login completo via subcall |
+| `create-family.yaml` | Cadastro de conta + criação de família (fluxo feliz) | Mata e limpa o app         |
+| `_logout-steps.yaml` | Passos de logout sem setup — helper interno | Não executar diretamente   |
 
 ## Boas práticas seguidas
 
