@@ -1,0 +1,37 @@
+appId: com.maxjuniorbr.trofinho
+name: 'Login – campos vazios'
+---
+- launchApp:
+    stopApp: true
+    clearState: true
+
+# Expo dev-client handling (same as login.yaml).
+- runFlow:
+    when:
+      visible: 'http://10.0.2.2:8081'
+    commands:
+      - tapOn: 'http://10.0.2.2:8081'
+- runFlow:
+    when:
+      visible: 'Continue'
+    commands:
+      - tapOn: 'Continue'
+- runFlow:
+    when:
+      visible: 'Reload'
+    commands:
+      - tapOn: 'Reload'
+
+- extendedWaitUntil:
+    visible: 'Campo de e-mail'
+    timeout: 120000
+
+# Submit without filling any field — client-side validation fires immediately.
+- tapOn: 'Entrar'
+
+# Client-side validation error — no network call is made.
+- assertVisible: 'Informe seu e-mail.'
+
+# Confirm we are still on the login screen.
+- assertVisible: 'Campo de e-mail'
+- assertNotVisible: 'Início'
