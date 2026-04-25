@@ -336,6 +336,38 @@ export default function ChildBalanceScreen() {
       </View>
     ) : null;
 
+  const renderQuickAmountPicker = (raw: number[], maxValue: number, min = 1) => (
+    <View style={styles.quickAmountRow}>
+      {raw
+        .filter((v, i, arr) => v >= min && v <= maxValue && arr.indexOf(v) === i)
+        .map((v) => {
+          const label = v === maxValue ? 'Tudo' : `${v}`;
+          const isSelected = amountStr === String(v);
+          return (
+            <Pressable
+              key={v}
+              style={[
+                styles.quickAmountPill,
+                { backgroundColor: isSelected ? colors.accent.filho : colors.bg.muted },
+              ]}
+              onPress={() => setAmountStr(String(v))}
+              accessibilityRole="button"
+              accessibilityLabel={`${label} pontos`}
+            >
+              <Text
+                style={[
+                  styles.quickAmountText,
+                  { color: isSelected ? colors.text.inverse : colors.text.primary },
+                ]}
+              >
+                {label}
+              </Text>
+            </Pressable>
+          );
+        })}
+    </View>
+  );
+
   const renderTransferModal = () => (
     <BottomSheetModal
       visible={modalVisible}
@@ -355,37 +387,7 @@ export default function ChildBalanceScreen() {
       <Text style={styles.modalHint}>
         Pontos guardados no cofrinho ficam seguros e rendem valorização.
       </Text>
-      <View style={styles.quickAmountRow}>
-        {[Math.floor(freeBalance / 2), freeBalance]
-          .filter((v, i, arr) => v > 0 && arr.indexOf(v) === i)
-          .map((v) => {
-            const label = v === freeBalance ? 'Tudo' : `${v}`;
-            const isSelected = amountStr === String(v);
-            return (
-              <Pressable
-                key={v}
-                style={[
-                  styles.quickAmountPill,
-                  {
-                    backgroundColor: isSelected ? colors.accent.filho : colors.bg.muted,
-                  },
-                ]}
-                onPress={() => setAmountStr(String(v))}
-                accessibilityRole="button"
-                accessibilityLabel={`${label} pontos`}
-              >
-                <Text
-                  style={[
-                    styles.quickAmountText,
-                    { color: isSelected ? colors.text.inverse : colors.text.primary },
-                  ]}
-                >
-                  {label}
-                </Text>
-              </Pressable>
-            );
-          })}
-      </View>
+      {renderQuickAmountPicker([Math.floor(freeBalance / 2), freeBalance], freeBalance)}
       <TextInput
         style={styles.modalInput}
         value={amountStr}
@@ -445,37 +447,11 @@ export default function ChildBalanceScreen() {
           Valor final pode variar se a taxa for alterada antes da aprovação.
         </Text>
       ) : null}
-      <View style={styles.quickAmountRow}>
-        {[minimumWithdrawal, Math.floor(piggyBank / 2), piggyBank]
-          .filter((v, i, arr) => v >= minimumWithdrawal && v <= piggyBank && arr.indexOf(v) === i)
-          .map((v) => {
-            const label = v === piggyBank ? 'Tudo' : `${v}`;
-            const isSelected = amountStr === String(v);
-            return (
-              <Pressable
-                key={v}
-                style={[
-                  styles.quickAmountPill,
-                  {
-                    backgroundColor: isSelected ? colors.accent.filho : colors.bg.muted,
-                  },
-                ]}
-                onPress={() => setAmountStr(String(v))}
-                accessibilityRole="button"
-                accessibilityLabel={`${label} pontos`}
-              >
-                <Text
-                  style={[
-                    styles.quickAmountText,
-                    { color: isSelected ? colors.text.inverse : colors.text.primary },
-                  ]}
-                >
-                  {label}
-                </Text>
-              </Pressable>
-            );
-          })}
-      </View>
+      {renderQuickAmountPicker(
+        [minimumWithdrawal, Math.floor(piggyBank / 2), piggyBank],
+        piggyBank,
+        minimumWithdrawal,
+      )}
       <TextInput
         style={styles.modalInput}
         value={amountStr}
