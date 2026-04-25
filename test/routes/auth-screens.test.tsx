@@ -134,7 +134,7 @@ describe('auth screens', () => {
 
     const renderer = render(<LoginScreen />);
     changeInput(renderer, 0, 'max@example.com');
-    changeInput(renderer, 1, '123456');
+    changeInput(renderer, 1, '12345678');
 
     // Successful login no longer calls router.replace — the root layout
     // auth state handler takes care of navigation. The button stays in
@@ -151,7 +151,7 @@ describe('auth screens', () => {
 
     const renderer = render(<LoginScreen />);
     changeInput(renderer, 0, 'max@example.com');
-    changeInput(renderer, 1, '123456');
+    changeInput(renderer, 1, '12345678');
 
     await pressButton(renderer, 'Entrar');
     expect(screenText(renderer)).toContain('E-mail ou senha incorretos.');
@@ -186,7 +186,7 @@ describe('auth screens', () => {
 
     changeInput(renderer, 1, '123');
     await pressButton(renderer, 'Entrar');
-    expect(screenText(renderer)).toContain('A senha deve ter pelo menos 6 caracteres.');
+    expect(screenText(renderer)).toContain('A senha deve ter pelo menos 8 caracteres.');
 
     const registerButton = getButton(renderer, 'Criar conta');
     expect(registerButton.props.style({ pressed: true })[1].opacity).toBe(0.65);

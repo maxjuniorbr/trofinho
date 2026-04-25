@@ -90,7 +90,7 @@ describe('children', () => {
 
   it.each([
     ['User already registered', 'Este e-mail já possui uma conta.'],
-    ['Password should be at least 6 characters', 'A senha deve ter ao menos 6 caracteres.'],
+    ['Password should be at least 6 characters', 'A senha deve ter ao menos 8 caracteres.'],
     ['Unable to validate email address', 'E-mail inválido.'],
     ['email rate limit exceeded', 'Limite de e-mails atingido. Aguarde alguns minutos.'],
     ['Usuário já pertence a uma família', 'Esta conta já está vinculada a uma família.'],

@@ -105,7 +105,7 @@ export async function getMyChildId(userId?: string): Promise<string | null> {
 function translateEdgeFunctionError(msg: string): string {
   // Auth / user creation errors
   if (msg.includes('User already registered')) return 'Este e-mail já possui uma conta.';
-  if (msg.includes('Password should be at least')) return 'A senha deve ter ao menos 6 caracteres.';
+  if (msg.includes('Password should be at least')) return 'A senha deve ter ao menos 8 caracteres.';
   if (msg.includes('Unable to validate email')) return 'E-mail inválido.';
   if (msg.includes('email rate limit'))
     return 'Limite de e-mails atingido. Aguarde alguns minutos.';
