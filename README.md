@@ -28,3 +28,11 @@ npx eas-cli@latest build --profile development --platform android
 ```bash
 npm run lint && npm run typecheck && npm test
 ```
+
+### E2E (Emulador)
+
+```bash
+npm run test:e2e
+```
+
+Veja [`.maestro/README.md`](./.maestro/README.md) para detalhes.
