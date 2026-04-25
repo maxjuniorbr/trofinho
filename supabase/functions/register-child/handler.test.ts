@@ -16,7 +16,12 @@ function createMockSupabase(overrides?: {
   };
   deleteUserResult?: { error: { message: string } | null };
   rpcResult?: { data: unknown; error: { message: string } | null };
+  fromResult?: { data: Record<string, unknown>[] | null; error: unknown };
 }): SupabaseClientLike {
+  const defaultFromResult = overrides?.fromResult ?? {
+    data: [{ papel: 'admin' }],
+    error: null,
+  };
   return {
     auth: {
       getUser: vi
@@ -34,6 +39,11 @@ function createMockSupabase(overrides?: {
         deleteUser: vi.fn().mockResolvedValue(overrides?.deleteUserResult ?? { error: null }),
       },
     },
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue(defaultFromResult),
+      }),
+    }),
     rpc: vi.fn().mockResolvedValue(overrides?.rpcResult ?? { data: 'child-id-1', error: null }),
   };
 }
@@ -96,12 +106,12 @@ describe('register-child handler', () => {
 
     it.each([
       [null, 'Request body must be a JSON object'],
-      [{ email: 'a@b.c', tempPassword: '123456' }, 'name must be a non-empty string'],
-      [{ name: '', email: 'a@b.c', tempPassword: '123456' }, 'name must be a non-empty string'],
-      [{ name: 'Lia', tempPassword: '123456' }, 'email must be a non-empty string'],
+      [{ email: 'a@b.c', tempPassword: '12345678' }, 'name must be a non-empty string'],
+      [{ name: '', email: 'a@b.c', tempPassword: '12345678' }, 'name must be a non-empty string'],
+      [{ name: 'Lia', tempPassword: '12345678' }, 'email must be a non-empty string'],
       [
-        { name: 'Lia', email: 'a@b.c', tempPassword: '12345' },
-        'tempPassword must be at least 6 characters',
+        { name: 'Lia', email: 'a@b.c', tempPassword: '1234567' },
+        'tempPassword must be at least 8 characters',
       ],
     ])('rejects invalid body %j with "%s"', (body, expectedError) => {
       const result = validateRequest(body);

@@ -34,6 +34,14 @@ export interface SupabaseClientLike {
     }>;
     admin: SupabaseAuthAdmin;
   };
+  from(table: string): {
+    select(columns: string): {
+      eq(
+        column: string,
+        value: string,
+      ): PromiseLike<{ data: Record<string, unknown>[] | null; error: unknown }>;
+    };
+  };
   rpc(
     fnName: string,
     params: Record<string, unknown>,
@@ -63,8 +71,8 @@ export function validateRequest(
   if (typeof email !== 'string' || email.trim() === '') {
     return { valid: false, error: 'email must be a non-empty string' };
   }
-  if (typeof tempPassword !== 'string' || tempPassword.length < 6) {
-    return { valid: false, error: 'tempPassword must be at least 6 characters' };
+  if (typeof tempPassword !== 'string' || tempPassword.length < 8) {
+    return { valid: false, error: 'tempPassword must be at least 8 characters' };
   }
 
   const sanitizedAvatar = typeof avatar === 'string' && avatar.trim() ? avatar.trim() : undefined;
@@ -154,7 +162,28 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
     });
   }
 
-  // Step 1: Create auth user via admin API (bypasses email confirmation flow)
+  // Step 1: Verify the caller is an admin BEFORE creating the auth user.
+  // This prevents non-admin users from triggering createUser + rollback cycles.
+  const { data: callerRows, error: callerError } = await adminClient
+    .from('usuarios')
+    .select('papel')
+    .eq('id', authData.user.id);
+
+  if (callerError || !callerRows || callerRows.length === 0) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (callerRows[0].papel !== 'admin') {
+    return new Response(JSON.stringify({ error: 'Forbidden' }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Step 2: Create auth user via admin API (bypasses email confirmation flow)
   const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
     email,
     password: tempPassword,
@@ -170,7 +199,7 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
 
   const userId = newUser.user.id;
 
-  // Step 2: Link child to family via RPC. Use anon key for the API gateway
+  // Step 3: Link child to family via RPC. Use anon key for the API gateway
   // and override Authorization with the caller's JWT so auth.uid() resolves
   // to the admin user inside the RPC function.
   const userClient = deps.createSupabaseClient(deps.getSupabaseUrl(), anonKey, {
