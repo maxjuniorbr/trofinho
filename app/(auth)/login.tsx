@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useState, useMemo } from 'react';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { useState, useMemo, useCallback } from 'react';
 import { Mail, Lock, ArrowRight } from 'lucide-react-native';
 import { signIn } from '@lib/auth';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
@@ -26,6 +26,14 @@ export default function LoginScreen() {
   const [focusedField, setFocusedField] = useState<LoginField | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const shouldShowError = Boolean(error);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setError('');
+      };
+    }, [])
+  );
 
   const validate = (): string | null => {
     const emailValue = email.trim();
