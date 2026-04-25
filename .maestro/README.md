@@ -9,6 +9,19 @@ Testes E2E para fluxos críticos do Trofinho usando [Maestro](https://maestro.de
 - Metro em execução (`npm start`)
 - Variáveis de ambiente configuradas em `.env.local` (veja abaixo)
 
+## Conta de teste fixa
+
+Os flows de login/logout usam uma conta persistente no Supabase (não criada nem destruída pelos testes):
+
+| Campo      | Valor                        |
+|------------|------------------------------|
+| E-mail     | `maxteste2@trofinho.dev`     |
+| Nome       | Max Teste2 (admin)           |
+| Família    | Familia Teste2               |
+| Filho      | Filho Teste (`filhoteste@trofinho.dev`) |
+
+A senha fica em `.env.local` como `MAESTRO_PASSWORD`. Não delete esses registros do banco.
+
 ## Variáveis de ambiente
 
 As credenciais são lidas de `.env.local` (nunca hardcoded nos flows).  
@@ -46,13 +59,13 @@ maestro test -e MAESTRO_EMAIL=$MAESTRO_EMAIL -e MAESTRO_PASSWORD=$MAESTRO_PASSWO
 
 ## Flows disponíveis
 
-| Arquivo              | Fluxo                                       | Setup automático           |
-| -------------------- | ------------------------------------------- | -------------------------- |
-| `login.yaml`         | Login com e-mail e senha (fluxo feliz)      | Mata e limpa o app         |
-| `logout.yaml`        | Logout da conta (fluxo feliz)               | Login completo via subcall |
-| `create-task.yaml`   | Criação de uma nova tarefa                  | Login completo via subcall |
+| Arquivo              | Fluxo                                                | Setup automático           |
+| -------------------- | ---------------------------------------------------- | -------------------------- |
+| `login.yaml`         | Login com e-mail e senha (fluxo feliz)               | Mata e limpa o app         |
+| `logout.yaml`        | Logout da conta (fluxo feliz)                        | Login completo via subcall |
+| `create-task.yaml`   | Criação de uma nova tarefa                           | Login completo via subcall |
 | `create-family.yaml` | Cadastro de conta + criação de família (fluxo feliz) | Mata e limpa o app         |
-| `_logout-steps.yaml` | Passos de logout sem setup — helper interno | Não executar diretamente   |
+| `_logout-steps.yaml` | Passos de logout sem setup — helper interno          | Não executar diretamente   |
 
 ## Boas práticas seguidas
 
