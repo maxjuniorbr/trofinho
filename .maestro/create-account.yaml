@@ -5,32 +5,11 @@ name: 'Criar conta e família – fluxo feliz'
 # Accounts accumulate in the DB — bulk-delete periodically via admin API.
 - evalScript: ${output.testEmail = 'maestro.' + Date.now() + '@trofinho.dev'}
 
-# === Setup: launch fresh (unauthenticated) ===
-- launchApp:
-    stopApp: true
-    clearState: true
-
-# Handle Expo dev-client intermediate screens
+# Kill the app, handle Expo dev-client screens, and wait for the login screen.
 - runFlow:
-    when:
-      visible: 'http://10.0.2.2:8081'
-    commands:
-      - tapOn: 'http://10.0.2.2:8081'
-- runFlow:
-    when:
-      visible: 'Continue'
-    commands:
-      - tapOn: 'Continue'
-- runFlow:
-    when:
-      visible: 'Reload'
-    commands:
-      - tapOn: 'Reload'
+    file: _launch-app.yaml
 
 # === Passo 1: Tela de login → ir para cadastro ===
-- extendedWaitUntil:
-    visible: 'Campo de e-mail'
-    timeout: 120000
 - tapOn: 'Criar conta'
 
 # === Passo 2: Cadastro de conta (e-mail + senha) ===

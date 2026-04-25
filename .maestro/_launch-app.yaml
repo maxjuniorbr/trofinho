@@ -1,0 +1,34 @@
+appId: com.maxjuniorbr.trofinho
+# Helper: kill + clear app, handle Expo dev-client screens, wait for login screen.
+# Call this at the start of any flow that needs a fresh unauthenticated state.
+# Do NOT run this file directly.
+---
+- launchApp:
+    stopApp: true
+    clearState: true
+
+# Case 1: expo-dev-client shows server list — tap the Metro server.
+- runFlow:
+    when:
+      visible: 'http://10.0.2.2:8081'
+    commands:
+      - tapOn: 'http://10.0.2.2:8081'
+
+# Case 2: dev-client shows "Continue" button.
+- runFlow:
+    when:
+      visible: 'Continue'
+    commands:
+      - tapOn: 'Continue'
+
+# Case 3: dev menu shows "Reload / Go home" drawer.
+- runFlow:
+    when:
+      visible: 'Reload'
+    commands:
+      - tapOn: 'Reload'
+
+# Wait for the JS bundle to fully load and the login screen to appear.
+- extendedWaitUntil:
+    visible: 'Campo de e-mail'
+    timeout: 120000

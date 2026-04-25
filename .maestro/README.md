@@ -36,7 +36,7 @@ npm run test:e2e:login                  # só login (fluxo feliz)
 npm run test:e2e:logout                 # logout (inclui login como setup)
 npm run test:e2e:login-wrong-password   # login com senha errada
 npm run test:e2e:login-empty-fields     # login sem preencher campos
-npm run test:e2e:create-family          # cadastro de conta + criação de família
+npm run test:e2e:create-account    # cadastro de conta + criação de família
 ```
 
 ## Rodar um flow diretamente
@@ -55,7 +55,8 @@ maestro test -e MAESTRO_EMAIL=$MAESTRO_EMAIL -e MAESTRO_PASSWORD=$MAESTRO_PASSWO
 | `login-wrong-password.yaml`    | Login com senha incorreta — valida mensagem de erro  | Mata e limpa o app         |
 | `login-empty-fields.yaml`      | Login sem preencher campos — valida validação client | Mata e limpa o app         |
 | `create-task.yaml`             | Criação de uma nova tarefa                           | Login completo via subcall |
-| `create-family.yaml`           | Cadastro de conta + criação de família (fluxo feliz) | Mata e limpa o app         |
+| `create-account.yaml`          | Cadastro de conta + criação de família (fluxo feliz) | Mata e limpa o app         |
+| `_launch-app.yaml`             | Launch + Expo dev-client handling — helper interno          | Não executar diretamente   |
 | `_logout-steps.yaml`           | Passos de logout sem setup — helper interno          | Não executar diretamente   |
 
 ## Boas práticas seguidas

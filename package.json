@@ -18,7 +18,7 @@
     "test:e2e": "maestro test -e MAESTRO_EMAIL=$MAESTRO_EMAIL -e MAESTRO_PASSWORD=$MAESTRO_PASSWORD .maestro/login.yaml && maestro test -e MAESTRO_EMAIL=$MAESTRO_EMAIL -e MAESTRO_PASSWORD=$MAESTRO_PASSWORD .maestro/logout.yaml && maestro test -e MAESTRO_EMAIL=$MAESTRO_EMAIL .maestro/login-wrong-password.yaml && maestro test .maestro/login-empty-fields.yaml",
     "test:e2e:login": "maestro test -e MAESTRO_EMAIL=$MAESTRO_EMAIL -e MAESTRO_PASSWORD=$MAESTRO_PASSWORD .maestro/login.yaml",
     "test:e2e:logout": "maestro test -e MAESTRO_EMAIL=$MAESTRO_EMAIL -e MAESTRO_PASSWORD=$MAESTRO_PASSWORD .maestro/logout.yaml",
-    "test:e2e:create-family": "maestro test -e MAESTRO_REGISTER_PASSWORD=$MAESTRO_REGISTER_PASSWORD .maestro/create-family.yaml",
+    "test:e2e:create-account": "maestro test -e MAESTRO_REGISTER_PASSWORD=$MAESTRO_REGISTER_PASSWORD .maestro/create-account.yaml",
     "test:e2e:login-wrong-password": "maestro test -e MAESTRO_EMAIL=$MAESTRO_EMAIL .maestro/login-wrong-password.yaml",
     "test:e2e:login-empty-fields": "maestro test .maestro/login-empty-fields.yaml",
     "db:diff": "supabase db diff",
