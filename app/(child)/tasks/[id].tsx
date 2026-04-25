@@ -12,7 +12,6 @@ import {
   getAssignmentCompletionState,
   getAssignmentPoints,
   getAssignmentRetryState,
-  isRecurring,
   formatWeekdays,
   type ChildAssignment,
 } from '@lib/tasks';
@@ -636,9 +635,7 @@ export default function ChildTaskDetailScreen() {
           </View>
           {task.descricao ? <Text style={styles.description}>{task.descricao}</Text> : null}
           <View style={styles.metaRow}>
-            {isRecurring(task.dias_semana) ? (
-              <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
-            ) : null}
+            <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
             <Text style={styles.meta}>{formatWeekdays(task.dias_semana)}</Text>
           </View>
           {task.exige_evidencia ? (
@@ -764,7 +761,11 @@ function makeStyles(colors: ThemeColors) {
     evidenceImgWrapper: { width: '100%', height: 220, borderRadius: radii.xl, overflow: 'hidden' },
     evidenceImg: { width: '100%', height: 220 },
     evidenceLoading: {
-      ...StyleSheet.absoluteFillObject,
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.bg.muted,

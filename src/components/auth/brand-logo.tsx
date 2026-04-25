@@ -38,20 +38,11 @@ const SIZE_TOKENS: Record<BrandLogoSize, SizeTokens> = {
  * itself is always navy (brand asset). The optional wordmark color follows
  * the device theme when `variant="auto"` (or `"onDark"` for legacy callers).
  */
-export const BrandLogo = ({
-  size = 'md',
-  withText = false,
-  variant = 'auto',
-}: BrandLogoProps) => {
+export const BrandLogo = ({ size = 'md', withText = false, variant = 'auto' }: BrandLogoProps) => {
   const tokens = SIZE_TOKENS[size];
   const styles = useMemo(() => makeStyles(tokens), [tokens]);
   const { palette } = useHeroPalette();
-  const textColor =
-    variant === 'auto'
-      ? palette.textOnNavy
-      : variant === 'onDark'
-        ? heroPalette.textOnNavy
-        : heroPalette.textOnLight;
+  const textColor = getWordmarkColor(variant, palette);
 
   return (
     <View style={styles.container} accessibilityRole="image" accessibilityLabel="Trofinho">
@@ -74,6 +65,15 @@ export const BrandLogo = ({
     </View>
   );
 };
+
+function getWordmarkColor(
+  variant: BrandLogoVariant,
+  palette: ReturnType<typeof useHeroPalette>['palette'],
+): string {
+  if (variant === 'auto') return palette.textOnNavy;
+  if (variant === 'onDark') return heroPalette.textOnNavy;
+  return heroPalette.textOnLight;
+}
 
 function makeStyles(tokens: SizeTokens) {
   return StyleSheet.create({
@@ -115,4 +115,3 @@ function makeStyles(tokens: SizeTokens) {
     },
   });
 }
-

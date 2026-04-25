@@ -11,12 +11,12 @@ import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-g
 import Animated, {
   interpolate,
   interpolateColor,
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { Image } from 'expo-image';
 import { useCallback, useMemo, useState } from 'react';
 import { Calendar, Camera, Check, X } from 'lucide-react-native';
@@ -29,7 +29,12 @@ import { HeaderIconButton } from '@/components/ui/screen-header';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { Input } from '@/components/ui/input';
 import { TaskPointsPill } from '@/components/tasks/task-points-pill';
-import { useApproveAssignment, usePendingValidations, useRejectAssignment, queryKeys } from '@/hooks/queries';
+import {
+  useApproveAssignment,
+  usePendingValidations,
+  useRejectAssignment,
+  queryKeys,
+} from '@/hooks/queries';
 import type { PendingValidationItem } from '@lib/tasks';
 import { localizeRpcError } from '@lib/api-error';
 import { formatDateShort } from '@lib/utils';
@@ -285,7 +290,7 @@ export function ReviewStack({ visible, onClose }: ReviewStackProps) {
     hapticSuccess();
     isExiting.value = true;
     translateX.value = withTiming(EXIT_DISTANCE, { duration: 200 }, (finished) => {
-      if (finished) runOnJS(fireApprove)();
+      if (finished) scheduleOnRN(fireApprove);
     });
   }, [fireApprove, translateX, isExiting]);
 
@@ -333,10 +338,10 @@ export function ReviewStack({ visible, onClose }: ReviewStackProps) {
       'worklet';
       if (isExiting.value) return;
       if (e.translationX > SWIPE_THRESHOLD) {
-        runOnJS(triggerApprove)();
+        scheduleOnRN(triggerApprove);
       } else if (e.translationX < -SWIPE_THRESHOLD) {
         translateX.value = withSpring(0);
-        runOnJS(openRejectionSheet)();
+        scheduleOnRN(openRejectionSheet);
       } else {
         translateX.value = withSpring(0);
       }
@@ -753,7 +758,11 @@ function makeStyles(colors: ThemeColors) {
       gap: spacing['3'],
     },
     cardOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
       borderRadius: radii.xl - 1,
       alignItems: 'center',
       justifyContent: 'center',

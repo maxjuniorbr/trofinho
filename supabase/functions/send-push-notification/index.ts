@@ -29,5 +29,8 @@ Deno.serve((req: Request) =>
     getServiceRoleKey: () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
     getSupabaseUrl: () => Deno.env.get('SUPABASE_URL')!,
     createSupabaseClient: (url, key) => createClient(url, key),
+    reportDiagnostic: (diagnostic) => {
+      console.info(JSON.stringify(diagnostic));
+    },
   }),
 );

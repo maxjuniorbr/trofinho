@@ -11,12 +11,8 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import {
   initialWindowMetrics,
   SafeAreaProvider,
@@ -139,7 +135,7 @@ function BottomSheetFrame({
         .onEnd((event) => {
           'worklet';
           if (event.translationY > CLOSE_DISTANCE || event.velocityY > CLOSE_VELOCITY) {
-            runOnJS(onClose)();
+            scheduleOnRN(onClose);
             return;
           }
           translateY.value = withSpring(0);
@@ -183,13 +179,7 @@ function BottomSheetFrame({
             <View style={[styles.handleBar, { backgroundColor: colors.border.subtle }]} />
           </Pressable>
         </GestureDetector>
-        <View
-          style={[
-            styles.content,
-            { paddingBottom: spacing['6'] + safeBottom },
-            contentStyle,
-          ]}
-        >
+        <View style={[styles.content, { paddingBottom: spacing['6'] + safeBottom }, contentStyle]}>
           {children}
         </View>
       </Animated.View>
@@ -203,11 +193,19 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   absoluteRoot: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     justifyContent: 'flex-end',
   },
   scrim: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
   },
   sheet: {
     borderTopLeftRadius: radii.xl,

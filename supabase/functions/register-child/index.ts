@@ -16,5 +16,8 @@ Deno.serve((req: Request) =>
         key,
         options?.globalHeaders ? { global: { headers: options.globalHeaders } } : undefined,
       ),
+    reportDiagnostic: (diagnostic) => {
+      console.info(JSON.stringify(diagnostic));
+    },
   }),
 );

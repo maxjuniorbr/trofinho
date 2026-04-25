@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useMemo } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Camera, CheckCircle2, Clock, RefreshCw, XCircle } from 'lucide-react-native';
-import { formatWeekdays, isRecurring, type AssignmentWithChild } from '@lib/tasks';
+import { formatWeekdays, type AssignmentWithChild } from '@lib/tasks';
 import { getAssignmentStatusLabel, getAssignmentStatusTone } from '@lib/status';
 import { localizeRpcError } from '@lib/api-error';
 import { consumeNavigationFeedback } from '@lib/navigation-feedback';
@@ -245,9 +245,7 @@ export default function TaskDetailAdminScreen() {
                 </Text>
               ) : null}
               <View style={styles.metaRow}>
-                {isRecurring(task.dias_semana) ? (
-                  <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
-                ) : null}
+                <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
                 <Text style={[styles.meta, { color: colors.text.muted }]}>
                   {formatWeekdays(task.dias_semana)}
                 </Text>

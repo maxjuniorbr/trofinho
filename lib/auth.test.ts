@@ -5,6 +5,7 @@ import {
   createFamily,
   getCurrentAuthUser,
   getProfile,
+  refreshAuthSession,
   signIn,
   signOut,
   signUp,
@@ -56,6 +57,7 @@ const supabaseMock = vi.hoisted(() => {
       signInWithPassword: vi.fn(),
       signOut: vi.fn(),
       signUp: vi.fn(),
+      refreshSession: vi.fn(),
       updateUser: vi.fn(),
     },
     from: vi.fn(),
@@ -122,6 +124,7 @@ describe('auth', () => {
     supabaseMock.auth.signInWithPassword.mockReset();
     supabaseMock.auth.signOut.mockReset();
     supabaseMock.auth.signUp.mockReset();
+    supabaseMock.auth.refreshSession.mockReset();
     supabaseMock.auth.updateUser.mockReset();
     supabaseMock.from.mockReset();
     supabaseMock.rpc.mockReset();
@@ -337,6 +340,17 @@ describe('auth', () => {
 
     await expect(createFamily('Silva', 'Max')).resolves.toEqual({
       familiaId: null,
+      error: 'Algo deu errado. Tente novamente.',
+    });
+  });
+
+  it('refreshes the current auth session and reports failures', async () => {
+    supabaseMock.auth.refreshSession
+      .mockResolvedValueOnce({ data: { session: null }, error: null })
+      .mockResolvedValueOnce({ data: { session: null }, error: { message: 'refresh failed' } });
+
+    await expect(refreshAuthSession()).resolves.toEqual({ error: null });
+    await expect(refreshAuthSession()).resolves.toEqual({
       error: 'Algo deu errado. Tente novamente.',
     });
   });

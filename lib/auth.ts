@@ -138,6 +138,17 @@ export async function createFamily(
   return { familiaId: data, error: null };
 }
 
+export async function refreshAuthSession(): Promise<{ error: string | null }> {
+  const { error } = await supabase.auth.refreshSession();
+
+  if (error) {
+    Sentry.captureException(error);
+    return { error: localizeSupabaseError(error.message) };
+  }
+
+  return { error: null };
+}
+
 export async function updateUserName(name: string): Promise<{ error: string | null }> {
   const { data: authData, error: authError } = await supabase.auth.getUser();
 

@@ -16,6 +16,7 @@ const routerMock = vi.hoisted(() => ({
 const authMocks = vi.hoisted(() => ({
   createFamily: vi.fn(),
   getCurrentAuthUser: vi.fn(),
+  refreshAuthSession: vi.fn(),
   signIn: vi.fn(),
   signOut: vi.fn(),
   signUp: vi.fn(),
@@ -28,6 +29,7 @@ const localSearchParamsState = vi.hoisted(() => ({
 vi.mock('expo-router', () => ({
   useLocalSearchParams: () => localSearchParamsState.value,
   useRouter: () => routerMock,
+  useFocusEffect: vi.fn((callback: () => void | (() => void)) => callback()),
 }));
 
 vi.mock('@lib/auth', () => authMocks);
@@ -109,6 +111,7 @@ describe('auth screens', () => {
 
     authMocks.createFamily.mockReset();
     authMocks.getCurrentAuthUser.mockReset().mockResolvedValue(null);
+    authMocks.refreshAuthSession.mockReset().mockResolvedValue({ error: null });
     authMocks.signIn.mockReset();
     authMocks.signOut.mockReset();
     authMocks.signUp.mockReset();
@@ -295,7 +298,24 @@ describe('auth screens', () => {
     // Successful family creation no longer calls router.replace — the root
     // layout auth state handler navigates to /(admin)/.
     await pressButton(renderer, 'Criar família');
+    expect(authMocks.refreshAuthSession).toHaveBeenCalledTimes(1);
     expect(routerMock.replace).not.toHaveBeenCalled();
+  });
+
+  it('shows an inline error when session refresh after family creation fails', async () => {
+    localSearchParamsState.value = { name: 'Max', email: 'max@example.com' };
+    authMocks.createFamily.mockResolvedValueOnce({ error: null });
+    authMocks.refreshAuthSession.mockResolvedValueOnce({
+      error: 'Algo deu errado. Tente novamente.',
+    });
+
+    const renderer = render(<OnboardingScreen />);
+    changeInput(renderer, 0, 'Familia Silva');
+
+    await pressButton(renderer, 'Criar família');
+
+    expect(screenText(renderer)).toContain('Algo deu errado. Tente novamente.');
+    expect(getButton(renderer, 'Criar família').props.accessibilityState).toEqual({ busy: false });
   });
 
   it('shows confirmation alert and signs out when register user confirms exit', async () => {
@@ -330,7 +350,10 @@ describe('auth screens', () => {
   it('signs out when orphan user confirms exit via footer link (no params.name)', async () => {
     localSearchParamsState.value = {};
     authMocks.signOut.mockResolvedValue(undefined);
-    authMocks.getCurrentAuthUser.mockResolvedValue({ email: 'orphan@example.com', avatarUrl: null });
+    authMocks.getCurrentAuthUser.mockResolvedValue({
+      email: 'orphan@example.com',
+      avatarUrl: null,
+    });
 
     const renderer = render(<OnboardingScreen />);
 

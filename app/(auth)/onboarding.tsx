@@ -2,7 +2,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, useMemo, useEffect } from 'react';
 import { ArrowRight, Check, Home, ShieldCheck, User } from 'lucide-react-native';
-import { createFamily, getCurrentAuthUser, signOut } from '@lib/auth';
+import { createFamily, getCurrentAuthUser, refreshAuthSession, signOut } from '@lib/auth';
 import { withAlpha } from '@/constants/colors';
 import { radii, spacing, typography } from '@/constants/theme';
 import { AuthHeroScreen } from '@/components/auth/auth-hero-screen';
@@ -42,7 +42,9 @@ export default function OnboardingScreen() {
     getCurrentAuthUser().then((user) => {
       if (mounted && user?.email) setUserEmail(user.email);
     });
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [params.email]);
 
   const validate = (): string | null => {
@@ -72,8 +74,11 @@ export default function OnboardingScreen() {
     // so onAuthStateChange will not fire automatically. Force a session refresh
     // so the root layout auth state handler re-fetches the profile (with the
     // new familia_id) and navigates to the admin home.
-    const { supabase } = await import('@lib/supabase');
-    await supabase.auth.refreshSession();
+    const { error: refreshError } = await refreshAuthSession();
+    if (refreshError) {
+      setLoading(false);
+      setError(refreshError);
+    }
   };
 
   const confirmAndLeave = async () => {
@@ -93,9 +98,7 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <AuthHeroScreen
-      topBarCenter={<BrandLogo size="sm" withText />}
-    >
+    <AuthHeroScreen topBarCenter={<BrandLogo size="sm" withText />}>
       {isFromRegister ? <StepIndicator currentStep={2} labels={['Conta', 'Família']} /> : null}
 
       <View style={styles.header}>
@@ -123,7 +126,11 @@ export default function OnboardingScreen() {
       </View>
 
       {isFromRegister && params.email ? (
-        <View style={styles.banner} accessibilityRole="text" accessibilityLabel="Sua conta está salva">
+        <View
+          style={styles.banner}
+          accessibilityRole="text"
+          accessibilityLabel="Sua conta está salva"
+        >
           <View style={styles.bannerIconBox}>
             <ShieldCheck size={20} color={palette.checkOnText} strokeWidth={2.5} />
           </View>
@@ -214,9 +221,7 @@ export default function OnboardingScreen() {
             accessibilityRole="button"
             accessibilityLabel="Criar família depois"
           >
-            <Text style={styles.secondaryButtonText}>
-              Criar família depois
-            </Text>
+            <Text style={styles.secondaryButtonText}>Criar família depois</Text>
           </Pressable>
         </View>
       </View>

@@ -82,6 +82,25 @@ export type ExpoTicketResult =
   | { status: 'error'; message: string; details?: { error: string } };
 
 type MessageContent = Omit<ExpoPushMessage, 'to'>;
+type EdgeDiagnostic = Readonly<{
+  event: string;
+  message?: string;
+  context?: Record<string, unknown>;
+}>;
+type EdgeDiagnosticReporter = (diagnostic: EdgeDiagnostic) => void;
+
+const noopReportDiagnostic: EdgeDiagnosticReporter = () => {};
+
+function getDiagnosticMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+
+  if (typeof error === 'object' && error !== null) {
+    const message = Reflect.get(error, 'message');
+    if (typeof message === 'string') return message;
+  }
+
+  return String(error);
+}
 
 // ─── Supabase client interface (avoids importing @supabase/supabase-js) ──────
 
@@ -507,6 +526,7 @@ export async function resolveRecipientUserIds(
   event: PushEvent,
   familiaId: string,
   payload: EventPayload,
+  reportDiagnostic: EdgeDiagnosticReporter = noopReportDiagnostic,
 ): Promise<string[]> {
   if (CHILD_TARGETED_EVENTS.has(event)) {
     const userId = (payload as { userId: string }).userId;
@@ -521,9 +541,10 @@ export async function resolveRecipientUserIds(
       .eq('familia_id', familiaId);
 
     if (userError || !userRows || userRows.length === 0) {
-      console.error(
-        `[send-push-notification] Target user ${userId} does not belong to family ${familiaId}`,
-      );
+      reportDiagnostic({
+        event: 'send-push-notification.target-user-family-mismatch',
+        context: { userId, familiaId },
+      });
       return [];
     }
 
@@ -541,7 +562,10 @@ export async function resolveRecipientUserIds(
       .eq('familia_id', familiaId);
 
     if (error) {
-      console.error('[send-push-notification] Error resolving filhoIds to user IDs:', error);
+      reportDiagnostic({
+        event: 'send-push-notification.resolve-filho-ids-failed',
+        message: getDiagnosticMessage(error),
+      });
       return [];
     }
 
@@ -558,7 +582,10 @@ export async function resolveRecipientUserIds(
       .eq('papel', 'admin');
 
     if (error) {
-      console.error('[send-push-notification] Error querying admin users:', error);
+      reportDiagnostic({
+        event: 'send-push-notification.query-admin-users-failed',
+        message: getDiagnosticMessage(error),
+      });
       return [];
     }
 
@@ -583,8 +610,15 @@ export async function resolveTokens(
   event: PushEvent,
   familiaId: string,
   payload: EventPayload,
+  reportDiagnostic: EdgeDiagnosticReporter = noopReportDiagnostic,
 ): Promise<string[]> {
-  const userIds = await resolveRecipientUserIds(supabase, event, familiaId, payload);
+  const userIds = await resolveRecipientUserIds(
+    supabase,
+    event,
+    familiaId,
+    payload,
+    reportDiagnostic,
+  );
   if (userIds.length === 0) return [];
 
   const prefKey = getPreferenceKey(event);
@@ -596,7 +630,10 @@ export async function resolveTokens(
     .eq('familia_id', familiaId);
 
   if (usersError) {
-    console.error('[send-push-notification] Error querying user preferences:', usersError);
+    reportDiagnostic({
+      event: 'send-push-notification.query-user-preferences-failed',
+      message: getDiagnosticMessage(usersError),
+    });
     return [];
   }
 
@@ -614,7 +651,10 @@ export async function resolveTokens(
     .in('user_id', eligibleUserIds);
 
   if (tokensError) {
-    console.error('[send-push-notification] Error querying push tokens:', tokensError);
+    reportDiagnostic({
+      event: 'send-push-notification.query-push-tokens-failed',
+      message: getDiagnosticMessage(tokensError),
+    });
     return [];
   }
 
@@ -655,6 +695,7 @@ export async function processTicketResults(
   supabase: SupabaseClientLike,
   tickets: ExpoTicketResult[],
   tokens: string[],
+  reportDiagnostic: EdgeDiagnosticReporter = noopReportDiagnostic,
 ): Promise<PushNotificationResponse> {
   let sent = 0;
   let failed = 0;
@@ -672,9 +713,11 @@ export async function processTicketResults(
       if (errorType === 'DeviceNotRegistered') {
         tokensToDelete.push(tokens[i]);
       } else {
-        console.error(
-          `[send-push-notification] Expo error for token index ${i}: ${errorType ?? ticket.message}`,
-        );
+        reportDiagnostic({
+          event: 'send-push-notification.expo-ticket-failed',
+          message: errorType ?? ticket.message,
+          context: { tokenIndex: i },
+        });
       }
     }
   }
@@ -683,7 +726,10 @@ export async function processTicketResults(
     const { error } = await supabase.from('push_tokens').delete().in('token', tokensToDelete);
 
     if (error) {
-      console.error('[send-push-notification] Error deleting invalid tokens:', error);
+      reportDiagnostic({
+        event: 'send-push-notification.delete-invalid-tokens-failed',
+        message: getDiagnosticMessage(error),
+      });
     } else {
       cleaned = tokensToDelete.length;
     }
@@ -698,6 +744,7 @@ export interface HandlerDeps {
   getServiceRoleKey: () => string | undefined;
   getSupabaseUrl: () => string;
   createSupabaseClient: (url: string, key: string) => SupabaseClientLike;
+  reportDiagnostic?: EdgeDiagnosticReporter;
 }
 
 export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Response> {
@@ -759,6 +806,7 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
   const { event, familiaId, payload } = validation.data;
 
   const supabase = deps.createSupabaseClient(deps.getSupabaseUrl(), serviceRoleKey);
+  const reportDiagnostic = deps.reportDiagnostic ?? noopReportDiagnostic;
 
   // Verify the caller's identity via Supabase Auth (validates JWT signature server-side).
   // Prevents forged tokens from being accepted.
@@ -801,7 +849,7 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
   }
 
   try {
-    const tokens = await resolveTokens(supabase, event, familiaId, payload);
+    const tokens = await resolveTokens(supabase, event, familiaId, payload, reportDiagnostic);
     if (tokens.length === 0) {
       return new Response(
         JSON.stringify({ sent: 0, failed: 0, cleaned: 0 } satisfies PushNotificationResponse),
@@ -816,17 +864,18 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
     }
     const messages: ExpoPushMessage[] = tokens.map((t) => ({ to: t, ...messageContent }));
     const tickets = await sendToExpoPushApi(messages);
-    const response = await processTicketResults(supabase, tickets, tokens);
+    const response = await processTicketResults(supabase, tickets, tokens, reportDiagnostic);
 
     return new Response(JSON.stringify(response), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error(
-      `[send-push-notification] Error processing ${event} for family ${familiaId}:`,
-      error,
-    );
+    reportDiagnostic({
+      event: 'send-push-notification.processing-failed',
+      message: getDiagnosticMessage(error),
+      context: { pushEvent: event, familiaId },
+    });
     return new Response(JSON.stringify({ error: 'Internal error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

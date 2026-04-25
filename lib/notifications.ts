@@ -8,14 +8,6 @@ import * as Sentry from '@sentry/react-native';
 import { deviceStorage } from './device-storage';
 import { supabase } from './supabase';
 
-// expo-modules-core is nested under expo/, so TS can't resolve the
-// PermissionResponse base type that NotificationPermissionsStatus extends.
-// Re-declare the inherited fields here so the compiler sees them.
-type PermissionsStatus = NotificationPermissionsStatus & {
-  status: 'granted' | 'denied' | 'undetermined';
-  granted: boolean;
-};
-
 const NOTIFICATION_PREFERENCES_KEY = 'notification_prefs';
 const DEFAULT_NOTIFICATION_CHANNEL_ID = 'trofinho-default';
 
@@ -175,8 +167,17 @@ export async function registerNotificationCategories(): Promise<void> {
   ]);
 }
 
+function getPermissionStatus(status: NotificationPermissionsStatus): string | undefined {
+  const value = Reflect.get(status, 'status');
+  return typeof value === 'string' ? value : undefined;
+}
+
+function isPermissionGranted(status: NotificationPermissionsStatus): boolean {
+  return Reflect.get(status, 'granted') === true;
+}
+
 function hasGrantedNotificationPermission(
-  status: PermissionsStatus,
+  status: NotificationPermissionsStatus,
   Notifications: NotificationsModule,
 ): boolean {
   if (Platform.OS === 'ios') {
@@ -189,7 +190,7 @@ function hasGrantedNotificationPermission(
     );
   }
 
-  return status.granted || status.status === 'granted';
+  return isPermissionGranted(status) || getPermissionStatus(status) === 'granted';
 }
 
 function getExpoProjectId(): string {
@@ -271,16 +272,16 @@ export async function registerForPushNotifications(): Promise<string | null> {
   await ensureNotificationHandler();
   await ensureNotificationChannel();
 
-  let permissions = (await Notifications.getPermissionsAsync()) as PermissionsStatus;
+  let permissions = await Notifications.getPermissionsAsync();
 
   if (!hasGrantedNotificationPermission(permissions, Notifications)) {
-    permissions = (await Notifications.requestPermissionsAsync({
+    permissions = await Notifications.requestPermissionsAsync({
       ios: {
         allowAlert: true,
         allowBadge: true,
         allowSound: true,
       },
-    })) as PermissionsStatus;
+    });
   }
 
   if (!hasGrantedNotificationPermission(permissions, Notifications)) {
@@ -434,13 +435,13 @@ export async function isNotificationPermissionDenied(): Promise<boolean> {
       return false;
     }
 
-    const permissions = (await Notifications.getPermissionsAsync()) as PermissionsStatus;
+    const permissions = await Notifications.getPermissionsAsync();
 
     if (Platform.OS === 'ios') {
       return permissions.ios?.status === Notifications.IosAuthorizationStatus.DENIED;
     }
 
-    return permissions.status === 'denied';
+    return getPermissionStatus(permissions) === 'denied';
   } catch {
     return false;
   }

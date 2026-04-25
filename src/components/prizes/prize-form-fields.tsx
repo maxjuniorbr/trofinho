@@ -64,7 +64,7 @@ export function PrizeFormFields({
         <TextInput
           style={styles.input}
           value={cost}
-          onChangeText={(v) => onCostChange(v.replace(/[^0-9]/g, ''))}
+          onChangeText={(v) => onCostChange(v.replaceAll(/\D/g, ''))}
           placeholder="Ex: 50"
           placeholderTextColor={colors.text.muted}
           keyboardType="number-pad"

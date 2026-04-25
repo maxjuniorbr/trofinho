@@ -69,7 +69,7 @@ export function TaskFormFields({
       <Input
         label="Pontos *"
         value={points}
-        onChangeText={(v) => onPointsChange(v.replace(/[^0-9]/g, ''))}
+        onChangeText={(v) => onPointsChange(v.replaceAll(/\D/g, ''))}
         noMarginBottom
         placeholder="Ex: 10"
         keyboardType="number-pad"

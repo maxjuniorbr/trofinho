@@ -1,12 +1,14 @@
-export function formatDate(date: Date | string | null | undefined): string {
+type DateInput = Date | string | null | undefined;
+
+export function formatDate(date: DateInput): string {
   if (!date) return '';
-  const d = toLocalDate(date as Date | string);
+  const d = toLocalDate(date);
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-export function formatDateShort(date: Date | string | null | undefined): string {
+export function formatDateShort(date: DateInput): string {
   if (!date) return '';
-  const d = toLocalDate(date as Date | string);
+  const d = toLocalDate(date);
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 }
 
@@ -43,12 +45,9 @@ const WEEKDAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
  * - "Sex, 11/04" for older dates in same year
  * - "11/04/2025" for older dates in different year
  */
-export function formatDateRelative(
-  date: Date | string | null | undefined,
-  today: Date = new Date(),
-): string {
+export function formatDateRelative(date: DateInput, today: Date = new Date()): string {
   if (!date) return '';
-  const d = startOfDay(toLocalDate(date as Date | string));
+  const d = startOfDay(toLocalDate(date));
   const ref = startOfDay(today);
   const diffMs = ref.getTime() - d.getTime();
   const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));

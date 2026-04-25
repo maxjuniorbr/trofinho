@@ -97,7 +97,11 @@ vi.mock('@shopify/flash-list', () => ({
       'FlashList',
       null,
       ListHeaderComponent,
-      data.map((item, index) => renderItem({ item, index })),
+      data.map((item, index) => {
+        const key =
+          typeof item === 'object' && item !== null && 'id' in item ? String(item.id) : index;
+        return React.createElement(React.Fragment, { key }, renderItem({ item, index }));
+      }),
     ),
 }));
 

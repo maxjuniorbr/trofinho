@@ -11,7 +11,6 @@ import { useChildFooterItems } from '@/hooks/use-footer-items';
 import {
   getAssignmentPoints,
   getAssignmentRetryState,
-  isRecurring,
   formatWeekdays,
   type ChildAssignment,
   type AssignmentStatus,
@@ -115,7 +114,6 @@ function TaskCardBadges({
   item,
   filter,
   isInactive,
-  recurring,
   dateLine,
   showEvidenceHint,
   colors,
@@ -124,7 +122,6 @@ function TaskCardBadges({
   item: ChildAssignment;
   filter: Filter;
   isInactive: boolean;
-  recurring: boolean;
   dateLine: DateLine | null;
   showEvidenceHint: boolean;
   colors: ThemeColors;
@@ -140,7 +137,7 @@ function TaskCardBadges({
         </View>
       ) : null}
       <View style={styles.freqRow}>
-        {recurring ? <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} /> : null}
+        <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
         <Text style={[styles.cardDeadline, { marginBottom: 0 }]}>
           {formatWeekdays(item.tarefas.dias_semana)}
         </Text>
@@ -212,7 +209,6 @@ function TaskCard({ item, filter, colors, styles, router }: Readonly<TaskCardPro
   const dateLine = getAssignmentDateLine(item, filter);
   const isInactive = item.tarefas.ativo === false;
   const isUnavailable = isInactive && item.status === 'pendente';
-  const recurring = isRecurring(item.tarefas.dias_semana);
   const showEvidenceHint = item.tarefas.exige_evidencia && filter === 'pendente';
   const { handlePress, accessibilityLabel } = getTaskCardAction(item, isUnavailable, router);
   const isRejected = item.status === 'rejeitada';
@@ -234,7 +230,6 @@ function TaskCard({ item, filter, colors, styles, router }: Readonly<TaskCardPro
         item={item}
         filter={filter}
         isInactive={isInactive}
-        recurring={recurring}
         dateLine={dateLine}
         showEvidenceHint={showEvidenceHint}
         colors={colors}

@@ -94,6 +94,7 @@ export interface HandlerDeps {
     key: string,
     options?: { globalHeaders?: Record<string, string> },
   ) => SupabaseClientLike;
+  reportDiagnostic?: (diagnostic: Record<string, unknown>) => void;
 }
 
 const MAX_BODY_BYTES = 4_096;
@@ -220,17 +221,12 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId);
 
     if (deleteError) {
-      // Both the RPC and the rollback failed — surface for diagnostics so we can
-      // reconcile the orphan auth user manually. Edge functions don't have Sentry
-      // wired yet, so we use structured stderr that the Supabase log drain captures.
-      console.error(
-        JSON.stringify({
-          event: 'register-child.rollback-failed',
-          userId,
-          rpcError: rpcError.message,
-          deleteError: deleteError.message,
-        }),
-      );
+      deps.reportDiagnostic?.({
+        event: 'register-child.rollback-failed',
+        userId,
+        rpcError: rpcError.message,
+        deleteError: deleteError.message,
+      });
     }
 
     return new Response(JSON.stringify({ error: rpcError.message }), {
