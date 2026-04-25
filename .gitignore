@@ -24,12 +24,12 @@ npm-debug.*
 # IDE / local tooling
 *.code-workspace
 .vscode/
+.sonarlint/
 
 # AI assistants — local config, not shared
 .agents/
 .github/copilot-instructions.md
 .github/instructions/
-.github/mcp.json
 .github/prompts/
 .local-expo-mcp/
 
