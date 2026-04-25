@@ -1,0 +1,12 @@
+appId: com.maxjuniorbr.trofinho
+name: 'Logout – fluxo feliz'
+---
+# Kill the app, do a fresh login, then run the logout steps.
+- runFlow:
+    file: login.yaml
+    env:
+      MAESTRO_EMAIL: '${MAESTRO_EMAIL}'
+      MAESTRO_PASSWORD: '${MAESTRO_PASSWORD}'
+
+- runFlow:
+    file: _logout-steps.yaml

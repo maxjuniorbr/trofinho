@@ -1,0 +1,24 @@
+appId: com.maxjuniorbr.trofinho
+---
+# Kill the app, do a fresh login, then run the flow.
+- runFlow:
+    file: login.yaml
+    env:
+      MAESTRO_EMAIL: '${MAESTRO_EMAIL}'
+      MAESTRO_PASSWORD: '${MAESTRO_PASSWORD}'
+- tapOn:
+    icon: 'plus'
+- assertVisible:
+    text: 'Nova tarefa'
+- tapOn:
+    text: 'Nome da tarefa'
+- inputText: 'Limpar o quarto'
+- tapOn:
+    text: 'Descrição'
+- inputText: 'Organizar e limpar todo o quarto'
+- scroll:
+    direction: 'down'
+- tapOn:
+    text: 'Criar'
+- assertVisible:
+    text: 'Limpar o quarto'

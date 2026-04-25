@@ -18,6 +18,7 @@
     "test:e2e": "maestro test -e MAESTRO_EMAIL=$MAESTRO_EMAIL -e MAESTRO_PASSWORD=$MAESTRO_PASSWORD .maestro/login.yaml && maestro test -e MAESTRO_EMAIL=$MAESTRO_EMAIL -e MAESTRO_PASSWORD=$MAESTRO_PASSWORD .maestro/logout.yaml",
     "test:e2e:login": "maestro test -e MAESTRO_EMAIL=$MAESTRO_EMAIL -e MAESTRO_PASSWORD=$MAESTRO_PASSWORD .maestro/login.yaml",
     "test:e2e:logout": "maestro test -e MAESTRO_EMAIL=$MAESTRO_EMAIL -e MAESTRO_PASSWORD=$MAESTRO_PASSWORD .maestro/logout.yaml",
+    "test:e2e:create-family": "maestro test -e MAESTRO_REGISTER_PASSWORD=$MAESTRO_REGISTER_PASSWORD .maestro/create-family.yaml",
     "db:diff": "supabase db diff",
     "db:push": "supabase db push",
     "db:types": "npx supabase gen types typescript --linked > src/types/database.types.ts",

@@ -1,0 +1,56 @@
+appId: com.maxjuniorbr.trofinho
+name: 'Login – fluxo feliz'
+---
+# Launch the app and connect to Metro bundler via deep link.
+# The openLink brings the app to foreground and triggers the dev-client
+# to connect to Metro automatically.
+- launchApp:
+    stopApp: true
+    clearState: true
+
+# Wait for the app to be fully loaded. The dev-client may show a launcher
+# or go straight to the JS bundle. We handle both cases below.
+
+# Case 1: expo-dev-client shows server list — tap the Metro server.
+- runFlow:
+    when:
+      visible: 'http://10.0.2.2:8081'
+    commands:
+      - tapOn: 'http://10.0.2.2:8081'
+
+# Case 2: dev-client shows "Continue" button.
+- runFlow:
+    when:
+      visible: 'Continue'
+    commands:
+      - tapOn: 'Continue'
+
+# Case 3: dev menu shows "Reload / Go home" drawer.
+# After tapping Reload the app loads the JS bundle directly — no further
+# "Continue" step is needed. The extendedWaitUntil below handles the wait.
+- runFlow:
+    when:
+      visible: 'Reload'
+    commands:
+      - tapOn: 'Reload'
+
+# Login screen should now be visible.
+# Use a generous timeout to account for JS bundle loading on cold start.
+# After stopApp: true the process kill + Hermes recompile can take up to 90s.
+- extendedWaitUntil:
+    visible: 'Campo de e-mail'
+    timeout: 120000
+
+# Fill in credentials via environment variables.
+- tapOn: 'Campo de e-mail'
+- inputText: '${MAESTRO_EMAIL}'
+- tapOn: 'Campo de senha'
+- inputText: '${MAESTRO_PASSWORD}'
+- hideKeyboard
+- tapOn: 'Entrar'
+
+# Assert login succeeded: login form disappears and home screen loads.
+- extendedWaitUntil:
+    notVisible: 'Campo de e-mail'
+    timeout: 20000
+- assertVisible: 'Início'

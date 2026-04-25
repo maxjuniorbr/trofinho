@@ -1,0 +1,64 @@
+appId: com.maxjuniorbr.trofinho
+name: 'Criar família – fluxo feliz'
+---
+# Generate a unique e-mail for this run: maestro.<timestamp>@trofinho.dev
+# Accounts accumulate in the DB — bulk-delete periodically via admin API.
+- evalScript: ${output.testEmail = 'maestro.' + Date.now() + '@trofinho.dev'}
+
+# === Setup: launch fresh (unauthenticated) ===
+- launchApp:
+    stopApp: true
+    clearState: true
+
+# Handle Expo dev-client intermediate screens
+- runFlow:
+    when:
+      visible: 'http://10.0.2.2:8081'
+    commands:
+      - tapOn: 'http://10.0.2.2:8081'
+- runFlow:
+    when:
+      visible: 'Continue'
+    commands:
+      - tapOn: 'Continue'
+- runFlow:
+    when:
+      visible: 'Reload'
+    commands:
+      - tapOn: 'Reload'
+
+# === Passo 1: Tela de login → navegar para cadastro ===
+- extendedWaitUntil:
+    visible: 'Campo de e-mail'
+    timeout: 120000
+- tapOn: 'Criar conta'
+
+# === Passo 2: Tela de cadastro ===
+- extendedWaitUntil:
+    visible: 'Campo de nome'
+    timeout: 15000
+- tapOn: 'Campo de nome'
+- inputText: 'Admin Maestro'
+- tapOn: 'Campo de e-mail'
+- inputText: '${output.testEmail}'
+- tapOn: 'Campo de senha'
+- inputText: '${MAESTRO_REGISTER_PASSWORD}'
+- hideKeyboard
+- tapOn: 'Continuar'
+
+# === Passo 3: Tela de onboarding (configurar família) ===
+# Account creation triggers navigation to onboarding with name pre-filled.
+- extendedWaitUntil:
+    visible: 'Campo de nome da família'
+    timeout: 20000
+- tapOn: 'Campo de nome da família'
+- inputText: 'Família Maestro'
+# Admin name is pre-filled from the register step — no need to edit.
+- hideKeyboard
+- tapOn: 'Criar família'
+
+# === Asserção final: tela inicial do admin ===
+- extendedWaitUntil:
+    visible: 'Início'
+    timeout: 30000
+- assertVisible: 'Início'

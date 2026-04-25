@@ -1,0 +1,22 @@
+appId: com.maxjuniorbr.trofinho
+---
+# Raw logout steps — no launch, no login. Assumes user is already on the home screen.
+
+# Navigate to the Profile tab.
+- tapOn: 'Perfil'
+
+# Logout button is below the fold; scroll until visible.
+- scrollUntilVisible:
+    element:
+      text: 'Sair da conta'
+    direction: DOWN
+    timeout: 8000
+    speed: 40
+- tapOn: 'Sair da conta'
+
+# Assert we returned to the login screen.
+- extendedWaitUntil:
+    visible: 'E-MAIL'
+    timeout: 15000
+- assertVisible: 'Campo de e-mail'
+- assertVisible: 'Entrar'
