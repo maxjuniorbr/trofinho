@@ -63,10 +63,15 @@ export default function OnboardingScreen() {
     if (createError) {
       setLoading(false);
       setError(createError);
+      return;
     }
 
-    // Navigation is handled by the root layout auth state handler.
-    // Keep the button in loading state until the redirect happens.
+    // createFamily only writes to DB tables — it does not emit an auth event,
+    // so onAuthStateChange will not fire automatically. Force a session refresh
+    // so the root layout auth state handler re-fetches the profile (with the
+    // new familia_id) and navigates to the admin home.
+    const { supabase } = await import('@lib/supabase');
+    await supabase.auth.refreshSession();
   };
 
   const confirmAndLeave = async () => {
