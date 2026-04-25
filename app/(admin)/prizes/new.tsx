@@ -144,6 +144,7 @@ export default function NewPrizeScreen() {
         onNameChange={setName}
         onDescriptionChange={setDescription}
         onCostChange={setCostStr}
+        autoFocusName
       />
     </StickyFooterScreen>
   );

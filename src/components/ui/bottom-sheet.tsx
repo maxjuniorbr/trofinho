@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -28,7 +29,10 @@ const CLOSE_VELOCITY = 900;
 // Android navigation bars (button nav ≈ 48dp, gesture nav ≈ 24dp).
 const MIN_BOTTOM_PADDING = spacing['8'];
 
-const getDefaultKeyboardBehavior = (): KeyboardAvoidingViewProps['behavior'] => 'padding';
+// Android Modal windows already resize with the keyboard. Adding padding here
+// double-adjusts the sheet and can leave stale bottom space after keyboard blur.
+const getDefaultKeyboardBehavior = (): KeyboardAvoidingViewProps['behavior'] =>
+  Platform.OS === 'ios' ? 'padding' : undefined;
 
 type BottomSheetBaseProps = Readonly<{
   children: ReactNode;
@@ -44,10 +48,12 @@ type BottomSheetBaseProps = Readonly<{
 type BottomSheetModalProps = BottomSheetBaseProps &
   Readonly<{
     visible: boolean;
+    onShow?: () => void;
   }>;
 
 export function BottomSheetModal({
   visible,
+  onShow,
   onClose,
   keyboardBehavior = getDefaultKeyboardBehavior(),
   keyboardVerticalOffset,
@@ -70,6 +76,7 @@ export function BottomSheetModal({
       statusBarTranslucent
       navigationBarTranslucent
       onRequestClose={onClose}
+      onShow={onShow}
     >
       {/* The Modal renders into its own native window, so the root
           SafeAreaProvider does not propagate. Wrapping with another
@@ -79,6 +86,7 @@ export function BottomSheetModal({
         <GestureHandlerRootView style={styles.root}>
           <KeyboardAvoidingView
             style={styles.root}
+            enabled={keyboardBehavior !== undefined}
             behavior={keyboardBehavior}
             keyboardVerticalOffset={keyboardVerticalOffset}
           >
@@ -92,6 +100,7 @@ export function BottomSheetModal({
 
 export function BottomSheetOverlay({
   visible,
+  onShow: _onShow,
   onClose,
   keyboardBehavior = getDefaultKeyboardBehavior(),
   keyboardVerticalOffset,
@@ -103,6 +112,7 @@ export function BottomSheetOverlay({
     <GestureHandlerRootView style={styles.absoluteRoot}>
       <KeyboardAvoidingView
         style={styles.root}
+        enabled={keyboardBehavior !== undefined}
         behavior={keyboardBehavior}
         keyboardVerticalOffset={keyboardVerticalOffset}
       >

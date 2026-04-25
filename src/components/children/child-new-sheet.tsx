@@ -1,5 +1,5 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useCallback, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { BottomSheetModal } from '@/components/ui/bottom-sheet';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ export function ChildNewSheet({ visible, onClose }: ChildNewSheetProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const registerMutation = useRegisterChild();
+  const nameInputRef = useRef<TextInput>(null);
 
   const [avatar, setAvatar] = useState<string>(AVATARS[0]);
   const [name, setName] = useState('');
@@ -74,10 +75,15 @@ export function ChildNewSheet({ visible, onClose }: ChildNewSheetProps) {
     validationError ??
     (registerMutation.error ? localizeSupabaseError(registerMutation.error.message) : null);
 
+  const focusInitialField = useCallback(() => {
+    nameInputRef.current?.focus();
+  }, []);
+
   return (
     <BottomSheetModal
       visible={visible}
       onClose={handleClose}
+      onShow={focusInitialField}
       sheetStyle={styles.sheet}
       closeLabel="Fechar cadastro de filho"
     >
@@ -118,10 +124,12 @@ export function ChildNewSheet({ visible, onClose }: ChildNewSheetProps) {
         </View>
 
         <Input
+          ref={nameInputRef}
           label="Nome *"
           value={name}
           onChangeText={setName}
           placeholder="Nome do filho"
+          autoFocus
           maxLength={60}
           autoCapitalize="words"
           autoCorrect={false}

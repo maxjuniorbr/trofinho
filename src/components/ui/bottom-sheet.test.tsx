@@ -1,8 +1,14 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from '../../../test/helpers/test-renderer-compat';
-import { describe, expect, it, vi } from 'vitest';
-import { Text } from 'react-native';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { Platform, Text } from 'react-native';
 import { BottomSheetModal, BottomSheetOverlay } from './bottom-sheet';
+
+const initialPlatformOS = Platform.OS;
+
+function setPlatformOS(os: typeof Platform.OS) {
+  Object.defineProperty(Platform, 'OS', { value: os, configurable: true });
+}
 
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
@@ -12,7 +18,62 @@ function render(element: React.ReactElement) {
   return renderer;
 }
 
+function getKeyboardAvoidingView(renderer: ReactTestRenderer) {
+  const [keyboardAvoidingView] = renderer.root.findAll(
+    (node) => node.type === 'KeyboardAvoidingView',
+  );
+
+  expect(keyboardAvoidingView).toBeDefined();
+  return keyboardAvoidingView;
+}
+
+afterEach(() => {
+  setPlatformOS(initialPlatformOS);
+});
+
 describe('BottomSheet', () => {
+  it('keeps keyboard padding enabled by default on iOS', () => {
+    setPlatformOS('ios');
+    const renderer = render(
+      <BottomSheetModal visible onClose={vi.fn()} closeLabel="Fechar teste">
+        <Text>Conteúdo</Text>
+      </BottomSheetModal>,
+    );
+
+    const keyboardAvoidingView = getKeyboardAvoidingView(renderer);
+    expect(keyboardAvoidingView.props.behavior).toBe('padding');
+    expect(keyboardAvoidingView.props.enabled).toBe(true);
+  });
+
+  it('does not add keyboard padding by default on Android modals', () => {
+    setPlatformOS('android');
+    const renderer = render(
+      <BottomSheetModal visible onClose={vi.fn()} closeLabel="Fechar teste">
+        <Text>Conteúdo</Text>
+      </BottomSheetModal>,
+    );
+
+    const keyboardAvoidingView = getKeyboardAvoidingView(renderer);
+    expect(keyboardAvoidingView.props.behavior).toBeUndefined();
+    expect(keyboardAvoidingView.props.enabled).toBe(false);
+  });
+
+  it('runs the onShow callback after the native modal is presented', () => {
+    const onShow = vi.fn();
+    const renderer = render(
+      <BottomSheetModal visible onShow={onShow} onClose={vi.fn()} closeLabel="Fechar teste">
+        <Text>Conteúdo</Text>
+      </BottomSheetModal>,
+    );
+
+    const [modal] = renderer.root.findAll((node) => node.type === 'Modal');
+    act(() => {
+      modal.props.onShow();
+    });
+
+    expect(onShow).toHaveBeenCalledTimes(1);
+  });
+
   it('uses the same close action for the outside area and the top handle', () => {
     const onClose = vi.fn();
     const renderer = render(

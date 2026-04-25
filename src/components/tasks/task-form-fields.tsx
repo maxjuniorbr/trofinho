@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { StyleSheet, Switch, Text, View } from 'react-native';
+import { useMemo, type Ref } from 'react';
+import { StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { Input } from '@/components/ui/input';
 import { WeekdaySelector } from '@/components/tasks/weekday-selector';
 import { useTheme } from '@/context/theme-context';
@@ -18,6 +18,7 @@ type TaskFormFieldsProps = Readonly<{
   onDiasSemanaChange: (value: number) => void;
   onRequiresEvidenceChange: (value: boolean) => void;
   autoFocusTitle?: boolean;
+  titleInputRef?: Ref<TextInput>;
   weekdaysEditable?: boolean;
   pointsEditable?: boolean;
 }>;
@@ -34,6 +35,7 @@ export function TaskFormFields({
   onDiasSemanaChange,
   onRequiresEvidenceChange,
   autoFocusTitle = false,
+  titleInputRef,
   weekdaysEditable = true,
   pointsEditable = true,
 }: TaskFormFieldsProps) {
@@ -43,6 +45,7 @@ export function TaskFormFields({
   return (
     <View style={styles.container}>
       <Input
+        ref={titleInputRef}
         label="Título *"
         value={title}
         onChangeText={onTitleChange}

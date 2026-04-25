@@ -1,5 +1,13 @@
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BottomSheetModal } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/button';
 import { InlineMessage } from '@/components/ui/inline-message';
@@ -28,6 +36,7 @@ export function TaskFormSheet({ visible, mode, task, onClose, onSuccess }: TaskF
   const { data: profile } = useProfile();
   const createMutation = useCreateTask();
   const updateMutation = useUpdateTask();
+  const titleInputRef = useRef<TextInput>(null);
 
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
@@ -173,6 +182,10 @@ export function TaskFormSheet({ visible, mode, task, onClose, onSuccess }: TaskF
     else handleCreate(result);
   };
 
+  const focusInitialField = useCallback(() => {
+    if (!isEdit) titleInputRef.current?.focus();
+  }, [isEdit]);
+
   const isSaving = createMutation.isPending || updateMutation.isPending;
   const title = isEdit ? 'Editar Tarefa' : 'Nova Tarefa';
   const submitLabel = isEdit ? 'Salvar alterações' : 'Criar tarefa';
@@ -237,6 +250,7 @@ export function TaskFormSheet({ visible, mode, task, onClose, onSuccess }: TaskF
     <BottomSheetModal
       visible={visible}
       onClose={handleClose}
+      onShow={focusInitialField}
       sheetStyle={styles.sheet}
       closeLabel={isEdit ? 'Fechar edição de tarefa' : 'Fechar nova tarefa'}
     >
@@ -267,6 +281,7 @@ export function TaskFormSheet({ visible, mode, task, onClose, onSuccess }: TaskF
           onPointsChange={setPontos}
           onDiasSemanaChange={setDiasSemana}
           onRequiresEvidenceChange={setExigeEvidencia}
+          titleInputRef={titleInputRef}
           autoFocusTitle={!isEdit}
           weekdaysEditable={!isEdit || (editState?.canEdit ?? true)}
           pointsEditable={!isEdit || (editState?.canEditPoints ?? true)}
