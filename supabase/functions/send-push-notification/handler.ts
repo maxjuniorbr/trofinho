@@ -511,6 +511,22 @@ export async function resolveRecipientUserIds(
   if (CHILD_TARGETED_EVENTS.has(event)) {
     const userId = (payload as { userId: string }).userId;
     if (!userId) return [];
+
+    // Validate that the target user belongs to the specified family
+    // to prevent cross-tenant push notifications (IDOR).
+    const { data: userRows, error: userError } = await supabase
+      .from('usuarios')
+      .select('id')
+      .eq('id', userId)
+      .eq('familia_id', familiaId);
+
+    if (userError || !userRows || userRows.length === 0) {
+      console.error(
+        `[send-push-notification] Target user ${userId} does not belong to family ${familiaId}`,
+      );
+      return [];
+    }
+
     return [userId];
   }
 
@@ -576,7 +592,8 @@ export async function resolveTokens(
   const { data: users, error: usersError } = await supabase
     .from('usuarios')
     .select('id, notif_prefs')
-    .in('id', userIds);
+    .in('id', userIds)
+    .eq('familia_id', familiaId);
 
   if (usersError) {
     console.error('[send-push-notification] Error querying user preferences:', usersError);
@@ -656,7 +673,7 @@ export async function processTicketResults(
         tokensToDelete.push(tokens[i]);
       } else {
         console.error(
-          `[send-push-notification] Expo error for token ${tokens[i].slice(0, 12)}***: ${errorType ?? ticket.message}`,
+          `[send-push-notification] Expo error for token index ${i}: ${errorType ?? ticket.message}`,
         );
       }
     }

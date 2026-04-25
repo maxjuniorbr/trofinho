@@ -738,7 +738,13 @@ describe('resolveTokens — error paths', () => {
         // resolveTokens user prefs query
         return {
           select: vi.fn().mockReturnValue({
-            in: vi.fn().mockResolvedValue({ data: null, error: { message: 'DB error' } }),
+            in: vi.fn().mockImplementation(() => {
+              const inResult = { data: null, error: { message: 'DB error' } };
+              const promise = Promise.resolve(inResult);
+              return Object.assign(promise, {
+                eq: vi.fn().mockResolvedValue(inResult),
+              });
+            }),
           }),
         };
       }
@@ -769,9 +775,15 @@ describe('resolveTokens — error paths', () => {
         }
         return {
           select: vi.fn().mockReturnValue({
-            in: vi.fn().mockResolvedValue({
-              data: [{ id: 'admin-1', notif_prefs: { resgatesSolicitado: false } }],
-              error: null,
+            in: vi.fn().mockImplementation(() => {
+              const inResult = {
+                data: [{ id: 'admin-1', notif_prefs: { resgatesSolicitado: false } }],
+                error: null,
+              };
+              const promise = Promise.resolve(inResult);
+              return Object.assign(promise, {
+                eq: vi.fn().mockResolvedValue(inResult),
+              });
             }),
           }),
         };
