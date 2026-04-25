@@ -31,6 +31,16 @@ npm run lint && npm run typecheck && npm test
 
 ### E2E (Emulador)
 
+Requer emulador Android com o app no modo dev-client e Metro rodando.  
+Credenciais de teste em `.env.local` (veja `.env.example`).
+
 ```bash
-npm run test:e2e
+export $(grep -v '^#' .env.local | xargs)
+
+npm run test:e2e                  # login + logout
+npm run test:e2e:login            # só login
+npm run test:e2e:logout           # logout (com login automático)
+npm run test:e2e:create-family    # cadastro + criação de família
 ```
+
+Veja `.maestro/README.md` para documentação completa dos flows.

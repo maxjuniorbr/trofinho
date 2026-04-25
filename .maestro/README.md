@@ -5,57 +5,67 @@ Testes E2E para fluxos críticos do Trofinho usando [Maestro](https://maestro.de
 ## Pré-requisitos
 
 - Maestro CLI instalado (`maestro --version`)
-- Emulador Android ou dispositivo conectado (`adb devices`)
-- App rodando no emulador via `expo start` / dev-client
-- Variáveis de ambiente configuradas (veja abaixo)
+- Emulador Android rodando com o app no modo dev-client (`npm run android`)
+- Metro em execução (`npm start`)
+- Variáveis de ambiente configuradas em `.env.local` (veja abaixo)
 
 ## Variáveis de ambiente
 
-Os testes usam variáveis de ambiente para credenciais.  
-Crie um arquivo `.maestro/.env` ou passe via CLI:
+As credenciais são lidas de `.env.local` (nunca hardcoded nos flows).  
+Adicione as entradas abaixo se ainda não existirem:
 
 ```bash
-# .maestro/.env (não commitado)
-MAESTRO_EMAIL=maxteste2@trofinho.dev
-MAESTRO_PASSWORD=Trofinho@2024
+# .env.local
+MAESTRO_EMAIL=maxteste2@trofinho.dev        # conta de teste existente no Supabase
+MAESTRO_PASSWORD=<senha-da-conta-de-teste>
+MAESTRO_REGISTER_PASSWORD=<senha-para-novos-cadastros>  # usado em create-family
 ```
 
-Ou passe via flag:
+Para passar os valores manualmente via CLI:
 
 ```bash
-maestro test .maestro/login.yaml -e MAESTRO_EMAIL=maxteste2@trofinho.dev -e MAESTRO_PASSWORD=Trofinho@2024
+export $(grep -v '^#' .env.local | xargs)
+maestro test -e MAESTRO_EMAIL=$MAESTRO_EMAIL -e MAESTRO_PASSWORD=$MAESTRO_PASSWORD .maestro/login.yaml
 ```
 
-## Rodar todos os testes
+## Rodar via npm scripts
 
 ```bash
-npm run test:e2e
+npm run test:e2e                  # login + logout em sequência
+npm run test:e2e:login            # só login
+npm run test:e2e:logout           # logout (inclui login como setup)
+npm run test:e2e:create-family    # cadastro + criação de família
 ```
 
-## Rodar um teste específico
+## Rodar um flow diretamente
 
 ```bash
-maestro test .maestro/login.yaml
-maestro test .maestro/logout.yaml
+export $(grep -v '^#' .env.local | xargs)
+maestro test -e MAESTRO_EMAIL=$MAESTRO_EMAIL -e MAESTRO_PASSWORD=$MAESTRO_PASSWORD .maestro/login.yaml
 ```
 
-## Testes disponíveis
+## Flows disponíveis
 
-| Arquivo            | Fluxo                                  | Dependência    |
-| ------------------ | -------------------------------------- | -------------- |
-| `login.yaml`       | Login com email e senha (fluxo feliz)  | —              |
-| `logout.yaml`      | Logout da conta (fluxo feliz)          | Estar logado   |
-| `create-task.yaml` | Criação de uma nova tarefa             | Estar logado   |
+| Arquivo                | Fluxo                                     | Setup automático           |
+| ---------------------- | ----------------------------------------- | -------------------------- |
+| `login.yaml`           | Login com e-mail e senha (fluxo feliz)    | Mata e limpa o app         |
+| `logout.yaml`          | Logout da conta (fluxo feliz)             | Login completo via subcall |
+| `create-task.yaml`     | Criação de uma nova tarefa                | Login completo via subcall |
+| `create-family.yaml`   | Cadastro + criação de família (fluxo feliz) | Mata e limpa o app       |
+| `_logout-steps.yaml`   | Passos de logout sem setup — helper interno | Não executar diretamente |
 
 ## Boas práticas seguidas
 
-- **Variáveis de ambiente** para credenciais (nunca hardcoded)
-- **Modularização** com `runFlow` — logout é reutilizado como sub-fluxo no login
-- **Seletores estáveis** via `accessibilityLabel` (mapeado para content-description no Android)
-- **Assertions explícitas** — `assertVisible` após ações críticas
-- **Nome descritivo** em cada fluxo via campo `name`
-- **Sem delays estáticos** — usa `extendedWaitUntil` ao invés de `sleep`
+- **Variáveis de ambiente** para credenciais — nunca hardcoded
+- **Auto-contidos**: cada flow executa `launchApp: stopApp/clearState` ou chama `login.yaml` como setup — nenhum flow depende de estado externo
+- **`_logout-steps.yaml`** é o helper reutilizável de logout; `logout.yaml` e futuros flows o chamam após o login
+- **`clearState: true`** garante início sempre desautenticado (limpa AsyncStorage/sessão Supabase)
+- **Seletores via `accessibilityLabel`** — mapeia para `content-description` no Android
+- **Assertions explícitas** — `assertVisible` após cada ação crítica
+- **`extendedWaitUntil`** em vez de `sleep` — aguarda condições reais
+- **Expo dev-client tratado** — 3 casos condicionais (`runFlow when:`) lidam com a tela de seleção de servidor, botão "Continue" e drawer "Reload"
 
-## Nota sobre credenciais
+## Limitações conhecidas
 
-Os testes usam credenciais de teste. Certifique-se de que a conta de teste existe no Supabase antes de rodar.
+- **`inputText` é ASCII-only**: Maestro não suporta Unicode. Use nomes sem acentos em todos os campos de texto dos flows (ex.: `Familia Maestro` em vez de `Família Maestro`).
+- **Contas acumulam**: `create-family.yaml` gera um e-mail único (`maestro.<timestamp>@trofinho.dev`) por execução. Limpe periodicamente via script de manutenção em `/temp/`.
