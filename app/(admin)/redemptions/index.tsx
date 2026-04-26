@@ -101,7 +101,7 @@ export default function AdminRedemptionsScreen() {
     [router],
   );
 
-  const handleConfirm = (item: RedemptionWithChildAndPrize) => {
+  const handleConfirm = useCallback((item: RedemptionWithChildAndPrize) => {
     if (!profile) return;
     Alert.alert(
       'Confirmar entrega',
@@ -138,9 +138,9 @@ export default function AdminRedemptionsScreen() {
         },
       ],
     );
-  };
+  }, [profile, confirmMutation]);
 
-  const handleCancel = (item: RedemptionWithChildAndPrize) => {
+  const handleCancel = useCallback((item: RedemptionWithChildAndPrize) => {
     if (!profile) return;
     Alert.alert(
       'Cancelar resgate?',
@@ -180,7 +180,7 @@ export default function AdminRedemptionsScreen() {
         },
       ],
     );
-  };
+  }, [profile, cancelMutation]);
 
   const renderItem = useCallback(
     ({ item }: { item: RedemptionWithChildAndPrize }) => {
@@ -256,7 +256,7 @@ export default function AdminRedemptionsScreen() {
         </View>
       );
     },
-    [colors, styles, processingId, profile, confirmMutation, cancelMutation],
+    [colors, styles, processingId, handleConfirm, handleCancel],
   );
 
   const renderContent = () => {

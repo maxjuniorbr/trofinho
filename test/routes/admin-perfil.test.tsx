@@ -52,7 +52,7 @@ const deleteAccountMock = vi.hoisted(() => ({
 }));
 
 const childrenListMock = vi.hoisted(() => ({
-  data: [] as Array<{ id: string; nome: string; ativo: boolean; avatar_url: string | null }>,
+  data: [] as { id: string; nome: string; ativo: boolean; avatar_url: string | null }[],
 }));
 
 const startImpersonationMock = vi.hoisted(() => vi.fn());

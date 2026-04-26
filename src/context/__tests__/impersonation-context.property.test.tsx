@@ -5,7 +5,6 @@ import { act, create } from '../../../test/helpers/test-renderer-compat';
 import {
     ImpersonationProvider,
     useImpersonation,
-    type ImpersonationState,
 } from '../impersonation-context';
 
 /**

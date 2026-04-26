@@ -363,7 +363,7 @@ export default function FilhoHomeScreen() {
 }
 
 type PendingTaskCardProps = Readonly<{
-  task: (typeof import('@/hooks/queries'))['useChildAssignments'] extends () => { data?: { pages: Array<{ data: Array<infer T> }> } } ? T : never;
+  task: (typeof import('@/hooks/queries'))['useChildAssignments'] extends () => { data?: { pages: { data: (infer T)[] }[] } } ? T : never;
   isReadOnly: boolean;
   colors: ReturnType<typeof useTheme>['colors'];
   styles: ReturnType<typeof makeStyles>;

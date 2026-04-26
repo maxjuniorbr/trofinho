@@ -211,7 +211,7 @@ function RootNavigator({
       });
       router.replace(target as never);
     }
-  }, [ready, profile, router, segments]);
+  }, [ready, profile, router, segments, impersonating]);
 
   useEffect(() => {
     let active = true;

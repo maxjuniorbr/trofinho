@@ -519,8 +519,11 @@ function allText(renderer: ReactTestRenderer): string {
 
 // ─── Imports (after mocks) ───────────────────────────────────────────────────
 
+// eslint-disable-next-line import/first
 import ChildBalanceScreen from '../../app/(child)/balance';
+// eslint-disable-next-line import/first
 import ChildPrizesScreen from '../../app/(child)/prizes/index';
+// eslint-disable-next-line import/first
 import ChildProfileScreen from '../../app/(child)/perfil';
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
