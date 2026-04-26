@@ -131,76 +131,66 @@ export type ChildNotifInput = {
 export function deriveChildNotifs(input: ChildNotifInput): Notif[] {
   const notifs: Notif[] = [];
 
-  // Recently approved assignments → positive feedback
   for (const a of input.assignments) {
-    if (a.status === 'cancelada') continue;
-    if (a.status !== 'aprovada') continue;
-    const refDate = a.validada_em ?? a.created_at;
-    notifs.push({
-      id: `task-approved-${a.id}`,
-      audience: 'child',
-      type: 'task',
-      title: 'Tarefa aprovada! 🎉',
-      description: `'${a.tarefas.titulo}' foi aprovada (+${a.pontos_snapshot} pts)`,
-      time: relativeTime(refDate),
-      group: dateGroup(refDate),
-      route: '/(child)/tasks',
-      _sortDate: refDate,
-    });
+    if (a.status === 'aprovada') {
+      const refDate = a.validada_em ?? a.created_at;
+      notifs.push({
+        id: `task-approved-${a.id}`,
+        audience: 'child',
+        type: 'task',
+        title: 'Tarefa aprovada! 🎉',
+        description: `'${a.tarefas.titulo}' foi aprovada (+${a.pontos_snapshot} pts)`,
+        time: relativeTime(refDate),
+        group: dateGroup(refDate),
+        route: '/(child)/tasks',
+        _sortDate: refDate,
+      });
+    } else if (a.status === 'rejeitada') {
+      const refDate = a.validada_em ?? a.created_at;
+      notifs.push({
+        id: `task-rejected-${a.id}`,
+        audience: 'child',
+        type: 'task',
+        title: 'Tarefa rejeitada',
+        description: a.nota_rejeicao
+          ? `'${a.tarefas.titulo}': ${a.nota_rejeicao}`
+          : `'${a.tarefas.titulo}' foi rejeitada. Tente novamente!`,
+        time: relativeTime(refDate),
+        group: dateGroup(refDate),
+        route: '/(child)/tasks',
+        _sortDate: refDate,
+      });
+    }
   }
 
-  // Recently rejected assignments → feedback
-  for (const a of input.assignments) {
-    if (a.status === 'cancelada') continue;
-    if (a.status !== 'rejeitada') continue;
-    const refDate = a.validada_em ?? a.created_at;
-    notifs.push({
-      id: `task-rejected-${a.id}`,
-      audience: 'child',
-      type: 'task',
-      title: 'Tarefa rejeitada',
-      description: a.nota_rejeicao
-        ? `'${a.tarefas.titulo}': ${a.nota_rejeicao}`
-        : `'${a.tarefas.titulo}' foi rejeitada. Tente novamente!`,
-      time: relativeTime(refDate),
-      group: dateGroup(refDate),
-      route: '/(child)/tasks',
-      _sortDate: refDate,
-    });
-  }
-
-  // Confirmed redemptions → positive feedback
   for (const r of input.redemptions) {
-    if (r.status !== 'confirmado') continue;
-    const prizeName = r.premios?.nome ?? 'Prêmio';
-    notifs.push({
-      id: `redemption-confirmed-${r.id}`,
-      audience: 'child',
-      type: 'redemption',
-      title: 'Resgate confirmado! 🎁',
-      description: `'${prizeName}' foi aprovado pelos pais`,
-      time: relativeTime(r.updated_at),
-      group: dateGroup(r.updated_at),
-      route: '/(child)/redemptions',
-      _sortDate: r.updated_at,
-    });
-  }
-
-  // Pending redemptions → waiting state
-  for (const r of input.redemptions) {
-    if (r.status !== 'pendente') continue;
-    const prizeName = r.premios?.nome ?? 'Prêmio';
-    notifs.push({
-      id: `redemption-pending-${r.id}`,
-      audience: 'child',
-      type: 'redemption',
-      title: 'Resgate em análise',
-      description: `'${prizeName}' aguardando aprovação dos pais`,
-      time: relativeTime(r.created_at),
-      group: dateGroup(r.created_at),
-      route: '/(child)/redemptions',
-      _sortDate: r.created_at,
-    });
+    if (r.status === 'confirmado') {
+      const prizeName = r.premios?.nome ?? 'Prêmio';
+      notifs.push({
+        id: `redemption-confirmed-${r.id}`,
+        audience: 'child',
+        type: 'redemption',
+        title: 'Resgate confirmado! 🎁',
+        description: `'${prizeName}' foi aprovado pelos pais`,
+        time: relativeTime(r.updated_at),
+        group: dateGroup(r.updated_at),
+        route: '/(child)/redemptions',
+        _sortDate: r.updated_at,
+      });
+    } else if (r.status === 'pendente') {
+      const prizeName = r.premios?.nome ?? 'Prêmio';
+      notifs.push({
+        id: `redemption-pending-${r.id}`,
+        audience: 'child',
+        type: 'redemption',
+        title: 'Resgate em análise',
+        description: `'${prizeName}' aguardando aprovação dos pais`,
+        time: relativeTime(r.created_at),
+        group: dateGroup(r.created_at),
+        route: '/(child)/redemptions',
+        _sortDate: r.created_at,
+      });
+    }
   }
 
   notifs.sort(
