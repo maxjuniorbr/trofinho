@@ -93,15 +93,12 @@ export default function FilhoHomeScreen() {
     balanceQuery,
   );
 
-  const pendingCount = useMemo(
-    () => assignments.filter((a) => a.status === 'pendente' || (a.status === 'rejeitada' && getAssignmentRetryState(a).canRetry)).length,
-    [assignments],
-  );
-
   const pendingTasks = useMemo(
     () => assignments.filter((a) => a.status === 'pendente' || (a.status === 'rejeitada' && getAssignmentRetryState(a).canRetry)),
     [assignments],
   );
+
+  const pendingCount = pendingTasks.length;
 
   const completedCount = useMemo(
     () => assignments.filter((a) => a.status === 'aprovada').length,
