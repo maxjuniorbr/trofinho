@@ -28,7 +28,7 @@ jobs:
       - run: npm test
 
       - name: Generate coverage report
-        run: npx vitest run --coverage --reporter=json --reporter=default
+        run: npx vitest run --coverage
         continue-on-error: true
 
       - name: SonarCloud Scan
