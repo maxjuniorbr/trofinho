@@ -27,6 +27,21 @@ jobs:
 
       - run: npm test
 
+      - name: Generate coverage report
+        run: npx vitest run --coverage --reporter=json --reporter=default
+        continue-on-error: true
+
+      - name: SonarCloud Scan
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=maxjuniorbr_trofinho
+            -Dsonar.organization=maxjuniorbr
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+
   schema-drift:
     name: Schema drift check
     runs-on: ubuntu-latest
