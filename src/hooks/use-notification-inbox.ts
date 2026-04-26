@@ -11,8 +11,6 @@ import {
   useChildRedemptions,
 } from '@/hooks/queries/use-redemptions';
 
-// ── Admin ────────────────────────────────────────────────
-
 export function useAdminNotifInbox(): {
   items: Notif[];
   isLoading: boolean;
@@ -79,7 +77,14 @@ export function useChildNotifInbox(): {
 }
 
 export function useChildUnreadNotifCount(): number {
-  const { items, isLoading } = useChildNotifInbox();
-  if (isLoading) return 0;
-  return items.filter((n) => n.group === 'Hoje').length;
+  const assignmentsQuery = useChildAssignments();
+  const redemptionsQuery = useChildRedemptions();
+
+  return useMemo(() => {
+    if (assignmentsQuery.isLoading || redemptionsQuery.isLoading) return 0;
+    const assignments = assignmentsQuery.data?.pages.flatMap((p) => p.data) ?? [];
+    const redemptions = redemptionsQuery.data?.pages.flatMap((p) => p.data) ?? [];
+    const items = deriveChildNotifs({ assignments, redemptions });
+    return items.filter((n) => n.group === 'Hoje').length;
+  }, [assignmentsQuery.data, assignmentsQuery.isLoading, redemptionsQuery.data, redemptionsQuery.isLoading]);
 }
