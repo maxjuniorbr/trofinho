@@ -219,6 +219,49 @@ describe('readImageAsArrayBuffer', () => {
 
     vi.unstubAllGlobals();
   });
+
+  it('reads remote image via streaming when body is available', async () => {
+    const data = new Uint8Array([1, 2, 3, 4, 5]);
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(data);
+        controller.close();
+      },
+    });
+    const mockResponse = {
+      ok: true,
+      headers: { get: () => '0' },
+      body: stream,
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockResponse));
+
+    const result = await readImageAsArrayBuffer('https://example.com/small.jpg');
+    expect(new Uint8Array(result)).toEqual(data);
+    vi.unstubAllGlobals();
+  });
+
+  it('aborts streaming read when body exceeds 10 MB', async () => {
+    const bigChunk = new Uint8Array(11 * 1024 * 1024);
+    const cancelMock = vi.fn().mockResolvedValue(undefined);
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(bigChunk);
+        controller.close();
+      },
+      cancel: cancelMock,
+    });
+    const mockResponse = {
+      ok: true,
+      headers: { get: () => '0' },
+      body: stream,
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockResponse));
+
+    await expect(readImageAsArrayBuffer('https://example.com/huge.jpg')).rejects.toThrow(
+      'muito grande',
+    );
+    vi.unstubAllGlobals();
+  });
 });
 
 describe('property tests', () => {
