@@ -1,14 +1,26 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "ignoreDeprecations": "6.0",
     "strict": true,
-    "types": ["vitest/globals"],
+    "types": [
+      "vitest/globals"
+    ],
     "paths": {
-      "@lib/*": ["./lib/*"],
-      "@/*": ["./src/*"],
-      "@types/*": ["./src/types/*"]
+      "@lib/*": [
+        "./lib/*"
+      ],
+      "@/*": [
+        "./src/*"
+      ],
+      "@types/*": [
+        "./src/types/*"
+      ]
     }
   },
-  "exclude": ["coverage", "dist", "node_modules", "supabase/functions/**/index.ts"]
+  "exclude": [
+    "coverage",
+    "dist",
+    "node_modules",
+    "supabase/functions/**/index.ts"
+  ]
 }
