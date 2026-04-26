@@ -18,6 +18,15 @@ describe('utils', () => {
     expect(formatDate('2026-03-15T12:00:00.000Z')).toBe('15/03/2026');
   });
 
+  it('returns empty string for null/undefined dates', () => {
+    expect(formatDate(null)).toBe('');
+    expect(formatDate(undefined)).toBe('');
+    expect(formatDateShort(null)).toBe('');
+    expect(formatDateShort(undefined)).toBe('');
+    expect(formatDateRelative(null)).toBe('');
+    expect(formatDateRelative(undefined)).toBe('');
+  });
+
   it('formats short dates as DD/MM', () => {
     expect(formatDateShort(new Date(2026, 2, 15))).toBe('15/03');
     expect(formatDateShort('2026-03-15')).toBe('15/03');
