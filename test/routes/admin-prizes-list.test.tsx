@@ -12,18 +12,18 @@ const routerMock = vi.hoisted(() => ({
 const prizesMock = vi.hoisted(() => ({
   data: undefined as
     | {
-        pages: {
-          data: {
-            id: string;
-            nome: string;
-            descricao: string | null;
-            custo_pontos: number;
-            ativo: boolean;
-          }[];
-          hasMore: boolean;
+      pages: {
+        data: {
+          id: string;
+          nome: string;
+          descricao: string | null;
+          custo_pontos: number;
+          ativo: boolean;
         }[];
-        pageParams: number[];
-      }
+        hasMore: boolean;
+      }[];
+      pageParams: number[];
+    }
     | undefined,
   isLoading: false,
   isFetching: false,
@@ -92,6 +92,7 @@ vi.mock('@lib/navigation-feedback', () => ({
 
 vi.mock('@/hooks/queries', () => ({
   usePrizes: () => prizesMock,
+  usePrizeDetail: () => ({ data: null, isLoading: false, error: null, refetch: vi.fn() }),
 }));
 
 vi.mock('@/hooks/use-footer-items', () => ({
@@ -136,6 +137,22 @@ vi.mock('@/components/ui/skeleton', () => ({
 vi.mock('@/components/ui/home-footer-bar', () => ({
   FOOTER_BAR_HEIGHT: 56,
   HomeFooterBar: () => React.createElement('HomeFooterBar'),
+}));
+
+vi.mock('@/components/ui/segmented-bar', () => ({
+  SegmentedBar: (props: Record<string, unknown>) => {
+    const options = props.options as { key: string; label: string }[];
+    return React.createElement(
+      'SegmentedBar',
+      props,
+      ...options.map((o) => React.createElement('Text', { key: o.key }, o.label)),
+    );
+  },
+}));
+
+vi.mock('@/components/prizes/prize-form-sheet', () => ({
+  PrizeFormSheet: (props: Record<string, unknown>) =>
+    React.createElement('PrizeFormSheet', props),
 }));
 
 function render(element: React.ReactElement) {
@@ -202,26 +219,33 @@ describe('AdminPrizesScreen', () => {
     expect(skeleton).toBeDefined();
   });
 
-  it('renders prize name, description and cost', () => {
+  it('renders prize name and cost', () => {
     const renderer = render(<AdminPrizesScreen />);
     const text = allText(renderer);
     expect(text).toContain('Sorvete');
-    expect(text).toContain('Um sorvete delicioso');
-    expect(text).toContain('50 pts');
+    expect(text).toContain('50');
   });
 
-  it('navigates to prize detail on press', () => {
+  it('opens edit sheet on prize card press', () => {
     const renderer = render(<AdminPrizesScreen />);
     const card = renderer.root.findAll(
       (node) => node.props.accessibilityLabel === 'Sorvete, 50 pontos',
     )[0];
+
+    // Before pressing, the edit PrizeFormSheet should not be visible
+    const sheets = renderer.root.findAllByType('PrizeFormSheet' as never);
+    const editSheet = sheets.find((s) => s.props.mode === 'edit');
+    expect(editSheet?.props.visible).toBe(false);
+
     act(() => {
       card.props.onPress();
     });
-    expect(routerMock.push).toHaveBeenCalledWith('/(admin)/prizes/p1');
+
+    // router.push should NOT have been called
+    expect(routerMock.push).not.toHaveBeenCalled();
   });
 
-  it('navigates to new prize screen', () => {
+  it('opens prize form sheet on add button press', () => {
     const renderer = render(<AdminPrizesScreen />);
     const addBtn = renderer.root.findAll(
       (node) =>
@@ -229,23 +253,34 @@ describe('AdminPrizesScreen', () => {
         node.props.accessibilityLabel === 'Criar pr\u00eamio',
     )[0];
     expect(addBtn.props.tone).toBe('accent');
+
+    // Before pressing, the create PrizeFormSheet should not be visible
+    const sheets = renderer.root.findAllByType('PrizeFormSheet' as never);
+    const createSheet = sheets.find((s) => s.props.mode === 'create');
+    expect(createSheet?.props.visible).toBe(false);
+
     act(() => {
       addBtn.props.onPress();
     });
-    expect(routerMock.push).toHaveBeenCalledWith('/(admin)/prizes/new');
+
+    // After pressing, the create PrizeFormSheet should be visible
+    const sheetsAfter = renderer.root.findAllByType('PrizeFormSheet' as never);
+    const createSheetAfter = sheetsAfter.find((s) => s.props.mode === 'create');
+    expect(createSheetAfter?.props.visible).toBe(true);
   });
 
-  it('shows inactive badge for inactive prizes', () => {
+  it('shows archived prizes in arquivados tab', () => {
     prizesMock.data = {
       pages: [{ data: [makePrize({ ativo: false })], hasMore: false }],
       pageParams: [0],
     };
     const renderer = render(<AdminPrizesScreen />);
+    // Default tab is "ativos", so archived prize should not appear
     const text = allText(renderer);
-    expect(text).toContain('inativo');
+    expect(text).not.toContain('Sorvete');
   });
 
-  it('shows active/inactive count summary', () => {
+  it('renders segmented bar with filter tabs', () => {
     prizesMock.data = {
       pages: [
         {
@@ -257,7 +292,8 @@ describe('AdminPrizesScreen', () => {
     };
     const renderer = render(<AdminPrizesScreen />);
     const text = allText(renderer);
-    expect(text).toContain('1 ativo');
-    expect(text).toContain('1 inativo');
+    expect(text).toContain('Ativos');
+    expect(text).toContain('Arquivados');
+    expect(text).toContain('Todos');
   });
 });

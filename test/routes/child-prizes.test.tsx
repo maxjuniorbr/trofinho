@@ -23,7 +23,7 @@ const prizesMock = vi.hoisted(() => ({
             nome: 'Bicicleta',
             descricao: 'MTB legal',
             custo_pontos: 100,
-            imagem_url: null,
+            emoji: '🚲',
             ativo: true,
           },
           {
@@ -31,7 +31,7 @@ const prizesMock = vi.hoisted(() => ({
             nome: 'Livro',
             descricao: null,
             custo_pontos: 30,
-            imagem_url: 'https://img.test/book.jpg',
+            emoji: '📚',
             ativo: true,
           },
         ],
@@ -95,10 +95,6 @@ vi.mock('expo-status-bar', () => ({
   StatusBar: createHostComponent('StatusBar'),
 }));
 
-vi.mock('expo-image', () => ({
-  Image: createHostComponent('Image'),
-}));
-
 vi.mock('expo-router', () => ({
   useRouter: () => routerMock,
 }));
@@ -134,6 +130,7 @@ vi.mock('@shopify/flash-list', () => ({
 vi.mock('lucide-react-native', () => ({
   Trophy: (props: Record<string, unknown>) => React.createElement('Trophy', props),
   CheckCircle2: (props: Record<string, unknown>) => React.createElement('CheckCircle2', props),
+  Star: (props: Record<string, unknown>) => React.createElement('Star', props),
   House: (props: Record<string, unknown>) => React.createElement('House', props),
   ClipboardList: (props: Record<string, unknown>) => React.createElement('ClipboardList', props),
   Gift: (props: Record<string, unknown>) => React.createElement('Gift', props),
@@ -209,6 +206,10 @@ vi.mock('@/context/theme-context', () => ({
   }),
 }));
 
+vi.mock('@/context/impersonation-context', () => ({
+  useImpersonation: () => ({ impersonating: null, startImpersonation: vi.fn(), stopImpersonation: vi.fn() }),
+}));
+
 vi.mock('@/components/ui/skeleton', () => ({
   ListScreenSkeleton: () => React.createElement('ListScreenSkeleton'),
 }));
@@ -270,7 +271,7 @@ describe('ChildPrizesScreen', () => {
               nome: 'Bicicleta',
               descricao: 'MTB legal',
               custo_pontos: 100,
-              imagem_url: null,
+              emoji: '🚲',
               ativo: true,
             },
             {
@@ -278,7 +279,7 @@ describe('ChildPrizesScreen', () => {
               nome: 'Livro',
               descricao: null,
               custo_pontos: 30,
-              imagem_url: 'https://img.test/book.jpg',
+              emoji: '📚',
               ativo: true,
             },
           ],
@@ -317,8 +318,8 @@ describe('ChildPrizesScreen', () => {
   it('renders prize costs', () => {
     const renderer = render(<ChildPrizesScreen />);
     const text = allText(renderer);
-    expect(text).toContain('100 pts');
-    expect(text).toContain('30 pts');
+    expect(text).toContain('100');
+    expect(text).toContain('30');
   });
 
   it('renders balance banner', () => {
@@ -358,7 +359,7 @@ describe('ChildPrizesScreen', () => {
   it('renders screen header', () => {
     const renderer = render(<ChildPrizesScreen />);
     const header = renderer.root.findByType('ScreenHeader' as never);
-    expect(header.props.title).toBe('Meus Prêmios');
+    expect(header.props.title).toBe('Prêmios');
     expect(header.props.role).toBe('filho');
   });
 

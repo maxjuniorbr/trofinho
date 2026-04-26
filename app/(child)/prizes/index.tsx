@@ -1,6 +1,5 @@
 import * as Sentry from '@sentry/react-native';
 import { Alert, StyleSheet, Text, View, Animated, RefreshControl } from 'react-native';
-import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
@@ -8,7 +7,7 @@ import { FlashList } from '@shopify/flash-list';
 import { hapticSuccess } from '@lib/haptics';
 import { localizeRpcError } from '@lib/api-error';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Trophy, CheckCircle2 } from 'lucide-react-native';
+import { CheckCircle2, Star } from 'lucide-react-native';
 import { HomeFooterBar } from '@/components/ui/home-footer-bar';
 import { useChildFooterItems } from '@/hooks/use-footer-items';
 import type { Prize } from '@lib/prizes';
@@ -20,6 +19,7 @@ import {
   combineQueryStates,
 } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
+import { useImpersonation } from '@/context/impersonation-context';
 import type { ThemeColors } from '@/constants/theme';
 import { gradients, radii, shadows, spacing, typography } from '@/constants/theme';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,8 @@ import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 export default function ChildPrizesScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { impersonating } = useImpersonation();
+  const isReadOnly = impersonating !== null;
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const footerItems = useChildFooterItems();
 
@@ -42,7 +44,7 @@ export default function ChildPrizesScreen() {
     [prizesQuery.data],
   );
 
-  const balanceQuery = useBalance();
+  const balanceQuery = useBalance(impersonating?.childId);
   const freeBalance = balanceQuery.data?.saldo_livre ?? 0;
 
   const { isLoading, error, refetchAll } = combineQueryStates(prizesQuery, balanceQuery);
@@ -57,7 +59,7 @@ export default function ChildPrizesScreen() {
 
   const hasError = Boolean(error);
   const shouldShowEmptyState = hasError || prizes.length === 0;
-  const emptyStateMessage = 'Nenhum prêmio disponível no momento.\nPergunte ao responsável! 🎯';
+  const emptyStateMessage = 'Nenhum prêmio disponível no momento.';
 
   const handleFooterNavigate = useCallback(
     (rota: string) => {
@@ -106,7 +108,7 @@ export default function ChildPrizesScreen() {
           : undefined,
       });
       hapticSuccess();
-      setSuccess(`Resgate de "${prize.nome}" solicitado! Aguarde a confirmação 🎉`);
+      setSuccess(`Resgate de "${prize.nome}" solicitado! Aguarde a confirmação.`);
     } catch (e) {
       setRedemptionError(e instanceof Error ? localizeRpcError(e.message) : 'Não foi possível solicitar o resgate.');
     } finally {
@@ -162,6 +164,7 @@ export default function ChildPrizesScreen() {
             freeBalance={freeBalance}
             redeeming={redeeming}
             onRedeem={handleRedeem}
+            isReadOnly={isReadOnly}
           />
         )}
         onEndReached={() => {
@@ -176,7 +179,7 @@ export default function ChildPrizesScreen() {
   return (
     <SafeScreenFrame bottomInset={false}>
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader title="Meus Prêmios" role="filho" />
+      <ScreenHeader title="Prêmios" role="filho" />
 
       {renderContent()}
       <HomeFooterBar
@@ -226,11 +229,14 @@ type PrizeCardProps = Readonly<{
   freeBalance: number;
   redeeming: string | null;
   onRedeem: (item: Prize) => void;
+  isReadOnly: boolean;
 }>;
 
-function PrizeCard({ item, freeBalance, redeeming, onRedeem }: PrizeCardProps) {
+function PrizeCard({ item, freeBalance, redeeming, onRedeem, isReadOnly }: PrizeCardProps) {
   const { colors } = useTheme();
-  const hasBalance = freeBalance >= item.custo_pontos;
+  const outOfStock = item.estoque === 0;
+  const hasBalance = !outOfStock && freeBalance >= item.custo_pontos;
+  const canRedeem = hasBalance && !outOfStock;
   const progress = item.custo_pontos > 0 ? Math.min(freeBalance / item.custo_pontos, 1) : 1;
   const isRedeeming = redeeming === item.id;
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -253,30 +259,26 @@ function PrizeCard({ item, freeBalance, redeeming, onRedeem }: PrizeCardProps) {
         { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
       ]}
     >
-      {item.imagem_url ? (
-        <Image
-          source={item.imagem_url}
-          style={cardStyles.prizeImage}
-          contentFit="cover"
-          transition={200}
-        />
-      ) : (
+      {/* Top section — grows to fill space */}
+      <View style={cardStyles.cardContent}>
         <View style={[cardStyles.prizePlaceholder, { backgroundColor: colors.accent.filhoBg }]}>
-          <Trophy size={28} color={colors.accent.filho} strokeWidth={1.5} />
+          <Text style={cardStyles.prizeEmoji}>{item.emoji || '🎁'}</Text>
         </View>
-      )}
-      <Text style={[cardStyles.name, { color: colors.text.primary }]} numberOfLines={2}>
-        {item.nome}
-      </Text>
-      {item.descricao ? (
-        <Text style={[cardStyles.desc, { color: colors.text.secondary }]} numberOfLines={2}>
-          {item.descricao}
+        <Text style={[cardStyles.name, { color: colors.text.primary }]} numberOfLines={2}>
+          {item.nome}
         </Text>
-      ) : null}
-      <View style={cardStyles.costRow}>
-        <Trophy size={12} color={colors.accent.filho} strokeWidth={2} />
-        <Text style={[cardStyles.cost, { color: colors.accent.filho }]}>
-          {item.custo_pontos} pts
+        {item.descricao ? (
+          <Text style={[cardStyles.desc, { color: colors.text.secondary }]} numberOfLines={2}>
+            {item.descricao}
+          </Text>
+        ) : null}
+      </View>
+
+      {/* Bottom section — always aligned across cards */}
+      <View style={[cardStyles.costBadge, { backgroundColor: colors.accent.filhoBg }]}>
+        <Star size={12} color={colors.accent.filho} strokeWidth={2} />
+        <Text style={[cardStyles.costText, { color: colors.accent.filho }]}>
+          {item.custo_pontos}
         </Text>
       </View>
 
@@ -295,10 +297,12 @@ function PrizeCard({ item, freeBalance, redeeming, onRedeem }: PrizeCardProps) {
       <View
         style={[
           cardStyles.statusRow,
-          { backgroundColor: hasBalance ? colors.semantic.successBg : colors.bg.muted },
+          { backgroundColor: outOfStock ? colors.bg.muted : hasBalance ? colors.semantic.successBg : colors.bg.muted },
         ]}
       >
-        {hasBalance ? (
+        {outOfStock ? (
+          <Text style={[cardStyles.statusText, { color: colors.text.muted }]}>Esgotado</Text>
+        ) : hasBalance ? (
           <View style={cardStyles.statusInner}>
             <CheckCircle2 size={12} color={colors.semantic.success} strokeWidth={2} />
             <Text style={[cardStyles.statusText, { color: colors.semantic.success }]}>
@@ -315,15 +319,15 @@ function PrizeCard({ item, freeBalance, redeeming, onRedeem }: PrizeCardProps) {
       <Button
         variant="primary"
         size="sm"
-        label={hasBalance ? 'Resgatar' : `Faltam ${item.custo_pontos - freeBalance} pts`}
-        disabled={!hasBalance || redeeming !== null}
+        label={outOfStock ? 'Esgotado' : canRedeem ? 'Resgatar' : `Faltam ${item.custo_pontos - freeBalance} pts`}
+        disabled={!canRedeem || redeeming !== null || isReadOnly}
         loading={isRedeeming}
         loadingLabel="Resgatando…"
         onPress={() => onRedeem(item)}
         accessibilityLabel={
-          hasBalance ? `Resgatar ${item.nome}` : `Saldo insuficiente para ${item.nome}`
+          outOfStock ? `${item.nome} esgotado` : canRedeem ? `Resgatar ${item.nome}` : `Saldo insuficiente para ${item.nome}`
         }
-        accessibilityState={{ disabled: !hasBalance || redeeming !== null }}
+        accessibilityState={{ disabled: !canRedeem || redeeming !== null || isReadOnly }}
       />
     </View>
   );
@@ -340,10 +344,9 @@ const cardStyles = StyleSheet.create({
     marginHorizontal: spacing['1'],
     marginBottom: spacing['3'],
   },
-  prizeImage: {
-    width: '100%',
-    height: 80,
-    borderRadius: radii.lg,
+  cardContent: {
+    flex: 1,
+    gap: spacing['2'],
   },
   prizePlaceholder: {
     width: '100%',
@@ -352,6 +355,9 @@ const cardStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  prizeEmoji: {
+    fontSize: 36,
+  },
   name: {
     fontSize: typography.size.sm,
     fontFamily: typography.family.bold,
@@ -359,14 +365,17 @@ const cardStyles = StyleSheet.create({
   desc: {
     fontSize: typography.size.xs,
   },
-  costRow: {
+  costBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing['1'],
+    borderRadius: radii.md,
+    paddingHorizontal: spacing['2'],
+    paddingVertical: spacing['1'],
   },
-  cost: {
-    fontSize: typography.size.xs,
-    fontFamily: typography.family.bold,
+  costText: {
+    fontSize: typography.size.sm,
+    fontFamily: typography.family.black,
   },
   progressBg: {
     height: spacing['1'],

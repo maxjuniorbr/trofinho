@@ -3,7 +3,7 @@ import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Pencil, Plus, Trophy } from 'lucide-react-native';
+import { Pencil, Plus, Star } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
@@ -15,9 +15,14 @@ import { ListScreenSkeleton } from '@/components/ui/skeleton';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { ListFooter } from '@/components/ui/list-footer';
+import { SegmentedBar, type SegmentOption } from '@/components/ui/segmented-bar';
+import { PrizeFormSheet } from '@/components/prizes/prize-form-sheet';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { consumeNavigationFeedback, type NavigationFeedback } from '@lib/navigation-feedback';
-import { usePrizes } from '@/hooks/queries';
+import { usePrizes, usePrizeDetail } from '@/hooks/queries';
+import type { Prize } from '@lib/prizes';
+
+type TabKey = 'ativos' | 'arquivados' | 'todos';
 
 export default function AdminPrizesScreen() {
   const router = useRouter();
@@ -35,11 +40,23 @@ export default function AdminPrizesScreen() {
     hasNextPage,
     isFetchingNextPage,
   } = usePrizes();
-  const prizes = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
+  const allPrizes = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
+
+  const [tab, setTab] = useState<TabKey>('ativos');
+  const [showCreate, setShowCreate] = useState(false);
+  const [editPrizeId, setEditPrizeId] = useState<string | null>(null);
   const [successFeedback, setSuccessFeedback] = useState<NavigationFeedback | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<{ message: string; key: number } | null>(
+    null,
+  );
   const visibleSuccessMessage = useTransientMessage(successFeedback?.message ?? null, {
     resetKey: successFeedback?.id,
   });
+  const visibleAction = useTransientMessage(actionFeedback?.message ?? null, {
+    resetKey: actionFeedback?.key,
+  });
+
+  const editPrizeQuery = usePrizeDetail(editPrizeId ?? undefined);
 
   useFocusEffect(
     useCallback(() => {
@@ -48,14 +65,21 @@ export default function AdminPrizesScreen() {
     }, []),
   );
 
-  const active = prizes.filter((p) => p.ativo);
-  const inactive = prizes.filter((p) => !p.ativo);
+  const visible: Prize[] = useMemo(() => {
+    if (tab === 'ativos') return allPrizes.filter((p) => p.ativo);
+    if (tab === 'arquivados') return allPrizes.filter((p) => !p.ativo);
+    return allPrizes;
+  }, [allPrizes, tab]);
+
+  const activeCount = useMemo(() => allPrizes.filter((p) => p.ativo).length, [allPrizes]);
+  const archivedCount = useMemo(() => allPrizes.filter((p) => !p.ativo).length, [allPrizes]);
+
   const hasError = Boolean(error);
-  const shouldShowEmptyState = hasError || prizes.length === 0;
-  const emptyStateMessage = 'Nenhum prêmio cadastrado.\nToque em "+" para criar o primeiro prêmio.';
-  const inactivePlural = inactive.length === 1 ? '' : 's';
-  const inactiveSummary =
-    inactive.length > 0 ? ` · ${inactive.length} inativo${inactivePlural}` : '';
+  const shouldShowEmptyState = hasError || visible.length === 0;
+  const emptyStateMessage =
+    tab === 'arquivados'
+      ? 'Nenhum prêmio arquivado.'
+      : 'Nenhum prêmio cadastrado.\nToque em "+" para criar.';
 
   const handleFooterNavigate = useCallback(
     (rota: string) => {
@@ -64,6 +88,15 @@ export default function AdminPrizesScreen() {
       else router.replace(rota as never);
     },
     [router],
+  );
+
+  const tabs: SegmentOption<TabKey>[] = useMemo(
+    () => [
+      { key: 'ativos', label: 'Ativos', badge: activeCount },
+      { key: 'arquivados', label: 'Arquivados', badge: archivedCount },
+      { key: 'todos', label: 'Todos', badge: allPrizes.length },
+    ],
+    [activeCount, archivedCount, allPrizes.length],
   );
 
   const renderContent = () => {
@@ -80,8 +113,9 @@ export default function AdminPrizesScreen() {
     }
     return (
       <FlashList
-        data={prizes}
+        data={visible}
         keyExtractor={(item) => item.id}
+        numColumns={2}
         maintainVisibleContentPosition={{ disabled: true }}
         contentContainerStyle={styles.lista}
         refreshControl={
@@ -91,62 +125,49 @@ export default function AdminPrizesScreen() {
             tintColor={colors.brand.vivid}
           />
         }
-        ListHeaderComponent={
-          <>
-            <View style={{ height: spacing['4'] }} />
-            <Text style={styles.resumo}>
-              {active.length} ativo{active.length === 1 ? '' : 's'}
-              {inactiveSummary}
-            </Text>
-          </>
-        }
+        ListHeaderComponent={<View style={{ height: spacing['3'] }} />}
         renderItem={({ item }) => (
-          <View style={[styles.card, !item.ativo && styles.cardInativo]}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.card,
+              { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+              !item.ativo && styles.cardArquivado,
+              pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] },
+            ]}
+            onPress={() => setEditPrizeId(item.id)}
+            accessibilityRole="button"
+            accessibilityLabel={`${item.nome}, ${item.custo_pontos} pontos${item.ativo ? '' : ', arquivado'}`}
+          >
+            <Text style={styles.emoji}>{item.emoji || '🎁'}</Text>
+            <Text
+              style={[styles.cardNome, { color: colors.text.primary }]}
+              numberOfLines={2}
+            >
+              {item.nome}
+            </Text>
+            <View style={[styles.costBadge, { backgroundColor: colors.accent.adminBg }]}>
+              <Star size={12} color={colors.accent.admin} strokeWidth={2} />
+              <Text style={[styles.costText, { color: colors.accent.admin }]}>
+                {item.custo_pontos}
+              </Text>
+            </View>
+            <Text style={[styles.stockText, { color: colors.text.muted }]}>
+              {item.estoque === 0 ? 'Esgotado' : `${item.estoque} disponíveis`}
+            </Text>
             <Pressable
               style={({ pressed }) => [
-                styles.cardMain,
-                pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+                styles.editBtn,
+                { backgroundColor: colors.bg.muted },
+                pressed && { opacity: 0.7 },
               ]}
-              onPress={() => router.push(`/(admin)/prizes/${item.id}` as never)}
+              onPress={() => setEditPrizeId(item.id)}
               accessibilityRole="button"
-              accessibilityLabel={`${item.nome}, ${item.custo_pontos} pontos${item.ativo ? '' : ', inativo'}`}
-            >
-              <View style={styles.cardTopo}>
-                <Text style={[styles.cardNome, !item.ativo && styles.textoInativo]}>
-                  {item.nome}
-                </Text>
-                {!item.ativo && (
-                  <View style={styles.badgeInativo}>
-                    <Text style={styles.badgeInativoTexto}>inativo</Text>
-                  </View>
-                )}
-              </View>
-              {item.descricao ? (
-                <Text
-                  style={[styles.cardDescricao, !item.ativo && styles.textoInativo]}
-                  numberOfLines={2}
-                >
-                  {item.descricao}
-                </Text>
-              ) : null}
-              <View style={styles.cardCustoRow}>
-                <Trophy
-                  size={12}
-                  color={item.ativo ? colors.accent.admin : colors.text.muted}
-                  strokeWidth={2}
-                />
-                <Text style={[styles.cardCusto, !item.ativo && styles.textoInativo]}>
-                  {item.custo_pontos} pts
-                </Text>
-              </View>
-            </Pressable>
-
-            <HeaderIconButton
-              icon={Pencil}
-              onPress={() => router.push(`/(admin)/prizes/${item.id}` as never)}
               accessibilityLabel={`Editar prêmio ${item.nome}`}
-            />
-          </View>
+            >
+              <Pencil size={12} color={colors.text.primary} strokeWidth={2} />
+              <Text style={[styles.editBtnText, { color: colors.text.primary }]}>Editar</Text>
+            </Pressable>
+          </Pressable>
         )}
         onEndReached={() => {
           if (hasNextPage) fetchNextPage();
@@ -165,16 +186,24 @@ export default function AdminPrizesScreen() {
         rightAction={
           <HeaderIconButton
             icon={Plus}
-            onPress={() => router.push('/(admin)/prizes/new' as never)}
+            onPress={() => setShowCreate(true)}
             accessibilityLabel="Criar prêmio"
             tone="accent"
           />
         }
       />
 
+      <SegmentedBar options={tabs} value={tab} onChange={setTab} role="admin" />
+
       {visibleSuccessMessage ? (
         <View style={styles.feedbackWrapper}>
           <InlineMessage message={visibleSuccessMessage} variant="success" />
+        </View>
+      ) : null}
+
+      {visibleAction ? (
+        <View style={styles.feedbackWrapper}>
+          <InlineMessage message={visibleAction} variant="success" />
         </View>
       ) : null}
 
@@ -184,58 +213,82 @@ export default function AdminPrizesScreen() {
         activeRoute="/(admin)/prizes"
         onNavigate={handleFooterNavigate}
       />
+
+      <PrizeFormSheet
+        visible={showCreate}
+        mode="create"
+        onClose={() => setShowCreate(false)}
+        onSuccess={(message) => setActionFeedback({ message, key: Date.now() })}
+      />
+
+      <PrizeFormSheet
+        visible={editPrizeId !== null && !!editPrizeQuery.data}
+        mode="edit"
+        prize={editPrizeQuery.data ?? null}
+        onClose={() => setEditPrizeId(null)}
+        onSuccess={(message) => setActionFeedback({ message, key: Date.now() })}
+      />
     </SafeScreenFrame>
   );
 }
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    container: { flex: 1 },
     feedbackWrapper: {
       paddingHorizontal: spacing['4'],
-      paddingTop: spacing['4'],
+      paddingTop: spacing['3'],
     },
-    lista: { paddingHorizontal: spacing['4'] },
-    resumo: { fontSize: typography.size.xs, color: colors.text.muted, marginBottom: spacing['1'] },
+    lista: { paddingHorizontal: spacing['3'] },
     card: {
-      backgroundColor: colors.bg.surface,
+      flex: 1,
       borderRadius: radii.xl,
+      borderCurve: 'continuous',
       borderWidth: 1,
-      borderColor: colors.border.subtle,
       padding: spacing['4'],
-      gap: spacing['3'],
-      flexDirection: 'row',
       alignItems: 'center',
+      marginHorizontal: spacing['1'],
       marginBottom: spacing['3'],
       ...shadows.card,
     },
-    cardInativo: { opacity: 0.55 },
-    cardMain: { flex: 1, gap: spacing['2'] },
-    cardTopo: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
+    cardArquivado: { opacity: 0.55 },
+    emoji: { fontSize: 36, marginBottom: spacing['2'] },
     cardNome: {
-      fontSize: typography.size.md,
-      fontFamily: typography.family.semibold,
-      color: colors.text.primary,
-      flex: 1,
-    },
-    textoInativo: { color: colors.text.muted },
-    cardDescricao: { fontSize: typography.size.sm, color: colors.text.secondary },
-    cardCustoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
-    cardCusto: {
-      fontSize: typography.size.xs,
+      fontSize: typography.size.sm,
       fontFamily: typography.family.bold,
-      color: colors.accent.admin,
+      textAlign: 'center',
+      marginBottom: spacing['2'],
+      minHeight: 40,
     },
-    badgeInativo: {
-      backgroundColor: colors.bg.muted,
+    costBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1'],
       borderRadius: radii.md,
       paddingHorizontal: spacing['2'],
       paddingVertical: spacing['1'],
+      marginBottom: spacing['2'],
     },
-    badgeInativoTexto: {
+    costText: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.black,
+    },
+    stockText: {
+      fontSize: 10,
+      fontFamily: typography.family.medium,
+      marginBottom: spacing['2'],
+    },
+    editBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing['1'],
+      width: '100%',
+      paddingVertical: spacing['2'],
+      borderRadius: radii.md,
+    },
+    editBtnText: {
       fontSize: typography.size.xs,
-      color: colors.text.muted,
-      fontFamily: typography.family.semibold,
+      fontFamily: typography.family.bold,
     },
   });
 }

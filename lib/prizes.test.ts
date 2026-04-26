@@ -20,12 +20,7 @@ import {
 } from './redemptions';
 import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@lib/status';
 
-const uploadImageToBucketMock = vi.hoisted(() => vi.fn());
 const dispatchPushNotificationMock = vi.hoisted(() => vi.fn());
-
-const storageBucketMock = vi.hoisted(() => ({
-  remove: vi.fn().mockResolvedValue({ error: null }),
-}));
 
 const supabaseMock = vi.hoisted(() => ({
   from: vi.fn(),
@@ -33,19 +28,10 @@ const supabaseMock = vi.hoisted(() => ({
   auth: {
     getUser: vi.fn(),
   },
-  storage: {
-    from: vi.fn(),
-  },
 }));
 
 vi.mock('./supabase', () => ({
   supabase: supabaseMock,
-}));
-
-vi.mock('./storage', () => ({
-  uploadImageToBucket: uploadImageToBucketMock,
-  resolveStorageUrl: vi.fn(async (_b: string, v: string | null) => v),
-  resolveStorageUrls: vi.fn(async (_b: string, vs: (string | null)[]) => vs),
 }));
 
 vi.mock('./push', () => ({
@@ -99,13 +85,10 @@ function createEqQuery(result: QueryResult) {
 
 describe('prizes', () => {
   beforeEach(() => {
-    uploadImageToBucketMock.mockReset();
     dispatchPushNotificationMock.mockReset();
-    storageBucketMock.remove.mockReset().mockResolvedValue({ error: null });
     supabaseMock.from.mockReset();
     supabaseMock.rpc.mockReset();
     supabaseMock.auth.getUser.mockReset();
-    supabaseMock.storage.from.mockReset().mockReturnValue(storageBucketMock);
   });
 
   it('returns redemption presentation helpers', () => {
@@ -125,7 +108,7 @@ describe('prizes', () => {
     supabaseMock.from.mockReturnValueOnce(listQuery).mockReturnValueOnce(getQuery);
 
     await expect(listPrizes()).resolves.toEqual({
-      data: [{ id: 'prize-1', imagem_url: null }],
+      data: [{ id: 'prize-1' }],
       hasMore: false,
       error: null,
     });
@@ -139,47 +122,22 @@ describe('prizes', () => {
     supabaseMock.auth.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     supabaseMock.from.mockReturnValueOnce(profileQuery).mockReturnValueOnce(insertQuery);
 
-    const result = await createPrize({ nome: 'Sorvete', descricao: null, custo_pontos: 50 });
+    const result = await createPrize({ nome: 'Sorvete', descricao: null, custo_pontos: 50, emoji: '🎁', estoque: 99 });
 
     expect(insertQuery.insert).toHaveBeenCalledWith({
       familia_id: 'family-1',
       nome: 'Sorvete',
       descricao: null,
       custo_pontos: 50,
+      emoji: '🎁',
+      estoque: 99,
     });
     expect(result).toEqual({ data: { id: 'prize-1' }, error: null });
   });
 
-  it('removes the uploaded image when the image url update fails during prize creation', async () => {
-    const profileQuery = createSingleQuery({ data: { familia_id: 'family-1' }, error: null });
-    const insertQuery = createSingleQuery({ data: { id: 'prize-new' }, error: null });
-    const updateQuery = createEqQuery({ data: null, error: { message: 'update failed' } });
-
-    supabaseMock.auth.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
-    supabaseMock.from
-      .mockReturnValueOnce(profileQuery)
-      .mockReturnValueOnce(insertQuery)
-      .mockReturnValueOnce(updateQuery);
-
-    uploadImageToBucketMock.mockResolvedValue({
-      error: null,
-      path: 'prize-new/capa.jpg',
-    });
-
-    const result = await createPrize({
-      nome: 'Brinquedo',
-      descricao: null,
-      custo_pontos: 100,
-      imageUri: 'file:///img.jpg',
-    });
-
-    expect(storageBucketMock.remove).toHaveBeenCalledWith(['prize-new/capa.jpg']);
-    expect(result.data?.imagem_url).toBeFalsy();
-  });
-
   it('returns translated failures while creating a prize', async () => {
     supabaseMock.auth.getUser.mockResolvedValue({ data: { user: null } });
-    await expect(createPrize({ nome: 'A', descricao: null, custo_pontos: 1 })).resolves.toEqual({
+    await expect(createPrize({ nome: 'A', descricao: null, custo_pontos: 1, emoji: '🎁', estoque: 99 })).resolves.toEqual({
       data: null,
       error: 'Usuário não autenticado',
     });
@@ -188,7 +146,7 @@ describe('prizes', () => {
     const profileQuery = createSingleQuery({ data: null, error: null });
     supabaseMock.from.mockReturnValue(profileQuery);
 
-    await expect(createPrize({ nome: 'A', descricao: null, custo_pontos: 1 })).resolves.toEqual({
+    await expect(createPrize({ nome: 'A', descricao: null, custo_pontos: 1, emoji: '🎁', estoque: 99 })).resolves.toEqual({
       data: null,
       error: 'Perfil não encontrado',
     });
@@ -206,17 +164,18 @@ describe('prizes', () => {
         nome: 'Novo',
         descricao: 'D',
         custo_pontos: 10,
+        emoji: '🎁', estoque: 99,
       }),
-    ).resolves.toEqual({ error: null, imageUrl: null, pointsMessage: null });
+    ).resolves.toEqual({ error: null, pointsMessage: null });
     await expect(
       updatePrize('prize-1', {
         nome: 'Novo',
         descricao: 'D',
         custo_pontos: 10,
+        emoji: '🎁', estoque: 99,
       }),
     ).resolves.toEqual({
       error: 'Algo deu errado. Tente novamente.',
-      imageUrl: null,
       pointsMessage: null,
     });
     await expect(deactivatePrize('prize-1')).resolves.toEqual({
@@ -227,11 +186,7 @@ describe('prizes', () => {
     await expect(reactivatePrize('prize-1')).resolves.toEqual({ error: null });
   });
 
-  it('uploads the prize image before calling the edit rpc', async () => {
-    uploadImageToBucketMock.mockResolvedValue({
-      error: null,
-      path: 'prize-2/capa.jpg',
-    });
+  it('calls the edit rpc with p_emoji', async () => {
     supabaseMock.rpc.mockResolvedValue({ data: null, error: null });
 
     await expect(
@@ -240,26 +195,21 @@ describe('prizes', () => {
         descricao: 'Sessão especial',
         custo_pontos: 120,
         ativo: false,
-        imageUri: 'file:///data/user/0/com.trofinho/cache/prize.jpg',
+        emoji: '🎁',
+        estoque: 99,
       }),
     ).resolves.toEqual({
       error: null,
-      imageUrl: 'prize-2/capa.jpg',
       pointsMessage: null,
     });
 
-    expect(uploadImageToBucketMock).toHaveBeenCalledWith({
-      bucket: 'premios',
-      imageUri: 'file:///data/user/0/com.trofinho/cache/prize.jpg',
-      imageOptions: { maxDimension: 768, compress: 0.65 },
-      pathWithoutExtension: 'prize-2/capa',
-    });
     expect(supabaseMock.rpc).toHaveBeenCalledWith('editar_premio', {
       p_premio_id: 'prize-2',
       p_nome: 'Cinema',
       p_descricao: 'Sessão especial',
       p_custo_pontos: 120,
-      p_imagem_url: 'prize-2/capa.jpg',
+      p_emoji: '🎁',
+      p_estoque: 99,
       p_ativo: false,
     });
   });
@@ -276,11 +226,11 @@ describe('prizes', () => {
         descricao: 'Edição nova',
         custo_pontos: 80,
         ativo: true,
-        imagem_url: 'https://cdn.example.com/prize-3/capa.jpg',
+        emoji: '🎁',
+        estoque: 99,
       }),
     ).resolves.toEqual({
       error: null,
-      imageUrl: 'https://cdn.example.com/prize-3/capa.jpg',
       pointsMessage: 'Não é possível alterar os pontos pois há resgates em aberto.',
     });
   });
@@ -429,7 +379,7 @@ describe('prizes', () => {
       requestRedemption('prize-1', { familiaId: 'f1', childName: 'C', prizeName: 'P' }),
     ).resolves.toEqual({ data: null, error: 'Algo deu errado. Tente novamente.' });
     await expect(cancelRedemption('red-2')).resolves.toEqual({ error: null });
-    await expect(createPrize({ nome: 'A', descricao: null, custo_pontos: 1 })).resolves.toEqual({
+    await expect(createPrize({ nome: 'A', descricao: null, custo_pontos: 1, emoji: '🎁', estoque: 99 })).resolves.toEqual({
       data: null,
       error: 'Algo deu errado. Tente novamente.',
     });
@@ -456,30 +406,6 @@ describe('prizes', () => {
       data: [],
       hasMore: false,
       error: null,
-    });
-  });
-
-  it('returns upload errors when the prize image upload fails', async () => {
-    uploadImageToBucketMock
-      .mockResolvedValueOnce({ error: 'upload failed', path: null })
-      .mockResolvedValueOnce({ error: null, path: null });
-
-    const input = {
-      nome: 'A',
-      descricao: null,
-      custo_pontos: 10,
-      imageUri: 'file:///cache/img.jpg',
-    };
-
-    await expect(updatePrize('prize-1', input)).resolves.toEqual({
-      error: 'upload failed',
-      imageUrl: null,
-      pointsMessage: null,
-    });
-    await expect(updatePrize('prize-1', input)).resolves.toEqual({
-      error: 'Não foi possível fazer upload da imagem do prêmio.',
-      imageUrl: null,
-      pointsMessage: null,
     });
   });
 

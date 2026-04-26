@@ -1,6 +1,9 @@
 import { localizeRpcError } from './api-error';
-import { resolveStorageUrl, resolveStorageUrls, uploadImageToBucket } from './storage';
 import { supabase } from './supabase';
+
+export const PRIZE_EMOJIS = [
+  '🎁', '🍦', '🎮', '🎬', '🍕', '📚', '🧸', '🍫', '🎨', '⚽', '🚲', '🎵',
+] as const;
 
 export type Prize = {
   id: string;
@@ -8,7 +11,8 @@ export type Prize = {
   nome: string;
   descricao: string | null;
   custo_pontos: number;
-  imagem_url: string | null;
+  emoji: string;
+  estoque: number;
   ativo: boolean;
   created_at: string;
 };
@@ -17,19 +21,13 @@ export type PrizeInput = {
   nome: string;
   descricao: string | null;
   custo_pontos: number;
-  imageUri?: string | null;
+  emoji: string;
+  estoque: number;
 };
 
 export type UpdatePrizeInput = PrizeInput & {
   ativo?: boolean | null;
-  imagem_url?: string | null;
-  imageUri?: string | null;
 };
-
-const PRIZE_IMAGE_OPTIONS = {
-  maxDimension: 768,
-  compress: 0.65,
-} as const;
 
 export async function listPrizes(
   page = 0,
@@ -55,16 +53,7 @@ export async function listPrizes(
   const hasMore = items.length > pageSize;
   const page_items = hasMore ? items.slice(0, pageSize) : items;
 
-  const signedUrls = await resolveStorageUrls(
-    'premios',
-    page_items.map((p) => p.imagem_url),
-  );
-  const resolved = page_items.map((prize, i) => ({
-    ...prize,
-    imagem_url: signedUrls[i] ?? null,
-  }));
-
-  return { data: resolved, hasMore, error: null };
+  return { data: page_items, hasMore, error: null };
 }
 
 export async function getPrize(id: string): Promise<{
@@ -79,13 +68,7 @@ export async function getPrize(id: string): Promise<{
     .single();
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
-
-  const prize = data as Prize | null;
-  if (prize?.imagem_url) {
-    prize.imagem_url = await resolveStorageUrl('premios', prize.imagem_url);
-  }
-
-  return { data: prize, error: null };
+  return { data: data as Prize | null, error: null };
 }
 
 export async function createPrize(input: PrizeInput): Promise<{
@@ -110,96 +93,36 @@ export async function createPrize(input: PrizeInput): Promise<{
       nome: input.nome,
       descricao: input.descricao,
       custo_pontos: input.custo_pontos,
+      emoji: input.emoji,
+      estoque: input.estoque,
     })
     .select()
     .single();
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
-
-  if (input.imageUri && data) {
-    const uploadResult = await uploadImageToBucket({
-      bucket: 'premios',
-      imageUri: input.imageUri,
-      imageOptions: PRIZE_IMAGE_OPTIONS,
-      pathWithoutExtension: `${data.id}/capa`,
-    });
-
-    if (uploadResult.path) {
-      const { error: updateError } = await supabase
-        .from('premios')
-        .update({ imagem_url: uploadResult.path })
-        .eq('id', data.id);
-
-      if (updateError && uploadResult.path) {
-        supabase.storage
-          .from('premios')
-          .remove([uploadResult.path])
-          .catch(() => {});
-      }
-
-      if (!updateError) {
-        data.imagem_url = uploadResult.path;
-      }
-    }
-  }
-
   return { data, error: null };
 }
 
 export async function updatePrize(
   id: string,
   input: UpdatePrizeInput,
-): Promise<{ error: string | null; imageUrl: string | null; pointsMessage: string | null }> {
-  let nextImageUrl = input.imagem_url ?? null;
-  let uploadedPath: string | null = null;
-
-  if (input.imageUri) {
-    const uploadResult = await uploadImageToBucket({
-      bucket: 'premios',
-      imageUri: input.imageUri,
-      imageOptions: PRIZE_IMAGE_OPTIONS,
-      pathWithoutExtension: `${id}/capa`,
-    });
-
-    if (uploadResult.error || !uploadResult.path) {
-      return {
-        error: uploadResult.error ?? 'Não foi possível fazer upload da imagem do prêmio.',
-        imageUrl: null,
-        pointsMessage: null,
-      };
-    }
-
-    nextImageUrl = uploadResult.path;
-    uploadedPath = uploadResult.path;
-  }
-
+): Promise<{ error: string | null; pointsMessage: string | null }> {
   const { data, error } = await supabase.rpc('editar_premio', {
     p_premio_id: id,
     p_nome: input.nome,
     p_descricao: input.descricao ?? '',
     p_custo_pontos: input.custo_pontos,
-    p_imagem_url: nextImageUrl ?? undefined,
+    p_emoji: input.emoji,
+    p_estoque: input.estoque,
     p_ativo: input.ativo ?? undefined,
   });
 
   if (error) {
-    if (input.imageUri && nextImageUrl && uploadedPath) {
-      supabase.storage
-        .from('premios')
-        .remove([uploadedPath])
-        .catch(() => {});
-    }
-    return {
-      error: localizeRpcError(error.message),
-      imageUrl: nextImageUrl,
-      pointsMessage: null,
-    };
+    return { error: localizeRpcError(error.message), pointsMessage: null };
   }
 
   return {
     error: null,
-    imageUrl: nextImageUrl,
-    // RPC editar_premio returns a message string when points changed
     pointsMessage: (data as string | null) ?? null,
   };
 }
