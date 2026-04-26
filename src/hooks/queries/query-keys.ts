@@ -11,7 +11,7 @@ export const queryKeys = {
     childAssignments: () => [...queryKeys.tasks.all, 'child-assignments'] as const,
     childAssignment: (id: string) => [...queryKeys.tasks.all, 'child-assignment', id] as const,
     assignments: (taskId: string) => [...queryKeys.tasks.all, 'assignments', taskId] as const,
-    renewRecurring: () => [...queryKeys.tasks.all, 'renew-recurring'] as const,
+    renewRecurring: (childId?: string) => [...queryKeys.tasks.all, 'renew-recurring', childId ?? 'self'] as const,
   },
   balances: {
     all: ['balances'] as const,

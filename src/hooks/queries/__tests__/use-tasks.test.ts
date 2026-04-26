@@ -183,6 +183,30 @@ describe('use-tasks mutation hooks', () => {
       expect(mockInvalidateQueries).not.toHaveBeenCalled();
     });
 
+    it('useRenewRecurringTasks includes childId in query key for impersonation switching', async () => {
+      const childA = 'child-aaa';
+      const childB = 'child-bbb';
+      const { useRenewRecurringTasks } = await loadHooks();
+
+      useRenewRecurringTasks(childA);
+      const keyA = lastQueryOpts().queryKey;
+      expect(keyA).toEqual(queryKeys.tasks.renewRecurring(childA));
+
+      useRenewRecurringTasks(childB);
+      const keyB = lastQueryOpts().queryKey;
+      expect(keyB).toEqual(queryKeys.tasks.renewRecurring(childB));
+
+      // Keys must differ so React Query treats them as separate cache entries
+      expect(keyA).not.toEqual(keyB);
+    });
+
+    it('useRenewRecurringTasks uses "self" sentinel when no childId is provided', async () => {
+      const { useRenewRecurringTasks } = await loadHooks();
+      useRenewRecurringTasks();
+      expect(lastQueryOpts().queryKey).toEqual(queryKeys.tasks.renewRecurring(undefined));
+      expect(lastQueryOpts().queryKey).toContain('self');
+    });
+
     it('useDeleteTask invalidates tasks.all on success', async () => {
       const { useDeleteTask } = await loadHooks();
       useDeleteTask();

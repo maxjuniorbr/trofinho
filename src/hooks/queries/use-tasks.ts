@@ -74,9 +74,12 @@ export const useTaskAssignments = (taskId: string | undefined) =>
   });
 
 /**
- * Ensures today's daily assignments exist. Runs once per app session
- * (staleTime: Infinity) so that navigating between screens doesn't
- * re-fire the RPC or re-invalidate task caches.
+ * Ensures today's daily assignments exist for the given child.
+ *
+ * The query key includes `childId` so that switching between children
+ * (e.g. impersonation) triggers a fresh RPC call for the new child.
+ * Within the same child, `staleTime: Infinity` prevents re-firing on
+ * screen navigations.
  *
  * The RPC is idempotent (ON CONFLICT DO NOTHING), so duplicate calls
  * are harmless — but the post-success cache invalidation was the main
@@ -86,7 +89,7 @@ export const useRenewRecurringTasks = (childId?: string) => {
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: queryKeys.tasks.renewRecurring(),
+    queryKey: queryKeys.tasks.renewRecurring(childId),
     queryFn: async () => {
       try {
         await renewRecurringTasks(childId);
