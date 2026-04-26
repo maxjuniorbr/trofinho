@@ -15,6 +15,10 @@ vi.mock('expo-haptics', () => ({
 const platformMock = vi.hoisted(() => ({ OS: 'ios' as string }));
 
 vi.mock('react-native', () => ({
+  Keyboard: {
+    addListener: vi.fn(() => ({ remove: vi.fn() })),
+    dismiss: vi.fn(),
+  },
   Platform: platformMock,
 }));
 

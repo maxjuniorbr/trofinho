@@ -72,6 +72,10 @@ const createHostComponent = vi.hoisted(() => {
 vi.mock('react-native', () => ({
   ActivityIndicator: createHostComponent('ActivityIndicator'),
   Alert: alertMock,
+  Keyboard: {
+    addListener: vi.fn(() => ({ remove: vi.fn() })),
+    dismiss: vi.fn(),
+  },
   Pressable: createHostComponent('Pressable'),
   ScrollView: createHostComponent('ScrollView'),
   StyleSheet: { create: <T,>(styles: T) => styles },

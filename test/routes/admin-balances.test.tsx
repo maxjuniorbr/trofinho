@@ -27,6 +27,10 @@ const createHostComponent = vi.hoisted(() => {
 });
 
 vi.mock('react-native', () => ({
+  Keyboard: {
+    addListener: vi.fn(() => ({ remove: vi.fn() })),
+    dismiss: vi.fn(),
+  },
   Pressable: createHostComponent('Pressable'),
   RefreshControl: createHostComponent('RefreshControl'),
   StyleSheet: { create: <T,>(styles: T) => styles },
@@ -59,12 +63,12 @@ vi.mock('@shopify/flash-list', () => ({
       props,
       data && data.length > 0
         ? data.map((item) =>
-            React.createElement(
-              React.Fragment,
-              { key: item.filho_id as string },
-              renderItem({ item }),
-            ),
-          )
+          React.createElement(
+            React.Fragment,
+            { key: item.filho_id as string },
+            renderItem({ item }),
+          ),
+        )
         : ListEmptyComponent,
     ),
 }));

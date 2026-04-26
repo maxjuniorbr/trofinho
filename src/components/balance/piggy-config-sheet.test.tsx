@@ -15,6 +15,10 @@ const createHostComponent = vi.hoisted(() => {
 });
 
 vi.mock('react-native', () => ({
+  Keyboard: {
+    addListener: vi.fn(() => ({ remove: vi.fn() })),
+    dismiss: vi.fn(),
+  },
   KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
   Modal: createHostComponent('Modal'),
   Platform: { OS: 'ios' },

@@ -108,6 +108,10 @@ vi.mock('react-native', () => ({
   ActivityIndicator: createHostComponent('ActivityIndicator'),
   Alert: alertMock,
   AppState: { addEventListener: vi.fn(() => ({ remove: vi.fn() })) },
+  Keyboard: {
+    addListener: vi.fn(() => ({ remove: vi.fn() })),
+    dismiss: vi.fn(),
+  },
   KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
   Modal: createHostComponent('Modal'),
   Platform: { OS: 'ios', select: (obj: Record<string, unknown>) => obj.ios },

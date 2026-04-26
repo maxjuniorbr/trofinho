@@ -45,6 +45,10 @@ const createHostComponent = vi.hoisted(() => {
 });
 
 vi.mock('react-native', () => ({
+  Keyboard: {
+    addListener: vi.fn(() => ({ remove: vi.fn() })),
+    dismiss: vi.fn(),
+  },
   Pressable: createHostComponent('Pressable'),
   RefreshControl: createHostComponent('RefreshControl'),
   StyleSheet: { create: <T,>(styles: T) => styles },

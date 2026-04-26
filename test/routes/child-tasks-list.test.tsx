@@ -37,6 +37,10 @@ const alertMock = vi.hoisted(() => ({
 
 vi.mock('react-native', () => ({
   Alert: alertMock,
+  Keyboard: {
+    addListener: vi.fn(() => ({ remove: vi.fn() })),
+    dismiss: vi.fn(),
+  },
   Pressable: createHostComponent('Pressable'),
   RefreshControl: createHostComponent('RefreshControl'),
   StyleSheet: {

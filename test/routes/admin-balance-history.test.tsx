@@ -28,6 +28,10 @@ const createHostComponent = vi.hoisted(() => {
 });
 
 vi.mock('react-native', () => ({
+  Keyboard: {
+    addListener: vi.fn(() => ({ remove: vi.fn() })),
+    dismiss: vi.fn(),
+  },
   Pressable: createHostComponent('Pressable'),
   RefreshControl: createHostComponent('RefreshControl'),
   StyleSheet: { create: <T,>(styles: T) => styles, hairlineWidth: 0.5 },
@@ -60,19 +64,19 @@ vi.mock('@shopify/flash-list', () => ({
     ref: React.ForwardedRef<unknown>,
   ) {
     const { data, renderItem, ListHeaderComponent, ListFooterComponent, ...rest } = props;
-    React.useImperativeHandle(ref, () => ({ scrollToOffset: () => {}, scrollToTop: () => {} }));
+    React.useImperativeHandle(ref, () => ({ scrollToOffset: () => { }, scrollToTop: () => { } }));
     return React.createElement(
       'FlashList',
       rest,
       ListHeaderComponent,
       data && data.length > 0
         ? data.map((item, i) =>
-            React.createElement(
-              React.Fragment,
-              { key: (item.label as string) ?? i },
-              renderItem!({ item }),
-            ),
-          )
+          React.createElement(
+            React.Fragment,
+            { key: (item.label as string) ?? i },
+            renderItem!({ item }),
+          ),
+        )
         : null,
       ListFooterComponent,
     );

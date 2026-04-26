@@ -18,6 +18,10 @@ vi.mock('react-native', () => ({
   AppState: {
     addEventListener: addEventListenerMock,
   },
+  Keyboard: {
+    addListener: vi.fn(() => ({ remove: vi.fn() })),
+    dismiss: vi.fn(),
+  },
 }));
 
 beforeEach(() => {

@@ -84,6 +84,10 @@ vi.mock('react-native', () => ({
     timing: vi.fn(() => ({ start: vi.fn(), stop: vi.fn() })),
     View: createHostComponent('AnimatedView'),
   },
+  Keyboard: {
+    addListener: vi.fn(() => ({ remove: vi.fn() })),
+    dismiss: vi.fn(),
+  },
   Pressable: createHostComponent('Pressable'),
   RefreshControl: createHostComponent('RefreshControl'),
   StyleSheet: { create: <T,>(styles: T) => styles },

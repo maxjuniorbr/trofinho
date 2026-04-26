@@ -2,13 +2,10 @@ import type { ReactNode } from 'react';
 import { useEffect, useMemo } from 'react';
 import {
   Keyboard,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   StyleSheet,
   View,
-  type KeyboardAvoidingViewProps,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -35,24 +32,16 @@ const CLOSE_VELOCITY = 900;
 // Android navigation bars (button nav ≈ 48dp, gesture nav ≈ 24dp).
 const MIN_BOTTOM_PADDING = spacing['8'];
 
-// On iOS, KeyboardAvoidingView with 'padding' works reliably inside Modals.
-// On Android with edge-to-edge (Expo SDK 55+ / RN 0.83+), transparent Modal
-// windows no longer resize when the keyboard opens, and the built-in
-// KeyboardAvoidingView leaves stale bottom padding after the keyboard closes.
-// We handle Android ourselves via Keyboard event listeners + Reanimated.
-const getDefaultKeyboardBehavior = (): KeyboardAvoidingViewProps['behavior'] =>
-  Platform.OS === 'ios' ? 'padding' : undefined;
-
 // ---------------------------------------------------------------------------
-// Android keyboard spacer – listens to Keyboard events and drives a
-// Reanimated shared value so the sheet content shrinks above the keyboard.
+// Keyboard spacer – listens to Keyboard events and drives a Reanimated
+// shared value so the sheet content shrinks above the keyboard.
+// In edge-to-edge mode (Expo SDK 55+ / RN 0.83+), transparent Modal windows
+// no longer resize when the keyboard opens, so we handle it ourselves.
 // ---------------------------------------------------------------------------
-function useAndroidKeyboardHeight() {
+function useKeyboardHeight() {
   const keyboardHeight = useSharedValue(0);
 
   useEffect(() => {
-    if (Platform.OS !== 'android') return;
-
     const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
       keyboardHeight.value = withTiming(e.endCoordinates.height, { duration: 220 });
     });
@@ -76,8 +65,6 @@ type BottomSheetBaseProps = Readonly<{
   contentStyle?: StyleProp<ViewStyle>;
   scrimColor?: string;
   closeLabel?: string;
-  keyboardBehavior?: KeyboardAvoidingViewProps['behavior'];
-  keyboardVerticalOffset?: number;
 }>;
 
 type BottomSheetModalProps = BottomSheetBaseProps &
@@ -90,8 +77,6 @@ export function BottomSheetModal({
   visible,
   onShow,
   onClose,
-  keyboardBehavior = getDefaultKeyboardBehavior(),
-  keyboardVerticalOffset,
   ...props
 }: BottomSheetModalProps) {
   return (
@@ -119,14 +104,7 @@ export function BottomSheetModal({
           insets synchronously on the first frame. */}
       <SafeAreaProvider initialMetrics={initialWindowMetrics}>
         <GestureHandlerRootView style={styles.root}>
-          <KeyboardAvoidingView
-            style={styles.root}
-            enabled={keyboardBehavior !== undefined}
-            behavior={keyboardBehavior}
-            keyboardVerticalOffset={keyboardVerticalOffset}
-          >
-            <BottomSheetFrame onClose={onClose} {...props} />
-          </KeyboardAvoidingView>
+          <BottomSheetFrame onClose={onClose} {...props} />
         </GestureHandlerRootView>
       </SafeAreaProvider>
     </Modal>
@@ -137,22 +115,13 @@ export function BottomSheetOverlay({
   visible,
   onShow: _onShow,
   onClose,
-  keyboardBehavior = getDefaultKeyboardBehavior(),
-  keyboardVerticalOffset,
   ...props
 }: BottomSheetModalProps) {
   if (!visible) return null;
 
   return (
     <GestureHandlerRootView style={styles.absoluteRoot}>
-      <KeyboardAvoidingView
-        style={styles.root}
-        enabled={keyboardBehavior !== undefined}
-        behavior={keyboardBehavior}
-        keyboardVerticalOffset={keyboardVerticalOffset}
-      >
-        <BottomSheetFrame onClose={onClose} {...props} />
-      </KeyboardAvoidingView>
+      <BottomSheetFrame onClose={onClose} {...props} />
     </GestureHandlerRootView>
   );
 }
@@ -168,7 +137,7 @@ function BottomSheetFrame({
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const translateY = useSharedValue(0);
-  const androidKbHeight = useAndroidKeyboardHeight();
+  const kbHeight = useKeyboardHeight();
 
   const panGesture = useMemo(
     () =>
@@ -193,11 +162,10 @@ function BottomSheetFrame({
     transform: [{ translateY: translateY.value }],
   }));
 
-  // On Android, apply an animated bottom padding that matches the keyboard
-  // height so the sheet content shrinks above the keyboard. On iOS this is
-  // handled by the KeyboardAvoidingView wrapper.
+  // Apply animated bottom padding that matches the keyboard height so the
+  // sheet content shrinks above the keyboard.
   const animatedKeyboardPadding = useAnimatedStyle(() => ({
-    paddingBottom: androidKbHeight.value,
+    paddingBottom: kbHeight.value,
   }));
 
   // Always clear at least MIN_BOTTOM_PADDING so the primary button never

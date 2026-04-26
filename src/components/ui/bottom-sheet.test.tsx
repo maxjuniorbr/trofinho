@@ -1,14 +1,8 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from '../../../test/helpers/test-renderer-compat';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Keyboard, Platform, Text } from 'react-native';
+import { describe, expect, it, vi } from 'vitest';
+import { Keyboard, Text } from 'react-native';
 import { BottomSheetModal, BottomSheetOverlay } from './bottom-sheet';
-
-const initialPlatformOS = Platform.OS;
-
-function setPlatformOS(os: typeof Platform.OS) {
-  Object.defineProperty(Platform, 'OS', { value: os, configurable: true });
-}
 
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
@@ -18,46 +12,7 @@ function render(element: React.ReactElement) {
   return renderer;
 }
 
-function getKeyboardAvoidingView(renderer: ReactTestRenderer) {
-  const [keyboardAvoidingView] = renderer.root.findAll(
-    (node) => node.type === 'KeyboardAvoidingView',
-  );
-
-  expect(keyboardAvoidingView).toBeDefined();
-  return keyboardAvoidingView;
-}
-
-afterEach(() => {
-  setPlatformOS(initialPlatformOS);
-});
-
 describe('BottomSheet', () => {
-  it('keeps keyboard padding enabled by default on iOS', () => {
-    setPlatformOS('ios');
-    const renderer = render(
-      <BottomSheetModal visible onClose={vi.fn()} closeLabel="Fechar teste">
-        <Text>Conteúdo</Text>
-      </BottomSheetModal>,
-    );
-
-    const keyboardAvoidingView = getKeyboardAvoidingView(renderer);
-    expect(keyboardAvoidingView.props.behavior).toBe('padding');
-    expect(keyboardAvoidingView.props.enabled).toBe(true);
-  });
-
-  it('does not add keyboard padding by default on Android modals', () => {
-    setPlatformOS('android');
-    const renderer = render(
-      <BottomSheetModal visible onClose={vi.fn()} closeLabel="Fechar teste">
-        <Text>Conteúdo</Text>
-      </BottomSheetModal>,
-    );
-
-    const keyboardAvoidingView = getKeyboardAvoidingView(renderer);
-    expect(keyboardAvoidingView.props.behavior).toBeUndefined();
-    expect(keyboardAvoidingView.props.enabled).toBe(false);
-  });
-
   it('runs the onShow callback after the native modal is presented', () => {
     const onShow = vi.fn();
     const renderer = render(
@@ -104,8 +59,7 @@ describe('BottomSheet', () => {
     expect(renderer.root.findAllByType('Text').length).toBe(0);
   });
 
-  it('subscribes to keyboard events on Android for edge-to-edge support', () => {
-    setPlatformOS('android');
+  it('subscribes to keyboard events and cleans up on unmount', () => {
     const removeSpy = vi.fn();
     vi.mocked(Keyboard.addListener).mockReturnValue({ remove: removeSpy } as never);
 
@@ -123,19 +77,6 @@ describe('BottomSheet', () => {
     });
 
     expect(removeSpy).toHaveBeenCalledTimes(2);
-  });
-
-  it('does not subscribe to keyboard events on iOS', () => {
-    setPlatformOS('ios');
-    vi.mocked(Keyboard.addListener).mockClear();
-
-    render(
-      <BottomSheetModal visible onClose={vi.fn()} closeLabel="Fechar teste">
-        <Text>Conteúdo</Text>
-      </BottomSheetModal>,
-    );
-
-    expect(Keyboard.addListener).not.toHaveBeenCalled();
   });
 
   it('renders overlay content when visible', () => {

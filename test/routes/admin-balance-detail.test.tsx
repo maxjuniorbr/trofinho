@@ -69,6 +69,10 @@ const createHostComponent = vi.hoisted(() => {
 
 vi.mock('react-native', () => ({
   Alert: { alert: vi.fn() },
+  Keyboard: {
+    addListener: vi.fn(() => ({ remove: vi.fn() })),
+    dismiss: vi.fn(),
+  },
   Pressable: createHostComponent('Pressable'),
   RefreshControl: createHostComponent('RefreshControl'),
   StyleSheet: { create: <T,>(styles: T) => styles, hairlineWidth: 0.5 },
@@ -109,12 +113,12 @@ vi.mock('@shopify/flash-list', () => ({
       ListHeaderComponent,
       data && data.length > 0
         ? data.map((item, i) =>
-            React.createElement(
-              React.Fragment,
-              { key: (item.id as string) ?? i },
-              renderItem({ item }),
-            ),
-          )
+          React.createElement(
+            React.Fragment,
+            { key: (item.id as string) ?? i },
+            renderItem({ item }),
+          ),
+        )
         : null,
       ListFooterComponent,
     ),
@@ -163,10 +167,10 @@ vi.mock('@/components/ui/screen-header', () => ({
       { title, onBack, backLabel },
       onBack
         ? React.createElement(
-            'Pressable',
-            { onPress: onBack, accessibilityLabel: `Voltar para ${backLabel ?? 'Voltar'}` },
-            null,
-          )
+          'Pressable',
+          { onPress: onBack, accessibilityLabel: `Voltar para ${backLabel ?? 'Voltar'}` },
+          null,
+        )
         : null,
       React.createElement('Text', null, title),
       rightAction,
