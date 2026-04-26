@@ -29,7 +29,7 @@ import {
   RotateCcw,
 } from 'lucide-react-native';
 import { getGreeting } from '@lib/utils';
-import { getAssignmentPoints, getAssignmentRetryState, formatWeekdays } from '@lib/tasks';
+import { getAssignmentPoints, getAssignmentRetryState, formatWeekdays, type ChildAssignment } from '@lib/tasks';
 import { isNotificationPermissionDenied } from '@lib/notifications';
 import { useChildUnreadNotifCount } from '@/hooks/use-notification-inbox';
 import {
@@ -363,7 +363,7 @@ export default function FilhoHomeScreen() {
 }
 
 type PendingTaskCardProps = Readonly<{
-  task: (typeof import('@/hooks/queries'))['useChildAssignments'] extends () => { data?: { pages: { data: (infer T)[] }[] } } ? T : never;
+  task: ChildAssignment;
   isReadOnly: boolean;
   colors: ReturnType<typeof useTheme>['colors'];
   styles: ReturnType<typeof makeStyles>;
