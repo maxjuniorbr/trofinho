@@ -259,6 +259,21 @@ vi.mock('expo-secure-store', () => ({
   deleteItemAsync: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('expo-constants', () => ({
+  default: {
+    executionEnvironment: 'standalone',
+    expoConfig: { version: '1.0.0', extra: { eas: { projectId: 'test-project-id' } } },
+    easConfig: { projectId: 'test-project-id' },
+  },
+  ExecutionEnvironment: { StoreClient: 'storeClient' },
+}));
+
+vi.mock('expo-application', () => ({
+  nativeApplicationVersion: '1.0.0',
+  getAndroidId: vi.fn(() => 'test-android-id'),
+  getIosIdForVendorAsync: vi.fn().mockResolvedValue('test-ios-id'),
+}));
+
 vi.mock('@sentry/react-native', () => ({
   captureException: vi.fn(),
   captureMessage: vi.fn(),

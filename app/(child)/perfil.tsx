@@ -13,6 +13,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { ChevronRight, Info, Lock, User } from 'lucide-react-native';
+import { getAppVersion } from '@lib/app-version';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { HomeFooterBar } from '@/components/ui/home-footer-bar';
 import { useChildFooterItems } from '@/hooks/use-footer-items';
@@ -219,7 +220,7 @@ export default function ChildProfileScreen() {
                     </Text>
                   </View>
                   <Text style={[sectionStyles.versionText, { color: colors.text.muted }]}>
-                    1.0.0
+                    {getAppVersion()}
                   </Text>
                 </View>
               </SectionCard>
