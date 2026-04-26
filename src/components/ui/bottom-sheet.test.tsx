@@ -1,7 +1,7 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from '../../../test/helpers/test-renderer-compat';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Platform, Text } from 'react-native';
+import { Keyboard, Platform, Text } from 'react-native';
 import { BottomSheetModal, BottomSheetOverlay } from './bottom-sheet';
 
 const initialPlatformOS = Platform.OS;
@@ -102,5 +102,51 @@ describe('BottomSheet', () => {
     );
 
     expect(renderer.root.findAllByType('Text').length).toBe(0);
+  });
+
+  it('subscribes to keyboard events on Android for edge-to-edge support', () => {
+    setPlatformOS('android');
+    const removeSpy = vi.fn();
+    vi.mocked(Keyboard.addListener).mockReturnValue({ remove: removeSpy } as never);
+
+    const renderer = render(
+      <BottomSheetModal visible onClose={vi.fn()} closeLabel="Fechar teste">
+        <Text>Conteúdo</Text>
+      </BottomSheetModal>,
+    );
+
+    expect(Keyboard.addListener).toHaveBeenCalledWith('keyboardDidShow', expect.any(Function));
+    expect(Keyboard.addListener).toHaveBeenCalledWith('keyboardDidHide', expect.any(Function));
+
+    act(() => {
+      renderer.unmount();
+    });
+
+    expect(removeSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not subscribe to keyboard events on iOS', () => {
+    setPlatformOS('ios');
+    vi.mocked(Keyboard.addListener).mockClear();
+
+    render(
+      <BottomSheetModal visible onClose={vi.fn()} closeLabel="Fechar teste">
+        <Text>Conteúdo</Text>
+      </BottomSheetModal>,
+    );
+
+    expect(Keyboard.addListener).not.toHaveBeenCalled();
+  });
+
+  it('renders overlay content when visible', () => {
+    const renderer = render(
+      <BottomSheetOverlay visible onClose={vi.fn()} closeLabel="Fechar overlay">
+        <Text>Conteúdo visível</Text>
+      </BottomSheetOverlay>,
+    );
+
+    const texts = renderer.root.findAllByType('Text');
+    const contentText = texts.find((t) => t.props.children === 'Conteúdo visível');
+    expect(contentText).toBeDefined();
   });
 });
