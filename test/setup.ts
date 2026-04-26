@@ -163,6 +163,10 @@ vi.mock('react-native', () => ({
     timing: vi.fn(() => ({ start: vi.fn() })),
   },
   Image: createHostComponent('Image'),
+  Keyboard: {
+    addListener: vi.fn(() => ({ remove: vi.fn() })),
+    dismiss: vi.fn(),
+  },
   KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
   Modal: createHostComponent('Modal'),
   Platform: { OS: 'ios', select: (obj: Record<string, unknown>) => obj.ios },
