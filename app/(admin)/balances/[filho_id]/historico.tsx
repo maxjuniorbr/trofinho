@@ -311,48 +311,51 @@ export default function ChildBalanceHistoryScreen() {
                 },
               ]}
             >
-              {group.items.map((tx, idx) => (
-                <View
-                  key={tx.id}
-                  style={[
-                    styles.txRow,
-                    idx < group.items.length - 1
-                      ? {
+              {group.items.map((tx, idx) => {
+                const txDates = formatTransactionDates(tx);
+                return (
+                  <View
+                    key={tx.id}
+                    style={[
+                      styles.txRow,
+                      idx < group.items.length - 1
+                        ? {
                           borderBottomColor: colors.border.subtle,
                           borderBottomWidth: StyleSheet.hairlineWidth,
                         }
-                      : null,
-                  ]}
-                >
-                  <TransactionIcon type={tx.tipo} style={styles.txIconBox} />
-                  <View style={styles.txInfo}>
-                    <Text style={[styles.txLabel, { color: colors.text.primary }]}>
-                      {getTransactionTypeLabel(tx.tipo)}
-                    </Text>
-                    <Text style={[styles.txDesc, { color: colors.text.muted }]} numberOfLines={1}>
-                      {tx.descricao}
-                    </Text>
-                    {formatTransactionDates(tx).showRecordedPhrase && (
-                      <Text style={[styles.txSecondaryDate, { color: colors.text.muted }]}>
-                        {formatTransactionDates(tx).recordedPhrase}
+                        : null,
+                    ]}
+                  >
+                    <TransactionIcon type={tx.tipo} style={styles.txIconBox} />
+                    <View style={styles.txInfo}>
+                      <Text style={[styles.txLabel, { color: colors.text.primary }]}>
+                        {getTransactionTypeLabel(tx.tipo)}
                       </Text>
-                    )}
+                      <Text style={[styles.txDesc, { color: colors.text.muted }]} numberOfLines={1}>
+                        {tx.descricao}
+                      </Text>
+                      {txDates.showRecordedPhrase ? (
+                        <Text style={[styles.txSecondaryDate, { color: colors.text.muted }]}>
+                          {txDates.recordedPhrase}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <View style={styles.txRight}>
+                      <Text
+                        style={[
+                          styles.txValue,
+                          {
+                            color: CATEGORY_COLORS[getTransactionCategory(tx.tipo)](colors),
+                          },
+                        ]}
+                      >
+                        {isCredit(tx.tipo) ? '+' : '-'}
+                        {tx.valor}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.txRight}>
-                    <Text
-                      style={[
-                        styles.txValue,
-                        {
-                          color: CATEGORY_COLORS[getTransactionCategory(tx.tipo)](colors),
-                        },
-                      ]}
-                    >
-                      {isCredit(tx.tipo) ? '+' : '-'}
-                      {tx.valor}
-                    </Text>
-                  </View>
-                </View>
-              ))}
+                );
+              })}
             </View>
           </View>
         )}
