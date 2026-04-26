@@ -533,6 +533,18 @@ describe('tasks', () => {
     });
   });
 
+  it('allows completion when status is pendente and task is active', () => {
+    expect(
+      getAssignmentCompletionState(
+        { status: 'pendente' },
+        { ativo: true },
+      ),
+    ).toEqual({
+      canComplete: true,
+      reason: null,
+    });
+  });
+
   it('gets task details and signs evidence urls from multiple shapes', async () => {
     supabaseMock.from.mockReturnValueOnce(
       createSingleQuery({

@@ -5,6 +5,7 @@ import { dispatchPushNotification } from './push';
 
 const invokeMock = vi.hoisted(() => vi.fn());
 const captureExceptionMock = vi.hoisted(() => vi.fn());
+const captureMessageMock = vi.hoisted(() => vi.fn());
 const getSessionMock = vi.hoisted(() => vi.fn());
 const refreshSessionMock = vi.hoisted(() => vi.fn());
 
@@ -22,7 +23,7 @@ vi.mock('./supabase', () => ({
 
 vi.mock('@sentry/react-native', () => ({
   captureException: captureExceptionMock,
-  captureMessage: vi.fn(),
+  captureMessage: captureMessageMock,
   addBreadcrumb: vi.fn(),
 }));
 
@@ -30,6 +31,7 @@ describe('dispatchPushNotification', () => {
   beforeEach(() => {
     invokeMock.mockReset();
     captureExceptionMock.mockReset();
+    captureMessageMock.mockReset();
     getSessionMock.mockReset();
     refreshSessionMock.mockReset();
     // Default: session with token valid for 1 hour
@@ -149,6 +151,23 @@ describe('dispatchPushNotification', () => {
         }),
       );
     });
+
+    it('categorizes FunctionsFetchError as network error', async () => {
+      const fnError = Object.assign(new Error('Network failure'), { name: 'FunctionsFetchError' });
+      invokeMock.mockResolvedValueOnce({ data: null, error: fnError });
+
+      await dispatchPushNotification('tarefa_aprovada', 'family-1', {
+        userId: 'u1',
+        taskTitle: 'T',
+      });
+
+      expect(captureExceptionMock).toHaveBeenCalledWith(
+        fnError,
+        expect.objectContaining({
+          extra: expect.objectContaining({ errorCategory: 'Rede/Conexão' }),
+        }),
+      );
+    });
   });
 
   it('completes without error on successful invocation', async () => {
@@ -173,6 +192,23 @@ describe('dispatchPushNotification', () => {
     expect(consoleWarnSpy).not.toHaveBeenCalled();
     expect(captureExceptionMock).not.toHaveBeenCalled();
     consoleWarnSpy.mockRestore();
+  });
+
+  it('reports partial delivery failure via Sentry warning', async () => {
+    invokeMock.mockResolvedValueOnce({ data: { sent: 2, failed: 1 }, error: null });
+
+    await dispatchPushNotification('tarefa_aprovada', 'family-1', {
+      userId: 'u1',
+      taskTitle: 'T',
+    });
+
+    expect(captureMessageMock).toHaveBeenCalledWith(
+      'push: partial delivery failure',
+      expect.objectContaining({
+        level: 'warning',
+        extra: expect.objectContaining({ failed: 1, sent: 2 }),
+      }),
+    );
   });
 
   describe('Token freshness', () => {
