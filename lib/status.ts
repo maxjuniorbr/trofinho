@@ -34,6 +34,7 @@ export function getAssignmentStatusTone(
 } {
   switch (status) {
     case 'pendente':
+    case 'cancelada':
       return {
         foreground: colors.semantic.warning,
         background: colors.semantic.warningBg,
@@ -56,12 +57,6 @@ export function getAssignmentStatusTone(
         foreground: colors.semantic.error,
         background: colors.semantic.errorBg,
         text: colors.semantic.errorText,
-      };
-    case 'cancelada':
-      return {
-        foreground: colors.semantic.warning,
-        background: colors.semantic.warningBg,
-        text: colors.semantic.warningText,
       };
   }
 }
