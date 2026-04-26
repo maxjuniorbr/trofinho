@@ -29,17 +29,24 @@ async function secureSet(key: string, value: string): Promise<void> {
     return;
   }
 
+  const encoder = new TextEncoder();
   const chunks: string[] = [];
   for (let offset = 0; offset < value.length; ) {
-    let end = offset + CHUNK_SIZE;
-    while (
-      end > offset &&
-      new TextEncoder().encode(value.slice(offset, end)).byteLength > CHUNK_SIZE
-    ) {
-      end--;
+    // Binary search for the largest slice that fits within CHUNK_SIZE bytes
+    let lo = offset + 1;
+    let hi = Math.min(offset + CHUNK_SIZE, value.length);
+    let best = lo;
+    while (lo <= hi) {
+      const mid = (lo + hi) >>> 1;
+      if (encoder.encode(value.slice(offset, mid)).byteLength <= CHUNK_SIZE) {
+        best = mid;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
     }
-    chunks.push(value.slice(offset, end));
-    offset = end;
+    chunks.push(value.slice(offset, best));
+    offset = best;
   }
 
   await SecureStore.deleteItemAsync(key);
