@@ -36,6 +36,7 @@ vi.mock('../../../../lib/tasks', () => ({
   cancelAssignmentSubmission: vi.fn().mockResolvedValue({ error: null }),
   completeAssignment: vi.fn().mockResolvedValue({ error: null }),
   renewRecurringTasks: vi.fn().mockResolvedValue(undefined),
+  deleteTask: vi.fn().mockResolvedValue({ data: { pendingValidationCount: 0 }, error: null }),
 }));
 
 const qh = getQueryHelpers(rq as unknown as Record<string, unknown>);
@@ -180,6 +181,14 @@ describe('use-tasks mutation hooks', () => {
       const { useRenewRecurringTasks } = await loadHooks();
       useRenewRecurringTasks();
       expect(mockInvalidateQueries).not.toHaveBeenCalled();
+    });
+
+    it('useDeleteTask invalidates tasks.all on success', async () => {
+      const { useDeleteTask } = await loadHooks();
+      useDeleteTask();
+      const onSuccess = lastMutationOpts().onSuccess as () => void;
+      onSuccess();
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.tasks.all });
     });
   });
 });

@@ -51,8 +51,11 @@ vi.mock('react-native', () => ({
   ActivityIndicator: createHostComponent('ActivityIndicator'),
   Alert: alertMock,
   Pressable: createHostComponent('Pressable'),
+  RefreshControl: createHostComponent('RefreshControl'),
+  ScrollView: createHostComponent('ScrollView'),
   StyleSheet: {
     create: <T,>(styles: T) => styles,
+    hairlineWidth: 0.5,
     absoluteFillObject: {
       position: 'absolute',
       left: 0,
@@ -76,6 +79,20 @@ vi.mock('expo-status-bar', () => ({
 vi.mock('expo-image-picker', () => ({
   requestCameraPermissionsAsync: vi.fn().mockResolvedValue({ status: 'granted' }),
   launchCameraAsync: vi.fn().mockResolvedValue({ canceled: true, assets: [] }),
+}));
+
+vi.mock('lucide-react-native', () => ({
+  Camera: createHostComponent('Camera'),
+  Clock: createHostComponent('Clock'),
+  Trophy: createHostComponent('Trophy'),
+  Maximize2: createHostComponent('Maximize2'),
+  Star: createHostComponent('Star'),
+  Calendar: createHostComponent('Calendar'),
+  Send: createHostComponent('Send'),
+  XCircle: createHostComponent('XCircle'),
+  RotateCcw: createHostComponent('RotateCcw'),
+  Trash2: createHostComponent('Trash2'),
+  CheckCircle2: createHostComponent('CheckCircle2'),
 }));
 
 vi.mock('expo-router', () => ({
@@ -158,18 +175,33 @@ vi.mock('@/context/theme-context', () => ({
         filho: '#FAC114',
         filhoBg: '#FFF3C4',
       },
+      border: {
+        subtle: '#E0E5EB',
+        default: '#C5CDD8',
+      },
       semantic: {
         success: '#20C55D',
         successBg: '#E7F8EC',
+        error: '#DC2828',
+        errorBg: '#FDE7E7',
+        warning: '#F59F0A',
         warningBg: '#FFF3C4',
         warningText: '#7A5200',
+        info: '#308CE8',
+        infoBg: '#E5F2FF',
+        infoText: '#0F4D8A',
       },
     },
   }),
 }));
 
+vi.mock('@/context/impersonation-context', () => ({
+  useImpersonation: () => ({ impersonating: null, startImpersonation: vi.fn(), stopImpersonation: vi.fn() }),
+}));
+
 vi.mock('@/hooks/queries', () => ({
   useChildAssignment: () => childAssignmentMock,
+  useChildAssignments: () => ({ data: { pages: [{ data: [] }] } }),
   useProfile: () => profileMock,
   useCompleteAssignment: () => completeMutationMock,
   useCancelAssignmentSubmission: () => cancelMutationMock,
@@ -185,14 +217,9 @@ vi.mock('@/components/ui/empty-state', () => ({
   EmptyState: (props: Record<string, unknown>) => React.createElement('EmptyState', props),
 }));
 
-vi.mock('@/components/ui/sticky-footer-screen', () => ({
-  StickyFooterScreen: ({
-    children,
-    footer,
-  }: {
-    children?: React.ReactNode;
-    footer?: React.ReactNode;
-  }) => React.createElement('StickyFooterScreen', null, children, footer),
+vi.mock('@/components/ui/safe-screen-frame', () => ({
+  SafeScreenFrame: ({ children }: { children?: React.ReactNode }) =>
+    React.createElement('SafeScreenFrame', null, children),
 }));
 
 vi.mock('@/components/ui/button', () => ({
@@ -243,7 +270,10 @@ function makeAssignment(overrides: Record<string, unknown> = {}) {
 
 function findButtonsByLabel(renderer: ReactTestRenderer, label: string) {
   return renderer.root.findAll((node) => {
-    return (node.type as string) === 'Button' && node.props.label === label;
+    // Match both the old Button component and the new ActionButton (Pressable with accessibilityLabel)
+    if ((node.type as string) === 'Button' && node.props.label === label) return true;
+    if ((node.type as string) === 'Pressable' && node.props.accessibilityLabel === label) return true;
+    return false;
   });
 }
 

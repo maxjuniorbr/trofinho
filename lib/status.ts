@@ -12,6 +12,8 @@ export function getAssignmentStatusLabel(status: AssignmentStatus): string {
       return 'Aprovada';
     case 'rejeitada':
       return 'Rejeitada';
+    case 'cancelada':
+      return 'Cancelada';
   }
 }
 
@@ -54,6 +56,12 @@ export function getAssignmentStatusTone(
         foreground: colors.semantic.error,
         background: colors.semantic.errorBg,
         text: colors.semantic.errorText,
+      };
+    case 'cancelada':
+      return {
+        foreground: colors.semantic.warning,
+        background: colors.semantic.warningBg,
+        text: colors.semantic.warningText,
       };
   }
 }

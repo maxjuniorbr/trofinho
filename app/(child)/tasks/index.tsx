@@ -4,21 +4,21 @@ import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import { RefreshCw, Camera } from 'lucide-react-native';
+import { Clock, Eye, CheckCircle2, XCircle, Camera, Star, PauseCircle } from 'lucide-react-native';
 import { HomeFooterBar } from '@/components/ui/home-footer-bar';
-import { TaskPointsPill } from '@/components/tasks/task-points-pill';
 import { useChildFooterItems } from '@/hooks/use-footer-items';
 import {
   getAssignmentPoints,
   getAssignmentRetryState,
   formatWeekdays,
   type ChildAssignment,
-  type AssignmentStatus,
 } from '@lib/tasks';
 import { formatDate, toDateString } from '@lib/utils';
 import { getAssignmentStatusLabel, getAssignmentStatusTone } from '@lib/status';
+import { withAlpha } from '@/constants/colors';
 import { useChildAssignments, useDiscardRejection } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
+import { useImpersonation } from '@/context/impersonation-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
@@ -36,8 +36,15 @@ const FILTERS: SegmentOption<Filter>[] = [
   { key: 'historico', label: 'Finalizadas' },
 ];
 
-function belongsToFilter(status: AssignmentStatus, filter: Filter): boolean {
-  if (filter === 'historico') return status === 'aprovada' || status === 'rejeitada';
+function belongsToFilter(assignment: ChildAssignment, filter: Filter): boolean {
+  const { status } = assignment;
+  if (filter === 'historico') {
+    if (status === 'rejeitada') return !getAssignmentRetryState(assignment).canRetry;
+    return status === 'aprovada';
+  }
+  if (filter === 'pendente') {
+    return status === 'pendente' || (status === 'rejeitada' && getAssignmentRetryState(assignment).canRetry);
+  }
   return status === filter;
 }
 
@@ -60,115 +67,146 @@ function sortChildAssignments(assignments: ChildAssignment[], filter: Filter): C
   });
 }
 
-type DateLine = { label: string; value: string };
-
-function getAssignmentDateLine(assignment: ChildAssignment, filter: Filter): DateLine | null {
+function getDateLine(item: ChildAssignment, filter: Filter): string | null {
   if (filter === 'pendente') return null;
   if (filter === 'aguardando_validacao') {
-    return assignment.concluida_em
-      ? { label: 'Enviada em ', value: formatDate(assignment.concluida_em) }
-      : null;
+    return item.concluida_em ? `Enviada em ${formatDate(item.concluida_em)}` : null;
   }
-  const date = assignment.validada_em ?? assignment.concluida_em;
+  const date = item.validada_em ?? item.concluida_em;
   if (!date) return null;
-  let value = formatDate(date);
-  if (assignment.competencia && toDateString(new Date(date)) !== assignment.competencia) {
-    value += ' · Tarefa de ' + formatDate(assignment.competencia + 'T12:00:00');
+  let text = `${item.validada_em ? 'Validada' : 'Concluída'} em ${formatDate(date)}`;
+  if (item.competencia && toDateString(new Date(date)) !== item.competencia) {
+    text += ` · Tarefa de ${formatDate(item.competencia + 'T12:00:00')}`;
   }
-  return {
-    label: assignment.validada_em ? 'Validada em ' : 'Concluída em ',
-    value,
-  };
+  return text;
 }
 
-type TaskCardProps = {
+function getStatusIcon(item: ChildAssignment, colors: ThemeColors) {
+  const isInactive = item.tarefas.ativo === false;
+  if (item.status === 'aguardando_validacao')
+    return { Icon: Eye, color: colors.semantic.info, bg: colors.semantic.infoBg };
+  if (item.status === 'aprovada')
+    return { Icon: CheckCircle2, color: colors.semantic.success, bg: colors.semantic.successBg };
+  if (item.status === 'rejeitada')
+    return { Icon: XCircle, color: colors.semantic.error, bg: colors.semantic.errorBg };
+  if (isInactive)
+    return { Icon: PauseCircle, color: colors.text.muted, bg: colors.bg.muted };
+  return { Icon: Clock, color: colors.semantic.warning, bg: colors.semantic.warningBg };
+}
+
+function getStatusBadge(item: ChildAssignment, filter: Filter, colors: ThemeColors) {
+  if (filter === 'pendente') {
+    if (item.status === 'rejeitada') {
+      const tone = getAssignmentStatusTone('rejeitada', colors);
+      return { label: 'Rejeitada — refazer', color: tone.text, bg: tone.background };
+    }
+    if (item.tarefas.ativo === false) {
+      return { label: 'Desativada', color: colors.text.muted, bg: colors.bg.muted };
+    }
+    const tone = getAssignmentStatusTone('pendente', colors);
+    return { label: 'Pendente', color: tone.text, bg: tone.background };
+  }
+  if (filter === 'aguardando_validacao') {
+    const tone = getAssignmentStatusTone('aguardando_validacao', colors);
+    return { label: 'Aguardando validação', color: tone.text, bg: tone.background };
+  }
+  const tone = getAssignmentStatusTone(item.status, colors);
+  return { label: getAssignmentStatusLabel(item.status), color: tone.text, bg: tone.background };
+}
+
+type TaskCardProps = Readonly<{
   item: ChildAssignment;
   filter: Filter;
   colors: ThemeColors;
   styles: ReturnType<typeof makeStyles>;
   router: ReturnType<typeof useRouter>;
-};
+  isReadOnly: boolean;
+}>;
 
-function getTaskCardAction(
-  item: ChildAssignment,
-  isUnavailable: boolean,
-  router: ReturnType<typeof useRouter>,
-): { handlePress: () => void; accessibilityLabel: string } {
-  if (isUnavailable) {
-    return {
-      handlePress: () =>
-        Alert.alert(
-          'Tarefa desativada',
-          'Esta tarefa foi desativada pelo responsável e não pode mais ser concluída.',
-        ),
-      accessibilityLabel: `Tarefa ${item.tarefas.titulo} desativada`,
-    };
-  }
-  return {
-    handlePress: () => router.push(`/(child)/tasks/${item.id}` as never),
-    accessibilityLabel: `Ver detalhes da tarefa ${item.tarefas.titulo}`,
+function TaskCard({ item, filter, colors, styles, router, isReadOnly }: TaskCardProps) {
+  const isInactive = item.tarefas.ativo === false;
+  const isUnavailable = isInactive && item.status === 'pendente';
+  const icon = getStatusIcon(item, colors);
+  const badge = getStatusBadge(item, filter, colors);
+  const dateLine = getDateLine(item, filter);
+  const hasPhoto = item.exige_evidencia_snapshot;
+  const isRejected = item.status === 'rejeitada';
+  const isAwaiting = item.status === 'aguardando_validacao';
+  const opacity = isInactive ? 0.6 : 1;
+
+  const handlePress = () => {
+    if (isUnavailable) {
+      Alert.alert('Tarefa desativada', 'Esta tarefa foi desativada pelo responsável e não pode mais ser concluída.');
+      return;
+    }
+    router.push(`/(child)/tasks/${item.id}` as never);
   };
-}
-
-function TaskCardBadges({
-  item,
-  filter,
-  isInactive,
-  dateLine,
-  showEvidenceHint,
-  colors,
-  styles,
-}: Readonly<{
-  item: ChildAssignment;
-  filter: Filter;
-  isInactive: boolean;
-  dateLine: DateLine | null;
-  showEvidenceHint: boolean;
-  colors: ThemeColors;
-  styles: ReturnType<typeof makeStyles>;
-}>) {
-  const statusTone = getAssignmentStatusTone(item.status, colors);
 
   return (
-    <>
-      {isInactive ? (
-        <View style={[styles.inactiveTag, { backgroundColor: colors.bg.muted }]}>
-          <Text style={[styles.inactiveTagText, { color: colors.text.muted }]}>Desativada</Text>
+    <Pressable
+      style={({ pressed }) => [
+        styles.card,
+        shadows.card,
+        {
+          backgroundColor: colors.bg.surface,
+          borderColor: isAwaiting ? withAlpha(colors.semantic.info, 0.4)
+            : isRejected ? withAlpha(colors.semantic.error, 0.4)
+              : colors.border.subtle,
+          opacity: pressed ? 0.92 : opacity,
+        },
+      ]}
+      onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel={`Ver detalhes da tarefa ${item.titulo_snapshot}`}
+    >
+      <View style={styles.cardTopRow}>
+        <View style={[styles.cardIcon, { backgroundColor: icon.bg }]}>
+          <icon.Icon size={16} color={icon.color} strokeWidth={2} />
         </View>
-      ) : null}
-      <View style={styles.freqRow}>
-        <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
-        <Text style={[styles.cardDeadline, { marginBottom: 0 }]}>
-          {formatWeekdays(item.tarefas.dias_semana)}
-        </Text>
-      </View>
-      {dateLine ? (
-        <Text style={styles.cardDeadline}>
-          {dateLine.label}
-          {dateLine.value}
-        </Text>
-      ) : null}
-      {showEvidenceHint ? (
-        <View style={styles.evidenceHint}>
-          <Camera size={12} color={colors.text.muted} strokeWidth={2} />
-          <Text style={styles.evidenceHintText}>Requer foto</Text>
-        </View>
-      ) : null}
-      {filter === 'historico' ? (
-        <View style={[styles.statusTag, { backgroundColor: statusTone.background }]}>
-          <Text style={[styles.statusText, { color: statusTone.text }]}>
-            {getAssignmentStatusLabel(item.status)}
+        <View style={styles.cardInfo}>
+          <Text style={[styles.cardTitle, { color: colors.text.primary }]} numberOfLines={2}>
+            {item.titulo_snapshot}
           </Text>
         </View>
+        <View style={[styles.cardPointsBadge, { backgroundColor: colors.accent.filhoBg }]}>
+          <Star size={12} color={colors.accent.filho} strokeWidth={2} />
+          <Text style={[styles.cardPointsText, { color: colors.accent.filho }]}>
+            {getAssignmentPoints(item)}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.cardBottomRow}>
+        <View style={styles.cardBadges}>
+          <View style={[styles.cardBadge, { backgroundColor: badge.bg }]}>
+            <Text style={[styles.cardBadgeText, { color: badge.color }]}>{badge.label}</Text>
+          </View>
+          {hasPhoto ? (
+            <View style={[styles.cardBadge, { backgroundColor: colors.bg.muted }]}>
+              <Camera size={10} color={colors.text.muted} strokeWidth={2} />
+              <Text style={[styles.cardBadgeText, { color: colors.text.muted }]}>Foto</Text>
+            </View>
+          ) : null}
+          <Text style={[styles.cardTrailing, { color: colors.text.muted }]}>
+            {formatWeekdays(item.tarefas.dias_semana)}
+          </Text>
+        </View>
+      </View>
+      {dateLine ? (
+        <Text style={[styles.cardDateLine, { color: colors.text.muted }]}>{dateLine}</Text>
       ) : null}
-    </>
+      {isRejected ? (
+        <RejectedActions item={item} styles={styles} colors={colors} disabled={isReadOnly} />
+      ) : null}
+    </Pressable>
   );
 }
 
 function RejectedActions({
   item,
   styles,
-}: Readonly<{ item: ChildAssignment; styles: ReturnType<typeof makeStyles> }>) {
+  colors,
+  disabled,
+}: Readonly<{ item: ChildAssignment; styles: ReturnType<typeof makeStyles>; colors: ThemeColors; disabled?: boolean }>) {
   const discardMutation = useDiscardRejection();
   const retryState = getAssignmentRetryState(item);
   const plural = retryState.attemptsLeft === 1 ? '' : 's';
@@ -179,25 +217,21 @@ function RejectedActions({
   const handleDiscard = () => {
     Alert.alert('Descartar feedback?', 'A tarefa volta para "Para fazer".', [
       { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Descartar',
-        style: 'destructive',
-        onPress: () => discardMutation.mutate(item.id),
-      },
+      { text: 'Descartar', style: 'destructive', onPress: () => discardMutation.mutate(item.id) },
     ]);
   };
 
   return (
-    <View style={styles.rejectedActions}>
-      <Text style={styles.rejectedHint}>{hint}</Text>
+    <View style={[styles.rejectedActions, disabled && { opacity: 0.5 }]}>
+      <Text style={[styles.rejectedHint, { color: colors.semantic.warningText }]}>{hint}</Text>
       <Pressable
         onPress={handleDiscard}
-        disabled={discardMutation.isPending}
+        disabled={discardMutation.isPending || disabled}
         accessibilityRole="button"
         accessibilityLabel="Descartar feedback de rejeição"
         hitSlop={8}
       >
-        <Text style={styles.rejectedDiscardLink}>
+        <Text style={[styles.rejectedDiscardLink, { color: colors.accent.filho }]}>
           {discardMutation.isPending ? 'Descartando…' : 'Descartar feedback'}
         </Text>
       </Pressable>
@@ -205,44 +239,11 @@ function RejectedActions({
   );
 }
 
-function TaskCard({ item, filter, colors, styles, router }: Readonly<TaskCardProps>) {
-  const dateLine = getAssignmentDateLine(item, filter);
-  const isInactive = item.tarefas.ativo === false;
-  const isUnavailable = isInactive && item.status === 'pendente';
-  const showEvidenceHint = item.tarefas.exige_evidencia && filter === 'pendente';
-  const { handlePress, accessibilityLabel } = getTaskCardAction(item, isUnavailable, router);
-  const isRejected = item.status === 'rejeitada';
-
-  return (
-    <Pressable
-      style={[styles.card, isInactive && styles.inactiveCard]}
-      onPress={handlePress}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-    >
-      <View style={styles.cardTop}>
-        <Text style={styles.cardTitle} numberOfLines={2}>
-          {item.tarefas.titulo}
-        </Text>
-        <TaskPointsPill points={getAssignmentPoints(item)} />
-      </View>
-      <TaskCardBadges
-        item={item}
-        filter={filter}
-        isInactive={isInactive}
-        dateLine={dateLine}
-        showEvidenceHint={showEvidenceHint}
-        colors={colors}
-        styles={styles}
-      />
-      {isRejected ? <RejectedActions item={item} styles={styles} /> : null}
-    </Pressable>
-  );
-}
-
 export default function ChildTasksScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { impersonating } = useImpersonation();
+  const isReadOnly = impersonating !== null;
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const footerItems = useChildFooterItems();
 
@@ -263,43 +264,34 @@ export default function ChildTasksScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    try {
-      await refetch();
-    } catch (e) {
-      Sentry.captureException(e);
-    } finally {
-      setRefreshing(false);
-    }
+    try { await refetch(); }
+    catch (e) { Sentry.captureException(e); }
+    finally { setRefreshing(false); }
   };
 
   const countByFilter = useMemo(() => {
     const counts = { pendente: 0, aguardando_validacao: 0, historico: 0 };
     for (const a of assignments) {
-      if (belongsToFilter(a.status, 'pendente')) counts.pendente++;
-      else if (belongsToFilter(a.status, 'aguardando_validacao')) counts.aguardando_validacao++;
+      if (belongsToFilter(a, 'pendente')) counts.pendente++;
+      else if (belongsToFilter(a, 'aguardando_validacao')) counts.aguardando_validacao++;
       else counts.historico++;
     }
     return counts;
   }, [assignments]);
 
-  const filtersWithBadge = useMemo(
+  const filtersWithCount = useMemo(
     () => FILTERS.map((f) => ({ ...f, badge: countByFilter[f.key] })),
     [countByFilter],
   );
 
   const filtered = useMemo(
-    () =>
-      sortChildAssignments(
-        assignments.filter((a) => belongsToFilter(a.status, filter)),
-        filter,
-      ),
+    () => sortChildAssignments(assignments.filter((a) => belongsToFilter(a, filter)), filter),
     [assignments, filter],
   );
 
-  let emptyMessage = 'Nenhuma tarefa finalizada ainda. Continue assim! 💪';
-  if (filter === 'pendente') emptyMessage = 'Tudo feito por aqui! Você arrasou! 🎉';
-  else if (filter === 'aguardando_validacao')
-    emptyMessage = 'Nada pendente, o responsável vai revisar! 👀';
+  let emptyMessage = 'Nenhuma tarefa finalizada ainda.';
+  if (filter === 'pendente') emptyMessage = 'Nenhuma tarefa pendente.';
+  else if (filter === 'aguardando_validacao') emptyMessage = 'Nenhuma tarefa aguardando validação.';
 
   const loading = isLoading;
   const errorMessage = error?.message ?? null;
@@ -308,34 +300,19 @@ export default function ChildTasksScreen() {
   const renderContent = () => {
     if (loading) return <ListScreenSkeleton />;
     if (shouldShowEmptyState)
-      return (
-        <EmptyState
-          error={errorMessage}
-          empty={!errorMessage}
-          emptyMessage={emptyMessage}
-          onRetry={handleRefresh}
-        />
-      );
+      return <EmptyState error={errorMessage} empty={!errorMessage} emptyMessage={emptyMessage} onRetry={handleRefresh} />;
     return (
       <FlashList
         data={filtered}
         keyExtractor={(item) => item.id}
         maintainVisibleContentPosition={{ disabled: true }}
         contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={colors.brand.vivid}
-          />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
         ListHeaderComponent={<View style={{ height: spacing['4'] }} />}
         renderItem={({ item }) => (
-          <TaskCard item={item} filter={filter} colors={colors} styles={styles} router={router} />
+          <TaskCard item={item} filter={filter} colors={colors} styles={styles} router={router} isReadOnly={isReadOnly} />
         )}
-        onEndReached={() => {
-          if (hasNextPage) fetchNextPage();
-        }}
+        onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
         onEndReachedThreshold={0.3}
         ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
       />
@@ -345,16 +322,10 @@ export default function ChildTasksScreen() {
   return (
     <SafeScreenFrame bottomInset={false}>
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader title="Minhas Tarefas" role="filho" />
-
-      <SegmentedBar options={filtersWithBadge} value={filter} onChange={setFilter} role="filho" />
-
+      <ScreenHeader title="Tarefas" role="filho" />
+      <SegmentedBar options={filtersWithCount} value={filter} onChange={setFilter} role="filho" />
       {renderContent()}
-      <HomeFooterBar
-        items={footerItems}
-        activeRoute="/(child)/tasks"
-        onNavigate={handleFooterNavigate}
-      />
+      <HomeFooterBar items={footerItems} activeRoute="/(child)/tasks" onNavigate={handleFooterNavigate} />
     </SafeScreenFrame>
   );
 }
@@ -362,83 +333,87 @@ export default function ChildTasksScreen() {
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     list: { paddingHorizontal: spacing['4'] },
+    // ── Card (same structure as admin) ──
     card: {
-      backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,
-      borderCurve: 'continuous',
       borderWidth: 1,
-      borderColor: colors.border.subtle,
       padding: spacing['4'],
+      gap: spacing['3'],
       marginBottom: spacing['3'],
-      ...shadows.card,
     },
-    inactiveCard: { opacity: 0.5 },
-    cardTop: {
+    cardTopRow: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
+      alignItems: 'center',
+      gap: spacing['3'],
+    },
+    cardIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: radii.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cardInfo: { flex: 1, gap: spacing['0.5'] },
+    cardTitle: { fontSize: typography.size.sm, fontFamily: typography.family.bold },
+    cardPointsBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1'],
+      borderRadius: radii.md,
+      paddingHorizontal: spacing['2'],
+      paddingVertical: spacing['1'],
+    },
+    cardPointsText: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.black,
+    },
+    cardBottomRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: spacing['2'],
+      gap: spacing['2'],
     },
-    cardTitle: {
+    cardBadges: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['2'],
+      flexWrap: 'wrap',
       flex: 1,
-      fontSize: typography.size.md,
-      fontFamily: typography.family.semibold,
-      color: colors.text.primary,
-      marginRight: spacing['2'],
     },
-    inactiveTag: {
-      alignSelf: 'flex-start',
-      borderRadius: radii.sm,
-      paddingVertical: spacing['1'],
-      paddingHorizontal: spacing['2'],
-      marginBottom: spacing['2'],
-    },
-    inactiveTagText: {
-      fontSize: typography.size.xs,
-      fontFamily: typography.family.semibold,
-    },
-    freqRow: {
+    cardBadge: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing['1'],
-      marginBottom: spacing['2'],
-    },
-    cardDeadline: {
-      fontSize: typography.size.xs,
-      color: colors.text.muted,
-      marginBottom: spacing['2'],
-    },
-    evidenceHint: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing['1'],
-      marginBottom: spacing['2'],
-    },
-    evidenceHintText: {
-      fontSize: typography.size.xs,
-      color: colors.text.muted,
-    },
-    statusTag: {
-      borderRadius: radii.sm,
-      paddingVertical: spacing['1'],
+      gap: spacing['0.5'],
+      borderRadius: radii.md,
       paddingHorizontal: spacing['2'],
-      alignSelf: 'flex-start',
+      paddingVertical: spacing['1'],
     },
-    statusText: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
+    cardBadgeText: {
+      fontSize: 10,
+      fontFamily: typography.family.bold,
+    },
+    cardTrailing: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.semibold,
+    },
+    cardDateLine: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.medium,
+      marginTop: -spacing['1'],
+    },
+    // ── Rejected actions ──
     rejectedActions: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginTop: spacing['2'],
+      marginTop: -spacing['1'],
     },
     rejectedHint: {
       fontSize: typography.size.xs,
-      color: colors.semantic.warningText,
       fontFamily: typography.family.semibold,
     },
     rejectedDiscardLink: {
       fontSize: typography.size.xs,
-      color: colors.accent.filho,
       fontFamily: typography.family.semibold,
       textDecorationLine: 'underline',
     },

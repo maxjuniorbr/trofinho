@@ -6,10 +6,13 @@ import {
   buildValidationLine,
   cancelAssignmentSubmission,
   buildTaskDeactivateMessage,
+  buildTaskDeleteMessage,
   completeAssignment,
   countPendingValidations,
   createTask,
   deactivateTask,
+  deleteTask,
+  deriveTaskState,
   getAssignmentCancellationState,
   getAssignmentCompletionState,
   getAssignmentPoints,
@@ -25,7 +28,7 @@ import {
   sortAdminTasks,
   updateTask,
 } from './tasks';
-import type { AssignmentWithChild, TaskDetail, TaskListItem } from './tasks';
+import type { AssignmentWithChild, TaskDetail, TaskListItem, TaskState } from './tasks';
 import { getAssignmentStatusColor, getAssignmentStatusLabel } from '@lib/status';
 
 const resizeImageMock = vi.hoisted(() => vi.fn((uri: string) => Promise.resolve(uri)));
@@ -92,6 +95,7 @@ function createOrderQuery(result: QueryResult, orderCallsBeforeResolve = 0) {
   const query = {
     eq: vi.fn().mockReturnThis(),
     is: vi.fn().mockReturnThis(),
+    neq: vi.fn().mockReturnThis(),
     not: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
     or: vi.fn().mockReturnThis(),
@@ -129,6 +133,9 @@ function createAssignmentWithChild(overrides: Partial<AssignmentWithChild>): Ass
     filho_id: 'child-1',
     status: 'pendente',
     pontos_snapshot: 10,
+    titulo_snapshot: 'Tarefa teste',
+    descricao_snapshot: null,
+    exige_evidencia_snapshot: false,
     evidencia_url: null,
     nota_rejeicao: null,
     concluida_em: null,
@@ -168,10 +175,13 @@ describe('tasks', () => {
     const makeTask = (id: string, statuses: string[]): TaskListItem => ({
       id,
       titulo: `Tarefa ${id}`,
+      descricao: null,
       pontos: 10,
       dias_semana: 0,
+      exige_evidencia: false,
       ativo: true,
       arquivada_em: null,
+      excluida_em: null,
       created_at: `2026-03-${id.padStart(2, '0')}T00:00:00Z`,
       atribuicoes: statuses.map((status) => ({ status }) as TaskListItem['atribuicoes'][number]),
     });
@@ -1231,6 +1241,56 @@ describe('tasks', () => {
   });
 
   describe('Property tests — soft delete', () => {
+    // Feature: task-soft-delete-and-cancelada, Property 1: Task state derivation is deterministic and complete
+    // **Validates: Requirements 1.2, 1.3, 1.4, 1.5**
+    it('P1: for any (ativo, arquivada_em, excluida_em) tuple, deriveTaskState returns exactly one valid state following priority', () => {
+      const VALID_STATES: TaskState[] = ['ativa', 'pausada', 'arquivada', 'excluida'];
+
+      const timestampOrNull = fc.oneof(
+        fc.constant(null),
+        fc.constant('2025-06-15T10:00:00.000Z'),
+        fc.constant('2024-01-01T00:00:00.000Z'),
+        fc.constant('2030-12-31T23:59:59.000Z'),
+        fc.integer({ min: 1577836800000, max: 1924991999000 }).map((ms) => new Date(ms).toISOString()),
+      );
+
+      fc.assert(
+        fc.property(
+          fc.boolean(),
+          timestampOrNull,
+          timestampOrNull,
+          (ativo, arquivada_em, excluida_em) => {
+            const state = deriveTaskState({ ativo, arquivada_em, excluida_em });
+
+            // Exactly one valid state is returned
+            expect(VALID_STATES).toContain(state);
+
+            // Priority 1: excluida_em not null → excluida
+            if (excluida_em != null) {
+              expect(state).toBe('excluida');
+              return;
+            }
+
+            // Priority 2: arquivada_em not null → arquivada
+            if (arquivada_em != null) {
+              expect(state).toBe('arquivada');
+              return;
+            }
+
+            // Priority 3: ativo false → pausada
+            if (ativo === false) {
+              expect(state).toBe('pausada');
+              return;
+            }
+
+            // Priority 4: otherwise → ativa
+            expect(state).toBe('ativa');
+          },
+        ),
+        { numRuns: 100 },
+      );
+    });
+
     // Feature: soft-delete, Property 6: Idempotência das RPCs de soft delete
     // **Validates: Requirements 0.3**
     it('deactivateTask returns same shape on repeated calls (no error)', async () => {
@@ -1323,6 +1383,111 @@ describe('tasks', () => {
         ),
         { numRuns: 100 },
       );
+    });
+
+    // Feature: task-soft-delete-and-cancelada, Property 4: Delete confirmation message includes pending count
+    // **Validates: Requirements 9.3, 9.4**
+    it('P4: buildTaskDeleteMessage always contains permanence warning and includes pending count when n > 0', () => {
+      const assignmentArb = fc.record({
+        status: fc.constantFrom(
+          'pendente' as const,
+          'aguardando_validacao' as const,
+          'aprovada' as const,
+          'rejeitada' as const,
+          'cancelada' as const,
+        ),
+      });
+
+      fc.assert(
+        fc.property(fc.array(assignmentArb), (assignments) => {
+          const message = buildTaskDeleteMessage(assignments);
+          const pendingCount = assignments.filter((a) => a.status === 'pendente').length;
+
+          // Always contains permanence warning
+          expect(message).toContain('Esta ação é permanente e não pode ser desfeita.');
+
+          if (pendingCount > 0) {
+            // Message contains the pending count number
+            expect(message).toContain(String(pendingCount));
+            // Message mentions cancellation of pending assignments
+            expect(message).toContain('cancelada');
+          } else {
+            // No count line when there are 0 pending assignments
+            expect(message).toBe('Esta ação é permanente e não pode ser desfeita.');
+          }
+        }),
+        { numRuns: 100 },
+      );
+    });
+  });
+
+  describe('deleteTask', () => {
+    it('returns pendingValidationCount on success', async () => {
+      supabaseMock.rpc.mockResolvedValueOnce({ data: 5, error: null });
+
+      await expect(deleteTask('task-1')).resolves.toEqual({
+        data: { pendingValidationCount: 5 },
+        error: null,
+      });
+      expect(supabaseMock.rpc).toHaveBeenCalledWith('excluir_tarefa', {
+        p_tarefa_id: 'task-1',
+      });
+    });
+
+    it('defaults pendingValidationCount to 0 when data is null', async () => {
+      supabaseMock.rpc.mockResolvedValueOnce({ data: null, error: null });
+
+      await expect(deleteTask('task-1')).resolves.toEqual({
+        data: { pendingValidationCount: 0 },
+        error: null,
+      });
+    });
+
+    it('returns localized error on failure', async () => {
+      supabaseMock.rpc.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Tarefa não encontrada' },
+      });
+
+      await expect(deleteTask('task-1')).resolves.toEqual({
+        data: null,
+        error: 'Registro não encontrado.',
+      });
+    });
+  });
+
+  describe('buildTaskDeleteMessage', () => {
+    it('contains only permanence warning when there are 0 pending assignments', () => {
+      const message = buildTaskDeleteMessage([
+        { status: 'aprovada' },
+        { status: 'aguardando_validacao' },
+      ]);
+      expect(message).toBe('Esta ação é permanente e não pode ser desfeita.');
+    });
+
+    it('contains singular form for 1 pending assignment', () => {
+      const message = buildTaskDeleteMessage([
+        { status: 'pendente' },
+        { status: 'aprovada' },
+      ]);
+      expect(message).toContain('Esta ação é permanente e não pode ser desfeita.');
+      expect(message).toContain('1 atribuição pendente será cancelada.');
+    });
+
+    it('contains plural form for N pending assignments', () => {
+      const message = buildTaskDeleteMessage([
+        { status: 'pendente' },
+        { status: 'pendente' },
+        { status: 'pendente' },
+        { status: 'aprovada' },
+      ]);
+      expect(message).toContain('Esta ação é permanente e não pode ser desfeita.');
+      expect(message).toContain('3 atribuições pendentes serão canceladas.');
+    });
+
+    it('always contains permanence warning regardless of assignment mix', () => {
+      const message = buildTaskDeleteMessage([]);
+      expect(message).toContain('Esta ação é permanente e não pode ser desfeita.');
     });
   });
 

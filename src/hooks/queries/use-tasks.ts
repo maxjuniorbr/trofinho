@@ -23,6 +23,7 @@ import {
   unarchiveTask,
   discardRejection,
   renewRecurringTasks,
+  deleteTask,
   type NewTaskInput,
   type UpdateTaskInput,
 } from '../../../lib/tasks';
@@ -81,14 +82,14 @@ export const useTaskAssignments = (taskId: string | undefined) =>
  * are harmless — but the post-success cache invalidation was the main
  * source of a "refetch storm" that made child mode feel slow.
  */
-export const useRenewRecurringTasks = () => {
+export const useRenewRecurringTasks = (childId?: string) => {
   const queryClient = useQueryClient();
 
   const query = useQuery({
     queryKey: queryKeys.tasks.renewRecurring(),
     queryFn: async () => {
       try {
-        await renewRecurringTasks();
+        await renewRecurringTasks(childId);
         return true;
       } catch (error) {
         Sentry.captureException(error, { tags: { subsystem: 'task-renewal' } });
@@ -250,6 +251,20 @@ export const useDeactivateTask = () => {
   });
 };
 
+export const useDeleteTask = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (taskId: string) => {
+      const result = await deleteTask(taskId);
+      if (result.error) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+    },
+  });
+};
+
 export const useReactivateTask = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -273,10 +288,14 @@ export const useArchivedTasks = () =>
     staleTime: STALE_TIMES.tasks,
   });
 
-export const useApprovedAssignmentsFeed = () =>
+export const useApprovedAssignmentsFeed = (since?: string) =>
   useInfiniteQuery({
-    queryKey: queryKeys.tasks.approvedFeed(),
-    queryFn: paginatedQueryFnAdapter(listApprovedAssignments, PAGE_SIZES.tasks),
+    queryKey: [...queryKeys.tasks.approvedFeed(), since ?? 'default'],
+    queryFn: async ({ pageParam }: { pageParam: number }) => {
+      const result = await listApprovedAssignments(pageParam, PAGE_SIZES.tasks, since);
+      if (result.error) throw new Error(result.error);
+      return { data: result.data, hasMore: result.hasMore };
+    },
     initialPageParam: 0,
     getNextPageParam: (
       lastPage: PaginatedPage<unknown>,

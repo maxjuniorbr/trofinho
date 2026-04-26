@@ -9,7 +9,7 @@ import { supabase } from './supabase';
 export const WEEKDAY_LABELS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'] as const;
 export const WEEKDAY_FULL_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'] as const;
 export const ALL_DAYS = 0b1111111; // 127
-export const MAX_TENTATIVAS = 2;
+export const MAX_TENTATIVAS = 1;
 
 /**
  * @deprecated Tarefas pontuais foram removidas. Mantido apenas para compat enquanto a UI é migrada.
@@ -38,9 +38,21 @@ export type Task = {
   created_at: string;
   ativo: boolean;
   arquivada_em: string | null;
+  excluida_em: string | null;
 };
 
-export type AssignmentStatus = 'pendente' | 'aguardando_validacao' | 'aprovada' | 'rejeitada';
+export type TaskState = 'ativa' | 'pausada' | 'arquivada' | 'excluida';
+
+export function deriveTaskState(
+  task: Pick<Task, 'ativo' | 'arquivada_em' | 'excluida_em'>,
+): TaskState {
+  if (task.excluida_em != null) return 'excluida';
+  if (task.arquivada_em != null) return 'arquivada';
+  if (task.ativo === false) return 'pausada';
+  return 'ativa';
+}
+
+export type AssignmentStatus = 'pendente' | 'aguardando_validacao' | 'aprovada' | 'rejeitada' | 'cancelada';
 
 export type Assignment = {
   id: string;
@@ -48,6 +60,9 @@ export type Assignment = {
   filho_id: string;
   status: AssignmentStatus;
   pontos_snapshot: number;
+  titulo_snapshot: string;
+  descricao_snapshot: string | null;
+  exige_evidencia_snapshot: boolean;
   evidencia_url: string | null;
   nota_rejeicao: string | null;
   concluida_em: string | null;
@@ -61,11 +76,14 @@ export type Assignment = {
 export type TaskListItem = {
   id: string;
   titulo: string;
+  descricao: string | null;
   pontos: number;
   dias_semana: number;
+  exige_evidencia: boolean;
   created_at: string;
   ativo: boolean;
   arquivada_em: string | null;
+  excluida_em: string | null;
   atribuicoes: { status: AssignmentStatus }[];
 };
 
@@ -93,6 +111,7 @@ const ASSIGNMENT_STATUS_PRIORITY: Record<AssignmentStatus, number> = {
   pendente: 1,
   rejeitada: 2,
   aprovada: 3,
+  cancelada: 4,
 };
 
 function sortAssignments(assignments: AssignmentWithChild[]): AssignmentWithChild[] {
@@ -220,8 +239,9 @@ export async function listAdminTasks(
 
   const { data, error } = await supabase
     .from('tarefas')
-    .select('id, titulo, pontos, dias_semana, created_at, ativo, arquivada_em, atribuicoes(status)')
+    .select('id, titulo, descricao, pontos, dias_semana, exige_evidencia, created_at, ativo, arquivada_em, excluida_em, atribuicoes(status)')
     .is('arquivada_em', null)
+    .is('excluida_em', null)
     .order('created_at', { ascending: false })
     .range(from, to)
     .overrideTypes<TaskListItem[], { merge: false }>();
@@ -245,8 +265,9 @@ export async function listArchivedTasks(
 
   const { data, error } = await supabase
     .from('tarefas')
-    .select('id, titulo, pontos, dias_semana, created_at, ativo, arquivada_em, atribuicoes(status)')
+    .select('id, titulo, descricao, pontos, dias_semana, exige_evidencia, created_at, ativo, arquivada_em, excluida_em, atribuicoes(status)')
     .not('arquivada_em', 'is', null)
+    .is('excluida_em', null)
     .order('arquivada_em', { ascending: false })
     .range(from, to)
     .overrideTypes<TaskListItem[], { merge: false }>();
@@ -273,6 +294,7 @@ export type ApprovedAssignmentFeedItem = {
 export async function listApprovedAssignments(
   page = 0,
   pageSize = 20,
+  since?: string,
 ): Promise<{
   data: ApprovedAssignmentFeedItem[];
   hasMore: boolean;
@@ -281,6 +303,7 @@ export async function listApprovedAssignments(
   const { data, error } = await supabase.rpc('listar_atribuicoes_aprovadas', {
     p_limit: pageSize + 1,
     p_offset: page * pageSize,
+    ...(since !== undefined ? { p_desde: since } : {}),
   });
 
   if (error) return { data: [], hasMore: false, error: localizeRpcError(error.message) };
@@ -311,10 +334,11 @@ export async function listPendingValidations(): Promise<{
   const { data, error } = await supabase
     .from('atribuicoes')
     .select(
-      'id, tarefa_id, filho_id, status, pontos_snapshot, evidencia_url, nota_rejeicao, concluida_em, validada_em, validada_por, created_at, competencia, tentativas, filhos(nome, usuario_id), tarefas!inner(id, titulo, descricao, pontos, exige_evidencia, familia_id, arquivada_em)',
+      'id, tarefa_id, filho_id, status, pontos_snapshot, titulo_snapshot, descricao_snapshot, exige_evidencia_snapshot, evidencia_url, nota_rejeicao, concluida_em, validada_em, validada_por, created_at, competencia, tentativas, filhos(nome, usuario_id), tarefas!inner(id, titulo, descricao, pontos, exige_evidencia, familia_id, arquivada_em)',
     )
     .eq('status', 'aguardando_validacao')
     .is('tarefas.arquivada_em', null)
+    .is('tarefas.excluida_em', null)
     .order('concluida_em', { ascending: true })
     .returns<PendingValidationItem[]>();
 
@@ -505,8 +529,10 @@ export async function cancelAssignmentSubmission(
   return { error: null };
 }
 
-export async function renewRecurringTasks(): Promise<void> {
-  const { error } = await supabase.rpc('garantir_atribuicoes_recorrentes');
+export async function renewRecurringTasks(childId?: string): Promise<void> {
+  const { error } = childId
+    ? await supabase.rpc('garantir_atribuicoes_recorrentes', { p_filho_id: childId })
+    : await supabase.rpc('garantir_atribuicoes_recorrentes');
   if (error) throw new Error(localizeRpcError(error.message));
 }
 
@@ -529,6 +555,7 @@ export async function listChildAssignments(
     .from('atribuicoes')
     .select('*, tarefas(*)')
     .or(visibleAssignmentsFilter)
+    .neq('status', 'cancelada')
     .order('created_at', { ascending: false })
     .range(from, to)
     .overrideTypes<ChildAssignment[], { merge: false }>();
@@ -714,6 +741,32 @@ export async function deactivateTask(taskId: string): Promise<{
   });
   if (error) return { data: null, error: localizeRpcError(error.message) };
   return { data: { pendingValidationCount: data ?? 0 }, error: null };
+}
+
+export async function deleteTask(taskId: string): Promise<{
+  data: { pendingValidationCount: number } | null;
+  error: string | null;
+}> {
+  const { data, error } = await supabase.rpc('excluir_tarefa', {
+    p_tarefa_id: taskId,
+  });
+  if (error) return { data: null, error: localizeRpcError(error.message) };
+  return { data: { pendingValidationCount: data ?? 0 }, error: null };
+}
+
+export function buildTaskDeleteMessage(
+  assignments: { status: AssignmentStatus }[],
+): string {
+  const pendingCount = assignments.filter((a) => a.status === 'pendente').length;
+  const parts: string[] = ['Esta ação é permanente e não pode ser desfeita.'];
+  if (pendingCount > 0) {
+    parts.push(
+      pendingCount === 1
+        ? '1 atribuição pendente será cancelada.'
+        : `${pendingCount} atribuições pendentes serão canceladas.`,
+    );
+  }
+  return parts.join('\n');
 }
 
 export async function reactivateTask(taskId: string): Promise<{

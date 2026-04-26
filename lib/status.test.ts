@@ -30,6 +30,7 @@ describe('getAssignmentStatusLabel', () => {
     ['aguardando_validacao', 'Aguardando validação'],
     ['aprovada', 'Aprovada'],
     ['rejeitada', 'Rejeitada'],
+    ['cancelada', 'Cancelada'],
   ] as const)('returns %s for status %s', (status, expected) => {
     expect(getAssignmentStatusLabel(status)).toBe(expected);
   });
@@ -41,6 +42,7 @@ describe('getAssignmentStatusColor', () => {
     ['aguardando_validacao', '#2979FF'],
     ['aprovada', '#00C853'],
     ['rejeitada', '#FF1744'],
+    ['cancelada', '#FFB300'],
   ] as const)('returns correct color for %s', (status, expected) => {
     expect(getAssignmentStatusColor(status, mockColors)).toBe(expected);
   });
@@ -52,6 +54,7 @@ describe('getAssignmentStatusTone', () => {
     ['aguardando_validacao', { foreground: '#2979FF', background: '#E3F2FD', text: '#0D47A1' }],
     ['aprovada', { foreground: '#00C853', background: '#E8F5E9', text: '#1B5E20' }],
     ['rejeitada', { foreground: '#FF1744', background: '#FFEBEE', text: '#B71C1C' }],
+    ['cancelada', { foreground: '#FFB300', background: '#FFF8E1', text: '#E65100' }],
   ] as const)('returns semantic tone for %s', (status, expected) => {
     expect(getAssignmentStatusTone(status, mockColors)).toEqual(expected);
   });

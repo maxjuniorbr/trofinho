@@ -5,14 +5,15 @@ import { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
   Archive,
+  Camera,
   CheckCircle2,
+  Clock,
   Eye,
   MoreVertical,
   PauseCircle,
   Plus,
-  RefreshCw,
+  Star,
 } from 'lucide-react-native';
-import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { HomeFooterBar } from '@/components/ui/home-footer-bar';
 import { InlineMessage } from '@/components/ui/inline-message';
@@ -24,7 +25,6 @@ import { SegmentedBar, type SegmentOption } from '@/components/ui/segmented-bar'
 import { ReviewStack } from '@/components/tasks/review-stack';
 import { TaskActionSheet, type TaskActionState } from '@/components/tasks/task-action-sheet';
 import { TaskFormSheet } from '@/components/tasks/task-form-sheet';
-import { TaskPointsPill } from '@/components/tasks/task-points-pill';
 import { useAdminFooterItems } from '@/hooks/use-footer-items';
 import {
   useAdminTasks,
@@ -32,6 +32,7 @@ import {
   useArchiveTask,
   useArchivedTasks,
   useDeactivateTask,
+  useDeleteTask,
   usePendingValidations,
   useReactivateTask,
   useTaskDetail,
@@ -40,6 +41,7 @@ import {
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import {
   buildTaskArchiveMessage,
+  buildTaskDeleteMessage,
   buildTaskPauseMessage,
   formatWeekdays,
   type ApprovedAssignmentFeedItem,
@@ -54,6 +56,126 @@ import { radii, shadows, spacing, typography, withAlpha } from '@/constants/them
 
 type TabKey = 'ativas' | 'feitas' | 'arquivo';
 
+type TaskCardProps = Readonly<{
+  icon: { Icon: typeof Clock; color: string; bg: string };
+  showDot?: boolean;
+  title: string;
+  titleStyle?: { color: string; textDecorationLine?: 'line-through' };
+  subtitle?: string | null;
+  points: number;
+  pointsPrefix?: string;
+  badges: { label: string; color: string; bg: string }[];
+  hasPhoto?: boolean;
+  trailingText?: string | null;
+  trailingAction?: React.ReactNode;
+  opacity?: number;
+  borderColor?: string;
+  onPress?: () => void;
+  accessibilityLabel: string;
+  colors: ThemeColors;
+  styles: ReturnType<typeof makeStyles>;
+}>;
+
+function TaskCard({
+  icon,
+  showDot,
+  title,
+  titleStyle,
+  subtitle,
+  points,
+  pointsPrefix = '',
+  badges,
+  hasPhoto,
+  trailingText,
+  trailingAction,
+  opacity = 1,
+  borderColor,
+  onPress,
+  accessibilityLabel,
+  colors,
+  styles,
+}: TaskCardProps) {
+  const Wrapper = onPress ? Pressable : View;
+  const wrapperProps = onPress
+    ? {
+      style: ({ pressed }: { pressed: boolean }) => [
+        styles.card,
+        shadows.card,
+        {
+          backgroundColor: colors.bg.surface,
+          borderColor: borderColor ?? colors.border.subtle,
+          opacity: pressed ? 0.92 : opacity,
+        },
+      ],
+      onPress,
+      accessibilityRole: 'button' as const,
+      accessibilityLabel,
+    }
+    : {
+      style: [
+        styles.card,
+        shadows.card,
+        {
+          backgroundColor: colors.bg.surface,
+          borderColor: borderColor ?? colors.border.subtle,
+          opacity,
+        },
+      ],
+      accessibilityLabel,
+    };
+
+  return (
+    <Wrapper {...(wrapperProps as any)}>
+      <View style={styles.cardTopRow}>
+        <View style={[styles.cardIcon, { backgroundColor: icon.bg }]}>
+          <icon.Icon size={16} color={icon.color} strokeWidth={2} />
+          {showDot ? (
+            <View style={[styles.cardDot, { backgroundColor: colors.semantic.info, borderColor: colors.bg.surface }]} />
+          ) : null}
+        </View>
+        <View style={styles.cardInfo}>
+          <Text
+            style={[styles.cardTitle, { color: titleStyle?.color ?? colors.text.primary }, titleStyle?.textDecorationLine ? { textDecorationLine: titleStyle.textDecorationLine } : null]}
+            numberOfLines={2}
+          >
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text style={[styles.cardSub, { color: colors.text.muted }]} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+        <View style={[styles.cardPointsBadge, { backgroundColor: colors.accent.adminBg }]}>
+          <Star size={12} color={colors.accent.admin} strokeWidth={2} />
+          <Text style={[styles.cardPointsText, { color: colors.accent.admin }]}>
+            {pointsPrefix}{points}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.cardBottomRow}>
+        <View style={styles.cardBadges}>
+          {badges.map((b) => (
+            <View key={b.label} style={[styles.cardBadge, { backgroundColor: b.bg }]}>
+              <Text style={[styles.cardBadgeText, { color: b.color }]}>{b.label}</Text>
+            </View>
+          ))}
+          {hasPhoto ? (
+            <View style={[styles.cardBadge, { backgroundColor: colors.bg.muted }]}>
+              <Camera size={10} color={colors.text.muted} strokeWidth={2} />
+              <Text style={[styles.cardBadgeText, { color: colors.text.muted }]}>Foto</Text>
+            </View>
+          ) : null}
+          {trailingText ? (
+            <Text style={[styles.cardTrailing, { color: colors.text.muted }]}>{trailingText}</Text>
+          ) : null}
+        </View>
+        {trailingAction}
+      </View>
+    </Wrapper>
+  );
+}
+
 type AdminTaskCardProps = Readonly<{
   item: TaskListItem;
   colors: ThemeColors;
@@ -63,76 +185,35 @@ type AdminTaskCardProps = Readonly<{
   variant: 'active' | 'archived';
 }>;
 
-const AdminTaskCard = ({
-  item,
-  colors,
-  styles,
-  onPress,
-  onMenuPress,
-  variant,
-}: AdminTaskCardProps) => {
+const AdminTaskCard = ({ item, colors, styles, onPress, onMenuPress, variant }: AdminTaskCardProps) => {
   const aguardando = item.atribuicoes.filter((a) => a.status === 'aguardando_validacao').length;
   const isInactive = item.ativo === false;
   const isArchived = variant === 'archived';
+  const isPaused = isInactive && !isArchived;
 
-  const resolveOpacity = (pressed: boolean): number => {
-    if (pressed) return 0.92;
-    if (isInactive || isArchived) return 0.6;
-    return 1;
-  };
+  const statusIcon = aguardando > 0
+    ? { Icon: Eye, color: colors.semantic.info, bg: colors.semantic.infoBg, label: 'Aguardando você' }
+    : isPaused
+      ? { Icon: PauseCircle, color: colors.text.muted, bg: colors.bg.muted, label: 'Pausada' }
+      : isArchived
+        ? { Icon: Archive, color: colors.text.muted, bg: colors.bg.muted, label: 'Arquivada' }
+        : { Icon: Clock, color: colors.semantic.warning, bg: colors.semantic.warningBg, label: 'Ativa' };
+
+  const opacity = isInactive || isArchived ? 0.6 : 1;
 
   return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.card,
-        shadows.card,
-        {
-          backgroundColor: colors.bg.surface,
-          borderColor: aguardando > 0 ? withAlpha(colors.semantic.info, 0.4) : colors.border.subtle,
-          opacity: resolveOpacity(pressed),
-        },
-      ]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`Ver detalhes da tarefa ${item.titulo}`}
-    >
-      <View style={styles.cardTopo}>
-        <View style={styles.cardTituloRow}>
-          <Text style={[styles.cardTitulo, { color: colors.text.primary }]} numberOfLines={2}>
-            {item.titulo}
-          </Text>
-          {isInactive && !isArchived ? (
-            <View style={[styles.statusPill, { backgroundColor: colors.bg.muted }]}>
-              <PauseCircle size={11} color={colors.text.muted} strokeWidth={2} />
-              <Text style={[styles.statusPillText, { color: colors.text.muted }]}>Pausada</Text>
-            </View>
-          ) : null}
-          {isArchived ? (
-            <View style={[styles.statusPill, { backgroundColor: colors.bg.muted }]}>
-              <Archive size={11} color={colors.text.muted} strokeWidth={2} />
-              <Text style={[styles.statusPillText, { color: colors.text.muted }]}>Arquivada</Text>
-            </View>
-          ) : null}
-        </View>
-        <TaskPointsPill points={item.pontos} />
-      </View>
-      <View style={styles.freqRow}>
-        <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
-        <Text style={[styles.cardPrazo, { color: colors.text.muted }]}>
-          {formatWeekdays(item.dias_semana)}
-          {' · '}
-          {formatDate(item.created_at)}
-        </Text>
-      </View>
-      <View style={styles.cardBottom}>
-        <View style={styles.cardStats}>
-          {aguardando > 0 ? <Badge label={`${aguardando} validar`} variant="info" /> : null}
-        </View>
+    <TaskCard
+      icon={statusIcon}
+      showDot={aguardando > 0}
+      title={item.titulo}
+      subtitle={item.descricao}
+      points={item.pontos}
+      badges={[{ label: statusIcon.label, color: statusIcon.color, bg: statusIcon.bg }]}
+      hasPhoto={item.exige_evidencia}
+      trailingText={formatWeekdays(item.dias_semana)}
+      trailingAction={
         <Pressable
-          onPress={(e) => {
-            e.stopPropagation();
-            onMenuPress();
-          }}
+          onPress={(e) => { e.stopPropagation(); onMenuPress(); }}
           style={({ pressed }) => [styles.menuButton, pressed && { opacity: 0.6 }]}
           accessibilityRole="button"
           accessibilityLabel={`Abrir menu da tarefa ${item.titulo}`}
@@ -140,8 +221,14 @@ const AdminTaskCard = ({
         >
           <MoreVertical size={18} color={colors.text.muted} strokeWidth={2} />
         </Pressable>
-      </View>
-    </Pressable>
+      }
+      opacity={opacity}
+      borderColor={aguardando > 0 ? withAlpha(colors.semantic.info, 0.4) : undefined}
+      onPress={onPress}
+      accessibilityLabel={`Ver detalhes da tarefa ${item.titulo}`}
+      colors={colors}
+      styles={styles}
+    />
   );
 };
 
@@ -149,29 +236,26 @@ type ApprovedFeedRowProps = Readonly<{
   item: ApprovedAssignmentFeedItem;
   colors: ThemeColors;
   styles: ReturnType<typeof makeStyles>;
+  onPress: () => void;
+  showDate?: boolean;
 }>;
 
-const ApprovedFeedRow = ({ item, colors, styles }: ApprovedFeedRowProps) => (
-  <View
-    style={[
-      styles.feedRow,
-      shadows.card,
-      { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-    ]}
-  >
-    <View style={[styles.feedIcon, { backgroundColor: colors.semantic.successBg }]}>
-      <CheckCircle2 size={16} color={colors.semantic.success} strokeWidth={2} />
-    </View>
-    <View style={styles.feedInfo}>
-      <Text style={[styles.feedTitle, { color: colors.text.primary }]} numberOfLines={1}>
-        {item.tarefa_titulo}
-      </Text>
-      <Text style={[styles.feedSub, { color: colors.text.muted }]} numberOfLines={1}>
-        {item.filho_nome} · {formatDate(item.validada_em)}
-      </Text>
-    </View>
-    <TaskPointsPill points={item.pontos} prefix="+" suffix="" />
-  </View>
+const ApprovedFeedRow = ({ item, colors, styles, onPress, showDate }: ApprovedFeedRowProps) => (
+  <TaskCard
+    icon={{ Icon: CheckCircle2, color: colors.semantic.success, bg: colors.semantic.successBg }}
+    title={item.tarefa_titulo}
+    titleStyle={{ color: colors.text.muted, textDecorationLine: 'line-through' }}
+    subtitle={item.filho_nome}
+    points={item.pontos}
+    pointsPrefix="+"
+    badges={[{ label: 'Aprovada', color: colors.semantic.success, bg: colors.semantic.successBg }]}
+    hasPhoto={!!item.evidencia_url}
+    trailingText={showDate ? formatDate(item.validada_em) : undefined}
+    onPress={onPress}
+    accessibilityLabel={`Tarefa aprovada: ${item.tarefa_titulo}`}
+    colors={colors}
+    styles={styles}
+  />
 );
 
 export default function AdminTasksScreen() {
@@ -185,6 +269,7 @@ export default function AdminTasksScreen() {
   const [showCreate, setShowCreate] = useState(false);
   const [editTaskId, setEditTaskId] = useState<string | null>(null);
   const [actionTask, setActionTask] = useState<TaskListItem | null>(null);
+  const [menuTaskId, setMenuTaskId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<NavigationFeedback | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{
     message: string;
@@ -199,15 +284,23 @@ export default function AdminTasksScreen() {
     resetKey: actionFeedbackKey,
   });
 
+  const [showOlderApproved, setShowOlderApproved] = useState(false);
+  // Default: today only. Expanded: last 7 days (RPC default).
+  const approvedSince = showOlderApproved
+    ? undefined // RPC default = 7 days
+    : new Date().toISOString().slice(0, 10) + 'T00:00:00Z'; // today midnight
+
   const activeTasks = useAdminTasks();
   const archivedTasks = useArchivedTasks();
-  const approvedFeed = useApprovedAssignmentsFeed();
+  const approvedFeed = useApprovedAssignmentsFeed(approvedSince);
   const pendingValidations = usePendingValidations();
   const editTaskQuery = useTaskDetail(editTaskId ?? undefined);
+  const menuTaskQuery = useTaskDetail(menuTaskId ?? undefined);
 
   const archiveMutation = useArchiveTask();
   const unarchiveMutation = useUnarchiveTask();
   const deactivateMutation = useDeactivateTask();
+  const deleteMutation = useDeleteTask();
   const reactivateMutation = useReactivateTask();
 
   const activeItems = useMemo(
@@ -328,13 +421,42 @@ export default function AdminTasksScreen() {
     [reactivateMutation, showActionFeedback],
   );
 
+  const handleDelete = useCallback(
+    (item: TaskListItem) => {
+      const message = buildTaskDeleteMessage(item.atribuicoes);
+      Alert.alert('Excluir tarefa?', message, [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: () =>
+            deleteMutation.mutate(item.id, {
+              onSuccess: (data) => {
+                const count = data?.pendingValidationCount ?? 0;
+                if (count > 0) {
+                  showActionFeedback(
+                    `Tarefa excluída. ${count} atribuições aguardam validação.`,
+                    'warning',
+                  );
+                } else {
+                  showActionFeedback('Tarefa excluída.');
+                }
+              },
+              onError: (err) => showActionFeedback(localizeRpcError(err.message), 'error'),
+            }),
+        },
+      ]);
+    },
+    [deleteMutation, showActionFeedback],
+  );
+
   const tabs: SegmentOption<TabKey>[] = useMemo(
     () => [
-      { key: 'ativas', label: 'Ativas' },
-      { key: 'feitas', label: 'Feitas' },
-      { key: 'arquivo', label: 'Arquivo' },
+      { key: 'ativas', label: 'Ativas', badge: activeItems.length },
+      { key: 'feitas', label: 'Feitas', badge: approvedItems.length },
+      { key: 'arquivo', label: 'Arquivo', badge: archivedItems.length },
     ],
-    [],
+    [activeItems.length, approvedItems.length, archivedItems.length],
   );
 
   const renderActive = () => {
@@ -344,7 +466,7 @@ export default function AdminTasksScreen() {
         <EmptyState
           error={activeTasks.error?.message ?? null}
           empty={activeItems.length === 0}
-          emptyMessage={'Nenhuma tarefa ativa.\nToque em "+" para criar a primeira tarefa.'}
+          emptyMessage={'Nenhuma tarefa ativa.\nToque em "+" para criar.'}
           onRetry={() => activeTasks.refetch()}
         />
       );
@@ -432,7 +554,7 @@ export default function AdminTasksScreen() {
         <EmptyState
           error={approvedFeed.error?.message ?? null}
           empty={approvedItems.length === 0}
-          emptyMessage="Nenhuma entrega aprovada ainda."
+          emptyMessage="Nenhuma tarefa feita hoje."
           onRetry={() => approvedFeed.refetch()}
         />
       );
@@ -453,9 +575,45 @@ export default function AdminTasksScreen() {
           if (approvedFeed.hasNextPage) approvedFeed.fetchNextPage();
         }}
         onEndReachedThreshold={0.3}
-        ListHeaderComponent={<View style={{ height: spacing['3'] }} />}
-        ListFooterComponent={<ListFooter loading={approvedFeed.isFetchingNextPage} />}
-        renderItem={({ item }) => <ApprovedFeedRow item={item} colors={colors} styles={styles} />}
+        ListHeaderComponent={
+          <View style={{ paddingTop: spacing['3'] }}>
+            {!showOlderApproved ? (
+              <Text style={styles.feedPeriodHint}>Feitas hoje</Text>
+            ) : (
+              <Text style={styles.feedPeriodHint}>Últimos 7 dias</Text>
+            )}
+          </View>
+        }
+        ListFooterComponent={
+          <>
+            <ListFooter loading={approvedFeed.isFetchingNextPage} />
+            {!showOlderApproved && !approvedFeed.hasNextPage && approvedItems.length >= 1 ? (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.loadOlderBtn,
+                  { borderColor: colors.border.default },
+                  pressed && { opacity: 0.7 },
+                ]}
+                onPress={() => setShowOlderApproved(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Ver últimos 7 dias"
+              >
+                <Text style={[styles.loadOlderText, { color: colors.text.secondary }]}>
+                  Ver últimos 7 dias
+                </Text>
+              </Pressable>
+            ) : null}
+          </>
+        }
+        renderItem={({ item }) => (
+          <ApprovedFeedRow
+            item={item}
+            colors={colors}
+            styles={styles}
+            onPress={() => router.push(`/(admin)/tasks/${item.tarefa_id}?readonly=1` as never)}
+            showDate={showOlderApproved}
+          />
+        )}
       />
     );
   };
@@ -466,14 +624,32 @@ export default function AdminTasksScreen() {
     return renderActive();
   };
 
-  const actionState: TaskActionState | null = actionTask
+  // Derive action state from either a TaskListItem (ativas/arquivo) or a TaskDetail (feitas menu)
+  const menuTaskDetail = menuTaskQuery.data ?? null;
+  const actionSource = actionTask ?? (menuTaskDetail ? {
+    id: menuTaskDetail.id,
+    titulo: menuTaskDetail.titulo,
+    descricao: menuTaskDetail.descricao,
+    pontos: menuTaskDetail.pontos,
+    dias_semana: menuTaskDetail.dias_semana,
+    exige_evidencia: menuTaskDetail.exige_evidencia,
+    created_at: menuTaskDetail.created_at,
+    ativo: menuTaskDetail.ativo,
+    arquivada_em: menuTaskDetail.arquivada_em,
+    excluida_em: menuTaskDetail.excluida_em,
+    atribuicoes: menuTaskDetail.atribuicoes.map((a) => ({ status: a.status })),
+  } satisfies TaskListItem : null);
+
+  const actionState: TaskActionState | null = actionSource
     ? {
-        isArchived: actionTask.arquivada_em !== null,
-        isInactive: actionTask.ativo === false,
-        hasPendingReview: actionTask.atribuicoes.some((a) => a.status === 'aguardando_validacao'),
-        canEdit: actionTask.arquivada_em === null && actionTask.ativo !== false,
-      }
+      isArchived: actionSource.arquivada_em !== null,
+      isInactive: actionSource.ativo === false,
+      canEdit: actionSource.arquivada_em === null && actionSource.ativo !== false,
+      isDeleted: false,
+    }
     : null;
+
+  const actionTitle = actionSource?.titulo ?? '';
 
   return (
     <SafeScreenFrame bottomInset={false}>
@@ -560,18 +736,18 @@ export default function AdminTasksScreen() {
         onSuccess={(message) => showActionFeedback(message)}
       />
 
-      {actionState && actionTask ? (
+      {actionState && actionSource ? (
         <TaskActionSheet
           visible
-          taskTitle={actionTask.titulo}
+          taskTitle={actionTitle}
           state={actionState}
-          onClose={() => setActionTask(null)}
-          onEdit={() => setEditTaskId(actionTask.id)}
-          onReview={() => setShowReview(true)}
-          onPause={() => handlePause(actionTask)}
-          onResume={() => handleResume(actionTask)}
-          onArchive={() => handleArchive(actionTask)}
-          onUnarchive={() => handleUnarchive(actionTask)}
+          onClose={() => { setActionTask(null); setMenuTaskId(null); }}
+          onEdit={() => setEditTaskId(actionSource.id)}
+          onPause={() => handlePause(actionSource)}
+          onResume={() => handleResume(actionSource)}
+          onArchive={() => handleArchive(actionSource)}
+          onUnarchive={() => handleUnarchive(actionSource)}
+          onDelete={() => handleDelete(actionSource)}
         />
       ) : null}
     </SafeScreenFrame>
@@ -586,39 +762,77 @@ function makeStyles(colors: ThemeColors) {
       borderRadius: radii.xl,
       borderWidth: 1,
       padding: spacing['4'],
+      gap: spacing['3'],
       marginBottom: spacing['3'],
     },
-    cardTopo: {
+    cardTopRow: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
-      marginBottom: spacing['2'],
+      alignItems: 'center',
+      gap: spacing['3'],
     },
-    cardTituloRow: { flex: 1, marginRight: spacing['2'], gap: spacing['1'] },
-    cardTitulo: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
-    statusPill: {
+    cardIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: radii.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cardDot: {
+      position: 'absolute',
+      top: -1,
+      right: -1,
+      width: 10,
+      height: 10,
+      borderRadius: radii.full,
+      borderWidth: 2,
+    },
+    cardInfo: { flex: 1, gap: spacing['0.5'] },
+    cardTitle: { fontSize: typography.size.sm, fontFamily: typography.family.bold },
+    cardPointsBadge: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing['1'],
-      borderRadius: radii.sm,
+      borderRadius: radii.md,
       paddingHorizontal: spacing['2'],
-      paddingVertical: spacing['0.5'],
-      alignSelf: 'flex-start',
+      paddingVertical: spacing['1'],
     },
-    statusPillText: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
-    freqRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing['1'],
-      marginBottom: spacing['2'],
+    cardPointsText: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.black,
     },
-    cardPrazo: { fontSize: typography.size.xs },
-    cardBottom: {
+    cardSub: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.medium,
+    },
+    cardBottomRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: spacing['2'],
     },
-    cardStats: { flexDirection: 'row', gap: spacing['2'], flexWrap: 'wrap', flex: 1 },
+    cardBadges: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['2'],
+      flexWrap: 'wrap',
+      flex: 1,
+    },
+    cardBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['0.5'],
+      borderRadius: radii.md,
+      paddingHorizontal: spacing['2'],
+      paddingVertical: spacing['1'],
+    },
+    cardBadgeText: {
+      fontSize: 10,
+      fontFamily: typography.family.bold,
+    },
+    cardTrailing: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.semibold,
+    },
     menuButton: {
       width: 32,
       height: 32,
@@ -647,24 +861,24 @@ function makeStyles(colors: ThemeColors) {
     bannerTitle: { fontSize: typography.size.sm, fontFamily: typography.family.bold },
     bannerSub: { fontSize: typography.size.xs, marginTop: spacing['0.5'] },
     bannerCta: { fontSize: typography.size.xs, fontFamily: typography.family.bold },
-    feedRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing['3'],
-      borderRadius: radii.lg,
-      borderWidth: 1,
-      padding: spacing['3'],
+    feedPeriodHint: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.medium,
+      color: colors.text.muted,
+      textAlign: 'center',
       marginBottom: spacing['2'],
     },
-    feedIcon: {
-      width: 32,
-      height: 32,
-      borderRadius: radii.full,
+    loadOlderBtn: {
       alignItems: 'center',
-      justifyContent: 'center',
+      paddingVertical: spacing['3'],
+      marginTop: spacing['1'],
+      marginBottom: spacing['4'],
+      borderRadius: radii.md,
+      borderWidth: 1,
     },
-    feedInfo: { flex: 1 },
-    feedTitle: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
-    feedSub: { fontSize: typography.size.xs, marginTop: spacing['0.5'] },
+    loadOlderText: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.semibold,
+    },
   });
 }

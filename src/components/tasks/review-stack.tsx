@@ -246,21 +246,6 @@ export function ReviewStack({ visible, onClose }: ReviewStackProps) {
     [translateX, isExiting, queryClient],
   );
 
-  // Skip: moves the current card to the end of the queue so the admin can review it later.
-  const skip = useCallback(() => {
-    queryClient.setQueryData(
-      queryKeys.tasks.pendingValidations(),
-      (old: PendingValidationItem[] | undefined) => {
-        if (!old || old.length <= 1) return old;
-        const [first, ...rest] = old;
-        return [...rest, first];
-      },
-    );
-    translateX.value = 0;
-    isExiting.value = false;
-    setActionError(null);
-  }, [translateX, isExiting, queryClient]);
-
   /* ── Approve ── */
 
   const fireApprove = useCallback(() => {
@@ -521,12 +506,12 @@ export function ReviewStack({ visible, onClose }: ReviewStackProps) {
                   {activeCurrent.filhos.nome}
                 </Text>
                 <Text style={[styles.taskTitle, { color: colors.text.primary }]} numberOfLines={3}>
-                  {activeCurrent.tarefas.titulo}
+                  {activeCurrent.titulo_snapshot}
                 </Text>
 
-                {activeCurrent.tarefas.descricao ? (
+                {activeCurrent.descricao_snapshot ? (
                   <Text style={[styles.taskDesc, { color: colors.text.muted }]}>
-                    {activeCurrent.tarefas.descricao}
+                    {activeCurrent.descricao_snapshot}
                   </Text>
                 ) : null}
 
@@ -577,7 +562,7 @@ export function ReviewStack({ visible, onClose }: ReviewStackProps) {
         ) : null}
 
         {/* Bottom action bar */}
-        <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, spacing['4']) }]}>
+        <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, spacing['6']) + spacing['4'] }]}>
           <View style={styles.circleRow}>
             <View style={styles.actionColumn}>
               <Pressable
@@ -616,22 +601,16 @@ export function ReviewStack({ visible, onClose }: ReviewStackProps) {
               </Text>
             </View>
           </View>
-          <Pressable
-            onPress={() => skip()}
-            accessibilityRole="button"
-            accessibilityLabel="Pular esta tarefa"
-            style={styles.skip}
-            disabled={isProcessing}
-          >
-            <Text style={[styles.skipLabel, { color: colors.text.muted }]}>Pular por agora</Text>
-          </Pressable>
+          <Text style={[styles.hintLabel, { color: colors.text.muted }]}>
+            Arraste o card ou toque nos botões
+          </Text>
         </View>
 
         {/* Rejection sheet overlay */}
         <RejectionSheet
           key={activeCurrent.id}
           visible={showRejectionSheet}
-          taskTitle={activeCurrent.tarefas.titulo}
+          taskTitle={activeCurrent.titulo_snapshot}
           loading={rejectMutation.isPending}
           onConfirm={handleConfirmReject}
           onCancel={() => {
@@ -869,11 +848,10 @@ function makeStyles(colors: ThemeColors) {
       fontSize: typography.size.xs,
       fontFamily: typography.family.bold,
     },
-    skip: { alignSelf: 'center', paddingVertical: spacing['1'] },
-    skipLabel: {
+    hintLabel: {
       fontSize: typography.size.xs,
       fontFamily: typography.family.semibold,
-      textDecorationLine: 'underline',
+      textAlign: 'center',
     },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing['6'] },
     doneCircle: {

@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useMemo } from 'react';
-import { Archive, ArchiveRestore, Eye, Pause, Pencil, Play } from 'lucide-react-native';
+import { Archive, ArchiveRestore, Pause, Pencil, Play, Trash2 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { BottomSheetModal } from '@/components/ui/bottom-sheet';
 import { useTheme } from '@/context/theme-context';
@@ -10,8 +10,8 @@ import { radii, spacing, typography } from '@/constants/theme';
 export type TaskActionState = Readonly<{
   isArchived: boolean;
   isInactive: boolean;
-  hasPendingReview: boolean;
   canEdit: boolean;
+  isDeleted: boolean;
 }>;
 
 type TaskActionSheetProps = Readonly<{
@@ -20,11 +20,11 @@ type TaskActionSheetProps = Readonly<{
   state: TaskActionState;
   onClose: () => void;
   onEdit?: () => void;
-  onReview?: () => void;
   onPause?: () => void;
   onResume?: () => void;
   onArchive?: () => void;
   onUnarchive?: () => void;
+  onDelete?: () => void;
 }>;
 
 type ActionItem = Readonly<{
@@ -41,28 +41,16 @@ export function TaskActionSheet({
   state,
   onClose,
   onEdit,
-  onReview,
   onPause,
   onResume,
   onArchive,
   onUnarchive,
+  onDelete,
 }: TaskActionSheetProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const actions: ActionItem[] = [];
-
-  if (state.hasPendingReview && onReview) {
-    actions.push({
-      key: 'review',
-      icon: Eye,
-      label: 'Revisar entregas',
-      onPress: () => {
-        onClose();
-        onReview();
-      },
-    });
-  }
 
   if (state.canEdit && onEdit && !state.isArchived) {
     actions.push({
@@ -123,6 +111,19 @@ export function TaskActionSheet({
     });
   }
 
+  if (!state.isDeleted && onDelete) {
+    actions.push({
+      key: 'delete',
+      icon: Trash2,
+      label: 'Excluir',
+      onPress: () => {
+        onClose();
+        onDelete();
+      },
+      tone: 'danger',
+    });
+  }
+
   return (
     <BottomSheetModal
       visible={visible}
@@ -166,7 +167,6 @@ function makeStyles(colors: ThemeColors) {
     sheetContent: {
       paddingHorizontal: spacing['5'],
       paddingTop: spacing['5'],
-      paddingBottom: spacing['10'],
       gap: spacing['3'],
     },
     title: {

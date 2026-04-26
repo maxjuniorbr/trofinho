@@ -78,12 +78,14 @@ vi.mock('expo-router', () => ({
 
 vi.mock('@lib/tasks', () => ({
   getAssignmentPoints: (assignment: { pontos_snapshot: number }) => assignment.pontos_snapshot,
+  getAssignmentRetryState: () => ({ canRetry: false, attemptsLeft: 0, reason: null }),
   isRecurring: (dias: number) => dias > 0,
   formatWeekdays: (dias: number) => (dias === 0 ? 'Pontual' : 'Todos os dias'),
 }));
 
 vi.mock('@lib/utils', () => ({
   formatDate: (value: string) => value,
+  toDateString: (d: Date) => d.toISOString().slice(0, 10),
 }));
 
 vi.mock('@lib/status', () => ({
@@ -98,6 +100,7 @@ vi.mock('@lib/status', () => ({
 
 vi.mock('@/hooks/queries', () => ({
   useChildAssignments: () => childAssignmentsMock,
+  useDiscardRejection: () => ({ mutate: vi.fn(), isPending: false }),
   useTasksLiveSync: () => undefined,
 }));
 
@@ -125,6 +128,10 @@ vi.mock('@/context/theme-context', () => ({
       },
     },
   }),
+}));
+
+vi.mock('@/context/impersonation-context', () => ({
+  useImpersonation: () => ({ impersonating: null, startImpersonation: vi.fn(), stopImpersonation: vi.fn() }),
 }));
 
 vi.mock('@/components/ui/screen-header', () => ({
@@ -158,6 +165,25 @@ vi.mock('@/components/ui/home-footer-bar', () => ({
   HomeFooterBar: () => React.createElement('HomeFooterBar'),
 }));
 
+vi.mock('lucide-react-native', () => ({
+  Clock: createHostComponent('Clock'),
+  Eye: createHostComponent('Eye'),
+  CheckCircle2: createHostComponent('CheckCircle2'),
+  XCircle: createHostComponent('XCircle'),
+  Camera: createHostComponent('Camera'),
+  Star: createHostComponent('Star'),
+  PauseCircle: createHostComponent('PauseCircle'),
+  RefreshCw: createHostComponent('RefreshCw'),
+}));
+
+vi.mock('@/constants/colors', () => ({
+  withAlpha: (hex: string, _opacity: number) => hex,
+}));
+
+vi.mock('@/hooks/use-footer-items', () => ({
+  useChildFooterItems: () => [],
+}));
+
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
   act(() => {
@@ -171,6 +197,9 @@ function makeAssignment(overrides: Record<string, unknown> = {}) {
     id: 'assignment-1',
     status: 'pendente',
     pontos_snapshot: 10,
+    titulo_snapshot: 'Arrumar a cama',
+    descricao_snapshot: null,
+    exige_evidencia_snapshot: false,
     concluida_em: null,
     validada_em: null,
     created_at: '2026-04-03T10:00:00Z',
@@ -227,7 +256,7 @@ describe('ChildTasksScreen', () => {
       ),
     ).toHaveLength(1);
     expect(pressables[0].props.disabled).toBeFalsy();
-    expect(pressables[0].props.accessibilityLabel).toBe('Tarefa Arrumar a cama desativada');
+    expect(pressables[0].props.accessibilityLabel).toBe('Ver detalhes da tarefa Arrumar a cama');
   });
 
   it('shows Alert when pressing an inactive task', () => {
@@ -282,11 +311,12 @@ describe('ChildTasksScreen', () => {
         {
           data: [
             makeAssignment({
+              titulo_snapshot: 'Lavar louça',
+              exige_evidencia_snapshot: true,
               tarefas: {
                 titulo: 'Lavar louça',
                 dias_semana: 0,
                 ativo: true,
-                exige_evidencia: true,
               },
             }),
           ],
@@ -298,9 +328,96 @@ describe('ChildTasksScreen', () => {
 
     const renderer = render(<ChildTasksScreen />);
     const hint = renderer.root.findAll(
-      (node) => (node.type as string) === 'Text' && node.props.children === 'Requer foto',
+      (node) => (node.type as string) === 'Text' && node.props.children === 'Foto',
     );
     expect(hint).toHaveLength(1);
+  });
+
+  it('renders title from titulo_snapshot, not tarefas.titulo', () => {
+    childAssignmentsMock.data = {
+      pages: [
+        {
+          data: [
+            makeAssignment({
+              titulo_snapshot: 'Snapshot Title',
+              tarefas: {
+                titulo: 'Current Task Title',
+                dias_semana: 0,
+                ativo: true,
+              },
+            }),
+          ],
+          hasMore: false,
+        },
+      ],
+      pageParams: [0],
+    };
+
+    const renderer = render(<ChildTasksScreen />);
+
+    const snapshotTitle = renderer.root.findAll(
+      (node) => (node.type as string) === 'Text' && node.props.children === 'Snapshot Title',
+    );
+    const currentTitle = renderer.root.findAll(
+      (node) => (node.type as string) === 'Text' && node.props.children === 'Current Task Title',
+    );
+
+    expect(snapshotTitle).toHaveLength(1);
+    expect(currentTitle).toHaveLength(0);
+  });
+
+  it('renders evidence hint from exige_evidencia_snapshot, not tarefas', () => {
+    childAssignmentsMock.data = {
+      pages: [
+        {
+          data: [
+            makeAssignment({
+              exige_evidencia_snapshot: true,
+              tarefas: {
+                titulo: 'Arrumar a cama',
+                dias_semana: 0,
+                ativo: true,
+                // tarefas.exige_evidencia would be false, but snapshot is true
+              },
+            }),
+          ],
+          hasMore: false,
+        },
+      ],
+      pageParams: [0],
+    };
+
+    const renderer = render(<ChildTasksScreen />);
+    const hint = renderer.root.findAll(
+      (node) => (node.type as string) === 'Text' && node.props.children === 'Foto',
+    );
+    expect(hint).toHaveLength(1);
+
+    // Now verify the inverse: snapshot false should hide the hint even if task would require it
+    childAssignmentsMock.data = {
+      pages: [
+        {
+          data: [
+            makeAssignment({
+              exige_evidencia_snapshot: false,
+              tarefas: {
+                titulo: 'Arrumar a cama',
+                dias_semana: 0,
+                ativo: true,
+              },
+            }),
+          ],
+          hasMore: false,
+        },
+      ],
+      pageParams: [0],
+    };
+
+    const renderer2 = render(<ChildTasksScreen />);
+    const hint2 = renderer2.root.findAll(
+      (node) => (node.type as string) === 'Text' && node.props.children === 'Foto',
+    );
+    expect(hint2).toHaveLength(0);
   });
 
   it('shows celebratory empty message when no pending tasks', () => {
@@ -311,6 +428,6 @@ describe('ChildTasksScreen', () => {
 
     const renderer = render(<ChildTasksScreen />);
     const emptyState = renderer.root.findByType('EmptyState' as never);
-    expect(emptyState.props.emptyMessage).toBe('Tudo feito por aqui! Você arrasou! 🎉');
+    expect(emptyState.props.emptyMessage).toBe('Nenhuma tarefa pendente.');
   });
 });

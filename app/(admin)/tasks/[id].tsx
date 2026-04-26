@@ -1,140 +1,592 @@
-import { RefreshControl, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
+import {
+  Alert,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  ActivityIndicator,
+} from 'react-native';
+import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Camera, CheckCircle2, Clock, RefreshCw, XCircle } from 'lucide-react-native';
-import { formatWeekdays, type AssignmentWithChild } from '@lib/tasks';
+import {
+  Star,
+  Calendar,
+  PauseCircle,
+  PlayCircle,
+  Archive,
+  Trash2,
+  Check,
+  X,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Eye,
+  Camera,
+  Pencil,
+} from 'lucide-react-native';
+import {
+  formatWeekdays,
+  deriveTaskState,
+  buildTaskDeactivateMessage,
+  buildTaskArchiveMessage,
+  buildTaskDeleteMessage,
+  type AssignmentWithChild,
+  type TaskState,
+  type AssignmentStatus,
+} from '@lib/tasks';
 import { getAssignmentStatusLabel, getAssignmentStatusTone } from '@lib/status';
 import { localizeRpcError } from '@lib/api-error';
 import { consumeNavigationFeedback } from '@lib/navigation-feedback';
-import { formatDate, toDateString } from '@lib/utils';
+import { formatDate } from '@lib/utils';
 import { useTaskAssignments, useTaskDetail } from '@/hooks/queries';
+import {
+  useDeactivateTask,
+  useReactivateTask,
+  useArchiveTask,
+  useUnarchiveTask,
+  useDeleteTask,
+  useApproveAssignment,
+  useRejectAssignment,
+} from '@/hooks/queries/use-tasks';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
-import { ScreenHeader } from '@/components/ui/screen-header';
+import { ScreenHeader, HeaderIconButton } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { ListFooter } from '@/components/ui/list-footer';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
+import { FullscreenImageViewer } from '@/components/ui/fullscreen-image-viewer';
 import { TaskPointsPill } from '@/components/tasks/task-points-pill';
+import { TaskFormSheet } from '@/components/tasks/task-form-sheet';
 
-type DateLine = { label: string; date: string };
+/* ─── Task state helpers ─── */
 
-const formatValidatedDateLine = (
-  label: string,
-  assignment: AssignmentWithChild,
-): DateLine | null => {
-  const date = assignment.validada_em ?? assignment.concluida_em;
-  if (!date) return null;
-  let formatted = formatDate(date);
-  if (assignment.competencia && toDateString(new Date(date)) !== assignment.competencia) {
-    formatted += ' · Tarefa de ' + formatDate(assignment.competencia + 'T12:00:00');
-  }
-  return { label, date: formatted };
-};
+function getTaskStatusTone(state: TaskState): AssignmentStatus {
+  if (state === 'pausada') return 'pendente';
+  if (state === 'arquivada') return 'cancelada';
+  return 'aprovada';
+}
 
-const getAssignmentDateLine = (assignment: AssignmentWithChild): DateLine | null => {
-  switch (assignment.status) {
-    case 'pendente': {
-      if (!assignment.competencia) {
-        return { label: 'Atribuída em ', date: formatDate(assignment.created_at) };
-      }
-      const today = toDateString(new Date());
-      if (assignment.competencia === today) {
-        return { label: 'Para ', date: 'hoje' };
-      }
-      return { label: 'Não realizada em ', date: formatDate(assignment.competencia + 'T12:00:00') };
-    }
-    case 'aguardando_validacao':
-      return assignment.concluida_em
-        ? { label: 'Enviada em ', date: formatDate(assignment.concluida_em) }
-        : null;
-    case 'aprovada':
-      return formatValidatedDateLine('Aprovada em ', assignment);
-    case 'rejeitada':
-      return formatValidatedDateLine('Rejeitada em ', assignment);
-  }
-};
+function getTaskStateLabel(state: TaskState): string {
+  const labels: Record<TaskState, string> = {
+    ativa: 'Ativa',
+    pausada: 'Pausada',
+    arquivada: 'Arquivada',
+    excluida: 'Excluída',
+  };
+  return labels[state];
+}
 
-const getRowStatusLabel = (assignment: AssignmentWithChild): string => {
-  if (
-    assignment.status === 'pendente' &&
-    assignment.competencia !== null &&
-    assignment.competencia < toDateString(new Date())
-  ) {
-    return 'Não executada';
-  }
-  return getAssignmentStatusLabel(assignment.status);
-};
+/* ─── History row status mapping ─── */
 
-const getRowStatusIcon = (status: AssignmentWithChild['status']) => {
-  const map = {
-    aprovada: CheckCircle2,
-    rejeitada: XCircle,
-    pendente: Clock,
-    aguardando_validacao: Clock,
-  } as const;
-  return map[status];
-};
+const HISTORY_ICON = {
+  aprovada: CheckCircle2,
+  rejeitada: XCircle,
+  aguardando_validacao: Eye,
+  pendente: Clock,
+  cancelada: Clock,
+} as const;
 
-type AssignmentRowProps = Readonly<{
+/* ─── History row ─── */
+
+type HistoryRowProps = Readonly<{
   assignment: AssignmentWithChild;
   colors: ThemeColors;
   styles: ReturnType<typeof makeStyles>;
   isLast: boolean;
+  onImagePress?: (url: string) => void;
 }>;
 
-const AssignmentRow = ({ assignment, colors, styles, isLast }: AssignmentRowProps) => {
-  const dateLine = getAssignmentDateLine(assignment);
-  const statusTone = getAssignmentStatusTone(assignment.status, colors);
-  const StatusIcon = getRowStatusIcon(assignment.status);
+const getHistoryDate = (a: AssignmentWithChild): string | null => {
+  const raw = a.validada_em ?? a.concluida_em ?? a.created_at;
+  return raw ? formatDate(raw) : null;
+};
+
+function HistoryRow({ assignment, colors, styles, isLast, onImagePress }: HistoryRowProps) {
+  const tone = getAssignmentStatusTone(assignment.status, colors);
+  const Icon = HISTORY_ICON[assignment.status];
+  const date = getHistoryDate(assignment);
+  const hasPhoto = !!assignment.evidencia_url;
 
   return (
     <View
       style={[
-        styles.atribRow,
-        !isLast && {
-          borderBottomWidth: StyleSheet.hairlineWidth,
-          borderBottomColor: colors.border.subtle,
-        },
+        styles.historyRow,
+        !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border.subtle },
       ]}
     >
-      <View style={[styles.atribRowIcon, { backgroundColor: statusTone.background }]}>
-        <StatusIcon size={14} color={statusTone.foreground} strokeWidth={2} />
-      </View>
-      <View style={styles.atribRowInfo}>
-        <Text style={[styles.atribRowNome, { color: colors.text.primary }]}>
+      {hasPhoto ? (
+        <Pressable
+          onPress={() => onImagePress?.(assignment.evidencia_url!)}
+          style={styles.historyThumbWrap}
+          accessibilityRole="button"
+          accessibilityLabel="Ver foto"
+        >
+          <Image source={assignment.evidencia_url!} style={styles.historyThumb} contentFit="cover" />
+          <View style={[styles.historyThumbBadge, { backgroundColor: tone.background }]}>
+            <Icon size={10} color={tone.foreground} strokeWidth={2.5} />
+          </View>
+        </Pressable>
+      ) : (
+        <View style={[styles.historyIcon, { backgroundColor: tone.background }]}>
+          <Icon size={14} color={tone.foreground} strokeWidth={2} />
+        </View>
+      )}
+      <View style={styles.historyInfo}>
+        <Text style={[styles.historyName, { color: colors.text.primary }]}>
           {assignment.filhos.nome}
         </Text>
-        {assignment.nota_rejeicao ? (
-          <Text style={[styles.atribRowNota, { color: colors.text.muted }]} numberOfLines={2}>
-            {assignment.nota_rejeicao}
-          </Text>
+        {date ? (
+          <Text style={[styles.historyDate, { color: colors.text.muted }]}>{date}</Text>
         ) : null}
       </View>
-      <View style={styles.atribRowRight}>
-        <Text style={[styles.atribRowStatus, { color: statusTone.foreground }]}>
-          {getRowStatusLabel(assignment)}
+      <Text style={[styles.historyStatus, { color: tone.foreground }]}>
+        {getAssignmentStatusLabel(assignment.status)}
+      </Text>
+    </View>
+  );
+}
+
+/* ─── Lifecycle action button ─── */
+
+type ActionButtonProps = Readonly<{
+  icon: typeof PauseCircle;
+  title: string;
+  description: string;
+  iconColor: string;
+  borderColor?: string;
+  bgColor?: string;
+  titleColor?: string;
+  colors: ThemeColors;
+  styles: ReturnType<typeof makeStyles>;
+  onPress: () => void;
+}>;
+
+function ActionButton({
+  icon: Icon,
+  title,
+  description,
+  iconColor,
+  borderColor,
+  bgColor,
+  titleColor,
+  colors,
+  styles,
+  onPress,
+}: ActionButtonProps) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.actionBtn,
+        {
+          backgroundColor: bgColor ?? colors.bg.surface,
+          borderColor: borderColor ?? colors.border.subtle,
+          opacity: pressed ? 0.85 : 1,
+        },
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+    >
+      <Icon size={20} color={iconColor} strokeWidth={2} />
+      <View style={styles.actionBtnText}>
+        <Text style={[styles.actionBtnTitle, { color: titleColor ?? colors.text.primary }]}>
+          {title}
         </Text>
-        {dateLine ? (
-          <Text style={[styles.atribRowData, { color: colors.text.muted }]}>{dateLine.date}</Text>
+        <Text style={[styles.actionBtnDesc, { color: colors.text.muted }]}>{description}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+/* ─── Task content (extracted to reduce cognitive complexity) ─── */
+
+type TaskContentProps = Readonly<{
+  task: NonNullable<ReturnType<typeof useTaskDetail>['data']>;
+  paginated: AssignmentWithChild[];
+  assignmentsQuery: ReturnType<typeof useTaskAssignments>;
+  colors: ThemeColors;
+  styles: ReturnType<typeof makeStyles>;
+  visibleUpdated: string | null;
+  onImagePress: (url: string) => void;
+  onPause: () => void;
+  onReactivate: () => void;
+  onArchive: () => void;
+  onDelete: () => void;
+  onApprove: (assignmentId: string) => void;
+  onReject: (assignmentId: string) => void;
+  readonly?: boolean;
+}>;
+
+function TaskContent({
+  task,
+  paginated,
+  assignmentsQuery,
+  colors,
+  styles,
+  visibleUpdated,
+  onImagePress,
+  onPause,
+  onReactivate,
+  onArchive,
+  onDelete,
+  onApprove,
+  onReject,
+  readonly: isReadonly = false,
+}: TaskContentProps) {
+  const taskState = deriveTaskState(task);
+  const isActive = taskState === 'ativa';
+  const isPaused = taskState === 'pausada';
+  const isArchived = taskState === 'arquivada';
+
+  const pendingValidation = task.atribuicoes.filter((a) => a.status === 'aguardando_validacao');
+
+  const approvedAssignments = paginated.filter((a) => a.status === 'aprovada');
+  const approvedCount = approvedAssignments.length;
+  const totalPointsEarned = approvedAssignments.reduce((sum, a) => sum + a.pontos_snapshot, 0);
+  const hasApproved = approvedCount > 0;
+
+  const proofAssignment = task.atribuicoes.find(
+    (a) => a.status === 'aguardando_validacao' && a.evidencia_url,
+  );
+
+  return (
+    <>
+      {/* Feedback banners */}
+      {visibleUpdated ? (
+        <View style={styles.feedbackWrapper}>
+          <InlineMessage message={visibleUpdated} variant="success" />
+        </View>
+      ) : null}
+
+      {isArchived ? (
+        <View style={styles.feedbackWrapper}>
+          <InlineMessage message="Esta tarefa está arquivada." variant="warning" />
+        </View>
+      ) : null}
+
+      {!isArchived && isPaused ? (
+        <View style={styles.feedbackWrapper}>
+          <InlineMessage message="Esta tarefa está pausada." variant="warning" />
+        </View>
+      ) : null}
+
+      {/* ─── Approve/Reject buttons (top priority) ─── */}
+      {!isReadonly && pendingValidation.length > 0 ? (
+        <View style={styles.reviewSection}>
+          {pendingValidation.map((a) => (
+            <View key={a.id} style={[styles.reviewActionCard, { borderColor: colors.border.subtle, backgroundColor: colors.bg.surface }]}>
+              <Text style={[styles.reviewChildName, { color: colors.text.primary }]} numberOfLines={1}>
+                {a.filhos.nome} — aguardando aprovação
+              </Text>
+              <View style={styles.reviewBtnRow}>
+                <Pressable
+                  onPress={() => onReject(a.id)}
+                  style={({ pressed }) => [styles.reviewBtn, styles.reviewBtnReject, { borderColor: colors.semantic.error }, pressed && { opacity: 0.7 }]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Rejeitar entrega de ${a.filhos.nome}`}
+                >
+                  <X size={16} color={colors.semantic.error} strokeWidth={2.5} />
+                  <Text style={[styles.reviewBtnText, { color: colors.semantic.error }]}>Rejeitar</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => onApprove(a.id)}
+                  style={({ pressed }) => [styles.reviewBtn, styles.reviewBtnApprove, { backgroundColor: colors.semantic.success }, pressed && { opacity: 0.85 }]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Aprovar entrega de ${a.filhos.nome}`}
+                >
+                  <Check size={16} color={colors.text.inverse} strokeWidth={2.5} />
+                  <Text style={[styles.reviewBtnText, { color: colors.text.inverse }]}>Aprovar</Text>
+                </Pressable>
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {/* ─── Main card ─── */}
+      <TaskMainCard
+        task={task}
+        taskState={taskState}
+        proofAssignment={proofAssignment}
+        colors={colors}
+        styles={styles}
+        onImagePress={onImagePress}
+      />
+
+      {/* ─── Quick stats ─── */}
+      {hasApproved ? (
+        <View style={styles.statsGrid}>
+          <View style={[styles.statCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
+            <Text style={[styles.statLabel, { color: colors.text.muted }]}>Aprovações</Text>
+            <Text style={[styles.statValue, { color: colors.semantic.success }]}>
+              {approvedCount}
+            </Text>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
+            <Text style={[styles.statLabel, { color: colors.text.muted }]}>Pontos ganhos</Text>
+            <Text style={[styles.statValue, { color: colors.text.primary }]}>
+              {totalPointsEarned}
+            </Text>
+          </View>
+        </View>
+      ) : null}
+
+      {/* ─── History ─── */}
+      {paginated.length > 0 ? (
+        <View style={styles.historySection}>
+          <Text style={[styles.historyHeading, { color: colors.text.primary }]}>Histórico</Text>
+          <View style={[styles.historyCard, { backgroundColor: colors.bg.surface }, shadows.card]}>
+            {paginated.map((a, i) => (
+              <HistoryRow
+                key={a.id}
+                assignment={a}
+                colors={colors}
+                styles={styles}
+                isLast={i === paginated.length - 1}
+                onImagePress={onImagePress}
+              />
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      {paginated.length === 0 && !assignmentsQuery.isLoading ? (
+        <Text style={[styles.noHistory, { color: colors.text.muted }]}>
+          Nenhum registro no histórico.
+        </Text>
+      ) : null}
+
+      {assignmentsQuery.error ? (
+        <View style={styles.feedbackWrapper}>
+          <InlineMessage
+            message={localizeRpcError(assignmentsQuery.error.message)}
+            variant="error"
+          />
+        </View>
+      ) : null}
+
+      <ListFooter loading={assignmentsQuery.isFetchingNextPage} />
+
+      {/* ─── Lifecycle actions ─── */}
+      {!isReadonly ? (
+        <LifecycleActions
+          isActive={isActive}
+          isPaused={isPaused}
+          isArchived={isArchived}
+          colors={colors}
+          styles={styles}
+          onPause={onPause}
+          onReactivate={onReactivate}
+          onArchive={onArchive}
+          onDelete={onDelete}
+        />
+      ) : null}
+    </>
+  );
+}
+
+/* ─── Main card component ─── */
+
+type TaskMainCardProps = Readonly<{
+  task: NonNullable<ReturnType<typeof useTaskDetail>['data']>;
+  taskState: TaskState;
+  proofAssignment: AssignmentWithChild | undefined;
+  colors: ThemeColors;
+  styles: ReturnType<typeof makeStyles>;
+  onImagePress: (url: string) => void;
+}>;
+
+function TaskMainCard({ task, taskState, proofAssignment, colors, styles, onImagePress }: TaskMainCardProps) {
+  const statusForTone = getTaskStatusTone(taskState);
+  const tone = getAssignmentStatusTone(statusForTone, colors);
+  const label = getTaskStateLabel(taskState);
+
+  return (
+    <View style={[styles.card, { backgroundColor: colors.bg.surface }, shadows.card]}>
+      {/* Title + points */}
+      <View style={styles.cardTop}>
+        <Text style={[styles.cardTitle, { color: colors.text.primary }]}>{task.titulo}</Text>
+        <View style={[styles.pointsBadge, { backgroundColor: colors.accent.adminBg }]}>
+          <Star size={14} color={colors.accent.admin} strokeWidth={2} />
+          <TaskPointsPill points={task.pontos} size="md" />
+        </View>
+      </View>
+
+      {/* Status badges */}
+      <View style={styles.badgeRow}>
+        <View style={[styles.badge, { backgroundColor: tone.background }]}>
+          <Text style={[styles.badgeText, { color: tone.foreground }]}>{label}</Text>
+        </View>
+        {task.exige_evidencia ? (
+          <View style={[styles.badge, { backgroundColor: colors.bg.muted }]}>
+            <Camera size={10} color={colors.text.muted} strokeWidth={2.5} />
+            <Text style={[styles.badgeText, { color: colors.text.muted }]}>Exige foto</Text>
+          </View>
         ) : null}
+      </View>
+
+      {/* Recurrence */}
+      <View style={styles.recurrenceRow}>
+        <Calendar size={14} color={colors.text.muted} strokeWidth={2} />
+        <Text style={[styles.recurrenceText, { color: colors.text.muted }]}>
+          {formatWeekdays(task.dias_semana)}
+        </Text>
+      </View>
+
+      {/* Photo proof */}
+      {proofAssignment ? (
+        <View style={[styles.proofSection, { borderTopColor: colors.border.subtle }]}>
+          <View style={styles.proofLabel}>
+            <Camera size={12} color={colors.text.muted} strokeWidth={2.5} />
+            <Text style={[styles.proofLabelText, { color: colors.text.muted }]}>
+              Comprovação enviada
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => onImagePress(proofAssignment.evidencia_url!)}
+            accessibilityRole="button"
+            accessibilityLabel="Ver comprovação em tela cheia"
+          >
+            <Image
+              source={proofAssignment.evidencia_url!}
+              style={styles.proofImage}
+              contentFit="cover"
+            />
+          </Pressable>
+          {proofAssignment.concluida_em ? (
+            <Text style={[styles.proofCaption, { color: colors.text.muted }]}>
+              Enviada em {formatDate(proofAssignment.concluida_em)} por{' '}
+              {proofAssignment.filhos.nome}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
+
+      {/* Description */}
+      <View style={[styles.descSection, { borderTopColor: colors.border.subtle }]}>
+        <Text style={[styles.sectionLabel, { color: colors.text.muted }]}>Descrição</Text>
+        {task.descricao ? (
+          <Text style={[styles.descText, { color: colors.text.primary }]}>
+            {task.descricao}
+          </Text>
+        ) : (
+          <Text style={[styles.descEmpty, { color: colors.text.muted }]}>Sem descrição</Text>
+        )}
       </View>
     </View>
   );
-};
+}
+
+/* ─── Lifecycle actions component ─── */
+
+type LifecycleActionsProps = Readonly<{
+  isActive: boolean;
+  isPaused: boolean;
+  isArchived: boolean;
+  colors: ThemeColors;
+  styles: ReturnType<typeof makeStyles>;
+  onPause: () => void;
+  onReactivate: () => void;
+  onArchive: () => void;
+  onDelete: () => void;
+}>;
+
+function LifecycleActions({
+  isActive,
+  isPaused,
+  isArchived,
+  colors,
+  styles,
+  onPause,
+  onReactivate,
+  onArchive,
+  onDelete,
+}: LifecycleActionsProps) {
+  return (
+    <View style={styles.actionsSection}>
+      {isActive ? (
+        <ActionButton
+          icon={PauseCircle}
+          title="Pausar tarefa"
+          description="Para de cobrar. Histórico preservado."
+          iconColor={colors.semantic.warning}
+          colors={colors}
+          styles={styles}
+          onPress={onPause}
+        />
+      ) : null}
+
+      {isPaused || isArchived ? (
+        <ActionButton
+          icon={PlayCircle}
+          title="Reativar tarefa"
+          description={isArchived ? 'Volta para a lista ativa.' : 'Volta a cobrar normalmente.'}
+          iconColor={colors.semantic.success}
+          borderColor={colors.semantic.success + '66'}
+          bgColor={colors.semantic.successBg}
+          colors={colors}
+          styles={styles}
+          onPress={onReactivate}
+        />
+      ) : null}
+
+      {(isActive || isPaused) && !isArchived ? (
+        <ActionButton
+          icon={Archive}
+          title="Arquivar"
+          description="Remove da lista. Histórico continua."
+          iconColor={colors.text.muted}
+          colors={colors}
+          styles={styles}
+          onPress={onArchive}
+        />
+      ) : null}
+
+      <ActionButton
+        icon={Trash2}
+        title="Excluir definitivamente"
+        description="Não pode ser desfeito."
+        iconColor={colors.semantic.error}
+        borderColor={colors.semantic.error + '66'}
+        bgColor={colors.semantic.errorBg}
+        titleColor={colors.semantic.error}
+        colors={colors}
+        styles={styles}
+        onPress={onDelete}
+      />
+    </View>
+  );
+}
+
+/* ─── Main screen ─── */
 
 export default function TaskDetailAdminScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, readonly: readonlyParam } = useLocalSearchParams<{ id: string; readonly?: string }>();
+  const isReadonly = readonlyParam === '1';
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const { data: task, isLoading, error, refetch, isFetching } = useTaskDetail(id);
   const assignmentsQuery = useTaskAssignments(id);
+
+  const deactivateMutation = useDeactivateTask();
+  const reactivateMutation = useReactivateTask();
+  const archiveMutation = useArchiveTask();
+  const unarchiveMutation = useUnarchiveTask();
+  const deleteMutation = useDeleteTask();
+  const approveMutation = useApproveAssignment();
+  const rejectMutation = useRejectAssignment();
+
+  const [editing, setEditing] = useState(false);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
   const navFeedback = consumeNavigationFeedback('admin-task-detail');
   const visibleUpdated = useTransientMessage(navFeedback?.message ?? null);
@@ -148,6 +600,115 @@ export default function TaskDetailAdminScreen() {
     await Promise.all([refetch(), assignmentsQuery.refetch()]);
   }, [refetch, assignmentsQuery]);
 
+  /* ─── Lifecycle handlers ─── */
+
+  const confirmPause = () => {
+    if (!task) return;
+    Alert.alert(
+      'Pausar tarefa?',
+      buildTaskDeactivateMessage(task, task.atribuicoes),
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Pausar',
+          onPress: () => deactivateMutation.mutate(task.id, { onSuccess: () => refetch() }),
+        },
+      ],
+    );
+  };
+
+  const confirmReactivate = () => {
+    if (!task) return;
+    const state = deriveTaskState(task);
+    const isArchived = state === 'arquivada';
+    const mutation = isArchived ? unarchiveMutation : reactivateMutation;
+    Alert.alert(
+      'Reativar tarefa?',
+      isArchived ? 'A tarefa volta para a lista ativa.' : 'A tarefa volta a gerar atribuições normalmente.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Reativar',
+          onPress: () => mutation.mutate(task.id, { onSuccess: () => refetch() }),
+        },
+      ],
+    );
+  };
+
+  const confirmArchive = () => {
+    if (!task) return;
+    Alert.alert(
+      'Arquivar tarefa?',
+      buildTaskArchiveMessage(task.atribuicoes),
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Arquivar',
+          onPress: () => archiveMutation.mutate(task.id, { onSuccess: () => refetch() }),
+        },
+      ],
+    );
+  };
+
+  const confirmDelete = () => {
+    if (!task) return;
+    Alert.alert(
+      'Excluir tarefa?',
+      buildTaskDeleteMessage(task.atribuicoes),
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: () => deleteMutation.mutate(task.id, { onSuccess: () => router.back() }),
+        },
+      ],
+    );
+  };
+
+  const handleApprove = (assignmentId: string) => {
+    if (!task) return;
+    const assignment = task.atribuicoes.find((a) => a.id === assignmentId);
+    approveMutation.mutate(
+      {
+        assignmentId,
+        opts: {
+          familiaId: task.familia_id,
+          userId: assignment?.filhos.usuario_id,
+          taskTitle: task.titulo,
+        },
+      },
+      { onSuccess: () => refetch() },
+    );
+  };
+
+  const handleReject = (assignmentId: string) => {
+    if (!task) return;
+    const assignment = task.atribuicoes.find((a) => a.id === assignmentId);
+    Alert.alert('Rejeitar entrega?', 'O filho poderá refazer a tarefa.', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Rejeitar',
+        style: 'destructive',
+        onPress: () =>
+          rejectMutation.mutate(
+            {
+              assignmentId,
+              note: 'Rejeitada pelo responsável',
+              opts: {
+                familiaId: task.familia_id,
+                userId: assignment?.filhos.usuario_id,
+                taskTitle: task.titulo,
+              },
+            },
+            { onSuccess: () => refetch() },
+          ),
+      },
+    ]);
+  };
+
+  /* ─── Loading state ─── */
+
   if (isLoading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg.canvas }]}>
@@ -157,11 +718,13 @@ export default function TaskDetailAdminScreen() {
     );
   }
 
+  /* ─── Error state ─── */
+
   if (error || !task) {
     return (
       <View style={[styles.container, { backgroundColor: colors.bg.canvas }]}>
         <StatusBar style={colors.statusBar} />
-        <ScreenHeader title="Detalhes" onBack={() => router.back()} />
+        <ScreenHeader title="Detalhes da tarefa" onBack={() => router.back()} />
         <View style={styles.center}>
           <EmptyState
             error={error?.message ?? 'Tarefa não encontrada.'}
@@ -172,38 +735,25 @@ export default function TaskDetailAdminScreen() {
     );
   }
 
-  const isArchived = task.arquivada_em !== null;
-  const isInactive = task.ativo === false;
-
-  const renderHistoricoFeedback = () => {
-    if (assignmentsQuery.error) {
-      return (
-        <View style={styles.feedbackWrapper}>
-          <InlineMessage
-            message={localizeRpcError(assignmentsQuery.error.message)}
-            variant="error"
-          />
-        </View>
-      );
-    }
-    if (paginated.length === 0 && !assignmentsQuery.isLoading) {
-      return (
-        <Text style={[styles.semHistorico, { color: colors.text.muted }]}>
-          Nenhum registro no histórico.
-        </Text>
-      );
-    }
-    return null;
-  };
-
   return (
     <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader title="Detalhes" onBack={() => router.back()} backLabel="Tarefas" />
+      <ScreenHeader
+        title="Detalhes da tarefa"
+        onBack={() => router.back()}
+        backLabel="Tarefas"
+        rightAction={
+          isReadonly ? undefined : (
+            <HeaderIconButton
+              icon={Pencil}
+              onPress={() => setEditing(true)}
+              accessibilityLabel="Editar tarefa"
+            />
+          )
+        }
+      />
 
-      <FlashList
-        data={paginated}
-        keyExtractor={(item) => item.id}
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl
@@ -212,80 +762,52 @@ export default function TaskDetailAdminScreen() {
             tintColor={colors.accent.admin}
           />
         }
-        ListHeaderComponent={
-          <>
-            {visibleUpdated ? (
-              <View style={styles.feedbackWrapper}>
-                <InlineMessage message={visibleUpdated} variant="success" />
-              </View>
-            ) : null}
+      >
+        <TaskContent
+          task={task}
+          paginated={paginated}
+          assignmentsQuery={assignmentsQuery}
+          colors={colors}
+          styles={styles}
+          visibleUpdated={visibleUpdated}
+          onImagePress={setFullscreenImage}
+          onPause={confirmPause}
+          onReactivate={confirmReactivate}
+          onArchive={confirmArchive}
+          onDelete={confirmDelete}
+          onApprove={handleApprove}
+          onReject={handleReject}
+          readonly={isReadonly}
+        />
+      </ScrollView>
 
-            {isArchived ? (
-              <View style={styles.feedbackWrapper}>
-                <InlineMessage message="Esta tarefa está arquivada." variant="warning" />
-              </View>
-            ) : null}
+      {/* Edit bottom sheet — hidden in readonly mode */}
+      {!isReadonly ? (
+        <TaskFormSheet
+          visible={editing}
+          mode="edit"
+          task={task}
+          onClose={() => setEditing(false)}
+          onSuccess={() => {
+            setEditing(false);
+            refetch();
+          }}
+        />
+      ) : null}
 
-            {!isArchived && isInactive ? (
-              <View style={styles.feedbackWrapper}>
-                <InlineMessage message="Esta tarefa está pausada." variant="warning" />
-              </View>
-            ) : null}
-
-            <View style={[styles.card, { backgroundColor: colors.bg.surface }, shadows.card]}>
-              <View style={styles.cardTopo}>
-                <Text style={[styles.cardTitulo, { color: colors.text.primary }]}>
-                  {task.titulo}
-                </Text>
-                <TaskPointsPill points={task.pontos} size="md" />
-              </View>
-              {task.descricao ? (
-                <Text style={[styles.descricao, { color: colors.text.secondary }]}>
-                  {task.descricao}
-                </Text>
-              ) : null}
-              <View style={styles.metaRow}>
-                <RefreshCw size={12} color={colors.text.muted} strokeWidth={2} />
-                <Text style={[styles.meta, { color: colors.text.muted }]}>
-                  {formatWeekdays(task.dias_semana)}
-                </Text>
-              </View>
-              {task.exige_evidencia ? (
-                <View style={[styles.tagEvidencia, { backgroundColor: colors.bg.muted }]}>
-                  <Camera size={12} color={colors.text.muted} strokeWidth={2} />
-                  <Text style={[styles.tagEvidenciaTexto, { color: colors.text.muted }]}>
-                    Exige foto
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-
-            <View style={[styles.historicoHeader, { borderBottomColor: colors.border.subtle }]}>
-              <Text style={[styles.secaoTitulo, { color: colors.text.primary }]}>Histórico</Text>
-            </View>
-
-            {renderHistoricoFeedback()}
-          </>
-        }
-        renderItem={({ item, index }) => (
-          <AssignmentRow
-            assignment={item}
-            colors={colors}
-            styles={styles}
-            isLast={index === paginated.length - 1}
-          />
-        )}
-        onEndReached={() => {
-          if (assignmentsQuery.hasNextPage && !assignmentsQuery.isFetchingNextPage) {
-            assignmentsQuery.fetchNextPage();
-          }
-        }}
-        onEndReachedThreshold={0.3}
-        ListFooterComponent={<ListFooter loading={assignmentsQuery.isFetchingNextPage} />}
-      />
+      {/* Fullscreen image viewer */}
+      {fullscreenImage ? (
+        <FullscreenImageViewer
+          visible
+          imageUrl={fullscreenImage}
+          onClose={() => setFullscreenImage(null)}
+        />
+      ) : null}
     </SafeScreenFrame>
   );
 }
+
+/* ─── Styles ─── */
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
@@ -293,65 +815,258 @@ function makeStyles(colors: ThemeColors) {
     container: { flex: 1 },
     scrollContent: { padding: spacing['4'], paddingBottom: spacing['12'] },
     feedbackWrapper: { marginBottom: spacing['4'] },
-    atribRow: {
+    reviewSection: { gap: spacing['2'], marginBottom: spacing['4'] },
+
+    /* Main card */
+    card: {
+      borderRadius: radii.xl,
+      padding: spacing['5'],
+      marginBottom: spacing['4'],
+    },
+    cardTop: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: spacing['3'],
+      marginBottom: spacing['3'],
+    },
+    cardTitle: {
+      flex: 1,
+      fontSize: typography.size.lg,
+      fontFamily: typography.family.extrabold,
+      lineHeight: typography.lineHeight.lg,
+    },
+    pointsBadge: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: spacing['3'],
-      paddingHorizontal: spacing['3'],
-      gap: spacing['2'],
-      backgroundColor: colors.bg.surface,
+      gap: spacing['1'],
+      borderRadius: radii.md,
+      paddingHorizontal: spacing['2'],
+      paddingVertical: spacing['1'],
     },
-    atribRowIcon: {
-      width: 30,
-      height: 30,
+    badgeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1.5'],
+      flexWrap: 'wrap',
+      marginBottom: spacing['3'],
+    },
+    badge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1'],
+      borderRadius: radii.sm,
+      paddingHorizontal: spacing['2'],
+      paddingVertical: spacing['1'],
+    },
+    badgeText: {
+      fontSize: typography.size.xxs,
+      fontFamily: typography.family.extrabold,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    recurrenceRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1.5'],
+    },
+    recurrenceText: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.semibold,
+    },
+
+    /* Photo proof */
+    proofSection: {
+      marginTop: spacing['3'],
+      paddingTop: spacing['3'],
+      borderTopWidth: StyleSheet.hairlineWidth,
+    },
+    proofLabel: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1'],
+      marginBottom: spacing['2'],
+    },
+    proofLabelText: {
+      fontSize: typography.size.xxs,
+      fontFamily: typography.family.bold,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    proofImage: {
+      width: '100%',
+      aspectRatio: 16 / 9,
+      borderRadius: radii.lg,
+    },
+    proofCaption: {
+      fontSize: typography.size.xxs,
+      fontFamily: typography.family.semibold,
+      marginTop: spacing['1.5'],
+    },
+
+    /* Description */
+    descSection: {
+      marginTop: spacing['3'],
+      paddingTop: spacing['3'],
+      borderTopWidth: StyleSheet.hairlineWidth,
+    },
+    sectionLabel: {
+      fontSize: typography.size.xxs,
+      fontFamily: typography.family.bold,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: spacing['1'],
+    },
+    descText: {
+      fontSize: typography.size.sm,
+      lineHeight: typography.lineHeight.sm,
+    },
+    descEmpty: {
+      fontSize: typography.size.sm,
+      fontStyle: 'italic',
+    },
+
+    /* Quick stats */
+    statsGrid: {
+      flexDirection: 'row',
+      gap: spacing['3'],
+      marginBottom: spacing['4'],
+    },
+    statCard: {
+      flex: 1,
+      borderRadius: radii.lg,
+      padding: spacing['3'],
+      borderWidth: StyleSheet.hairlineWidth,
+    },
+    statLabel: {
+      fontSize: typography.size.xxs,
+      fontFamily: typography.family.bold,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    statValue: {
+      fontSize: typography.size.xl,
+      fontFamily: typography.family.extrabold,
+      marginTop: spacing['0.5'],
+    },
+
+    /* History */
+    historySection: { marginBottom: spacing['4'] },
+    historyHeading: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.bold,
+      marginBottom: spacing['2'],
+    },
+    historyCard: {
+      borderRadius: radii.xl,
+      overflow: 'hidden',
+    },
+    historyRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['3'],
+      paddingHorizontal: spacing['4'],
+      paddingVertical: spacing['3'],
+    },
+    historyIcon: {
+      width: 32,
+      height: 32,
       borderRadius: radii.full,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    atribRowInfo: { flex: 1 },
-    atribRowNome: { fontSize: typography.size.sm, fontFamily: typography.family.semibold },
-    atribRowNota: { fontSize: typography.size.xs, marginTop: spacing['0.5'] },
-    atribRowRight: { alignItems: 'flex-end' },
-    atribRowStatus: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
-    atribRowData: { fontSize: typography.size.xs, marginTop: spacing['0.5'] },
-    card: {
-      borderRadius: radii.xl,
-      padding: spacing['4'],
-      marginBottom: spacing['5'],
-    },
-    cardTopo: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-      marginBottom: spacing['2'],
-    },
-    cardTitulo: {
-      flex: 1,
-      fontSize: typography.size.lg,
-      fontFamily: typography.family.bold,
-      marginRight: spacing['2'],
-    },
-    descricao: { fontSize: typography.size.sm, marginBottom: spacing['2'], lineHeight: 20 },
-    metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
-    meta: { fontSize: typography.size.xs },
-    tagEvidencia: {
+    historyThumbWrap: {
+      width: 40,
+      height: 40,
       borderRadius: radii.sm,
-      paddingVertical: spacing['1'],
-      paddingHorizontal: spacing['2'],
-      alignSelf: 'flex-start',
+      overflow: 'hidden',
+    },
+    historyThumb: {
+      width: 40,
+      height: 40,
+    },
+    historyThumbBadge: {
+      position: 'absolute',
+      bottom: -2,
+      right: -2,
+      width: 16,
+      height: 16,
+      borderRadius: radii.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: colors.bg.surface,
+    },
+    historyInfo: { flex: 1, minWidth: 0 },
+    historyName: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.bold,
+    },
+    historyDate: {
+      fontSize: typography.size.xxs,
+      fontFamily: typography.family.semibold,
+    },
+    historyStatus: {
+      fontSize: typography.size.xxs,
+      fontFamily: typography.family.extrabold,
+    },
+    noHistory: {
+      fontSize: typography.size.sm,
+      fontStyle: 'italic',
+      marginBottom: spacing['4'],
+    },
+
+    /* Lifecycle actions */
+    actionsSection: {
+      gap: spacing['2'],
       marginTop: spacing['2'],
+    },
+    actionBtn: {
       flexDirection: 'row',
       alignItems: 'center',
+      gap: spacing['3'],
+      padding: spacing['3'],
+      borderRadius: radii.lg,
+      borderWidth: 1,
+    },
+    actionBtnText: { flex: 1 },
+    actionBtnTitle: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.bold,
+    },
+    actionBtnDesc: {
+      fontSize: typography.size.xxs,
+    },
+    reviewActionCard: {
+      borderRadius: radii.lg,
+      borderWidth: 1,
+      padding: spacing['3'],
+      gap: spacing['2'],
+    },
+    reviewChildName: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.semibold,
+    },
+    reviewBtnRow: {
+      flexDirection: 'row',
+      gap: spacing['2'],
+    },
+    reviewBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
       gap: spacing['1'],
+      paddingVertical: spacing['2'],
+      borderRadius: radii.md,
     },
-    tagEvidenciaTexto: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
-    secaoTitulo: { fontSize: typography.size.md, fontFamily: typography.family.bold },
-    historicoHeader: {
-      borderBottomWidth: 1,
-      paddingBottom: spacing['3'],
-      marginTop: spacing['2'],
-      marginBottom: spacing['1'],
+    reviewBtnReject: {
+      borderWidth: 1,
     },
-    semHistorico: { fontSize: typography.size.sm, fontStyle: 'italic' },
+    reviewBtnApprove: {},
+    reviewBtnText: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.bold,
+    },
   });
 }

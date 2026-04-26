@@ -18,6 +18,7 @@ const taskDetailMock = vi.hoisted(() => ({
     exige_evidencia: false,
     ativo: true,
     arquivada_em: null,
+    excluida_em: null,
     atribuicoes: [],
   } as Record<string, unknown> | null,
   isLoading: false,
@@ -52,39 +53,17 @@ const createHostComponent = vi.hoisted(() => {
 
 vi.mock('react-native', () => ({
   ActivityIndicator: createHostComponent('ActivityIndicator'),
+  Alert: { alert: vi.fn() },
   Pressable: createHostComponent('Pressable'),
   RefreshControl: createHostComponent('RefreshControl'),
+  ScrollView: createHostComponent('ScrollView'),
   StyleSheet: { create: <T,>(styles: T) => styles, hairlineWidth: 0.5 },
   Text: createHostComponent('Text'),
   View: createHostComponent('View'),
 }));
 
-vi.mock('@shopify/flash-list', () => ({
-  FlashList: ({
-    data,
-    renderItem,
-    ListHeaderComponent,
-    ListFooterComponent,
-    ...props
-  }: {
-    data: unknown[];
-    renderItem: (params: { item: unknown; index: number }) => React.ReactNode;
-    ListHeaderComponent?: React.ReactNode;
-    ListFooterComponent?: React.ReactNode;
-  }) =>
-    React.createElement(
-      'FlashList',
-      props,
-      ListHeaderComponent,
-      ...data.map((item, index) =>
-        React.createElement(
-          React.Fragment,
-          { key: String((item as { id?: string })?.id ?? index) },
-          renderItem({ item, index }),
-        ),
-      ),
-      ListFooterComponent,
-    ),
+vi.mock('expo-image', () => ({
+  Image: createHostComponent('ExpoImage'),
 }));
 
 vi.mock('expo-status-bar', () => ({
@@ -97,16 +76,31 @@ vi.mock('expo-router', () => ({
 }));
 
 vi.mock('lucide-react-native', () => ({
-  Camera: createHostComponent('Camera'),
+  Star: createHostComponent('Star'),
+  Calendar: createHostComponent('Calendar'),
+  PauseCircle: createHostComponent('PauseCircle'),
+  PlayCircle: createHostComponent('PlayCircle'),
+  Archive: createHostComponent('Archive'),
+  Trash2: createHostComponent('Trash2'),
   CheckCircle2: createHostComponent('CheckCircle2'),
-  Clock: createHostComponent('Clock'),
-  RefreshCw: createHostComponent('RefreshCw'),
   XCircle: createHostComponent('XCircle'),
+  Clock: createHostComponent('Clock'),
+  Eye: createHostComponent('Eye'),
+  Camera: createHostComponent('Camera'),
+  Pencil: createHostComponent('Pencil'),
 }));
 
 vi.mock('@lib/tasks', () => ({
   formatWeekdays: () => 'Todos os dias',
-  isRecurring: () => true,
+  deriveTaskState: (task: Record<string, unknown>) => {
+    if (task.excluida_em != null) return 'excluida';
+    if (task.arquivada_em != null) return 'arquivada';
+    if (task.ativo === false) return 'pausada';
+    return 'ativa';
+  },
+  buildTaskDeactivateMessage: () => 'Pausar msg',
+  buildTaskArchiveMessage: () => 'Arquivar msg',
+  buildTaskDeleteMessage: () => 'Excluir msg',
 }));
 
 vi.mock('@lib/status', () => ({
@@ -124,12 +118,23 @@ vi.mock('@lib/navigation-feedback', () => ({
 
 vi.mock('@lib/utils', () => ({
   formatDate: (value: string) => value,
-  toDateString: () => '2026-04-19',
 }));
+
+const mutationMock = vi.hoisted(() => () => ({ mutate: vi.fn(), isPending: false }));
 
 vi.mock('@/hooks/queries', () => ({
   useTaskAssignments: () => assignmentsMock,
   useTaskDetail: () => taskDetailMock,
+}));
+
+vi.mock('@/hooks/queries/use-tasks', () => ({
+  useDeactivateTask: mutationMock,
+  useReactivateTask: mutationMock,
+  useArchiveTask: mutationMock,
+  useUnarchiveTask: mutationMock,
+  useDeleteTask: mutationMock,
+  useApproveAssignment: mutationMock,
+  useRejectAssignment: mutationMock,
 }));
 
 vi.mock('@/hooks/use-transient-message', () => ({
@@ -139,6 +144,8 @@ vi.mock('@/hooks/use-transient-message', () => ({
 vi.mock('@/components/ui/screen-header', () => ({
   ScreenHeader: (props: Record<string, unknown> & { rightAction?: React.ReactNode }) =>
     React.createElement('ScreenHeader', props, props.rightAction),
+  HeaderIconButton: (props: Record<string, unknown>) =>
+    React.createElement('HeaderIconButton', props),
 }));
 
 vi.mock('@/components/ui/empty-state', () => ({
@@ -158,8 +165,17 @@ vi.mock('@/components/ui/safe-screen-frame', () => ({
     React.createElement('SafeScreenFrame', null, children),
 }));
 
+vi.mock('@/components/ui/fullscreen-image-viewer', () => ({
+  FullscreenImageViewer: (props: Record<string, unknown>) =>
+    React.createElement('FullscreenImageViewer', props),
+}));
+
 vi.mock('@/components/tasks/task-points-pill', () => ({
   TaskPointsPill: (props: Record<string, unknown>) => React.createElement('TaskPointsPill', props),
+}));
+
+vi.mock('@/components/tasks/task-form-sheet', () => ({
+  TaskFormSheet: (props: Record<string, unknown>) => React.createElement('TaskFormSheet', props),
 }));
 
 function render(element: React.ReactElement) {
@@ -200,6 +216,7 @@ describe('TaskDetailAdminScreen', () => {
       exige_evidencia: false,
       ativo: true,
       arquivada_em: null,
+      excluida_em: null,
       atribuicoes: [],
     };
     taskDetailMock.isLoading = false;
@@ -210,21 +227,112 @@ describe('TaskDetailAdminScreen', () => {
     assignmentsMock.isLoading = false;
   });
 
-  it('renders task details without duplicated action controls', () => {
+  it('renders task details with edit button and lifecycle actions', () => {
     const renderer = render(<TaskDetailAdminScreen />);
 
     const header = renderer.root.findByType('ScreenHeader' as never);
-    const menuTargets = renderer.root.findAll(
-      (node) => node.props.accessibilityLabel === 'Abrir menu da tarefa',
-    );
     const text = allText(renderer);
 
-    expect(header.props.rightAction).toBeUndefined();
-    expect(menuTargets).toHaveLength(0);
-    expect(renderer.root.findAllByType('TaskFormSheet' as never)).toHaveLength(0);
+    // Header has rightAction (edit button)
+    expect(header.props.rightAction).toBeDefined();
+    expect(header.props.title).toBe('Detalhes da tarefa');
+
+    // Task info is visible
     expect(text).toContain('Arrumar o quarto');
-    expect(text).not.toContain('Editar');
-    expect(text).not.toContain('Arquivar');
-    expect(text).not.toContain('Desarquivar');
+    expect(text).toContain('Todos os dias');
+    expect(text).toContain('Descrição');
+    expect(text).toContain('Guardar brinquedos e roupas.');
+
+    // Lifecycle actions visible for active task
+    expect(text).toContain('Pausar tarefa');
+    expect(text).toContain('Arquivar');
+    expect(text).toContain('Excluir definitivamente');
+
+    // TaskFormSheet is rendered (hidden by default)
+    const formSheets = renderer.root.findAllByType('TaskFormSheet' as never);
+    expect(formSheets).toHaveLength(1);
+    expect(formSheets[0].props.visible).toBe(false);
+  });
+
+  it('shows reactivate action for paused tasks', () => {
+    taskDetailMock.data = {
+      ...taskDetailMock.data!,
+      ativo: false,
+      arquivada_em: null,
+    };
+    const renderer = render(<TaskDetailAdminScreen />);
+    const text = allText(renderer);
+
+    expect(text).toContain('Reativar tarefa');
+    expect(text).not.toContain('Pausar tarefa');
+  });
+
+  it('shows reactivate and delete for archived tasks', () => {
+    taskDetailMock.data = {
+      ...taskDetailMock.data!,
+      ativo: false,
+      arquivada_em: '2025-01-01T00:00:00Z',
+    };
+    const renderer = render(<TaskDetailAdminScreen />);
+    const text = allText(renderer);
+
+    expect(text).toContain('Reativar tarefa');
+    expect(text).toContain('Excluir definitivamente');
+    expect(text).not.toContain('Pausar tarefa');
+  });
+
+  it('shows empty history message when no assignments', () => {
+    const renderer = render(<TaskDetailAdminScreen />);
+    const text = allText(renderer);
+
+    expect(text).toContain('Nenhum registro no histórico.');
+  });
+
+  it('renders history rows when assignments exist', () => {
+    assignmentsMock.data = {
+      pages: [
+        {
+          data: [
+            {
+              id: 'a-1',
+              status: 'aprovada',
+              pontos_snapshot: 20,
+              evidencia_url: null,
+              nota_rejeicao: null,
+              concluida_em: '2025-01-15T10:00:00Z',
+              validada_em: '2025-01-15T11:00:00Z',
+              created_at: '2025-01-15T08:00:00Z',
+              competencia: null,
+              tentativas: 1,
+              filhos: { nome: 'João', usuario_id: 'u-1' },
+            },
+          ],
+          hasMore: false,
+        },
+      ],
+      pageParams: [0],
+    };
+    const renderer = render(<TaskDetailAdminScreen />);
+    const text = allText(renderer);
+
+    expect(text).toContain('Histórico');
+    expect(text).toContain('João');
+    expect(text).toContain('Aprovações');
+    expect(text).toContain('Pontos ganhos');
+  });
+
+  it('shows loading state', () => {
+    taskDetailMock.isLoading = true;
+    const renderer = render(<TaskDetailAdminScreen />);
+    const indicators = renderer.root.findAllByType('ActivityIndicator' as never);
+    expect(indicators.length).toBeGreaterThan(0);
+  });
+
+  it('shows error state', () => {
+    taskDetailMock.data = null;
+    taskDetailMock.error = new Error('Falha ao carregar');
+    const renderer = render(<TaskDetailAdminScreen />);
+    const emptyStates = renderer.root.findAllByType('EmptyState' as never);
+    expect(emptyStates).toHaveLength(1);
   });
 });
