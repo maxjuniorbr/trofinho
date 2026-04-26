@@ -8,7 +8,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'expo-router';
@@ -18,10 +17,19 @@ import {
   House,
   ShoppingBag,
   PiggyBank,
-  Pencil,
   Bell,
+  User,
+  ChevronRight,
+  CheckCircle2,
+  Clock,
+  Wallet,
+  AlertTriangle,
+  Camera,
+  Send,
+  RotateCcw,
 } from 'lucide-react-native';
 import { getGreeting } from '@lib/utils';
+import { getAssignmentPoints, getAssignmentRetryState, formatWeekdays } from '@lib/tasks';
 import { isNotificationPermissionDenied } from '@lib/notifications';
 import { useChildUnreadNotifCount } from '@/hooks/use-notification-inbox';
 import {
@@ -32,73 +40,50 @@ import {
   useRenewRecurringTasks,
   combineQueryStates,
 } from '@/hooks/queries';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/context/theme-context';
-import { radii, spacing, staticTextColors, typography, type ThemeColors } from '@/constants/theme';
+import { useImpersonation } from '@/context/impersonation-context';
+import { radii, shadows, spacing, staticTextColors, typography } from '@/constants/theme';
+import { gradients, heroPalette } from '@/constants/shadows';
 import { NotificationPermissionBanner } from '@/components/ui/notification-permission-banner';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { HomeScreenSkeleton } from '@/components/ui/skeleton';
-import { mascotImage, celebratingImage } from '@/constants/assets';
 import { HomeFooterBar, FOOTER_BAR_HEIGHT, type FooterItem } from '@/components/ui/home-footer-bar';
-import { Avatar } from '@/components/ui/avatar';
-
-const MASCOT_CELEBRATING_PHRASES = [
-  'Troféu conquistado! 🎉',
-  'Tudo feito, campeão! 🏆',
-  'Dia 100% completo! ⭐',
-  'Você mandou muito bem! 🚀',
-  'Missão cumprida! 💪',
-] as const;
+import { TaskPointsPill } from '@/components/tasks/task-points-pill';
 
 const FOOTER_ITEMS: readonly FooterItem[] = [
   { icon: House, label: 'Início', rota: 'index' },
   { icon: ClipboardList, label: 'Tarefas', rota: '/(child)/tasks' },
   { icon: Gift, label: 'Prêmios', rota: '/(child)/prizes' },
   { icon: ShoppingBag, label: 'Resgates', rota: '/(child)/redemptions' },
+  { icon: User, label: 'Perfil', rota: '/(child)/perfil' },
 ];
-
-function getSummaryColors(colors: ThemeColors) {
-  const isLight = colors.statusBar === 'dark';
-  return isLight
-    ? {
-      bg: colors.bg.surface,
-      boxBg: colors.bg.muted,
-      border: colors.border.subtle,
-      text: colors.text.primary,
-      textMuted: colors.text.secondary,
-    }
-    : {
-      bg: colors.bg.elevated,
-      boxBg: colors.bg.muted,
-      border: colors.border.subtle,
-      text: staticTextColors.inverse,
-      textMuted: 'rgba(255, 255, 255, 0.7)',
-    };
-}
 
 export default function FilhoHomeScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(), []);
-  const summary = useMemo(() => getSummaryColors(colors), [colors]);
+
+  const { impersonating } = useImpersonation();
+  const isReadOnly = impersonating !== null;
 
   const profileQuery = useProfile();
   const profile = profileQuery.data ?? null;
-  const firstName = profile?.nome?.split(' ')[0] ?? 'Campeão';
-  const avatarUri = profile?.avatarUrl ?? null;
+  const firstName = impersonating ? impersonating.childName.split(' ')[0] : (profile?.nome?.split(' ')[0] ?? 'Campeão');
   const unreadNotifs = useChildUnreadNotifCount();
   const bellLabel = unreadNotifs > 0 ? `Notificações, ${unreadNotifs} não lidas` : 'Notificações';
 
   const familyQuery = useFamily(profile?.familia_id);
 
   const assignmentsQuery = useChildAssignments();
-  useRenewRecurringTasks();
+  useRenewRecurringTasks(impersonating?.childId);
   const assignments = useMemo(
     () => assignmentsQuery.data?.pages.flatMap((p) => p.data) ?? [],
     [assignmentsQuery.data],
   );
 
-  const balanceQuery = useBalance();
+  const balanceQuery = useBalance(impersonating?.childId);
   const balanceData = balanceQuery.data ?? null;
 
   const { isLoading, error, refetchAll } = combineQueryStates(
@@ -109,7 +94,17 @@ export default function FilhoHomeScreen() {
   );
 
   const pendingCount = useMemo(
-    () => assignments.filter((a) => a.status === 'pendente').length,
+    () => assignments.filter((a) => a.status === 'pendente' || (a.status === 'rejeitada' && getAssignmentRetryState(a).canRetry)).length,
+    [assignments],
+  );
+
+  const pendingTasks = useMemo(
+    () => assignments.filter((a) => a.status === 'pendente' || (a.status === 'rejeitada' && getAssignmentRetryState(a).canRetry)),
+    [assignments],
+  );
+
+  const completedCount = useMemo(
+    () => assignments.filter((a) => a.status === 'aprovada').length,
     [assignments],
   );
 
@@ -121,12 +116,6 @@ export default function FilhoHomeScreen() {
 
   const [showNotificationBanner, setShowNotificationBanner] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-
-  const hasPending = pendingCount > 0;
-  const celebratingPhrase = useMemo(
-    () => MASCOT_CELEBRATING_PHRASES[Math.floor(Math.random() * MASCOT_CELEBRATING_PHRASES.length)], // NOSONAR — non-security random: picking a display phrase
-    [],
-  );
 
   useEffect(() => {
     const check = () => {
@@ -175,7 +164,7 @@ export default function FilhoHomeScreen() {
 
   if (isLoading) {
     return (
-      <SafeScreenFrame topInset bottomInset>
+      <SafeScreenFrame topInset={!impersonating} bottomInset>
         <StatusBar style={colors.statusBar} />
         <HomeScreenSkeleton />
       </SafeScreenFrame>
@@ -187,7 +176,7 @@ export default function FilhoHomeScreen() {
   }
 
   return (
-    <SafeScreenFrame topInset bottomInset={false}>
+    <SafeScreenFrame topInset={!impersonating} bottomInset={false}>
       <StatusBar style={colors.statusBar} />
       <ScrollView
         style={{ backgroundColor: colors.bg.canvas }}
@@ -216,7 +205,7 @@ export default function FilhoHomeScreen() {
         <View style={styles.hero}>
           <View style={styles.heroText}>
             <Text style={[styles.heroSub, { color: colors.text.secondary }]}>
-              {getGreeting()} 🏆
+              {getGreeting()}
             </Text>
             <Text style={[styles.heroTitle, { color: colors.text.primary }]}>
               Olá, {firstName}!
@@ -239,107 +228,223 @@ export default function FilhoHomeScreen() {
               </View>
             ) : null}
           </Pressable>
-          <Pressable
-            onPress={() => router.push('/(child)/perfil')}
-            accessibilityRole="button"
-            accessibilityLabel="Abrir perfil"
-          >
-            <View style={styles.avatarWrapper}>
-              <Avatar name={profile?.nome ?? 'C'} size={52} imageUri={avatarUri} />
-              <View style={[styles.editBadge, { backgroundColor: colors.accent.filhoDim }]}>
-                <Pencil size={10} color={colors.text.inverse} strokeWidth={2.5} />
-              </View>
-            </View>
-          </Pressable>
         </View>
 
         {showNotificationBanner ? <NotificationPermissionBanner /> : null}
 
-        <View style={styles.mascotContainer}>
-          <Image
-            source={hasPending ? mascotImage : celebratingImage}
-            style={styles.mascotImage}
-            contentFit="contain"
-            accessibilityLabel={hasPending ? 'Trofinho animado' : 'Trofinho celebrando'}
-          />
-          <Text style={[styles.mascotCaption, { color: colors.text.secondary }]}>
-            {hasPending ? 'Vamos conquistar o dia? 💪' : celebratingPhrase}
-          </Text>
-        </View>
-
-        {/* Summary card — dark "MEU SALDO" */}
+        {/* Summary card — navy gradient "MEUS PONTOS" */}
         <Pressable
-          style={({ pressed }) => [
-            styles.summaryCard,
-            { backgroundColor: summary.bg, borderColor: summary.border },
-            pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
-          ]}
           onPress={() => router.push('/(child)/balance')}
           accessibilityRole="button"
           accessibilityLabel={`Saldo total: ${totalBalance} pontos, ver detalhes`}
+          style={({ pressed }) => [pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
         >
-          <Text style={[styles.summaryTitle, { color: summary.textMuted }]}>MEU SALDO</Text>
-          <Text style={[styles.summaryTotal, { color: summary.text }]}>
-            {totalBalance.toLocaleString('pt-BR')}
-          </Text>
-          <Text style={[styles.summaryUnit, { color: summary.textMuted }]}>pontos</Text>
-
-          {totalBalance > 0 ? (
-            <View style={styles.progressTrack}>
-              <View
-                style={[
-                  styles.progressFillLeft,
-                  { flex: livrePercent, backgroundColor: colors.accent.filho },
-                ]}
-              />
-              <View
-                style={[
-                  styles.progressFillRight,
-                  { flex: cofrinhoPercent, backgroundColor: colors.semantic.warning },
-                ]}
-              />
-            </View>
-          ) : null}
-
-          <View style={styles.summaryBoxRow}>
-            <View
-              style={[
-                styles.summaryBox,
-                { backgroundColor: summary.boxBg, borderColor: summary.border },
-              ]}
-              accessibilityLabel={`Saldo disponível: ${freeBalance} pontos`}
-            >
-              <Text style={[styles.summaryBoxLabel, { color: summary.textMuted }]}>LIVRE</Text>
-              <Text style={[styles.summaryBoxValue, { color: summary.text }]}>
-                {freeBalance.toLocaleString('pt-BR')}
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.summaryBox,
-                { backgroundColor: summary.boxBg, borderColor: summary.border },
-              ]}
-              accessibilityLabel={`Cofrinho: ${piggyBank} pontos`}
-            >
-              <View style={styles.summaryBoxLabelRow}>
-                <PiggyBank size={14} color={summary.textMuted} strokeWidth={1.5} />
-                <Text style={[styles.summaryBoxLabel, { color: summary.textMuted }]}>COFRINHO</Text>
+          <LinearGradient
+            colors={gradients.heroNavy.colors}
+            locations={gradients.heroNavy.locations}
+            start={gradients.heroNavy.start}
+            end={gradients.heroNavy.end}
+            style={styles.summaryCard}
+          >
+            <View style={styles.summaryHeaderRow}>
+              <View style={styles.summaryHeaderLeft}>
+                <Wallet size={16} color={heroPalette.textOnNavyMuted} strokeWidth={2} />
+                <Text style={styles.summaryHeaderText}>MEUS PONTOS</Text>
               </View>
-              <Text style={[styles.summaryBoxValue, { color: summary.text }]}>
-                {piggyBank.toLocaleString('pt-BR')}
-              </Text>
+              <ChevronRight size={16} color={heroPalette.textOnNavySubtle} strokeWidth={2} />
             </View>
-          </View>
+            <Text style={styles.summaryTotal}>
+              {totalBalance.toLocaleString('pt-BR')}{' '}
+              <Text style={styles.summaryTotalUnit}>pts</Text>
+            </Text>
+            <Text style={styles.summarySubtitle}>disponíveis</Text>
+
+            {totalBalance > 0 ? (
+              <View style={styles.progressTrack}>
+                <View
+                  style={[
+                    styles.progressFillLeft,
+                    { flex: livrePercent, backgroundColor: colors.accent.filho },
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.progressFillRight,
+                    { flex: cofrinhoPercent, backgroundColor: colors.semantic.warning },
+                  ]}
+                />
+              </View>
+            ) : null}
+
+            <View style={styles.summaryBoxRow}>
+              <View style={styles.summaryBox}>
+                <Text style={styles.summaryBoxLabel}>LIVRE</Text>
+                <Text style={styles.summaryBoxValue}>
+                  {freeBalance.toLocaleString('pt-BR')}
+                </Text>
+              </View>
+              <View style={styles.summaryBox}>
+                <View style={styles.summaryBoxLabelRow}>
+                  <PiggyBank size={14} color={heroPalette.textOnNavySubtle} strokeWidth={1.5} />
+                  <Text style={styles.summaryBoxLabel}>COFRINHO</Text>
+                </View>
+                <Text style={styles.summaryBoxValue}>
+                  {piggyBank.toLocaleString('pt-BR')}
+                </Text>
+              </View>
+            </View>
+          </LinearGradient>
         </Pressable>
 
         {freeBalance === 0 && piggyBank === 0 ? (
           <Text style={[styles.zeroBalanceHint, { color: colors.text.muted }]}>
-            Complete tarefas para ganhar seus primeiros pontos! ⭐
+            Complete tarefas para ganhar seus primeiros pontos!
           </Text>
         ) : null}
+
+        {/* Minhas tarefas — preview section */}
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Minhas tarefas</Text>
+          <Pressable
+            onPress={() => router.push('/(child)/tasks' as never)}
+            accessibilityRole="button"
+            accessibilityLabel="Ver todas as tarefas"
+            style={styles.seeAllBtn}
+          >
+            <Text style={[styles.seeAllText, { color: colors.accent.filho }]}>Ver todas</Text>
+            <ChevronRight size={14} color={colors.accent.filho} strokeWidth={2} />
+          </Pressable>
+        </View>
+
+        {pendingTasks.length === 0 ? (
+          <Text style={[styles.emptyTasksHint, { color: colors.text.muted }]}>
+            Nada para hoje! 🎉
+          </Text>
+        ) : (
+          <View style={styles.taskList}>
+            {pendingTasks.map((task) => (
+              <PendingTaskCard
+                key={task.id}
+                task={task}
+                isReadOnly={isReadOnly}
+                colors={colors}
+                styles={styles}
+                onPress={() => router.push(`/(child)/tasks/${task.id}` as never)}
+              />
+            ))}
+          </View>
+        )}
+
+        {/* Stats */}
+        <View style={styles.statsRow}>
+          <View style={[styles.statCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
+            <View style={[styles.statIconBox, { backgroundColor: colors.semantic.successBg }]}>
+              <CheckCircle2 size={16} color={colors.semantic.success} strokeWidth={2.5} />
+            </View>
+            <View>
+              <Text style={[styles.statValue, { color: colors.text.primary }]}>{completedCount}</Text>
+              <Text style={[styles.statLabel, { color: colors.text.muted }]}>CONCLUÍDAS</Text>
+            </View>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
+            <View style={[styles.statIconBox, { backgroundColor: colors.accent.filhoBg }]}>
+              <PiggyBank size={16} color={colors.accent.filho} strokeWidth={2.5} />
+            </View>
+            <View>
+              <Text style={[styles.statValue, { color: colors.text.primary }]}>{piggyBank}</Text>
+              <Text style={[styles.statLabel, { color: colors.text.muted }]}>POUPANDO</Text>
+            </View>
+          </View>
+        </View>
       </ScrollView>
       <HomeFooterBar items={footerItems} activeRoute="index" onNavigate={handleNavigate} />
     </SafeScreenFrame>
+  );
+}
+
+type PendingTaskCardProps = Readonly<{
+  task: (typeof import('@/hooks/queries'))['useChildAssignments'] extends () => { data?: { pages: Array<{ data: Array<infer T> }> } } ? T : never;
+  isReadOnly: boolean;
+  colors: ReturnType<typeof useTheme>['colors'];
+  styles: ReturnType<typeof makeStyles>;
+  onPress: () => void;
+}>;
+
+function PendingTaskCard({ task, isReadOnly, colors, styles, onPress }: PendingTaskCardProps) {
+  const isRejected = task.status === 'rejeitada';
+  const requiresEvidence = task.exige_evidencia_snapshot;
+
+  return (
+    <View
+      style={[
+        styles.taskCard,
+        {
+          backgroundColor: colors.bg.surface,
+          borderColor: isRejected ? colors.semantic.error + '66' : colors.border.subtle,
+          ...shadows.card,
+        },
+      ]}
+    >
+      <View style={styles.taskCardRow}>
+        <View style={[styles.taskIconCircle, { backgroundColor: isRejected ? colors.semantic.errorBg : colors.bg.muted }]}>
+          {isRejected
+            ? <AlertTriangle size={16} color={colors.semantic.error} strokeWidth={2} />
+            : <Clock size={16} color={colors.text.muted} strokeWidth={2} />}
+        </View>
+        <View style={styles.taskCardInfo}>
+          <Text style={[styles.taskCardTitle, { color: colors.text.primary }]} numberOfLines={2}>
+            {task.titulo_snapshot}
+          </Text>
+          <View style={styles.taskCardMeta}>
+            <Text style={[styles.taskCardMetaText, { color: colors.text.muted }]}>
+              {formatWeekdays(task.tarefas.dias_semana)}
+            </Text>
+            {requiresEvidence ? (
+              <View style={[styles.taskCardBadge, { backgroundColor: colors.bg.muted }]}>
+                <Camera size={10} color={colors.text.muted} strokeWidth={2} />
+                <Text style={[styles.taskCardBadgeText, { color: colors.text.muted }]}>Foto</Text>
+              </View>
+            ) : null}
+            {isRejected ? (
+              <View style={[styles.taskCardBadge, { backgroundColor: colors.semantic.errorBg }]}>
+                <Text style={[styles.taskCardBadgeText, { color: colors.semantic.error }]}>Rejeitada</Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+        <TaskPointsPill points={getAssignmentPoints(task)} />
+      </View>
+
+      <Pressable
+        style={[
+          styles.taskActionBtn,
+          { backgroundColor: isRejected ? colors.semantic.error : colors.brand.vivid },
+          isReadOnly && { opacity: 0.45 },
+        ]}
+        onPress={onPress}
+        disabled={isReadOnly}
+        accessibilityRole="button"
+        accessibilityLabel={isRejected ? `Refazer tarefa ${task.titulo_snapshot}` : `Concluir tarefa ${task.titulo_snapshot}`}
+        accessibilityState={{ disabled: isReadOnly }}
+      >
+        {isRejected ? (
+          <>
+            <RotateCcw size={14} color={colors.text.inverse} strokeWidth={2.5} />
+            <Text style={[styles.taskActionText, { color: colors.text.inverse }]}>Refazer e reenviar</Text>
+          </>
+        ) : requiresEvidence ? (
+          <>
+            <Camera size={14} color={colors.text.onBrand} strokeWidth={2.5} />
+            <Text style={[styles.taskActionText, { color: colors.text.onBrand }]}>Enviar com foto</Text>
+          </>
+        ) : (
+          <>
+            <Send size={14} color={colors.text.onBrand} strokeWidth={2.5} />
+            <Text style={[styles.taskActionText, { color: colors.text.onBrand }]}>Marcar como feita</Text>
+          </>
+        )}
+      </Pressable>
+    </View>
   );
 }
 
@@ -364,7 +469,6 @@ function makeStyles() {
       borderWidth: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      marginRight: spacing['3'],
     },
     bellBadge: {
       position: 'absolute',
@@ -381,18 +485,6 @@ function makeStyles() {
       fontFamily: typography.family.black,
       fontSize: 10,
       color: staticTextColors.inverse,
-    },
-
-    avatarWrapper: { position: 'relative' },
-    editBadge: {
-      position: 'absolute',
-      bottom: 0,
-      right: 0,
-      width: 20,
-      height: 20,
-      borderRadius: radii.full,
-      alignItems: 'center',
-      justifyContent: 'center',
     },
 
     heroTitle: {
@@ -413,30 +505,45 @@ function makeStyles() {
     summaryCard: {
       width: '100%',
       borderRadius: radii.xl,
-      borderWidth: 1,
       borderCurve: 'continuous',
       padding: spacing['5'],
-      alignItems: 'center',
       gap: spacing['1'],
       marginBottom: spacing['4'],
     },
-    summaryTitle: {
+    summaryHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing['1'],
+    },
+    summaryHeaderLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1.5'],
+    },
+    summaryHeaderText: {
       fontFamily: typography.family.bold,
       fontSize: typography.size.xs,
-      textTransform: 'uppercase',
-      letterSpacing: 1,
+      letterSpacing: 0.5,
+      color: heroPalette.textOnNavyMuted,
     },
     summaryTotal: {
       fontFamily: typography.family.black,
       fontSize: typography.size['5xl'],
+      lineHeight: typography.lineHeight['5xl'],
       fontVariant: ['tabular-nums'],
+      color: heroPalette.textOnNavy,
     },
-    summaryUnit: {
+    summaryTotalUnit: {
+      fontFamily: typography.family.bold,
+      fontSize: typography.size.md,
+      color: heroPalette.textOnNavySubtle,
+    },
+    summarySubtitle: {
       fontFamily: typography.family.medium,
-      fontSize: typography.size.xs,
-      textTransform: 'uppercase',
-      letterSpacing: 0.6,
-      marginBottom: spacing['2'],
+      fontSize: typography.size.sm,
+      marginBottom: spacing['3'],
+      color: heroPalette.textOnNavyMuted,
     },
     progressTrack: {
       flexDirection: 'row',
@@ -452,23 +559,25 @@ function makeStyles() {
     summaryBox: {
       flex: 1,
       borderRadius: radii.lg,
-      borderWidth: 1,
       borderCurve: 'continuous',
-      padding: spacing['3'],
+      backgroundColor: 'rgba(255, 255, 255, 0.10)',
+      paddingVertical: spacing['3'],
+      paddingHorizontal: spacing['4'],
       alignItems: 'center',
       gap: spacing['1'],
     },
     summaryBoxLabelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     summaryBoxLabel: {
-      fontFamily: typography.family.bold,
-      fontSize: typography.size.xs,
-      textTransform: 'uppercase',
-      letterSpacing: 0.6,
+      fontFamily: typography.family.semibold,
+      fontSize: typography.size.xxs,
+      letterSpacing: 0.5,
+      color: heroPalette.textOnNavySubtle,
     },
     summaryBoxValue: {
       fontFamily: typography.family.black,
       fontSize: typography.size.xl,
       fontVariant: ['tabular-nums'],
+      color: heroPalette.textOnNavy,
     },
 
     zeroBalanceHint: {
@@ -477,6 +586,132 @@ function makeStyles() {
       textAlign: 'center',
       marginBottom: spacing['2'],
       fontStyle: 'italic',
+    },
+
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing['3'],
+      marginTop: spacing['2'],
+    },
+    sectionTitle: {
+      fontFamily: typography.family.bold,
+      fontSize: typography.size.md,
+    },
+    seeAllBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+    },
+    seeAllText: {
+      fontFamily: typography.family.semibold,
+      fontSize: typography.size.xs,
+    },
+    emptyTasksHint: {
+      fontFamily: typography.family.semibold,
+      fontSize: typography.size.sm,
+      textAlign: 'center',
+      paddingVertical: spacing['4'],
+    },
+    taskCard: {
+      borderRadius: radii.xl,
+      borderCurve: 'continuous',
+      borderWidth: 1,
+      padding: 14,
+    },
+    taskCardRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['3'],
+    },
+    taskIconCircle: {
+      width: 40,
+      height: 40,
+      borderRadius: radii.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    taskCardInfo: {
+      flex: 1,
+      minWidth: 0,
+    },
+    taskCardTitle: {
+      fontFamily: typography.family.bold,
+      fontSize: typography.size.sm,
+    },
+    taskCardMeta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: spacing['1.5'],
+      marginTop: spacing['0.5'],
+    },
+    taskCardMetaText: {
+      fontFamily: typography.family.semibold,
+      fontSize: 11,
+    },
+    taskCardBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+      paddingHorizontal: spacing['1.5'],
+      paddingVertical: 2,
+      borderRadius: radii.sm,
+    },
+    taskCardBadgeText: {
+      fontFamily: typography.family.bold,
+      fontSize: 10,
+    },
+    taskActionBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing['1.5'],
+      marginTop: spacing['3'],
+      paddingVertical: spacing['2'],
+      borderRadius: radii.lg,
+    },
+    taskActionText: {
+      fontFamily: typography.family.extrabold,
+      fontSize: typography.size.xs,
+    },
+    taskList: {
+      gap: spacing['2'] + spacing['0.5'],
+      marginBottom: spacing['4'],
+    },
+    statsRow: {
+      flexDirection: 'row',
+      gap: spacing['3'],
+      marginTop: spacing['4'],
+      marginBottom: spacing['4'],
+    },
+    statCard: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['3'],
+      padding: 14,
+      borderRadius: radii.xl,
+      borderCurve: 'continuous',
+      borderWidth: 1,
+    },
+    statIconBox: {
+      width: 36,
+      height: 36,
+      borderRadius: radii.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    statValue: {
+      fontFamily: typography.family.extrabold,
+      fontSize: typography.size.lg,
+      lineHeight: typography.size.lg * 1.2,
+    },
+    statLabel: {
+      fontFamily: typography.family.semibold,
+      fontSize: 10,
+      textTransform: 'uppercase',
     },
   });
 }

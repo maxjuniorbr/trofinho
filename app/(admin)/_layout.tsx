@@ -21,8 +21,6 @@ export default function AdminLayout() {
       <Stack.Screen name="balances/[filho_id]/index" />
       <Stack.Screen name="balances/[filho_id]/historico" />
       <Stack.Screen name="prizes/index" options={{ animation: 'none' }} />
-      <Stack.Screen name="prizes/new" />
-      <Stack.Screen name="prizes/[id]" />
       <Stack.Screen name="redemptions/index" options={{ animation: 'none' }} />
       <Stack.Screen name="notifications" />
       <Stack.Screen name="perfil" options={{ animation: 'none' }} />

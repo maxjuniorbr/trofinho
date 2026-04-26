@@ -50,7 +50,7 @@ export default function AdminChildrenScreen() {
         <EmptyState
           error={error?.message}
           empty={children.length === 0}
-          emptyMessage={'Nenhum filho cadastrado.\nToque em "+" para cadastrar o primeiro filho.'}
+          emptyMessage={'Nenhum filho cadastrado.\nToque em "+" para cadastrar.'}
           onRetry={handleRefresh}
         />
       );

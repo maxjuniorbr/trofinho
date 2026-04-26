@@ -5,14 +5,19 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { TrendingUp, PiggyBank } from 'lucide-react-native';
+import { TrendingUp, PiggyBank, Wallet, AlertTriangle } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { hapticSuccess } from '@lib/haptics';
 import { localizeRpcError } from '@lib/api-error';
-import { formatDate } from '@lib/utils';
-import { getTransactionTypeLabel, isCredit, formatTransactionDates } from '@lib/balances';
+import {
+  getTransactionTypeLabel,
+  getTransactionCategory,
+  isCredit,
+  calculateProjection,
+} from '@lib/balances';
 import {
   useBalance,
-  useTransactions,
+  useTransactionsByPeriod,
   useTransferToPiggyBank,
   useProfile,
   useMyChildId,
@@ -22,8 +27,9 @@ import {
   useCancelPiggyBankWithdrawal,
 } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
+import { useImpersonation } from '@/context/impersonation-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, spacing, staticTextColors, typography } from '@/constants/theme';
+import { radii, spacing, staticTextColors, typography, gradients } from '@/constants/theme';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ListScreenSkeleton } from '@/components/ui/skeleton';
@@ -31,32 +37,20 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { TransactionIcon } from '@/components/balance/transaction-icon';
 import { InlineMessage } from '@/components/ui/inline-message';
-import { ListFooter } from '@/components/ui/list-footer';
 import { BottomSheetModal } from '@/components/ui/bottom-sheet';
 import { getSafeBottomPadding } from '@lib/safe-area';
 import { calculateNetAmount, getMinimumWithdrawalAmount } from '@lib/piggy-bank-withdrawal';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 
-function getBalanceHeaderColors(colors: ThemeColors) {
-  const isLight = colors.statusBar === 'dark';
-  return {
-    ...(isLight
-      ? {
-        bg: colors.bg.surface,
-        boxBg: colors.bg.muted,
-        border: colors.border.subtle,
-        text: colors.text.primary,
-        textMuted: colors.text.secondary,
-      }
-      : {
-        bg: colors.bg.elevated,
-        boxBg: colors.bg.muted,
-        border: colors.border.subtle,
-        text: staticTextColors.inverse,
-        textMuted: 'rgba(255, 255, 255, 0.7)',
-      }),
-  };
-}
+const todayRange = () => {
+  // data_referencia in the DB is stored as UTC date (created_at::date).
+  // Send UTC date boundaries so the filter matches correctly.
+  const now = new Date();
+  const utcDate = now.toISOString().slice(0, 10); // e.g. '2026-04-26'
+  const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+  const utcTomorrow = tomorrow.toISOString().slice(0, 10);
+  return { from: utcDate, to: utcTomorrow };
+};
 
 function parseAmountValue(
   amountStr: string,
@@ -102,32 +96,28 @@ const buildWithdrawalOpts = (
     ? { familiaId: profile.familia_id, childName: profile.nome ?? '', childUserId: profile.id }
     : undefined;
 
-const formatAppreciationHint = (nextDate: string | null | undefined) => {
-  const suffix = nextDate ? '\nPróximo rendimento em ' + formatDate(nextDate) + '.' : '';
-  return 'Os pontos guardados rendem sozinhos com o tempo.' + suffix;
-};
-
 export default function ChildBalanceScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
+  const { impersonating } = useImpersonation();
+  const isReadOnly = impersonating !== null;
+
   const { data: profile } = useProfile();
   const childIdQuery = useMyChildId(profile?.id);
-  const childId = childIdQuery.data ?? null;
+  const ownChildId = childIdQuery.data ?? null;
+  const childId = impersonating?.childId ?? ownChildId;
 
-  const balanceQuery = useBalance();
+  const balanceQuery = useBalance(impersonating?.childId);
   const balance = balanceQuery.data ?? null;
 
-  const transactionsQuery = useTransactions(childId ?? '');
-  const transactions = useMemo(
-    () => transactionsQuery.data?.pages.flatMap((p) => p.data) ?? [],
-    [transactionsQuery.data],
-  );
-  const { fetchNextPage, hasNextPage, isFetchingNextPage } = transactionsQuery;
+  const { from: todayFrom, to: todayTo } = useMemo(todayRange, []);
+  const transactionsQuery = useTransactionsByPeriod(childId ?? '', todayFrom, todayTo);
+  const todayTransactions = transactionsQuery.data ?? [];
 
-  const { isLoading, refetchAll } = combineQueryStates(balanceQuery, transactionsQuery);
+  const { isLoading, isFetching, refetchAll } = combineQueryStates(balanceQuery, transactionsQuery);
 
   const transferMutation = useTransferToPiggyBank();
   const withdrawalMutation = useRequestPiggyBankWithdrawal();
@@ -139,18 +129,15 @@ export default function ChildBalanceScreen() {
   const [withdrawModalVisible, setWithdrawModalVisible] = useState(false);
   const [amountStr, setAmountStr] = useState('');
   const [modalError, setModalError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
   const [transferSuccess, setTransferSuccess] = useState<string | null>(null);
   const visibleTransferSuccess = useTransientMessage(transferSuccess);
   const [withdrawSuccess, setWithdrawSuccess] = useState<string | null>(null);
   const visibleWithdrawSuccess = useTransientMessage(withdrawSuccess);
 
   const handleRefresh = async () => {
-    setRefreshing(true);
     await refetchAll().catch((e) => {
       Sentry.captureException(e);
     });
-    setRefreshing(false);
   };
 
   const handleTransfer = async () => {
@@ -204,11 +191,11 @@ export default function ChildBalanceScreen() {
       .then(hapticSuccess)
       .catch(Sentry.captureException);
 
-  if (childIdQuery.isError) {
+  if (!impersonating && childIdQuery.isError) {
     return (
       <SafeScreenFrame>
         <StatusBar style={colors.statusBar} />
-        <ScreenHeader title="Meu saldo" />
+        <ScreenHeader title="Meus Pontos" />
         <EmptyState error="Não foi possível carregar seu saldo. Tente novamente mais tarde." />
       </SafeScreenFrame>
     );
@@ -216,7 +203,7 @@ export default function ChildBalanceScreen() {
 
   if (isLoading) {
     return (
-      <SafeScreenFrame topInset bottomInset>
+      <SafeScreenFrame topInset={!impersonating} bottomInset>
         <StatusBar style={colors.statusBar} />
         <ListScreenSkeleton />
       </SafeScreenFrame>
@@ -227,114 +214,25 @@ export default function ChildBalanceScreen() {
   const piggyBank = balance?.cofrinho ?? 0;
   const totalPts = freeBalance + piggyBank;
   const cofrinhoPercent = totalPts > 0 ? Math.round((piggyBank / totalPts) * 100) : 0;
+  const appreciationRate = balance?.indice_valorizacao ?? 0;
   const withdrawalRate = balance?.taxa_resgate_cofrinho ?? 0;
-  const hasTransactions = transactions.length > 0;
-  const appreciationHint = formatAppreciationHint(balance?.proxima_valorizacao_em);
+  const prazoBloqueio = balance?.prazo_bloqueio_dias ?? 7;
+  const hasTransactions = todayTransactions.length > 0;
+  const hasAppreciationConfigured = appreciationRate > 0;
+  const projection = calculateProjection(piggyBank, appreciationRate);
 
-  const parsedWithdrawAmount = Number.parseInt(amountStr, 10) || 0;
   const minimumWithdrawal = getMinimumWithdrawalAmount(withdrawalRate);
+  const parsedWithdrawAmount = Number.parseInt(amountStr, 10) || 0;
   const { net: previewNet } = calculateNetAmount(parsedWithdrawAmount, withdrawalRate);
   const withdrawFeeText =
     withdrawalRate > 0 && parsedWithdrawAmount >= minimumWithdrawal
       ? ` — receberá ~${previewNet} pts`
       : '';
 
-  const showAppreciation = (balance?.indice_valorizacao ?? 0) > 0;
   const successFeedback = visibleTransferSuccess ?? visibleWithdrawSuccess ?? null;
   const showPendingWithdrawal = pendingWithdrawal !== null;
   const canWithdraw = piggyBank >= minimumWithdrawal;
   const showWithdrawButton = !showPendingWithdrawal && piggyBank > 0;
-  const showWithdrawInsufficientHint = showWithdrawButton && !canWithdraw;
-  const header = getBalanceHeaderColors(colors);
-
-  const progressBar =
-    totalPts > 0 ? (
-      <View style={styles.balanceHeaderProgress}>
-        <View style={[styles.progressTrack, { backgroundColor: header.boxBg }]}>
-          <View
-            style={[
-              styles.progressFillLeft,
-              { flex: 100 - cofrinhoPercent, backgroundColor: colors.accent.filho },
-            ]}
-          />
-          <View
-            style={[
-              styles.progressFillRight,
-              { flex: cofrinhoPercent, backgroundColor: colors.semantic.warning },
-            ]}
-          />
-        </View>
-        <View style={styles.progressLabels}>
-          <Text style={[styles.progressLabel, { color: header.textMuted }]}>
-            {100 - cofrinhoPercent}% livre
-          </Text>
-          <Text style={[styles.progressLabel, { color: header.textMuted }]}>
-            {cofrinhoPercent}% cofrinho
-          </Text>
-        </View>
-      </View>
-    ) : null;
-
-  const appreciationBox = showAppreciation ? (
-    <View
-      style={[
-        styles.boxConfig,
-        { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-      ]}
-    >
-      <View style={styles.boxConfigTituloRow}>
-        <TrendingUp size={16} color={colors.semantic.success} strokeWidth={2} />
-        <Text style={styles.boxConfigTitulo}>
-          Cofrinho rendendo {balance!.indice_valorizacao}% ao mês 🌱
-        </Text>
-      </View>
-      <Text style={styles.boxConfigSub}>{appreciationHint}</Text>
-    </View>
-  ) : null;
-
-  const pendingWithdrawalBox = showPendingWithdrawal ? (
-    <View style={styles.pendingWithdrawalBox}>
-      <InlineMessage
-        message={`Resgate pendente: ${pendingWithdrawal.valor_solicitado} pts (receberá ${pendingWithdrawal.valor_liquido} pts). Aguardando aprovação.`}
-        variant="warning"
-      />
-      <View style={{ marginTop: spacing['2'] }}>
-        <Button
-          variant="outline"
-          label="Cancelar resgate"
-          loading={cancelWithdrawalMutation.isPending}
-          loadingLabel="Cancelando…"
-          onPress={handleCancelWithdrawal}
-          accessibilityLabel="Cancelar solicitação de resgate do cofrinho"
-        />
-      </View>
-    </View>
-  ) : null;
-
-  const withdrawInsufficientHint = showWithdrawInsufficientHint ? (
-    <View style={{ marginBottom: spacing['3'] }}>
-      <InlineMessage
-        message={`Saldo mínimo para resgate: ${minimumWithdrawal} pts (taxa de ${withdrawalRate}%).`}
-        variant="info"
-      />
-    </View>
-  ) : null;
-
-  const withdrawButton =
-    showWithdrawButton && canWithdraw ? (
-      <View style={{ marginBottom: spacing['3'] }}>
-        <Button
-          variant="secondary"
-          label="Retirar do cofrinho"
-          onPress={() => {
-            setWithdrawModalVisible(true);
-            setAmountStr('');
-            setModalError(null);
-          }}
-          accessibilityLabel="Solicitar resgate de pontos do cofrinho"
-        />
-      </View>
-    ) : null;
 
   const renderQuickAmountPicker = (raw: number[], maxValue: number, min = 1) => (
     <View style={styles.quickAmountRow}>
@@ -490,115 +388,232 @@ export default function ChildBalanceScreen() {
     <SafeScreenFrame bottomInset>
       <StatusBar style={colors.statusBar} />
       <ScreenHeader
-        title="Meu Saldo"
+        title="Meus Pontos"
         onBack={() => router.back()}
         backLabel="Início"
         role="filho"
       />
 
       <FlashList
-        data={transactions}
+        data={todayTransactions}
         keyExtractor={(m) => m.id}
         maintainVisibleContentPosition={{ disabled: true }}
         contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            refreshing={isFetching && !isLoading}
             onRefresh={handleRefresh}
             tintColor={colors.brand.vivid}
           />
         }
         ListHeaderComponent={
           <>
-            <View style={{ height: spacing['5'] }} />
             {successFeedback ? (
               <View style={{ marginBottom: spacing['3'] }}>
                 <InlineMessage message={successFeedback} variant="success" />
               </View>
             ) : null}
 
-            {/* Dark header card — same pattern as admin balance */}
-            <View
-              style={[
-                styles.balanceHeader,
-                { backgroundColor: header.bg, borderColor: header.border },
-              ]}
-            >
-              <View style={styles.balanceHeaderTop}>
-                <PiggyBank size={16} color={header.textMuted} strokeWidth={2} />
-                <Text style={[styles.balanceHeaderLabel, { color: header.textMuted }]}>
-                  MEU SALDO
-                </Text>
-              </View>
-              <Text style={[styles.balanceHeaderTotal, { color: header.text }]}>
-                {totalPts.toLocaleString('pt-BR')}
-              </Text>
-              <Text style={[styles.balanceHeaderSubtitle, { color: header.textMuted }]}>
-                pontos disponíveis
-              </Text>
-              <View style={styles.balanceHeaderBoxes}>
-                <View
-                  style={[
-                    styles.balanceHeaderBox,
-                    { backgroundColor: header.boxBg, borderColor: header.border },
-                  ]}
-                >
-                  <Text style={[styles.balanceHeaderBoxLabel, { color: header.textMuted }]}>
-                    LIVRE
-                  </Text>
-                  <Text style={[styles.balanceHeaderBoxValue, { color: header.text }]}>
-                    {freeBalance.toLocaleString('pt-BR')}
-                  </Text>
+            {/* Two side-by-side balance cards — same pattern as admin */}
+            <View style={styles.balanceCards}>
+              <LinearGradient
+                colors={gradients.gold.colors}
+                start={gradients.gold.start}
+                end={gradients.gold.end}
+                style={styles.balanceCard}
+              >
+                <View style={styles.balanceCardTop}>
+                  <Wallet size={14} color="rgba(255,255,255,0.7)" strokeWidth={2} />
+                  <Text style={styles.balanceCardLabel}>SALDO LIVRE</Text>
                 </View>
-                <View
-                  style={[
-                    styles.balanceHeaderBox,
-                    { backgroundColor: header.boxBg, borderColor: header.border },
-                  ]}
-                >
-                  <Text style={[styles.balanceHeaderBoxLabel, { color: header.textMuted }]}>
+                <Text style={styles.balanceCardValue}>{freeBalance.toLocaleString('pt-BR')}</Text>
+                <Text style={styles.balanceCardUnit}>pontos</Text>
+              </LinearGradient>
+
+              <View
+                style={[
+                  styles.balanceCard,
+                  styles.cofrinhoCard,
+                  { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+                ]}
+              >
+                <View style={styles.balanceCardTop}>
+                  <PiggyBank size={14} color={colors.text.muted} strokeWidth={2} />
+                  <Text style={[styles.balanceCardLabel, { color: colors.text.muted }]}>
                     COFRINHO
                   </Text>
-                  <Text style={[styles.balanceHeaderBoxValue, { color: header.text }]}>
-                    {piggyBank.toLocaleString('pt-BR')}
+                </View>
+                <Text style={[styles.balanceCardValue, { color: colors.text.primary }]}>
+                  {piggyBank.toLocaleString('pt-BR')}
+                </Text>
+                <Text style={[styles.balanceCardUnit, { color: colors.text.muted }]}>pontos</Text>
+              </View>
+            </View>
+
+            {/* Progress bar */}
+            {totalPts > 0 ? (
+              <View style={styles.progressSection}>
+                <View style={[styles.progressTrack, { backgroundColor: colors.bg.muted }]}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      { flex: cofrinhoPercent, backgroundColor: colors.brand.vivid },
+                    ]}
+                  />
+                  <View style={{ flex: 100 - cofrinhoPercent }} />
+                </View>
+                <Text style={[styles.progressLabel, { color: colors.text.muted }]}>
+                  {cofrinhoPercent}% no cofrinho
+                </Text>
+              </View>
+            ) : null}
+
+            {/* Action buttons */}
+            <View style={styles.actionBtns}>
+              <View style={{ flex: 1 }}>
+                <Button
+                  variant="primary"
+                  label="Depositar"
+                  disabled={freeBalance === 0 || isReadOnly}
+                  onPress={() => {
+                    setModalVisible(true);
+                    setAmountStr('');
+                    setModalError(null);
+                  }}
+                  accessibilityLabel="Guardar pontos no cofrinho"
+                />
+              </View>
+              {showWithdrawButton ? (
+                <View style={{ flex: 1 }}>
+                  <Button
+                    variant="secondary"
+                    label="Retirar"
+                    disabled={!canWithdraw || isReadOnly}
+                    onPress={() => {
+                      setWithdrawModalVisible(true);
+                      setAmountStr('');
+                      setModalError(null);
+                    }}
+                    accessibilityLabel="Solicitar resgate de pontos do cofrinho"
+                  />
+                </View>
+              ) : null}
+            </View>
+
+            {/* Insufficient balance hint for withdrawal */}
+            {showWithdrawButton && !canWithdraw ? (
+              <View style={{ marginBottom: spacing['3'] }}>
+                <InlineMessage
+                  message={`Saldo mínimo para resgate: ${minimumWithdrawal} pts (taxa de ${withdrawalRate}%).`}
+                  variant="info"
+                />
+              </View>
+            ) : null}
+
+            {/* Pending withdrawal banner */}
+            {showPendingWithdrawal ? (
+              <View style={styles.pendingWithdrawalBox}>
+                <InlineMessage
+                  message={`Resgate pendente: ${pendingWithdrawal.valor_solicitado} pts (receberá ${pendingWithdrawal.valor_liquido} pts). Aguardando aprovação.`}
+                  variant="warning"
+                />
+                <View style={{ marginTop: spacing['2'] }}>
+                  <Button
+                    variant="outline"
+                    label="Cancelar resgate"
+                    loading={cancelWithdrawalMutation.isPending}
+                    loadingLabel="Cancelando…"
+                    onPress={handleCancelWithdrawal}
+                    disabled={isReadOnly}
+                    accessibilityLabel="Cancelar solicitação de resgate do cofrinho"
+                  />
+                </View>
+              </View>
+            ) : null}
+
+            {/* Piggy rules summary card (read-only) */}
+            <View
+              style={[
+                styles.rulesCard,
+                { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+              ]}
+            >
+              <View style={styles.rulesCardHeader}>
+                <View style={[styles.rulesIconBox, { backgroundColor: colors.semantic.successBg }]}>
+                  <TrendingUp size={16} color={colors.semantic.success} strokeWidth={2} />
+                </View>
+                <Text style={[styles.rulesTitle, { color: colors.text.primary }]}>
+                  Regras do cofrinho
+                </Text>
+              </View>
+
+              {hasAppreciationConfigured ? (
+                <>
+                  <View style={styles.rulesRateRow}>
+                    <Text style={[styles.rulesRateValue, { color: colors.text.primary }]}>
+                      {appreciationRate}%
+                    </Text>
+                    <Text style={[styles.rulesRateUnit, { color: colors.text.muted }]}>ao mês</Text>
+                  </View>
+                  {projection > 0 && piggyBank > 0 ? (
+                    <View
+                      style={[styles.projectionBox, { backgroundColor: colors.semantic.successBg }]}
+                    >
+                      <View style={styles.projectionRow}>
+                        <TrendingUp size={12} color={colors.semantic.successText} strokeWidth={2} />
+                        <Text
+                          style={[styles.projectionText, { color: colors.semantic.successText }]}
+                        >
+                          Projeção: +{projection} pts no próximo mês
+                        </Text>
+                      </View>
+                      <Text
+                        style={[styles.projectionDetail, { color: colors.semantic.successText }]}
+                      >
+                        Sobre {piggyBank} pts no cofrinho a {appreciationRate}%
+                      </Text>
+                    </View>
+                  ) : null}
+                </>
+              ) : (
+                <View style={styles.noAppreciationRow}>
+                  <AlertTriangle size={16} color={colors.semantic.warning} strokeWidth={2} />
+                  <Text style={[styles.noAppreciationText, { color: colors.text.muted }]}>
+                    Rendimento não configurado
+                  </Text>
+                </View>
+              )}
+
+              <View style={styles.rulesStatsRow}>
+                <View style={[styles.rulesStat, { backgroundColor: colors.bg.muted }]}>
+                  <Text style={[styles.rulesStatLabel, { color: colors.text.muted }]}>
+                    TAXA DE SAQUE
+                  </Text>
+                  <Text style={[styles.rulesStatValue, { color: colors.semantic.warning }]}>
+                    -{withdrawalRate}%
+                  </Text>
+                </View>
+                <View style={[styles.rulesStat, { backgroundColor: colors.bg.muted }]}>
+                  <Text style={[styles.rulesStatLabel, { color: colors.text.muted }]}>
+                    SEM TAXA APÓS
+                  </Text>
+                  <Text style={[styles.rulesStatValue, { color: colors.semantic.success }]}>
+                    {prazoBloqueio} dias
                   </Text>
                 </View>
               </View>
-              {progressBar}
             </View>
 
-            {appreciationBox}
-
-            <View style={{ marginBottom: spacing['3'] }}>
-              <Button
-                variant="primary"
-                label="Guardar no cofrinho"
-                disabled={freeBalance === 0}
-                onPress={() => {
-                  setModalVisible(true);
-                  setAmountStr('');
-                  setModalError(null);
-                }}
-                accessibilityLabel="Guardar pontos no cofrinho"
-              />
-            </View>
-
-            {pendingWithdrawalBox}
-            {withdrawInsufficientHint}
-            {withdrawButton}
-
-            <View style={[styles.historicoHeader, { borderBottomColor: colors.border.subtle }]}>
-              <Text style={styles.secaoTitulo}>Histórico</Text>
+            <View style={styles.historicoHeader}>
+              <Text style={styles.secaoTitulo}>Atividades de hoje</Text>
             </View>
             {hasTransactions ? null : (
-              <Text style={styles.vazio}>
-                Nenhuma movimentação ainda.{'\n'}Complete tarefas para ganhar pontos! 🏆
-              </Text>
+              <Text style={styles.vazio}>Nenhuma movimentação hoje.</Text>
             )}
           </>
         }
         renderItem={({ item }) => {
-          const dates = formatTransactionDates(item);
+          const cat = getTransactionCategory(item.tipo);
           return (
             <View style={[styles.movItem, { borderBottomColor: colors.border.subtle }]}>
               <TransactionIcon type={item.tipo} style={styles.movIconBox} />
@@ -612,25 +627,32 @@ export default function ChildBalanceScreen() {
                 <Text
                   style={[
                     styles.movValor,
-                    isCredit(item.tipo) ? styles.creditoTxt : styles.debitoTxt,
+                    cat === 'ganho'
+                      ? styles.creditoTxt
+                      : cat === 'cofrinho'
+                        ? styles.cofrinhoTxt
+                        : styles.debitoTxt,
                   ]}
                 >
                   {isCredit(item.tipo) ? '+' : '-'}
                   {item.valor}
                 </Text>
-                <Text style={styles.movData}>{dates.eventDate}</Text>
-                {dates.showRecordedPhrase ? (
-                  <Text style={styles.movDataSecondary}>{dates.recordedPhrase}</Text>
-                ) : null}
               </View>
             </View>
           );
         }}
-        onEndReached={() => {
-          if (hasNextPage) fetchNextPage();
-        }}
-        onEndReachedThreshold={0.3}
-        ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
+        ListFooterComponent={
+          <Pressable
+            onPress={() => router.push('/(child)/historico' as never)}
+            accessibilityRole="link"
+            accessibilityLabel="Ver extrato completo"
+            style={[styles.viewAllBtn, { borderColor: colors.border.subtle }]}
+          >
+            <Text style={[styles.viewAllBtnText, { color: colors.accent.filhoDim }]}>
+              Ver extrato completo
+            </Text>
+          </Pressable>
+        }
       />
 
       {renderTransferModal()}
@@ -641,115 +663,180 @@ export default function ChildBalanceScreen() {
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    list: { paddingHorizontal: spacing['5'], paddingBottom: spacing['12'] },
+    list: { padding: spacing['5'], paddingBottom: spacing['12'] },
 
-    balanceHeader: {
+    // ── Balance cards (same as admin) ──
+    balanceCards: {
+      flexDirection: 'row',
+      gap: spacing['3'],
+      marginBottom: spacing['3'],
+    },
+    balanceCard: {
+      flex: 1,
       borderRadius: radii.xl,
       borderCurve: 'continuous',
-      borderWidth: 1,
-      padding: spacing['5'],
-      marginBottom: spacing['3'],
-      gap: spacing['1'],
+      padding: spacing['4'],
     },
-    balanceHeaderTop: {
+    cofrinhoCard: {
+      borderWidth: 1,
+    },
+    balanceCardTop: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing['1.5'],
+      gap: spacing['1'],
       marginBottom: spacing['1'],
     },
-    balanceHeaderLabel: {
-      fontFamily: typography.family.bold,
-      fontSize: typography.size.xs,
-      letterSpacing: 0.5,
-    },
-    balanceHeaderTotal: {
-      fontFamily: typography.family.black,
-      fontSize: typography.size['4xl'],
-      lineHeight: typography.lineHeight['4xl'],
-      fontVariant: ['tabular-nums'],
-    },
-    balanceHeaderSubtitle: {
-      fontFamily: typography.family.medium,
-      fontSize: typography.size.sm,
-      marginBottom: spacing['3'],
-    },
-    balanceHeaderBoxes: { flexDirection: 'row', gap: spacing['3'] },
-    balanceHeaderBox: {
-      flex: 1,
-      borderRadius: radii.lg,
-      borderCurve: 'continuous',
-      borderWidth: 1,
-      paddingVertical: spacing['3'],
-      paddingHorizontal: spacing['4'],
-      alignItems: 'center',
-      gap: spacing['0.5'],
-    },
-    balanceHeaderBoxLabel: {
-      fontFamily: typography.family.semibold,
+    balanceCardLabel: {
       fontSize: typography.size.xxs,
+      fontFamily: typography.family.semibold,
       letterSpacing: 0.5,
+      textTransform: 'uppercase',
+      color: 'rgba(255,255,255,0.7)',
     },
-    balanceHeaderBoxValue: {
-      fontFamily: typography.family.black,
-      fontSize: typography.size.xl,
+    balanceCardValue: {
+      fontSize: typography.size['3xl'],
+      fontFamily: typography.family.extrabold,
       fontVariant: ['tabular-nums'],
+      color: staticTextColors.inverse,
     },
-    balanceHeaderProgress: {
-      marginTop: spacing['3'],
-      gap: spacing['1'],
+    balanceCardUnit: {
+      fontSize: typography.size.xxs,
+      fontFamily: typography.family.medium,
+      color: 'rgba(255,255,255,0.6)',
+      marginTop: spacing['0.5'],
+    },
+
+    // ── Progress ──
+    progressSection: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['2'],
+      marginBottom: spacing['4'],
     },
     progressTrack: {
+      flex: 1,
       flexDirection: 'row',
       height: 8,
       borderRadius: radii.full,
       overflow: 'hidden',
-      gap: 2,
     },
-    progressFillLeft: {
-      borderTopLeftRadius: radii.full,
-      borderBottomLeftRadius: radii.full,
-    },
-    progressFillRight: {
-      borderTopRightRadius: radii.full,
-      borderBottomRightRadius: radii.full,
-    },
-    progressLabels: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
+    progressFill: {
+      borderRadius: radii.full,
     },
     progressLabel: {
-      fontSize: typography.size.xs,
-      fontFamily: typography.family.semibold,
+      fontSize: typography.size.xxs,
+      fontFamily: typography.family.bold,
       fontVariant: ['tabular-nums'],
     },
 
-    boxConfig: {
+    // ── Action buttons ──
+    actionBtns: {
+      flexDirection: 'row',
+      gap: spacing['3'],
+      marginBottom: spacing['3'],
+    },
+
+    // ── Rules card (same as admin) ──
+    rulesCard: {
       borderRadius: radii.xl,
       borderCurve: 'continuous',
       borderWidth: 1,
       padding: spacing['4'],
       marginBottom: spacing['3'],
     },
-    boxConfigTituloRow: {
+    rulesCardHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing['1.5'],
+      gap: spacing['2'],
+      marginBottom: spacing['3'],
+    },
+    rulesIconBox: {
+      width: 28,
+      height: 28,
+      borderRadius: radii.md,
+      borderCurve: 'continuous',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    rulesTitle: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.bold,
+    },
+    rulesRateRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: spacing['1'],
       marginBottom: spacing['1'],
     },
-    boxConfigTitulo: {
-      fontSize: typography.size.md,
-      fontFamily: typography.family.bold,
-      color: colors.text.primary,
-      flex: 1,
+    rulesRateValue: {
+      fontSize: typography.size['2xl'],
+      fontFamily: typography.family.extrabold,
     },
-    boxConfigSub: {
-      fontSize: typography.size.xs,
+    rulesRateUnit: {
+      fontSize: typography.size.sm,
       fontFamily: typography.family.medium,
-      color: colors.text.muted,
+    },
+    projectionBox: {
+      borderRadius: radii.xl,
+      borderCurve: 'continuous',
+      paddingHorizontal: spacing['3'],
+      paddingVertical: spacing['2'],
+      marginBottom: spacing['3'],
+      gap: spacing['0.5'],
+    },
+    projectionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1'],
+    },
+    projectionText: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.bold,
+    },
+    projectionDetail: {
+      fontSize: typography.size.xxs,
+      fontFamily: typography.family.medium,
+      opacity: 0.7,
+    },
+    noAppreciationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['2'],
+      paddingVertical: spacing['2'],
+    },
+    noAppreciationText: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.medium,
+    },
+    rulesStatsRow: {
+      flexDirection: 'row',
+      gap: spacing['2'],
+      marginTop: spacing['3'],
+    },
+    rulesStat: {
+      flex: 1,
+      borderRadius: radii.lg,
+      borderCurve: 'continuous',
+      paddingHorizontal: spacing['3'],
+      paddingVertical: spacing['2'],
+    },
+    rulesStatLabel: {
+      fontSize: typography.size.xxs,
+      fontFamily: typography.family.bold,
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
+    },
+    rulesStatValue: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.extrabold,
+      marginTop: spacing['0.5'],
     },
 
+    // ── Pending withdrawal ──
+    pendingWithdrawalBox: { marginBottom: spacing['3'] },
+
+    // ── Histórico ──
     historicoHeader: {
-      borderBottomWidth: 1,
       paddingBottom: spacing['3'],
       marginTop: spacing['2'],
       marginBottom: spacing['1'],
@@ -766,6 +853,7 @@ function makeStyles(colors: ThemeColors) {
       marginTop: spacing['4'],
     },
 
+    // ── Transaction items ──
     movItem: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -798,17 +886,25 @@ function makeStyles(colors: ThemeColors) {
       fontFamily: typography.family.bold,
       fontVariant: ['tabular-nums'],
     },
-    movData: { fontSize: typography.size.xxs, color: colors.text.muted },
-    movDataSecondary: {
-      fontSize: typography.size.xxs,
-      color: colors.text.muted,
-      fontStyle: 'italic',
-    },
     creditoTxt: { color: colors.semantic.success },
     debitoTxt: { color: colors.semantic.error },
+    cofrinhoTxt: { color: colors.semantic.info },
 
-    pendingWithdrawalBox: { marginBottom: spacing['3'] },
+    // ── View all button ──
+    viewAllBtn: {
+      alignItems: 'center',
+      paddingVertical: spacing['3'],
+      marginTop: spacing['3'],
+      borderRadius: radii.lg,
+      borderCurve: 'continuous',
+      borderWidth: 1,
+    },
+    viewAllBtnText: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.bold,
+    },
 
+    // ── Modals ──
     modalBox: {
       padding: spacing['6'],
       paddingBottom: spacing['12'],

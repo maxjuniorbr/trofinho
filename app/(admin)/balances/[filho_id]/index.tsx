@@ -6,13 +6,11 @@ import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { TrendingUp, PiggyBank, Settings, Wallet, AlertTriangle } from 'lucide-react-native';
 import { hapticSuccess } from '@lib/haptics';
-import { toDateString } from '@lib/utils';
 import {
   getTransactionCategory,
   getTransactionTypeLabel,
   isCredit,
   calculateProjection,
-  formatTransactionDates,
 } from '@lib/balances';
 import {
   useBalance,
@@ -44,10 +42,13 @@ import { calculateNetAmount } from '@lib/piggy-bank-withdrawal';
 type ModalType = 'penalizar' | 'config' | null;
 
 const todayRange = () => {
+  // data_referencia in the DB is stored as UTC date (created_at::date).
+  // Send UTC date boundaries so the filter matches correctly.
   const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const end = new Date(start.getTime() + 86_400_000);
-  return { from: toDateString(start), to: toDateString(end) };
+  const utcDate = now.toISOString().slice(0, 10);
+  const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+  const utcTomorrow = tomorrow.toISOString().slice(0, 10);
+  return { from: utcDate, to: utcTomorrow };
 };
 
 export default function ChildBalanceAdminScreen() {
@@ -446,7 +447,6 @@ export default function ChildBalanceAdminScreen() {
           </>
         }
         renderItem={({ item }) => {
-          const dates = formatTransactionDates(item);
           return (
             <View style={[styles.movItem, { borderBottomColor: colors.border.subtle }]}>
               <TransactionIcon type={item.tipo} style={styles.movIconBox} />
@@ -455,9 +455,6 @@ export default function ChildBalanceAdminScreen() {
                 <Text style={styles.movDesc} numberOfLines={1}>
                   {item.descricao}
                 </Text>
-                {dates.showRecordedPhrase ? (
-                  <Text style={styles.movDataSecondary}>{dates.recordedPhrase}</Text>
-                ) : null}
               </View>
               <View style={styles.movRight}>
                 <Text

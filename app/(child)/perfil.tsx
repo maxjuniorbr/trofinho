@@ -10,10 +10,12 @@ import {
   View,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { ChevronRight, Info, Lock, User } from 'lucide-react-native';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { HomeFooterBar } from '@/components/ui/home-footer-bar';
+import { useChildFooterItems } from '@/hooks/use-footer-items';
 import { LogoutButton } from '@/components/ui/logout-button';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { AvatarSection } from '@/components/profile/avatar-section';
@@ -23,6 +25,7 @@ import { ThemeCard } from '@/components/profile/theme-card';
 import { NotificationCard } from '@/components/profile/notification-card';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/context/theme-context';
+import { useImpersonation } from '@/context/impersonation-context';
 import { radii, spacing, typography } from '@/constants/theme';
 import type { ThemeColors } from '@/constants/theme';
 import { signOut } from '@lib/auth';
@@ -38,7 +41,19 @@ import {
 export default function ChildProfileScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { impersonating } = useImpersonation();
+  const isReadOnly = impersonating !== null;
   const sectionStyles = useMemo(() => makeSectionStyles(), []);
+  const footerItems = useChildFooterItems();
+
+  const handleFooterNavigate = useCallback(
+    (rota: string) => {
+      if (rota === '/(child)/perfil') return;
+      if (rota === 'index') router.dismissTo('/(child)');
+      else router.replace(rota as never);
+    },
+    [router],
+  );
 
   const profileQuery = useProfile();
   const authUserQuery = useCurrentAuthUser();
@@ -66,7 +81,7 @@ export default function ChildProfileScreen() {
 
   const effectivePrefs = notificationPreferences ?? notificationPrefsQuery.data ?? null;
   const effectiveAvatarUri = localAvatarUri ?? avatarUri;
-  const effectiveName = localName ?? profile?.nome ?? 'Campeão';
+  const effectiveName = impersonating ? impersonating.childName : (localName ?? profile?.nome ?? 'Campeão');
 
   const handleDeleteAccount = () => {
     Alert.alert(
@@ -127,9 +142,9 @@ export default function ChildProfileScreen() {
         style={{ flex: 1, backgroundColor: colors.bg.canvas }}
         behavior="padding"
       >
-        <SafeScreenFrame bottomInset>
+        <SafeScreenFrame bottomInset={false}>
           <StatusBar style={colors.statusBar} />
-          <ScreenHeader title="Meu Perfil" onBack={() => router.back()} role="filho" />
+          <ScreenHeader title="Meu Perfil" onBack={isReadOnly ? undefined : () => router.back()} role="filho" />
 
           {isLoading ? (
             <View style={styles.loadingContent}>
@@ -143,15 +158,24 @@ export default function ChildProfileScreen() {
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
-              <AvatarSection
-                name={effectiveName}
-                email={email}
-                avatarUri={effectiveAvatarUri}
-                role="filho"
-                onAvatarChange={setLocalAvatarUri}
-              />
+              {isReadOnly ? (
+                <AvatarSection
+                  name={effectiveName}
+                  email=""
+                  avatarUri={effectiveAvatarUri}
+                  role="filho"
+                />
+              ) : (
+                <AvatarSection
+                  name={effectiveName}
+                  email={email}
+                  avatarUri={effectiveAvatarUri}
+                  role="filho"
+                  onAvatarChange={setLocalAvatarUri}
+                />
+              )}
 
-              <ThemeCard role="filho" />
+              <ThemeCard role="filho" disabled={isReadOnly} />
 
               {effectivePrefs ? (
                 <NotificationCard
@@ -159,7 +183,8 @@ export default function ChildProfileScreen() {
                   saving={savingNotificationPreferences}
                   error={notificationPreferencesError}
                   role="filho"
-                  onPreferencesChange={handleNotificationPreferencesChange}
+                  onPreferencesChange={isReadOnly ? undefined : handleNotificationPreferencesChange}
+                  disabled={isReadOnly}
                 />
               ) : null}
 
@@ -170,6 +195,7 @@ export default function ChildProfileScreen() {
                   onPress={() => setShowPersonalData(true)}
                   colors={colors}
                   styles={sectionStyles}
+                  disabled={isReadOnly}
                 />
               </SectionCard>
 
@@ -180,6 +206,7 @@ export default function ChildProfileScreen() {
                   onPress={() => setShowChangePassword(true)}
                   colors={colors}
                   styles={sectionStyles}
+                  disabled={isReadOnly}
                 />
               </SectionCard>
 
@@ -197,7 +224,7 @@ export default function ChildProfileScreen() {
                 </View>
               </SectionCard>
 
-              <LogoutButton onPress={handleSignOut} loading={loggingOut} />
+              <LogoutButton onPress={handleSignOut} loading={loggingOut} disabled={isReadOnly} />
 
               <Button
                 variant="danger"
@@ -205,10 +232,16 @@ export default function ChildProfileScreen() {
                 loadingLabel="Excluindo…"
                 loading={deleteAccountMutation.isPending}
                 onPress={handleDeleteAccount}
+                disabled={isReadOnly}
                 accessibilityLabel="Excluir minha conta"
               />
             </ScrollView>
           )}
+          <HomeFooterBar
+            items={footerItems}
+            activeRoute="/(child)/perfil"
+            onNavigate={handleFooterNavigate}
+          />
         </SafeScreenFrame>
       </KeyboardAvoidingView>
 
@@ -253,12 +286,14 @@ type MenuRowProps = Readonly<{
   onPress: () => void;
   colors: ThemeColors;
   styles: ReturnType<typeof makeSectionStyles>;
+  disabled?: boolean;
 }>;
 
-const MenuRow = ({ icon: Icon, label, onPress, colors, styles }: MenuRowProps) => (
+const MenuRow = ({ icon: Icon, label, onPress, colors, styles, disabled }: MenuRowProps) => (
   <Pressable
-    style={({ pressed }) => [styles.menuRow, pressed && { backgroundColor: colors.bg.muted }]}
+    style={({ pressed }) => [styles.menuRow, !disabled && pressed && { backgroundColor: colors.bg.muted }, disabled && { opacity: 0.5 }]}
     onPress={onPress}
+    disabled={disabled}
     accessibilityRole="button"
     accessibilityLabel={label}
   >

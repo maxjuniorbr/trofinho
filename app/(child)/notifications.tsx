@@ -17,6 +17,7 @@ export default function ChildNotificationsScreen() {
       isLoading={isLoading}
       onBack={handleBack}
       onNavigate={handleNavigate}
+      role="filho"
     />
   );
 }
