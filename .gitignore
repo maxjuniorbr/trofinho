@@ -4,6 +4,7 @@ node_modules/
 # Build outputs
 .expo/
 /dist/
+coverage/
 
 # Generated types
 *.tsbuildinfo
