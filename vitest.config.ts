@@ -61,6 +61,7 @@ export default defineConfig({
         functions: 90,
         branches: 85,
       },
+      // `all` is functional in Vitest 4.x but removed from CoverageOptions types
     } as any,
   },
 });
