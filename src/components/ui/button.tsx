@@ -124,9 +124,9 @@ export const Button = ({
     }
   };
 
-  const handlePress = async (e: Parameters<NonNullable<PressableProps['onPress']>>[0]) => {
+  const handlePress = (e: Parameters<NonNullable<PressableProps['onPress']>>[0]) => {
     if (!isDisabled) {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { });
       onPress?.(e);
     }
   };
