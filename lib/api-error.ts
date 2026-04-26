@@ -65,6 +65,8 @@ const rpcErrorMatchers = [
   ['já pertence a uma família', 'Você já tem uma família cadastrada.'],
   ['Sem índice de valorização', 'Valorização não configurada.'],
   ['Limite de operações atingido', 'Muitas tentativas. Aguarde um momento e tente novamente.'],
+  ['Network request failed', 'Sem conexão com a internet. Verifique sua rede e tente novamente.'],
+  ['Failed to fetch', 'Sem conexão com a internet. Verifique sua rede e tente novamente.'],
 ] as const;
 
 export function localizeRpcError(message: string, fallback?: string): string {

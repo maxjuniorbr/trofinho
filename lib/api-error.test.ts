@@ -40,6 +40,15 @@ describe('localizeRpcError', () => {
     ).toBe('Muitas tentativas. Aguarde um momento e tente novamente.');
   });
 
+  it('maps network connectivity errors to a user-friendly message', () => {
+    expect(localizeRpcError('TypeError: Network request failed')).toBe(
+      'Sem conexão com a internet. Verifique sua rede e tente novamente.',
+    );
+    expect(localizeRpcError('Failed to fetch')).toBe(
+      'Sem conexão com a internet. Verifique sua rede e tente novamente.',
+    );
+  });
+
   it('returns a generic fallback for unknown RPC errors', () => {
     expect(localizeRpcError('some internal pg error')).toBe('Algo deu errado. Tente novamente.');
   });
