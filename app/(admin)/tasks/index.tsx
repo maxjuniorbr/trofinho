@@ -384,7 +384,7 @@ export default function AdminTasksScreen() {
 
   const handlePause = useCallback(
     (item: TaskListItem) => {
-      const message = buildTaskPauseMessage(item, item.atribuicoes);
+      const message = buildTaskPauseMessage(item.atribuicoes);
       Alert.alert('Pausar tarefa?', message, [
         { text: 'Cancelar', style: 'cancel' },
         {

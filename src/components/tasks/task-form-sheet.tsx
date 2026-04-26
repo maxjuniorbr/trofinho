@@ -48,8 +48,8 @@ export function TaskFormSheet({ visible, mode, task, onClose, onSuccess }: TaskF
 
   const isEdit = mode === 'edit';
   const editState: TaskEditState | null = useMemo(
-    () => (isEdit && task ? getTaskEditState(task, diasSemana) : null),
-    [isEdit, task, diasSemana],
+    () => (isEdit && task ? getTaskEditState(task) : null),
+    [isEdit, task],
   );
 
   const resetForm = useCallback(() => {

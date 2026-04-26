@@ -1312,9 +1312,6 @@ describe('tasks', () => {
     it('buildTaskDeactivateMessage includes correct counts for arbitrary assignments', () => {
       fc.assert(
         fc.property(
-          fc.record({
-            dias_semana: fc.integer({ min: 1, max: 127 }),
-          }),
           fc.array(
             fc.record({
               status: fc.constantFrom(
@@ -1325,8 +1322,8 @@ describe('tasks', () => {
               ),
             }),
           ),
-          (task, assignments) => {
-            const message = buildTaskDeactivateMessage(task, assignments);
+          (assignments) => {
+            const message = buildTaskDeactivateMessage(assignments);
 
             const pendingCount = assignments.filter((a) => a.status === 'pendente').length;
             const awaitingCount = assignments.filter(

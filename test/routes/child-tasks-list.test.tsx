@@ -79,7 +79,6 @@ vi.mock('expo-router', () => ({
 vi.mock('@lib/tasks', () => ({
   getAssignmentPoints: (assignment: { pontos_snapshot: number }) => assignment.pontos_snapshot,
   getAssignmentRetryState: () => ({ canRetry: false, attemptsLeft: 0, reason: null }),
-  isRecurring: (dias: number) => dias > 0,
   formatWeekdays: (dias: number) => (dias === 0 ? 'Pontual' : 'Todos os dias'),
 }));
 

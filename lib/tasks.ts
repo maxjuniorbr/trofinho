@@ -11,11 +11,6 @@ export const WEEKDAY_FULL_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'S
 export const ALL_DAYS = 0b1111111; // 127
 export const MAX_TENTATIVAS = 1;
 
-/**
- * @deprecated Tarefas pontuais foram removidas. Mantido apenas para compat enquanto a UI é migrada.
- */
-export const isRecurring = (_diasSemana: number): boolean => true;
-
 export const isDayActive = (diasSemana: number, dow: number): boolean =>
   (diasSemana & (1 << dow)) > 0;
 
@@ -684,7 +679,6 @@ export function getAssignmentCompletionState(
 
 export function getTaskEditState(
   task: Pick<TaskDetail, 'atribuicoes' | 'dias_semana' | 'ativo' | 'arquivada_em'>,
-  _pendingDiasSemana?: number,
 ): TaskEditState {
   if (task.arquivada_em !== null) {
     return {
@@ -780,7 +774,6 @@ export async function reactivateTask(taskId: string): Promise<{
 }
 
 export function buildTaskDeactivateMessage(
-  _task: Pick<Task, 'dias_semana'>,
   assignments: { status: AssignmentStatus }[],
 ): string {
   const parts: string[] = [];

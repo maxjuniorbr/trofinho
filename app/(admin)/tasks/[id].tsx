@@ -606,7 +606,7 @@ export default function TaskDetailAdminScreen() {
     if (!task) return;
     Alert.alert(
       'Pausar tarefa?',
-      buildTaskDeactivateMessage(task, task.atribuicoes),
+      buildTaskDeactivateMessage(task.atribuicoes),
       [
         { text: 'Cancelar', style: 'cancel' },
         {
