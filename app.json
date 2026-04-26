@@ -17,7 +17,7 @@
       "policy": "appVersion"
     },
     "splash": {
-      "image": "./assets/trofinho-mascot.png",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
