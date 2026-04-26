@@ -1,10 +1,8 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Image } from 'expo-image';
-import { AlertTriangle } from 'lucide-react-native';
+import { AlertTriangle, Inbox } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
-import { emptyImage } from '@/constants/assets';
 
 interface EmptyStateProps {
   loading?: boolean;
@@ -62,12 +60,7 @@ export function EmptyState({
   if (empty) {
     return (
       <View style={styles.center}>
-        <Image
-          source={emptyImage}
-          style={styles.mascotImage}
-          contentFit="contain"
-          accessibilityLabel="Trofinho triste — nenhum item"
-        />
+        <Inbox size={40} color={colors.text.muted} strokeWidth={1.2} />
         {hasEmptyTitle ? (
           <Text style={[styles.title, { color: colors.text.primary }]}>{emptyTitle}</Text>
         ) : null}
@@ -86,11 +79,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: spacing['8'],
     gap: spacing['2'],
-  },
-  mascotImage: {
-    width: 100,
-    height: 100,
-    marginBottom: spacing['2'],
   },
   title: {
     fontSize: typography.size.lg,

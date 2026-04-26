@@ -20,6 +20,7 @@ export {
   useCancelAssignmentSubmission,
   useCompleteAssignment,
   useDeactivateTask,
+  useDeleteTask,
   useReactivateTask,
   useRenewRecurringTasks,
   useArchivedTasks,

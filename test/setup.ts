@@ -50,12 +50,6 @@ function flattenStyle(style: unknown): Record<string, unknown> {
   return {};
 }
 
-vi.mock('@/constants/assets', () => ({
-  mascotImage: 'mascot-mock',
-  celebratingImage: 'celebrating-mock',
-  emptyImage: 'empty-mock',
-}));
-
 vi.mock('react-native-svg', () => {
   const Svg = createHostComponent('Svg');
   return {
@@ -96,6 +90,10 @@ vi.mock('lucide-react-native', () => ({
   ChevronRight: createIcon('ChevronRight'),
   RefreshCw: createIcon('RefreshCw'),
   Trophy: createIcon('Trophy'),
+  Star: createIcon('Star'),
+  Archive: createIcon('Archive'),
+  ArchiveRestore: createIcon('ArchiveRestore'),
+  Inbox: createIcon('Inbox'),
   TrendingUp: createIcon('TrendingUp'),
   ArrowDownCircle: createIcon('ArrowDownCircle'),
   PiggyBank: createIcon('PiggyBank'),
@@ -118,6 +116,7 @@ vi.mock('lucide-react-native', () => ({
   ArrowRight: createIcon('ArrowRight'),
   Check: createIcon('Check'),
   UserPlus: createIcon('UserPlus'),
+  Trash2: createIcon('Trash2'),
 }));
 
 vi.mock('expo-linear-gradient', () => ({

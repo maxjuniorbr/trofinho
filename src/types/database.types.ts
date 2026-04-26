@@ -44,7 +44,9 @@ export type Database = {
           competencia: string | null
           concluida_em: string | null
           created_at: string
+          descricao_snapshot: string | null
           evidencia_url: string | null
+          exige_evidencia_snapshot: boolean
           familia_id: string
           filho_id: string
           id: string
@@ -53,6 +55,7 @@ export type Database = {
           status: Database["public"]["Enums"]["atribuicao_status"]
           tarefa_id: string
           tentativas: number
+          titulo_snapshot: string
           validada_em: string | null
           validada_por: string | null
         }
@@ -60,7 +63,9 @@ export type Database = {
           competencia?: string | null
           concluida_em?: string | null
           created_at?: string
+          descricao_snapshot?: string | null
           evidencia_url?: string | null
+          exige_evidencia_snapshot?: boolean
           familia_id: string
           filho_id: string
           id?: string
@@ -69,6 +74,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["atribuicao_status"]
           tarefa_id: string
           tentativas?: number
+          titulo_snapshot?: string
           validada_em?: string | null
           validada_por?: string | null
         }
@@ -76,7 +82,9 @@ export type Database = {
           competencia?: string | null
           concluida_em?: string | null
           created_at?: string
+          descricao_snapshot?: string | null
           evidencia_url?: string | null
+          exige_evidencia_snapshot?: boolean
           familia_id?: string
           filho_id?: string
           id?: string
@@ -85,6 +93,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["atribuicao_status"]
           tarefa_id?: string
           tentativas?: number
+          titulo_snapshot?: string
           validada_em?: string | null
           validada_por?: string | null
         }
@@ -263,9 +272,10 @@ export type Database = {
           created_at: string
           custo_pontos: number
           descricao: string | null
+          emoji: string
+          estoque: number
           familia_id: string
           id: string
-          imagem_url: string | null
           nome: string
         }
         Insert: {
@@ -273,9 +283,10 @@ export type Database = {
           created_at?: string
           custo_pontos: number
           descricao?: string | null
+          emoji?: string
+          estoque?: number
           familia_id: string
           id?: string
-          imagem_url?: string | null
           nome: string
         }
         Update: {
@@ -283,9 +294,10 @@ export type Database = {
           created_at?: string
           custo_pontos?: number
           descricao?: string | null
+          emoji?: string
+          estoque?: number
           familia_id?: string
           id?: string
-          imagem_url?: string | null
           nome?: string
         }
         Relationships: [
@@ -484,6 +496,7 @@ export type Database = {
           criado_por: string | null
           descricao: string | null
           dias_semana: number
+          excluida_em: string | null
           exige_evidencia: boolean
           familia_id: string
           id: string
@@ -497,6 +510,7 @@ export type Database = {
           criado_por?: string | null
           descricao?: string | null
           dias_semana?: number
+          excluida_em?: string | null
           exige_evidencia?: boolean
           familia_id: string
           id?: string
@@ -510,6 +524,7 @@ export type Database = {
           criado_por?: string | null
           descricao?: string | null
           dias_semana?: number
+          excluida_em?: string | null
           exige_evidencia?: boolean
           familia_id?: string
           id?: string
@@ -672,7 +687,8 @@ export type Database = {
           p_ativo?: boolean
           p_custo_pontos: number
           p_descricao: string
-          p_imagem_url?: string
+          p_emoji?: string
+          p_estoque?: number
           p_nome: string
           p_premio_id: string
         }
@@ -690,7 +706,10 @@ export type Database = {
         Returns: undefined
       }
       excluir_minha_conta: { Args: never; Returns: undefined }
-      garantir_atribuicoes_recorrentes: { Args: never; Returns: undefined }
+      excluir_tarefa: { Args: { p_tarefa_id: string }; Returns: number }
+      garantir_atribuicoes_recorrentes:
+        | { Args: never; Returns: undefined }
+        | { Args: { p_filho_id: string }; Returns: undefined }
       limpar_auth_user_orfao: {
         Args: { p_user_id: string }
         Returns: undefined
@@ -698,7 +717,7 @@ export type Database = {
       limpar_registros_antigos: { Args: never; Returns: Json }
       limpar_usuarios_orfaos_antigos: { Args: never; Returns: Json }
       listar_atribuicoes_aprovadas: {
-        Args: { p_limit?: number; p_offset?: number }
+        Args: { p_desde?: string; p_limit?: number; p_offset?: number }
         Returns: {
           atribuicao_id: string
           competencia: string
@@ -802,6 +821,7 @@ export type Database = {
         | "aguardando_validacao"
         | "aprovada"
         | "rejeitada"
+        | "cancelada"
       movimentacao_tipo:
         | "credito"
         | "debito"
@@ -949,6 +969,7 @@ export const Constants = {
         "aguardando_validacao",
         "aprovada",
         "rejeitada",
+        "cancelada",
       ],
       movimentacao_tipo: [
         "credito",

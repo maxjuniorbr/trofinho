@@ -1,10 +1,10 @@
-import { Alert, StyleSheet, Text, View, RefreshControl, Modal } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View, RefreshControl } from 'react-native';
 import { localizeRpcError } from '@lib/api-error';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import { CheckCircle2, Clock, Trophy, User, XCircle } from 'lucide-react-native';
+import { Star, Check, X } from 'lucide-react-native';
 import { HomeFooterBar } from '@/components/ui/home-footer-bar';
 import { useAdminFooterItems } from '@/hooks/use-footer-items';
 import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@lib/status';
@@ -18,7 +18,7 @@ import { InlineMessage } from '@/components/ui/inline-message';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { ListFooter } from '@/components/ui/list-footer';
-import { Button } from '@/components/ui/button';
+import { SegmentedBar, type SegmentOption } from '@/components/ui/segmented-bar';
 import { formatDate } from '@lib/utils';
 import {
   useAdminRedemptions,
@@ -28,62 +28,7 @@ import {
 } from '@/hooks/queries';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 
-type ConfirmModalState = {
-  visible: boolean;
-  type: 'confirm' | 'cancel';
-  redemptionId: string;
-  childName: string;
-  childUserId: string | null;
-  prizeName: string;
-  points: number;
-};
-
-const MODAL_INITIAL: ConfirmModalState = {
-  visible: false,
-  type: 'confirm',
-  redemptionId: '',
-  childName: '',
-  childUserId: null,
-  prizeName: '',
-  points: 0,
-};
-
-type RedemptionRowProps = Readonly<{
-  item: RedemptionWithChildAndPrize;
-  colors: ThemeColors;
-  styles: ReturnType<typeof makeStyles>;
-  isLast: boolean;
-}>;
-
-const RedemptionRow = ({ item, colors, styles, isLast }: RedemptionRowProps) => {
-  const statusColor = getRedemptionStatusColor(item.status, colors);
-  const StatusIcon = item.status === 'confirmado' ? CheckCircle2 : XCircle;
-  return (
-    <View
-      style={[
-        styles.resRow,
-        !isLast && {
-          borderBottomWidth: StyleSheet.hairlineWidth,
-          borderBottomColor: colors.border.subtle,
-        },
-      ]}
-    >
-      <View style={[styles.resRowIcon, { backgroundColor: statusColor + '20' }]}>
-        <StatusIcon size={14} color={statusColor} strokeWidth={2} />
-      </View>
-      <View style={styles.resRowInfo}>
-        <Text style={styles.resRowPremio}>{item.premios.nome}</Text>
-        <Text style={styles.resRowFilho}>{item.filhos.nome}</Text>
-      </View>
-      <View style={styles.resRowRight}>
-        <Text style={[styles.resRowStatus, { color: statusColor }]}>
-          {getRedemptionStatusLabel(item.status)}
-        </Text>
-        <Text style={styles.resRowData}>{formatDate(new Date(item.created_at))}</Text>
-      </View>
-    </View>
-  );
-};
+type TabKey = 'pendentes' | 'concluidos' | 'todos';
 
 export default function AdminRedemptionsScreen() {
   const router = useRouter();
@@ -102,25 +47,50 @@ export default function AdminRedemptionsScreen() {
     isFetchingNextPage,
   } = useAdminRedemptions();
   const redemptions = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
-  const pendingRedemptions = useMemo(
-    () => redemptions.filter((r) => r.status === 'pendente'),
-    [redemptions],
-  );
-  const historicalRedemptions = useMemo(
-    () => redemptions.filter((r) => r.status !== 'pendente'),
-    [redemptions],
-  );
+
   const { data: profile } = useProfile();
   const confirmMutation = useConfirmRedemption();
   const cancelMutation = useCancelRedemption();
 
+  const [tab, setTab] = useState<TabKey>('pendentes');
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const visibleSuccess = useTransientMessage(actionSuccess);
-  const [modal, setModal] = useState<ConfirmModalState>(MODAL_INITIAL);
   const [processingId, setProcessingId] = useState<string | null>(null);
+
+  const pendingCount = useMemo(
+    () => redemptions.filter((r) => r.status === 'pendente').length,
+    [redemptions],
+  );
+
+  const filtered = useMemo(() => {
+    if (tab === 'pendentes') return redemptions.filter((r) => r.status === 'pendente');
+    if (tab === 'concluidos') return redemptions.filter((r) => r.status !== 'pendente');
+    return redemptions;
+  }, [redemptions, tab]);
+
   const hasError = Boolean(error);
-  const shouldShowEmptyState = hasError || redemptions.length === 0;
+  const shouldShowEmptyState = hasError || filtered.length === 0;
+
+  const emptyMessages: Record<TabKey, string> = {
+    pendentes: 'Nenhum resgate pendente.',
+    concluidos: 'Nenhum resgate concluído.',
+    todos: 'Nenhum resgate registrado.',
+  };
+
+  const concludedCount = useMemo(
+    () => redemptions.filter((r) => r.status !== 'pendente').length,
+    [redemptions],
+  );
+
+  const tabs: SegmentOption<TabKey>[] = useMemo(
+    () => [
+      { key: 'pendentes', label: 'Pendentes', badge: pendingCount },
+      { key: 'concluidos', label: 'Concluídos', badge: concludedCount },
+      { key: 'todos', label: 'Todos', badge: redemptions.length },
+    ],
+    [pendingCount, concludedCount, redemptions.length],
+  );
 
   const handleFooterNavigate = useCallback(
     (rota: string) => {
@@ -131,113 +101,163 @@ export default function AdminRedemptionsScreen() {
     [router],
   );
 
-  const handleConfirm = (
-    redemptionId: string,
-    childName: string,
-    childUserId: string | null,
-    prizeName: string,
-  ) => {
-    setActionError(null);
-    setActionSuccess(null);
-    setModal({
-      visible: true,
-      type: 'confirm',
-      redemptionId,
-      childName,
-      childUserId,
-      prizeName,
-      points: 0,
-    });
-  };
-
-  const handleCancel = (
-    redemptionId: string,
-    childName: string,
-    prizeName: string,
-    points: number,
-  ) => {
-    setActionError(null);
-    setActionSuccess(null);
-    setModal({
-      visible: true,
-      type: 'cancel',
-      redemptionId,
-      childName,
-      childUserId: null,
-      prizeName,
-      points,
-    });
-  };
-
-  const executeModalAction = (redemptionId: string, type: 'confirm' | 'cancel') => {
+  const handleConfirm = (item: RedemptionWithChildAndPrize) => {
     if (!profile) return;
-    setProcessingId(redemptionId);
-
-    if (type === 'confirm') {
-      confirmMutation.mutate(
+    Alert.alert(
+      'Confirmar entrega',
+      `Confirmar entrega do prêmio "${item.premios.nome}" para ${item.filhos.nome}?`,
+      [
+        { text: 'Voltar', style: 'cancel' },
         {
-          redemptionId,
-          opts: {
-            familiaId: profile.familia_id,
-            userId: modal.childUserId,
-            prizeName: modal.prizeName,
+          text: 'Confirmar',
+          onPress: () => {
+            setActionError(null);
+            setActionSuccess(null);
+            setProcessingId(item.id);
+            confirmMutation.mutate(
+              {
+                redemptionId: item.id,
+                opts: {
+                  familiaId: profile.familia_id,
+                  userId: item.filhos.usuario_id,
+                  prizeName: item.premios.nome,
+                },
+              },
+              {
+                onSuccess: () => {
+                  setProcessingId(null);
+                  setActionSuccess('Resgate confirmado com sucesso.');
+                },
+                onError: (err) => {
+                  setProcessingId(null);
+                  setActionError(localizeRpcError(err.message));
+                },
+              },
+            );
           },
         },
-        {
-          onSuccess: () => {
-            setProcessingId(null);
-            setActionSuccess('Resgate confirmado com sucesso.');
-          },
-          onError: (err) => {
-            setProcessingId(null);
-            setActionError(localizeRpcError(err.message));
-          },
-        },
-      );
-    } else {
-      cancelMutation.mutate(
-        {
-          redemptionId,
-          opts: modal.childUserId
-            ? {
-              familiaId: profile.familia_id,
-              userId: modal.childUserId,
-              prizeName: modal.prizeName,
-            }
-            : undefined,
-        },
-        {
-          onSuccess: () => {
-            setProcessingId(null);
-            setActionSuccess('Resgate cancelado. Pontos estornados.');
-          },
-          onError: (err) => {
-            setProcessingId(null);
-            setActionError(localizeRpcError(err.message));
-          },
-        },
-      );
-    }
+      ],
+    );
   };
 
-  const handleModalConfirm = () => {
-    const { redemptionId, type, points } = modal;
-    setModal(MODAL_INITIAL);
-
-    if (type === 'cancel') {
-      Alert.alert('Cancelar resgate?', `Os ${points} pts debitados serão estornados.`, [
+  const handleCancel = (item: RedemptionWithChildAndPrize) => {
+    if (!profile) return;
+    Alert.alert(
+      'Cancelar resgate?',
+      `Os ${item.pontos_debitados} pts debitados serão estornados.`,
+      [
         { text: 'Voltar', style: 'cancel' },
         {
           text: 'Cancelar resgate',
           style: 'destructive',
-          onPress: () => executeModalAction(redemptionId, type),
+          onPress: () => {
+            setActionError(null);
+            setActionSuccess(null);
+            setProcessingId(item.id);
+            cancelMutation.mutate(
+              {
+                redemptionId: item.id,
+                opts: item.filhos.usuario_id
+                  ? {
+                    familiaId: profile.familia_id,
+                    userId: item.filhos.usuario_id,
+                    prizeName: item.premios.nome,
+                  }
+                  : undefined,
+              },
+              {
+                onSuccess: () => {
+                  setProcessingId(null);
+                  setActionSuccess('Resgate cancelado. Pontos estornados.');
+                },
+                onError: (err) => {
+                  setProcessingId(null);
+                  setActionError(localizeRpcError(err.message));
+                },
+              },
+            );
+          },
         },
-      ]);
-      return;
-    }
-
-    executeModalAction(redemptionId, type);
+      ],
+    );
   };
+
+  const renderItem = useCallback(
+    ({ item }: { item: RedemptionWithChildAndPrize }) => {
+      const statusColor = getRedemptionStatusColor(item.status, colors);
+      const isPendente = item.status === 'pendente';
+      const isProcessing = processingId === item.id;
+
+      return (
+        <View style={styles.card}>
+          {/* Top row: emoji + info + cost badge */}
+          <View style={styles.topRow}>
+            <View style={styles.emojiCircle}>
+              <Text style={styles.emojiText}>{item.premios.emoji || '🎁'}</Text>
+            </View>
+            <View style={styles.infoCol}>
+              <Text style={styles.prizeName} numberOfLines={1}>
+                {item.premios.nome}
+              </Text>
+              <Text style={styles.childDate} numberOfLines={1}>
+                {item.filhos.nome} · {formatDate(new Date(item.created_at))}
+              </Text>
+            </View>
+            <View style={[styles.costBadge, { backgroundColor: colors.accent.adminBg }]}>
+              <Star size={12} color={colors.accent.admin} strokeWidth={2} />
+              <Text style={[styles.costText, { color: colors.accent.admin }]}>
+                {item.pontos_debitados}
+              </Text>
+            </View>
+          </View>
+
+          {/* Bottom row: status badge + action buttons */}
+          <View style={styles.bottomRow}>
+            <View style={[styles.statusBadge, { backgroundColor: statusColor + '22' }]}>
+              <Text style={[styles.statusText, { color: statusColor }]}>
+                {getRedemptionStatusLabel(item.status)}
+              </Text>
+            </View>
+
+            {isPendente && (
+              <View style={styles.actionsRow}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.btnReject,
+                    { backgroundColor: colors.semantic.errorBg },
+                    pressed && { opacity: 0.7 },
+                  ]}
+                  onPress={() => handleCancel(item)}
+                  disabled={isProcessing}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Recusar resgate de ${item.premios.nome}`}
+                >
+                  <X size={16} color={colors.semantic.error} strokeWidth={2.5} />
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.btnApprove,
+                    { backgroundColor: colors.accent.admin },
+                    pressed && { opacity: 0.85 },
+                  ]}
+                  onPress={() => handleConfirm(item)}
+                  disabled={isProcessing}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Aprovar resgate de ${item.premios.nome}`}
+                >
+                  <Check size={14} color={colors.text.inverse} strokeWidth={2.5} />
+                  <Text style={[styles.btnApproveText, { color: colors.text.inverse }]}>
+                    Aprovar
+                  </Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+        </View>
+      );
+    },
+    [colors, styles, processingId, profile, confirmMutation, cancelMutation],
+  );
 
   const renderContent = () => {
     if (isLoading) return <ListScreenSkeleton />;
@@ -246,14 +266,14 @@ export default function AdminRedemptionsScreen() {
         <EmptyState
           error={error?.message ?? null}
           empty={!error}
-          emptyMessage="Nenhum resgate registrado ainda."
+          emptyMessage={emptyMessages[tab]}
           onRetry={() => refetch()}
         />
       );
     }
     return (
       <FlashList
-        data={historicalRedemptions}
+        data={filtered}
         keyExtractor={(item) => item.id}
         maintainVisibleContentPosition={{ disabled: true }}
         contentContainerStyle={styles.lista}
@@ -266,117 +286,12 @@ export default function AdminRedemptionsScreen() {
         }
         ListHeaderComponent={
           <>
-            <View style={{ height: spacing['4'] }} />
+            <View style={{ height: spacing['3'] }} />
             {visibleSuccess ? <InlineMessage message={visibleSuccess} variant="success" /> : null}
             {actionError ? <InlineMessage message={actionError} variant="error" /> : null}
-            {pendingRedemptions.length > 0 && (
-              <>
-                <View style={[styles.historicoHeader, { borderBottomColor: colors.border.subtle }]}>
-                  <View style={styles.secaoTituloRow}>
-                    <Clock size={14} color={colors.text.primary} strokeWidth={2} />
-                    <Text style={styles.secaoTitulo}>Pendentes ({pendingRedemptions.length})</Text>
-                  </View>
-                </View>
-                {pendingRedemptions.map((item) => {
-                  const isProcessing = processingId === item.id;
-                  return (
-                    <View key={item.id} style={[styles.card, styles.cardPendente]}>
-                      <View style={styles.cardTopo}>
-                        <View style={{ flex: 1, gap: spacing['1'] }}>
-                          <Text style={[styles.premioNome, { color: colors.text.primary }]}>
-                            {item.premios.nome}
-                          </Text>
-                          <View style={styles.cardFilhoRow}>
-                            <User size={12} color={colors.text.secondary} strokeWidth={2} />
-                            <Text style={styles.cardFilho}>{item.filhos.nome}</Text>
-                          </View>
-                        </View>
-                        <View style={{ alignItems: 'flex-end' }}>
-                          <View
-                            style={[
-                              styles.statusBadge,
-                              {
-                                backgroundColor:
-                                  getRedemptionStatusColor(item.status, colors) + '22',
-                              },
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.statusTexto,
-                                { color: getRedemptionStatusColor(item.status, colors) },
-                              ]}
-                            >
-                              {getRedemptionStatusLabel(item.status)}
-                            </Text>
-                          </View>
-                          <Text style={styles.cardData}>
-                            {formatDate(new Date(item.created_at))}
-                          </Text>
-                        </View>
-                      </View>
-                      <View style={styles.cardPontosRow}>
-                        <Trophy size={12} color={colors.accent.admin} strokeWidth={2} />
-                        <Text style={styles.cardPontos}>{item.pontos_debitados} pts</Text>
-                      </View>
-                      <View style={styles.acoesRow}>
-                        <View style={{ flex: 1 }}>
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            label="Confirmar"
-                            loading={isProcessing}
-                            disabled={isProcessing}
-                            onPress={() =>
-                              handleConfirm(
-                                item.id,
-                                item.filhos.nome,
-                                item.filhos.usuario_id,
-                                item.premios.nome,
-                              )
-                            }
-                          />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            label="Cancelar"
-                            disabled={isProcessing}
-                            onPress={() =>
-                              handleCancel(
-                                item.id,
-                                item.filhos.nome,
-                                item.premios.nome,
-                                item.pontos_debitados,
-                              )
-                            }
-                          />
-                        </View>
-                      </View>
-                    </View>
-                  );
-                })}
-              </>
-            )}
-            {historicalRedemptions.length > 0 && (
-              <View style={[styles.historicoHeader, { borderBottomColor: colors.border.subtle }]}>
-                <Text style={styles.secaoTitulo}>Histórico</Text>
-              </View>
-            )}
-            {redemptions.length > 0 && historicalRedemptions.length === 0 && !isFetching ? (
-              <Text style={styles.semHistorico}>Nenhum histórico de resgates.</Text>
-            ) : null}
           </>
         }
-        renderItem={({ item, index }) => (
-          <RedemptionRow
-            item={item}
-            colors={colors}
-            styles={styles}
-            isLast={index === historicalRedemptions.length - 1}
-          />
-        )}
+        renderItem={renderItem}
         onEndReached={() => {
           if (hasNextPage && !isFetchingNextPage) fetchNextPage();
         }}
@@ -390,46 +305,8 @@ export default function AdminRedemptionsScreen() {
     <SafeScreenFrame bottomInset={false}>
       <StatusBar style={colors.statusBar} />
       <ScreenHeader title="Resgates" />
-
+      <SegmentedBar options={tabs} value={tab} onChange={setTab} role="admin" />
       {renderContent()}
-
-      <Modal
-        visible={modal.visible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setModal(MODAL_INITIAL)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>
-              {modal.type === 'confirm' ? 'Confirmar entrega' : 'Cancelar resgate'}
-            </Text>
-            <Text style={styles.modalMessage}>
-              {modal.type === 'confirm'
-                ? `Confirmar entrega do prêmio "${modal.prizeName}" para ${modal.childName}?`
-                : `Cancelar o resgate de "${modal.prizeName}" de ${modal.childName}? Os ${modal.points} pts serão estornados.`}
-            </Text>
-            <View style={styles.modalBtns}>
-              <View style={{ flex: 1 }}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  label="Voltar"
-                  onPress={() => setModal(MODAL_INITIAL)}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Button
-                  variant={modal.type === 'confirm' ? 'primary' : 'danger'}
-                  size="sm"
-                  label={modal.type === 'confirm' ? 'Confirmar' : 'Cancelar resgate'}
-                  onPress={handleModalConfirm}
-                />
-              </View>
-            </View>
-          </View>
-        </View>
-      </Modal>
       <HomeFooterBar
         items={footerItems}
         activeRoute="/(admin)/redemptions"
@@ -441,20 +318,7 @@ export default function AdminRedemptionsScreen() {
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    container: { flex: 1 },
     lista: { paddingHorizontal: spacing['4'] },
-    secaoTitulo: {
-      fontSize: typography.size.md,
-      fontFamily: typography.family.bold,
-      color: colors.text.primary,
-    },
-    historicoHeader: {
-      borderBottomWidth: 1,
-      paddingBottom: spacing['3'],
-      marginTop: spacing['2'],
-      marginBottom: spacing['1'],
-    },
-    secaoTituloRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
     card: {
       backgroundColor: colors.bg.surface,
       borderRadius: radii.xl,
@@ -466,94 +330,86 @@ function makeStyles(colors: ThemeColors) {
       marginBottom: spacing['3'],
       ...shadows.card,
     },
-    cardPendente: { borderLeftWidth: 3, borderLeftColor: colors.semantic.warning },
-    cardTopo: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing['2'] },
-    premioNome: { fontSize: typography.size.md, fontFamily: typography.family.semibold },
-    cardFilhoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
-    cardFilho: { fontSize: typography.size.xs, color: colors.text.secondary },
-    alertaIcone: { fontSize: typography.size['2xl'], marginBottom: spacing['2'] },
+    topRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['3'],
+    },
+    emojiCircle: {
+      width: 44,
+      height: 44,
+      borderRadius: radii.full,
+      backgroundColor: colors.bg.muted,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    emojiText: {
+      fontSize: 22,
+    },
+    infoCol: {
+      flex: 1,
+      gap: spacing['0.5'],
+    },
+    prizeName: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.bold,
+      color: colors.text.primary,
+    },
+    childDate: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.family.medium,
+      color: colors.text.muted,
+    },
+    costBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1'],
+      borderRadius: radii.md,
+      paddingHorizontal: spacing['2'],
+      paddingVertical: spacing['1'],
+    },
+    costText: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.black,
+    },
+    bottomRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
     statusBadge: {
       borderRadius: radii.md,
       borderCurve: 'continuous',
       paddingHorizontal: spacing['2'],
       paddingVertical: spacing['1'],
     },
-    statusTexto: { fontSize: typography.size.xs, fontFamily: typography.family.bold },
-    cardData: {
-      fontSize: typography.size.xs,
-      color: colors.text.muted,
-      marginTop: spacing['1'],
-    },
-    cardPontosRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
-    cardPontos: {
-      fontSize: typography.size.xs,
+    statusText: {
+      fontSize: 10,
       fontFamily: typography.family.bold,
-      color: colors.accent.admin,
     },
-    dataSolicitacao: { fontSize: typography.size.xs, color: colors.text.muted },
-    acoesRow: { flexDirection: 'row', gap: spacing['2'], marginTop: spacing['1'] },
-    semHistorico: {
-      fontSize: typography.size.sm,
-      color: colors.text.muted,
-      fontStyle: 'italic',
-      padding: spacing['3'],
-    },
-    resRow: {
+    actionsRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: spacing['3'],
-      paddingHorizontal: spacing['3'],
       gap: spacing['2'],
     },
-    resRowIcon: {
-      width: 30,
-      height: 30,
-      borderRadius: radii.full,
+    btnReject: {
+      width: 36,
+      height: 36,
+      borderRadius: radii.lg,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    resRowInfo: { flex: 1 },
-    resRowPremio: {
-      fontSize: typography.size.sm,
-      fontFamily: typography.family.semibold,
-      color: colors.text.primary,
-    },
-    resRowFilho: {
-      fontSize: typography.size.xs,
-      color: colors.text.secondary,
-      marginTop: spacing['0.5'],
-    },
-    resRowRight: { alignItems: 'flex-end' },
-    resRowStatus: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
-    resRowData: {
-      fontSize: typography.size.xs,
-      color: colors.text.muted,
-      marginTop: spacing['0.5'],
-    },
-    modalOverlay: {
-      flex: 1,
-      justifyContent: 'center',
+    btnApprove: {
+      flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: colors.overlay.scrimSoft,
-      padding: spacing['6'],
+      gap: spacing['1'],
+      height: 36,
+      paddingHorizontal: spacing['4'],
+      borderRadius: radii.lg,
     },
-    modalBox: {
-      backgroundColor: colors.bg.surface,
-      borderRadius: radii.xl,
-      padding: spacing['6'],
-      width: '100%',
-      gap: spacing['4'],
-    },
-    modalTitle: {
-      fontSize: typography.size.lg,
+    btnApproveText: {
+      fontSize: typography.size.xs,
       fontFamily: typography.family.bold,
-      color: colors.text.primary,
     },
-    modalMessage: {
-      fontSize: typography.size.sm,
-      color: colors.text.secondary,
-      lineHeight: typography.lineHeight.md,
-    },
-    modalBtns: { flexDirection: 'row', gap: spacing['3'] },
   });
 }

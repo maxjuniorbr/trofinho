@@ -5,6 +5,7 @@ import {
   usePendingValidationCount,
   usePendingRedemptionCount,
 } from '@/hooks/queries';
+import { getAssignmentRetryState } from '@lib/tasks';
 import type { FooterItem } from '@/components/ui/home-footer-bar';
 
 const CHILD_FOOTER_ITEMS: readonly FooterItem[] = [
@@ -12,6 +13,7 @@ const CHILD_FOOTER_ITEMS: readonly FooterItem[] = [
   { icon: ClipboardList, label: 'Tarefas', rota: '/(child)/tasks' },
   { icon: Gift, label: 'Prêmios', rota: '/(child)/prizes' },
   { icon: ShoppingBag, label: 'Resgates', rota: '/(child)/redemptions' },
+  { icon: User, label: 'Perfil', rota: '/(child)/perfil' },
 ];
 
 const ADMIN_FOOTER_ITEMS: readonly FooterItem[] = [
@@ -27,7 +29,9 @@ export function useChildFooterItems(): readonly FooterItem[] {
 
   const pendingCount = useMemo(() => {
     const all = assignmentsQuery.data?.pages.flatMap((p) => p.data) ?? [];
-    return all.filter((a) => a.status === 'pendente').length;
+    return all.filter(
+      (a) => a.status === 'pendente' || (a.status === 'rejeitada' && getAssignmentRetryState(a).canRetry),
+    ).length;
   }, [assignmentsQuery.data]);
 
   return useMemo(

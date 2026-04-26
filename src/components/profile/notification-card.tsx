@@ -26,7 +26,8 @@ type NotificationCardProps = Readonly<{
   saving?: boolean;
   error?: string | null;
   role?: 'admin' | 'filho';
-  onPreferencesChange: (prefs: NotificationPrefs) => void | Promise<void>;
+  onPreferencesChange?: (prefs: NotificationPrefs) => void | Promise<void>;
+  disabled?: boolean;
 }>;
 
 export function NotificationCard({
@@ -35,12 +36,13 @@ export function NotificationCard({
   error = null,
   role = 'admin',
   onPreferencesChange,
+  disabled,
 }: NotificationCardProps) {
   const { colors } = useTheme();
   const accentColor = role === 'filho' ? colors.accent.filhoDim : colors.accent.adminDim;
 
   const handleToggle = (key: keyof NotificationPrefs, value: boolean) => {
-    onPreferencesChange({ ...preferences, [key]: value });
+    onPreferencesChange?.({ ...preferences, [key]: value });
   };
 
   return (
@@ -69,7 +71,7 @@ export function NotificationCard({
           <Text style={[styles.label, { color: colors.text.primary }]}>{label}</Text>
           <Switch
             value={preferences[key]}
-            disabled={saving}
+            disabled={saving || disabled}
             onValueChange={(value) => handleToggle(key, value)}
             accessibilityLabel={label}
             accessibilityState={{ disabled: saving }}

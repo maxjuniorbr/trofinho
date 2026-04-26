@@ -89,8 +89,12 @@ vi.mock('@lib/notifications', () => ({
 
 vi.mock('lucide-react-native', () => ({
   ChevronRight: createHostComponent('ChevronRight'),
+  ClipboardList: createHostComponent('ClipboardList'),
+  Gift: createHostComponent('Gift'),
+  House: createHostComponent('House'),
   Info: createHostComponent('Info'),
   Lock: createHostComponent('Lock'),
+  ShoppingBag: createHostComponent('ShoppingBag'),
   User: createHostComponent('User'),
 }));
 
@@ -99,6 +103,7 @@ vi.mock('@/hooks/queries', () => ({
   useCurrentAuthUser: () => authUserMock,
   useNotificationPrefs: () => notifPrefsMock,
   useDeleteAccount: () => deleteAccountMock,
+  useChildAssignments: () => ({ data: undefined }),
   combineQueryStates: (...queries: Record<string, unknown>[]) => ({
     isLoading: queries.some((q) => q.isLoading),
   }),
@@ -144,6 +149,11 @@ vi.mock('@/components/ui/button', () => ({
   Button: (props: Record<string, unknown>) => React.createElement('Button', props),
 }));
 
+vi.mock('@/components/ui/home-footer-bar', () => ({
+  FOOTER_BAR_HEIGHT: 56,
+  HomeFooterBar: () => React.createElement('HomeFooterBar'),
+}));
+
 vi.mock('@/context/theme-context', () => ({
   useTheme: () => ({
     colors: {
@@ -158,6 +168,10 @@ vi.mock('@/context/theme-context', () => ({
       },
     },
   }),
+}));
+
+vi.mock('@/context/impersonation-context', () => ({
+  useImpersonation: () => ({ impersonating: null, startImpersonation: vi.fn(), stopImpersonation: vi.fn() }),
 }));
 
 function render(element: React.ReactElement) {

@@ -13,6 +13,8 @@ export function resolveNavDecision(
   ready: boolean,
   profile: UserProfile | null | undefined,
   segments: string[],
+  /** When true, an admin is allowed inside the (child) route group. */
+  isImpersonating = false,
 ): NavTarget | null {
   if (!ready) return null;
 
@@ -39,7 +41,7 @@ export function resolveNavDecision(
   const inAdmin = segments[0] === '(admin)';
   const inChild = segments[0] === '(child)';
 
-  if ((inAdmin && profile.papel !== 'admin') || (inChild && profile.papel !== 'filho')) {
+  if ((inAdmin && profile.papel !== 'admin') || (inChild && profile.papel !== 'filho' && !isImpersonating)) {
     return roleHome;
   }
 

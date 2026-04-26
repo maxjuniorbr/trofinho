@@ -20,11 +20,13 @@ import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { AvatarSection } from '@/components/profile/avatar-section';
 import { PersonalDataSheet } from '@/components/profile/personal-data-sheet';
 import { ChangePasswordSheet } from '@/components/profile/change-password-sheet';
+import { ChildSelectionSheet } from '@/components/profile/child-selection-sheet';
 import { ThemeCard } from '@/components/profile/theme-card';
 import { NotificationCard } from '@/components/profile/notification-card';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/constants/theme';
+import { useImpersonation } from '@/context/impersonation-context';
 import { signOut } from '@lib/auth';
 import { setNotificationPrefs, type NotificationPrefs } from '@lib/notifications';
 import {
@@ -33,6 +35,7 @@ import {
   useCurrentAuthUser,
   useNotificationPrefs,
   useDeleteAccount,
+  useChildrenList,
   combineQueryStates,
 } from '@/hooks/queries';
 
@@ -80,7 +83,15 @@ export default function ProfileScreen() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [showPersonalData, setShowPersonalData] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showChildSelection, setShowChildSelection] = useState(false);
   const deleteAccountMutation = useDeleteAccount();
+
+  const { data: allChildren = [] } = useChildrenList();
+  const hasActiveChildren = useMemo(
+    () => allChildren.some((c) => c.ativo === true),
+    [allChildren],
+  );
+  const { startImpersonation } = useImpersonation();
 
   const effectivePrefs = notificationPreferences ?? notificationPrefsQuery.data ?? null;
   const effectiveAvatarUri = localAvatarUri ?? avatarUri;
@@ -205,8 +216,9 @@ export default function ProfileScreen() {
               <MenuRow
                 icon={Eye}
                 label="Ver app como filho"
-                disabled
-                disabledHint="Em breve"
+                disabled={!hasActiveChildren}
+                disabledHint={hasActiveChildren ? undefined : 'Sem filhos'}
+                onPress={() => setShowChildSelection(true)}
                 colors={colors}
                 styles={styles}
               />
@@ -256,6 +268,16 @@ export default function ProfileScreen() {
       <ChangePasswordSheet
         visible={showChangePassword}
         onClose={() => setShowChangePassword(false)}
+      />
+
+      <ChildSelectionSheet
+        visible={showChildSelection}
+        onClose={() => setShowChildSelection(false)}
+        onSelectChild={(child) => {
+          setShowChildSelection(false);
+          startImpersonation({ childId: child.id, childName: child.nome });
+          router.replace('/(child)' as never);
+        }}
       />
     </>
   );

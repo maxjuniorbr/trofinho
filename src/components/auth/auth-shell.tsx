@@ -14,7 +14,7 @@ import { radii, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 
-const mascotImage = loadMascotImage();
+const appIcon = loadAppIcon();
 
 type AuthShellVariant = 'hero' | 'compact';
 
@@ -93,10 +93,10 @@ export const AuthShell = ({
           ]}
         >
           <Image
-            source={mascotImage}
+            source={appIcon}
             style={styles.mascot}
             contentFit="contain"
-            accessibilityLabel="Mascote do Trofinho"
+            accessibilityLabel="Trofinho"
           />
         </Animated.View>
 
@@ -137,9 +137,9 @@ export const AuthShell = ({
   );
 };
 
-function loadMascotImage(): number {
+function loadAppIcon(): number {
   try {
-    return require('../../../assets/trofinho-mascot.png') as number;
+    return require('../../../assets/icon.png') as number;
   } catch {
     return 0;
   }

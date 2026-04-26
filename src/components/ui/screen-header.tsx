@@ -5,6 +5,7 @@ import type { LucideIcon } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/theme-context';
+import { useImpersonation } from '@/context/impersonation-context';
 import { radii, spacing, typography } from '@/constants/theme';
 import { getSafeHorizontalPadding, getSafeTopPadding } from '@lib/safe-area';
 
@@ -78,6 +79,7 @@ export function ScreenHeader({
   const { colors } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { impersonating } = useImpersonation();
   const displayLabel = backLabel.replace(/^←\s*/, '');
   const resolvedBackTone = backTone ?? 'muted';
 
@@ -86,7 +88,7 @@ export function ScreenHeader({
       style={[
         styles.container,
         {
-          paddingTop: getSafeTopPadding(insets, spacing['3']),
+          paddingTop: impersonating ? spacing['3'] : getSafeTopPadding(insets, spacing['3']),
           ...getSafeHorizontalPadding(insets, spacing['4']),
           backgroundColor: surface === 'canvas' ? colors.bg.canvas : colors.bg.surface,
           borderBottomColor: colors.border.subtle,

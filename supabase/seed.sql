@@ -48,19 +48,19 @@ INSERT INTO tarefas (id, familia_id, titulo, descricao, pontos, frequencia, exig
 
 -- ─── Atribuições (vários status) ─────────────────────────────────────────────
 
-INSERT INTO atribuicoes (id, tarefa_id, filho_id, status, pontos_snapshot, evidencia_url, nota_rejeicao, concluida_em, validada_em, validada_por, created_at, competencia) VALUES
+INSERT INTO atribuicoes (id, tarefa_id, filho_id, status, pontos_snapshot, titulo_snapshot, descricao_snapshot, exige_evidencia_snapshot, evidencia_url, nota_rejeicao, concluida_em, validada_em, validada_por, created_at, competencia) VALUES
   -- Lia: cama aprovada, louça pendente, leitura aguardando validação
-  ('atr-0001-0001-0001-000000000001', 'tar-silva-0001-0001-000000000001', 'fil-silva-lia0-0001-000000000001', 'aprovada', 5, NULL, NULL, '2026-03-25T07:30:00Z', '2026-03-25T08:00:00Z', 'usr-silva-adm1-0001-000000000001', '2026-03-25T06:00:00Z', '2026-03-25'),
-  ('atr-0002-0001-0001-000000000002', 'tar-silva-0002-0001-000000000002', 'fil-silva-lia0-0001-000000000001', 'pendente', 10, NULL, NULL, NULL, NULL, NULL, '2026-03-28T06:00:00Z', '2026-03-28'),
-  ('atr-0003-0001-0001-000000000003', 'tar-silva-0003-0001-000000000003', 'fil-silva-lia0-0001-000000000001', 'aguardando_validacao', 15, NULL, NULL, '2026-03-27T18:00:00Z', NULL, NULL, '2026-03-27T06:00:00Z', '2026-03-27'),
+  ('atr-0001-0001-0001-000000000001', 'tar-silva-0001-0001-000000000001', 'fil-silva-lia0-0001-000000000001', 'aprovada', 5, 'Arrumar a cama', 'Arrumar a cama todos os dias antes de sair.', false, NULL, NULL, '2026-03-25T07:30:00Z', '2026-03-25T08:00:00Z', 'usr-silva-adm1-0001-000000000001', '2026-03-25T06:00:00Z', '2026-03-25'),
+  ('atr-0002-0001-0001-000000000002', 'tar-silva-0002-0001-000000000002', 'fil-silva-lia0-0001-000000000001', 'pendente', 10, 'Lavar a louça', NULL, false, NULL, NULL, NULL, NULL, NULL, '2026-03-28T06:00:00Z', '2026-03-28'),
+  ('atr-0003-0001-0001-000000000003', 'tar-silva-0003-0001-000000000003', 'fil-silva-lia0-0001-000000000001', 'aguardando_validacao', 15, 'Ler 30 minutos', 'Ler qualquer livro por pelo menos 30 minutos.', false, NULL, NULL, '2026-03-27T18:00:00Z', NULL, NULL, '2026-03-27T06:00:00Z', '2026-03-27'),
   -- Lia: quarto rejeitada (tarefa única com evidência)
-  ('atr-0004-0001-0001-000000000004', 'tar-silva-0004-0001-000000000004', 'fil-silva-lia0-0001-000000000001', 'rejeitada', 20, NULL, 'Faltou organizar o armário.', '2026-01-21T15:00:00Z', '2026-01-21T18:00:00Z', 'usr-silva-adm1-0001-000000000001', '2026-01-20T10:00:00Z', NULL),
+  ('atr-0004-0001-0001-000000000004', 'tar-silva-0004-0001-000000000004', 'fil-silva-lia0-0001-000000000001', 'rejeitada', 20, 'Organizar o quarto', 'Organizar brinquedos e roupas no armário.', true, NULL, 'Faltou organizar o armário.', '2026-01-21T15:00:00Z', '2026-01-21T18:00:00Z', 'usr-silva-adm1-0001-000000000001', '2026-01-20T10:00:00Z', NULL),
   -- Leo: cama pendente, louça aprovada
-  ('atr-0005-0001-0002-000000000001', 'tar-silva-0001-0001-000000000001', 'fil-silva-leo0-0001-000000000002', 'pendente', 5, NULL, NULL, NULL, NULL, NULL, '2026-03-28T06:00:00Z', '2026-03-28'),
-  ('atr-0006-0001-0002-000000000002', 'tar-silva-0002-0001-000000000002', 'fil-silva-leo0-0001-000000000002', 'aprovada', 10, NULL, NULL, '2026-03-26T12:00:00Z', '2026-03-26T14:00:00Z', 'usr-silva-adm1-0001-000000000001', '2026-03-26T06:00:00Z', '2026-03-26'),
+  ('atr-0005-0001-0002-000000000001', 'tar-silva-0001-0001-000000000001', 'fil-silva-leo0-0001-000000000002', 'pendente', 5, 'Arrumar a cama', 'Arrumar a cama todos os dias antes de sair.', false, NULL, NULL, NULL, NULL, NULL, '2026-03-28T06:00:00Z', '2026-03-28'),
+  ('atr-0006-0001-0002-000000000002', 'tar-silva-0002-0001-000000000002', 'fil-silva-leo0-0001-000000000002', 'aprovada', 10, 'Lavar a louça', NULL, false, NULL, NULL, '2026-03-26T12:00:00Z', '2026-03-26T14:00:00Z', 'usr-silva-adm1-0001-000000000001', '2026-03-26T06:00:00Z', '2026-03-26'),
   -- Beto: matemática aprovada, quarto aguardando
-  ('atr-0007-0002-0001-000000000001', 'tar-costa-0001-0002-000000000001', 'fil-costa-beto-0002-000000000001', 'aprovada', 15, NULL, NULL, '2026-03-25T16:00:00Z', '2026-03-25T18:00:00Z', 'usr-costa-adm1-0002-000000000001', '2026-03-25T06:00:00Z', '2026-03-25'),
-  ('atr-0008-0002-0001-000000000002', 'tar-costa-0002-0002-000000000002', 'fil-costa-beto-0002-000000000001', 'aguardando_validacao', 25, NULL, NULL, '2026-03-27T14:00:00Z', NULL, NULL, '2026-03-03T09:00:00Z', NULL);
+  ('atr-0007-0002-0001-000000000001', 'tar-costa-0001-0002-000000000001', 'fil-costa-beto-0002-000000000001', 'aprovada', 15, 'Estudar matemática', 'Resolver 10 exercícios do caderno.', false, NULL, NULL, '2026-03-25T16:00:00Z', '2026-03-25T18:00:00Z', 'usr-costa-adm1-0002-000000000001', '2026-03-25T06:00:00Z', '2026-03-25'),
+  ('atr-0008-0002-0001-000000000002', 'tar-costa-0002-0002-000000000002', 'fil-costa-beto-0002-000000000001', 'aguardando_validacao', 25, 'Limpar o quarto', NULL, true, NULL, NULL, '2026-03-27T14:00:00Z', NULL, NULL, '2026-03-03T09:00:00Z', NULL);
 
 -- ─── Prêmios ─────────────────────────────────────────────────────────────────
 

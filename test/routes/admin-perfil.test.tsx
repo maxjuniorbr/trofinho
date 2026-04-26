@@ -51,6 +51,12 @@ const deleteAccountMock = vi.hoisted(() => ({
   isPending: false,
 }));
 
+const childrenListMock = vi.hoisted(() => ({
+  data: [] as Array<{ id: string; nome: string; ativo: boolean; avatar_url: string | null }>,
+}));
+
+const startImpersonationMock = vi.hoisted(() => vi.fn());
+
 const signOutMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 
 const createHostComponent = vi.hoisted(() => {
@@ -95,8 +101,17 @@ vi.mock('@/hooks/queries', () => ({
   useCurrentAuthUser: () => authUserMock,
   useNotificationPrefs: () => notifPrefsMock,
   useDeleteAccount: () => deleteAccountMock,
+  useChildrenList: () => childrenListMock,
   combineQueryStates: (...queries: Record<string, unknown>[]) => ({
     isLoading: queries.some((q) => q.isLoading),
+  }),
+}));
+
+vi.mock('@/context/impersonation-context', () => ({
+  useImpersonation: () => ({
+    impersonating: null,
+    startImpersonation: startImpersonationMock,
+    stopImpersonation: vi.fn(),
   }),
 }));
 
@@ -148,6 +163,11 @@ vi.mock('@/components/profile/change-password-sheet', () => ({
     React.createElement('ChangePasswordSheet', props),
 }));
 
+vi.mock('@/components/profile/child-selection-sheet', () => ({
+  ChildSelectionSheet: (props: Record<string, unknown>) =>
+    React.createElement('ChildSelectionSheet', props),
+}));
+
 vi.mock('@/components/profile/theme-card', () => ({
   ThemeCard: (props: Record<string, unknown>) => React.createElement('ThemeCard', props),
 }));
@@ -197,6 +217,8 @@ describe('ProfileScreen (admin)', () => {
     familyMock.isLoading = false;
     notifPrefsMock.data = { tarefa_concluida: true, resgate_solicitado: true, valorizacao: true };
     notifPrefsMock.isLoading = false;
+    childrenListMock.data = [];
+    startImpersonationMock.mockReset();
   });
 
   it('shows loading indicator when data is loading', () => {
@@ -325,5 +347,58 @@ describe('ProfileScreen (admin)', () => {
     const renderer = render(<ProfileScreen />);
     const cards = renderer.root.findAllByType('NotificationCard' as never);
     expect(cards.length).toBe(0);
+  });
+
+  it('enables "Ver app como filho" menu item when there are active children', () => {
+    childrenListMock.data = [
+      { id: 'c1', nome: 'Ana', ativo: true, avatar_url: null },
+    ];
+    const renderer = render(<ProfileScreen />);
+    const menuRow = renderer.root
+      .findAllByType('Pressable' as never)
+      .find((node) => node.props.accessibilityLabel === 'Ver app como filho')!;
+    expect(menuRow).toBeDefined();
+    expect(menuRow.props.accessibilityState).toEqual({ disabled: false });
+    expect(menuRow.props.disabled).toBe(false);
+  });
+
+  it('disables "Ver app como filho" with "Sem filhos" hint when no active children', () => {
+    childrenListMock.data = [];
+    const renderer = render(<ProfileScreen />);
+    const menuRow = renderer.root
+      .findAllByType('Pressable' as never)
+      .find((node) => node.props.accessibilityLabel === 'Ver app como filho')!;
+    expect(menuRow).toBeDefined();
+    expect(menuRow.props.accessibilityState).toEqual({ disabled: true });
+    expect(menuRow.props.disabled).toBe(true);
+
+    // Verify "Sem filhos" hint badge is rendered inside the menu row
+    const hintTexts = menuRow.findAll(
+      (node) => node.type === 'Text' && node.props.children === 'Sem filhos',
+    );
+    expect(hintTexts.length).toBe(1);
+  });
+
+  it('opens ChildSelectionSheet when "Ver app como filho" is pressed', () => {
+    childrenListMock.data = [
+      { id: 'c1', nome: 'Ana', ativo: true, avatar_url: null },
+    ];
+    const renderer = render(<ProfileScreen />);
+
+    // Initially the sheet should not be visible
+    const sheetBefore = renderer.root.findByType('ChildSelectionSheet' as never);
+    expect(sheetBefore.props.visible).toBe(false);
+
+    // Press the menu item
+    const menuRow = renderer.root
+      .findAllByType('Pressable' as never)
+      .find((node) => node.props.accessibilityLabel === 'Ver app como filho')!;
+    act(() => {
+      menuRow.props.onPress();
+    });
+
+    // Now the sheet should be visible
+    const sheetAfter = renderer.root.findByType('ChildSelectionSheet' as never);
+    expect(sheetAfter.props.visible).toBe(true);
   });
 });

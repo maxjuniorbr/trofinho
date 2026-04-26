@@ -34,34 +34,26 @@ const balanceMock = vi.hoisted(() => ({
 }));
 
 const transactionsMock = vi.hoisted(() => ({
-  data: {
-    pages: [
-      {
-        data: [
-          {
-            id: 't1',
-            tipo: 'credito_tarefa',
-            descricao: 'Tarefa concluída',
-            valor: 50,
-            created_at: '2025-06-01', data_referencia: '2025-06-01',
-          },
-          {
-            id: 't2',
-            tipo: 'debito_resgate',
-            descricao: 'Resgate prêmio',
-            valor: 30,
-            created_at: '2025-06-02', data_referencia: '2025-06-02',
-          },
-        ],
-      },
-    ],
-  } as Record<string, unknown> | undefined,
+  data: [
+    {
+      id: 't1',
+      tipo: 'credito_tarefa',
+      descricao: 'Tarefa concluída',
+      valor: 50,
+      created_at: '2025-06-01', data_referencia: '2025-06-01',
+    },
+    {
+      id: 't2',
+      tipo: 'debito_resgate',
+      descricao: 'Resgate prêmio',
+      valor: 30,
+      created_at: '2025-06-02', data_referencia: '2025-06-02',
+    },
+  ] as Record<string, unknown>[] | undefined,
   isLoading: false,
+  isFetching: false,
   error: null as Error | null,
   refetch: vi.fn(),
-  fetchNextPage: vi.fn(),
-  hasNextPage: false,
-  isFetchingNextPage: false,
 }));
 
 const transferMutationMock = vi.hoisted(() => ({
@@ -154,6 +146,13 @@ vi.mock('@shopify/flash-list', () => ({
 vi.mock('lucide-react-native', () => ({
   PiggyBank: (props: Record<string, unknown>) => React.createElement('PiggyBank', props),
   TrendingUp: (props: Record<string, unknown>) => React.createElement('TrendingUp', props),
+  Wallet: (props: Record<string, unknown>) => React.createElement('Wallet', props),
+  AlertTriangle: (props: Record<string, unknown>) => React.createElement('AlertTriangle', props),
+}));
+
+vi.mock('expo-linear-gradient', () => ({
+  LinearGradient: ({ children, ...props }: { children?: React.ReactNode }) =>
+    React.createElement('LinearGradient', props, children),
 }));
 
 vi.mock('@sentry/react-native', () => ({
@@ -169,12 +168,16 @@ vi.mock('@lib/haptics', () => ({
 vi.mock('@lib/utils', () => ({
   formatDate: (d: string) => d,
   formatDateShort: (d: string) => d,
+  toDateString: (d: Date) => d.toISOString().slice(0, 10),
 }));
 
 vi.mock('@lib/balances', () => ({
   getAppreciationPeriodLabel: (s: string) => s,
   getTransactionTypeLabel: (t: string) => t,
+  getTransactionCategory: (t: string) => (t.startsWith('credito') ? 'ganho' : 'gasto'),
   isCredit: (t: string) => t.startsWith('credito'),
+  calculateProjection: (cofrinho: number, rate: number) =>
+    rate > 0 && cofrinho > 0 ? Math.max(Math.floor((cofrinho * rate) / 100), 1) : 0,
   formatTransactionDates: (tx: { created_at: string; data_referencia: string }) => ({
     primary: tx.created_at,
     secondary: null,
@@ -189,13 +192,14 @@ vi.mock('@/hooks/queries', () => ({
   useProfile: () => profileMock,
   useMyChildId: () => childIdMock,
   useBalance: () => balanceMock,
-  useTransactions: () => transactionsMock,
+  useTransactionsByPeriod: () => transactionsMock,
   useTransferToPiggyBank: () => transferMutationMock,
   useChildPendingWithdrawal: () => pendingWithdrawalMock,
   useRequestPiggyBankWithdrawal: () => withdrawalMutationMock,
   useCancelPiggyBankWithdrawal: () => cancelWithdrawalMutationMock,
   combineQueryStates: (...queries: Record<string, unknown>[]) => ({
     isLoading: queries.some((q) => q.isLoading),
+    isFetching: queries.some((q) => q.isFetching),
     error: queries.find((q) => q.error)?.error ?? null,
     refetchAll: vi.fn().mockResolvedValue(undefined),
   }),
@@ -273,6 +277,10 @@ vi.mock('@/context/theme-context', () => ({
   }),
 }));
 
+vi.mock('@/context/impersonation-context', () => ({
+  useImpersonation: () => ({ impersonating: null, startImpersonation: vi.fn(), stopImpersonation: vi.fn() }),
+}));
+
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
   act(() => {
@@ -313,29 +321,24 @@ describe('ChildBalanceScreen', () => {
       taxa_resgate_cofrinho: 10,
     };
     balanceMock.isLoading = false;
-    transactionsMock.data = {
-      pages: [
-        {
-          data: [
-            {
-              id: 't1',
-              tipo: 'credito_tarefa',
-              descricao: 'Tarefa concluída',
-              valor: 50,
-              created_at: '2025-06-01', data_referencia: '2025-06-01',
-            },
-            {
-              id: 't2',
-              tipo: 'debito_resgate',
-              descricao: 'Resgate prêmio',
-              valor: 30,
-              created_at: '2025-06-02', data_referencia: '2025-06-02',
-            },
-          ],
-        },
-      ],
-    };
+    transactionsMock.data = [
+      {
+        id: 't1',
+        tipo: 'credito_tarefa',
+        descricao: 'Tarefa concluída',
+        valor: 50,
+        created_at: '2025-06-01', data_referencia: '2025-06-01',
+      },
+      {
+        id: 't2',
+        tipo: 'debito_resgate',
+        descricao: 'Resgate prêmio',
+        valor: 30,
+        created_at: '2025-06-02', data_referencia: '2025-06-02',
+      },
+    ];
     transactionsMock.isLoading = false;
+    transactionsMock.isFetching = false;
     transferMutationMock.mutateAsync.mockReset().mockResolvedValue(undefined);
     withdrawalMutationMock.mutateAsync.mockReset().mockResolvedValue(undefined);
     cancelWithdrawalMutationMock.mutateAsync.mockReset().mockResolvedValue(undefined);
@@ -359,10 +362,10 @@ describe('ChildBalanceScreen', () => {
   it('renders balance summary card', () => {
     const renderer = render(<ChildBalanceScreen />);
     const text = allText(renderer);
-    expect(text).toContain('MEU SALDO');
-    expect(text).toContain('280');
-    expect(text).toContain('LIVRE');
+    expect(text).toContain('SALDO LIVRE');
+    expect(text).toContain('200');
     expect(text).toContain('COFRINHO');
+    expect(text).toContain('80');
   });
 
   it('renders appreciation info', () => {
@@ -382,7 +385,7 @@ describe('ChildBalanceScreen', () => {
   it('renders piggy bank transfer button', () => {
     const renderer = render(<ChildBalanceScreen />);
     const buttons = renderer.root.findAllByType('Button' as never);
-    const piggyBtn = buttons.find((b) => b.props.label === 'Guardar no cofrinho');
+    const piggyBtn = buttons.find((b) => b.props.label === 'Depositar');
     expect(piggyBtn).toBeDefined();
   });
 
@@ -396,19 +399,19 @@ describe('ChildBalanceScreen', () => {
     };
     const renderer = render(<ChildBalanceScreen />);
     const buttons = renderer.root.findAllByType('Button' as never);
-    const piggyBtn = buttons.find((b) => b.props.label === 'Guardar no cofrinho');
+    const piggyBtn = buttons.find((b) => b.props.label === 'Depositar');
     expect(piggyBtn?.props.disabled).toBe(true);
   });
 
   it('renders screen header with correct title', () => {
     const renderer = render(<ChildBalanceScreen />);
     const header = renderer.root.findByType('ScreenHeader' as never);
-    expect(header.props.title).toBe('Meu Saldo');
+    expect(header.props.title).toBe('Meus Pontos');
   });
 
-  it('shows Histórico section', () => {
+  it('shows Atividades de hoje section', () => {
     const renderer = render(<ChildBalanceScreen />);
     const text = allText(renderer);
-    expect(text).toContain('Histórico');
+    expect(text).toContain('Atividades de hoje');
   });
 });

@@ -14,7 +14,7 @@ type AvatarSectionProps = Readonly<{
   email?: string;
   avatarUri: string | null;
   role?: 'admin' | 'filho';
-  onAvatarChange: (url: string | null) => void;
+  onAvatarChange?: (url: string | null) => void;
 }>;
 
 export const AvatarSection = ({
@@ -42,7 +42,7 @@ export const AvatarSection = ({
     setError(null);
     try {
       const url = await updateAvatarMutation.mutateAsync(result.assets[0].uri);
-      onAvatarChange(url ?? null);
+      onAvatarChange?.(url ?? null);
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Não foi possível atualizar a foto.';
       setError(message);

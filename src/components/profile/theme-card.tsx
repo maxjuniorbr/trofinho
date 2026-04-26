@@ -13,9 +13,10 @@ const THEME_OPTIONS: readonly { value: ColorScheme; label: string; Icon: typeof 
 
 type ThemeCardProps = Readonly<{
   role?: 'admin' | 'filho';
+  disabled?: boolean;
 }>;
 
-export function ThemeCard({ role = 'admin' }: ThemeCardProps) {
+export function ThemeCard({ role = 'admin', disabled }: ThemeCardProps) {
   const { colors, scheme, setScheme } = useTheme();
   const accentColor = role === 'filho' ? colors.accent.filhoDim : colors.accent.adminDim;
 
@@ -43,7 +44,8 @@ export function ThemeCard({ role = 'admin' }: ThemeCardProps) {
                   borderColor: isActive ? accentColor : colors.border.subtle,
                 },
               ]}
-              onPress={() => setScheme(value)}
+              onPress={() => !disabled && setScheme(value)}
+              disabled={disabled}
               accessibilityRole="button"
               accessibilityLabel={`Tema ${label}`}
               accessibilityState={{ selected: isActive }}

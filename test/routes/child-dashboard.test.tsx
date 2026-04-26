@@ -29,9 +29,9 @@ const assignmentsMock = vi.hoisted(() => ({
     pages: [
       {
         data: [
-          { id: 'a1', status: 'pendente' },
-          { id: 'a2', status: 'pendente' },
-          { id: 'a3', status: 'concluida' },
+          { id: 'a1', status: 'pendente', titulo_snapshot: 'Arrumar quarto', pontos_snapshot: 10, exige_evidencia_snapshot: false, tentativas: 0, tarefas: { dias_semana: 127, ativo: true } },
+          { id: 'a2', status: 'pendente', titulo_snapshot: 'Lavar louça', pontos_snapshot: 15, exige_evidencia_snapshot: true, tentativas: 0, tarefas: { dias_semana: 127, ativo: true } },
+          { id: 'a3', status: 'aprovada', titulo_snapshot: 'Fazer lição', pontos_snapshot: 20, exige_evidencia_snapshot: false, tentativas: 0, tarefas: { dias_semana: 127, ativo: true } },
         ],
       },
     ],
@@ -88,6 +88,44 @@ vi.mock('lucide-react-native', () => ({
   PiggyBank: (props: Record<string, unknown>) => React.createElement('PiggyBank', props),
   Pencil: (props: Record<string, unknown>) => React.createElement('Pencil', props),
   Bell: (props: Record<string, unknown>) => React.createElement('Bell', props),
+  User: (props: Record<string, unknown>) => React.createElement('User', props),
+  CheckCircle2: (props: Record<string, unknown>) => React.createElement('CheckCircle2', props),
+  Clock: (props: Record<string, unknown>) => React.createElement('Clock', props),
+  ChevronRight: (props: Record<string, unknown>) => React.createElement('ChevronRight', props),
+  Wallet: (props: Record<string, unknown>) => React.createElement('Wallet', props),
+  AlertTriangle: (props: Record<string, unknown>) => React.createElement('AlertTriangle', props),
+  Camera: (props: Record<string, unknown>) => React.createElement('Camera', props),
+  Send: (props: Record<string, unknown>) => React.createElement('Send', props),
+  RotateCcw: (props: Record<string, unknown>) => React.createElement('RotateCcw', props),
+}));
+
+vi.mock('expo-linear-gradient', () => ({
+  LinearGradient: createHostComponent('LinearGradient'),
+}));
+
+vi.mock('@/constants/shadows', () => ({
+  gradients: {
+    heroNavy: { colors: ['#0F1729', '#19233F', '#283B5D'], locations: [0, 0.6, 1], start: { x: 0.5, y: 0 }, end: { x: 0.5, y: 1 } },
+  },
+  heroPalette: {
+    textOnNavy: '#FFFFFF',
+    textOnNavyMuted: 'rgba(255, 255, 255, 0.70)',
+    textOnNavySubtle: 'rgba(255, 255, 255, 0.55)',
+  },
+}));
+
+vi.mock('@lib/tasks', () => ({
+  getAssignmentPoints: (a: Record<string, unknown>) => a.pontos_snapshot ?? a.pontos ?? 10,
+  getAssignmentRetryState: (a: Record<string, unknown>) => ({
+    canRetry: a.status === 'rejeitada',
+    attemptsLeft: a.status === 'rejeitada' ? 1 : 0,
+    reason: null,
+  }),
+  formatWeekdays: () => 'Todos os dias',
+}));
+
+vi.mock('@/components/tasks/task-points-pill', () => ({
+  TaskPointsPill: (props: Record<string, unknown>) => React.createElement('TaskPointsPill', props),
 }));
 
 vi.mock('@sentry/react-native', () => ({
@@ -102,6 +140,10 @@ vi.mock('@lib/utils', () => ({
 
 vi.mock('@lib/notifications', () => ({
   isNotificationPermissionDenied: vi.fn().mockResolvedValue(false),
+}));
+
+vi.mock('@/hooks/use-notification-inbox', () => ({
+  useChildUnreadNotifCount: () => 0,
 }));
 
 vi.mock('@/hooks/queries', () => ({
@@ -140,9 +182,8 @@ vi.mock('@/components/ui/skeleton', () => ({
   HomeScreenSkeleton: () => React.createElement('HomeScreenSkeleton'),
 }));
 
-vi.mock('@/constants/assets', () => ({
-  mascotImage: 'mascot.png',
-  celebratingImage: 'celebrating.png',
+vi.mock('@/components/ui/avatar', () => ({
+  Avatar: (props: Record<string, unknown>) => React.createElement('Avatar', props),
 }));
 
 vi.mock('@/components/ui/home-footer-bar', () => ({
@@ -173,13 +214,17 @@ vi.mock('@/context/theme-context', () => ({
     colors: {
       statusBar: 'dark',
       bg: { canvas: '#fff', surface: '#fff', muted: '#f0f0f0', elevated: '#f5f5f5' },
-      text: { primary: '#000', secondary: '#666', muted: '#999', inverse: '#fff' },
+      text: { primary: '#000', secondary: '#666', muted: '#999', inverse: '#fff', onBrand: '#000' },
       accent: { filho: '#3366CC', filhoBg: '#EEF', filhoDim: '#C57B0D' },
       border: { subtle: '#eee' },
-      brand: { vivid: '#000' },
-      semantic: { error: '#c00' },
+      brand: { vivid: '#FAC114' },
+      semantic: { error: '#c00', errorBg: '#FDE7E7', success: '#0a0', successBg: '#e0ffe0', warning: '#fa0' },
     },
   }),
+}));
+
+vi.mock('@/context/impersonation-context', () => ({
+  useImpersonation: () => ({ impersonating: null, startImpersonation: vi.fn(), stopImpersonation: vi.fn() }),
 }));
 
 function render(element: React.ReactElement) {
@@ -218,9 +263,9 @@ describe('FilhoHomeScreen', () => {
       pages: [
         {
           data: [
-            { id: 'a1', status: 'pendente' },
-            { id: 'a2', status: 'pendente' },
-            { id: 'a3', status: 'concluida' },
+            { id: 'a1', status: 'pendente', titulo_snapshot: 'Arrumar quarto', pontos_snapshot: 10, exige_evidencia_snapshot: false, tentativas: 0, tarefas: { dias_semana: 127, ativo: true } },
+            { id: 'a2', status: 'pendente', titulo_snapshot: 'Lavar louça', pontos_snapshot: 15, exige_evidencia_snapshot: true, tentativas: 0, tarefas: { dias_semana: 127, ativo: true } },
+            { id: 'a3', status: 'aprovada', titulo_snapshot: 'Fazer lição', pontos_snapshot: 20, exige_evidencia_snapshot: false, tentativas: 0, tarefas: { dias_semana: 127, ativo: true } },
           ],
         },
       ],
@@ -248,12 +293,6 @@ describe('FilhoHomeScreen', () => {
     expect(text).toContain('Olá, João!');
   });
 
-  it('renders edit badge on avatar', () => {
-    const renderer = render(<FilhoHomeScreen />);
-    const pencils = renderer.root.findAllByType('Pencil' as never);
-    expect(pencils.length).toBeGreaterThan(0);
-  });
-
   it('renders pending tasks count in badge', () => {
     const renderer = render(<FilhoHomeScreen />);
     const text = allText(renderer);
@@ -264,7 +303,7 @@ describe('FilhoHomeScreen', () => {
   it('renders balance summary card', () => {
     const renderer = render(<FilhoHomeScreen />);
     const text = allText(renderer);
-    expect(text).toContain('MEU SALDO');
+    expect(text).toContain('MEUS PONTOS');
     expect(text).toContain('180');
     expect(text).toContain('LIVRE');
     expect(text).toContain('COFRINHO');
@@ -277,6 +316,7 @@ describe('FilhoHomeScreen', () => {
     expect(text).toContain('Tarefas');
     expect(text).toContain('Prêmios');
     expect(text).toContain('Resgates');
+    expect(text).toContain('Perfil');
   });
 
   it('navigates to tasks on footer action press', () => {
@@ -304,26 +344,10 @@ describe('FilhoHomeScreen', () => {
     expect(routerMock.push).toHaveBeenCalledWith('/(child)/balance');
   });
 
-  it('shows mascot image', () => {
-    const renderer = render(<FilhoHomeScreen />);
-    const images = renderer.root.findAllByType('Image' as never);
-    expect(images.length).toBeGreaterThan(0);
-  });
-
   it('shows zero balance hint when both balances are zero', () => {
     balanceMock.data = { saldo_livre: 0, cofrinho: 0 };
     const renderer = render(<FilhoHomeScreen />);
     const text = allText(renderer);
-    expect(text).toContain('Complete tarefas para ganhar seus primeiros pontos!');
-  });
-
-  it('shows celebrating mascot when no pending tasks', () => {
-    assignmentsMock.data = {
-      pages: [{ data: [{ id: 'a1', status: 'concluida' }] }],
-    };
-    const renderer = render(<FilhoHomeScreen />);
-    const images = renderer.root.findAllByType('Image' as never);
-    const mascot = images.find((img) => img.props.accessibilityLabel === 'Trofinho celebrando');
-    expect(mascot).toBeDefined();
+    expect(text).toContain('Complete tarefas para ganhar seus primeiros pontos');
   });
 });

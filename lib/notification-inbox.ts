@@ -133,6 +133,7 @@ export function deriveChildNotifs(input: ChildNotifInput): Notif[] {
 
   // Recently approved assignments → positive feedback
   for (const a of input.assignments) {
+    if (a.status === 'cancelada') continue;
     if (a.status !== 'aprovada') continue;
     const refDate = a.validada_em ?? a.created_at;
     notifs.push({
@@ -150,6 +151,7 @@ export function deriveChildNotifs(input: ChildNotifInput): Notif[] {
 
   // Recently rejected assignments → feedback
   for (const a of input.assignments) {
+    if (a.status === 'cancelada') continue;
     if (a.status !== 'rejeitada') continue;
     const refDate = a.validada_em ?? a.created_at;
     notifs.push({

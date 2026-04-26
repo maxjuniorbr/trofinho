@@ -43,6 +43,7 @@ type NotificationsScreenProps = Readonly<{
   isLoading: boolean;
   onBack: () => void;
   onNavigate?: (route: string) => void;
+  role?: 'admin' | 'filho';
 }>;
 
 export function NotificationsScreen({
@@ -50,6 +51,7 @@ export function NotificationsScreen({
   isLoading,
   onBack,
   onNavigate,
+  role = 'admin',
 }: NotificationsScreenProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -84,8 +86,8 @@ export function NotificationsScreen({
     <SafeScreenFrame bottomInset>
       <ScreenHeader title="Notificações" onBack={onBack} />
 
-      {/* Filters — hidden when there are no items */}
-      {items.length > 0 ? (
+      {/* Filters — hidden for child role (only "Todas" would show) and when empty */}
+      {role === 'admin' && items.length > 0 ? (
         <View style={styles.filtersRow}>
           {filters.map((f) => {
             const active = filter === f.key;
@@ -138,7 +140,7 @@ export function NotificationsScreen({
 
       {/* List */}
       <ScrollView
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, role === 'filho' && { paddingTop: spacing['3'] }]}
         showsVerticalScrollIndicator={false}
         overScrollMode="never"
       >

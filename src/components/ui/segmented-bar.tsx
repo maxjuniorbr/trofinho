@@ -49,7 +49,7 @@ export function SegmentedBar<K extends string>({
               <Text style={[styles.label, isActive && { color: colors.text.inverse }]}>
                 {opt.label}
               </Text>
-              {opt.badge != null && opt.badge > 0 ? (
+              {opt.badge != null ? (
                 <View
                   style={[
                     styles.badge,

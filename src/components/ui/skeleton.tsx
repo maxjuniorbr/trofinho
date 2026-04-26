@@ -53,7 +53,7 @@ export function HomeScreenSkeleton() {
       <SkeletonBox width={120} height={120} borderRadius={radii.full} />
       <SkeletonBox width={160} height={14} />
 
-      {/* Summary card (MEU SALDO — label, total, progress bar, 2 boxes) */}
+      {/* Summary card (MEUS PONTOS — label, total, progress bar, 2 boxes) */}
       <SkeletonBox height={180} borderRadius={radii.xl} />
 
       {/* Quick actions row (4 cards) */}

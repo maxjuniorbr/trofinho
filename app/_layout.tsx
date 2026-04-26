@@ -25,6 +25,7 @@ import {
 import { handleNotificationAction } from '@lib/notification-actions';
 import { ThemeProvider, useTheme } from '@/context/theme-context';
 import { QueryProvider, queryClient } from '@/context/query-client';
+import { ImpersonationProvider, useImpersonation } from '@/context/impersonation-context';
 import { OfflineBanner } from '@/components/ui/offline-banner';
 
 const navigationIntegration = Sentry.reactNavigationIntegration({
@@ -106,11 +107,13 @@ function RootLayout() {
   }, [ready, fontsLoaded]);
 
   return (
-    <QueryProvider>
-      <ThemeProvider>
-        <RootNavigator ready={ready} fontsLoaded={fontsLoaded} profile={profile} />
-      </ThemeProvider>
-    </QueryProvider>
+    <ImpersonationProvider>
+      <QueryProvider>
+        <ThemeProvider>
+          <RootNavigator ready={ready} fontsLoaded={fontsLoaded} profile={profile} />
+        </ThemeProvider>
+      </QueryProvider>
+    </ImpersonationProvider>
   );
 }
 
@@ -129,6 +132,7 @@ function RootNavigator({
   const router = useRouter();
   const segments = useSegments();
   const { colors } = useTheme();
+  const { impersonating } = useImpersonation();
   const [pushToken, setPushToken] = useState<string | null>(null);
   const lastSavedPushTokenKeyRef = useRef<string | null>(null);
 
@@ -197,7 +201,7 @@ function RootNavigator({
   }, [profile?.id, pushToken]);
 
   useEffect(() => {
-    const target = resolveNavDecision(ready, profile, segments as string[]);
+    const target = resolveNavDecision(ready, profile, segments as string[], impersonating !== null);
     if (target) {
       Sentry.addBreadcrumb({
         category: 'navigation',

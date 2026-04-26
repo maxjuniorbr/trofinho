@@ -2,22 +2,25 @@ import * as Sentry from '@sentry/react-native';
 import { StyleSheet, Text, View, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
-import { useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import { CheckCircle2, Clock, XCircle } from 'lucide-react-native';
+import { Star } from 'lucide-react-native';
 import { HomeFooterBar } from '@/components/ui/home-footer-bar';
 import { useChildFooterItems } from '@/hooks/use-footer-items';
 import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@lib/status';
 import { useChildRedemptions } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, spacing, typography } from '@/constants/theme';
+import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ListScreenSkeleton } from '@/components/ui/skeleton';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { ListFooter } from '@/components/ui/list-footer';
+import { SegmentedBar, type SegmentOption } from '@/components/ui/segmented-bar';
 import { formatDate } from '@lib/utils';
+
+type TabKey = 'pendentes' | 'concluidos' | 'todos';
 
 export default function ChildRedemptionsScreen() {
   const router = useRouter();
@@ -36,20 +39,42 @@ export default function ChildRedemptionsScreen() {
     isFetchingNextPage,
   } = useChildRedemptions();
   const redemptions = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
-  const pendingRedemptions = useMemo(
-    () => redemptions.filter((r) => r.status === 'pendente'),
-    [redemptions],
-  );
-  const historicalRedemptions = useMemo(
-    () => redemptions.filter((r) => r.status !== 'pendente'),
+
+  const [tab, setTab] = useState<TabKey>('pendentes');
+
+  const pendingCount = useMemo(
+    () => redemptions.filter((r) => r.status === 'pendente').length,
     [redemptions],
   );
 
-  const errorMessage = error?.message ?? null;
-  const hasError = Boolean(errorMessage);
-  const shouldShowEmptyState = hasError || redemptions.length === 0;
-  const emptyStateMessage =
-    'Nenhum resgate realizado ainda.\nVá ao catálogo e troque seus pontos! 🎁';
+  const filtered = useMemo(() => {
+    if (tab === 'pendentes') return redemptions.filter((r) => r.status === 'pendente');
+    if (tab === 'concluidos') return redemptions.filter((r) => r.status !== 'pendente');
+    return redemptions;
+  }, [redemptions, tab]);
+
+  const hasError = Boolean(error);
+  const shouldShowEmptyState = hasError || filtered.length === 0;
+
+  const emptyMessages: Record<TabKey, string> = {
+    pendentes: 'Nenhum resgate pendente.',
+    concluidos: 'Nenhum resgate concluído.',
+    todos: 'Nenhum resgate realizado ainda.',
+  };
+
+  const concludedCount = useMemo(
+    () => redemptions.filter((r) => r.status !== 'pendente').length,
+    [redemptions],
+  );
+
+  const tabs: SegmentOption<TabKey>[] = useMemo(
+    () => [
+      { key: 'pendentes', label: 'Pendentes', badge: pendingCount },
+      { key: 'concluidos', label: 'Concluídos', badge: concludedCount },
+      { key: 'todos', label: 'Todos', badge: redemptions.length },
+    ],
+    [pendingCount, concludedCount, redemptions.length],
+  );
 
   const handleFooterNavigate = useCallback(
     (rota: string) => {
@@ -68,32 +93,24 @@ export default function ChildRedemptionsScreen() {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    if (status === 'confirmado') return CheckCircle2;
-    if (status === 'cancelado') return XCircle;
-    return Clock;
-  };
-
   const renderContent = () => {
     if (isLoading) return <ListScreenSkeleton />;
     if (shouldShowEmptyState) {
       return (
-        <View style={styles.emptyContainer}>
-          <EmptyState
-            error={errorMessage}
-            empty={!errorMessage}
-            emptyMessage={emptyStateMessage}
-            onRetry={handleRefresh}
-          />
-        </View>
+        <EmptyState
+          error={error?.message ?? null}
+          empty={!error}
+          emptyMessage={emptyMessages[tab]}
+          onRetry={handleRefresh}
+        />
       );
     }
     return (
       <FlashList
-        data={historicalRedemptions}
+        data={filtered}
         keyExtractor={(item) => item.id}
         maintainVisibleContentPosition={{ disabled: true }}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={styles.lista}
         refreshControl={
           <RefreshControl
             refreshing={isFetching && !isLoading}
@@ -101,86 +118,33 @@ export default function ChildRedemptionsScreen() {
             tintColor={colors.brand.vivid}
           />
         }
-        ListHeaderComponent={
-          <>
-            <View style={{ height: spacing['4'] }} />
-            {pendingRedemptions.length > 0 ? (
-              <>
-                <View style={[styles.sectionHeader, { borderBottomColor: colors.border.subtle }]}>
-                  <View style={styles.sectionTitleRow}>
-                    <Clock size={14} color={colors.text.primary} strokeWidth={2} />
-                    <Text style={styles.sectionTitle}>Pendentes ({pendingRedemptions.length})</Text>
-                  </View>
-                </View>
-                {pendingRedemptions.map((item, index) => {
-                  const statusColor = getRedemptionStatusColor(item.status, colors);
-                  const isLast = index === pendingRedemptions.length - 1;
-                  return (
-                    <View
-                      key={item.id}
-                      style={[
-                        styles.row,
-                        !isLast && {
-                          borderBottomWidth: StyleSheet.hairlineWidth,
-                          borderBottomColor: colors.border.subtle,
-                        },
-                      ]}
-                    >
-                      <View style={[styles.rowIcon, { backgroundColor: statusColor + '20' }]}>
-                        <Clock size={14} color={statusColor} strokeWidth={2} />
-                      </View>
-                      <View style={styles.rowInfo}>
-                        <Text style={styles.rowNome}>
-                          {item.premios?.nome ?? 'Prêmio removido'}
-                        </Text>
-                        <Text style={styles.rowHint}>Aguardando confirmação</Text>
-                      </View>
-                      <View style={styles.rowRight}>
-                        <Text style={[styles.rowStatus, { color: statusColor }]}>
-                          {getRedemptionStatusLabel(item.status)}
-                        </Text>
-                        <Text style={styles.rowData}>{formatDate(new Date(item.created_at))}</Text>
-                      </View>
-                    </View>
-                  );
-                })}
-              </>
-            ) : null}
-            {historicalRedemptions.length > 0 ? (
-              <View style={[styles.sectionHeader, { borderBottomColor: colors.border.subtle }]}>
-                <Text style={styles.sectionTitle}>Histórico</Text>
-              </View>
-            ) : null}
-            {redemptions.length > 0 && historicalRedemptions.length === 0 && !isFetching ? (
-              <Text style={styles.noHistory}>Nenhum histórico de resgates.</Text>
-            ) : null}
-          </>
-        }
-        renderItem={({ item, index }) => {
+        ListHeaderComponent={<View style={{ height: spacing['3'] }} />}
+        renderItem={({ item }) => {
           const statusColor = getRedemptionStatusColor(item.status, colors);
-          const StatusIcon = getStatusIcon(item.status);
-          const isLast = index === historicalRedemptions.length - 1;
+          const prizeEmoji = (item.premios as { emoji?: string } | null)?.emoji ?? '🎁';
+          const prizeName = item.premios?.nome ?? 'Prêmio removido';
+
           return (
-            <View
-              style={[
-                styles.row,
-                !isLast && {
-                  borderBottomWidth: StyleSheet.hairlineWidth,
-                  borderBottomColor: colors.border.subtle,
-                },
-              ]}
-            >
-              <View style={[styles.rowIcon, { backgroundColor: statusColor + '20' }]}>
-                <StatusIcon size={14} color={statusColor} strokeWidth={2} />
+            <View style={styles.card}>
+              <View style={styles.topRow}>
+                <View style={styles.emojiCircle}>
+                  <Text style={styles.emojiText}>{prizeEmoji}</Text>
+                </View>
+                <View style={styles.infoCol}>
+                  <Text style={styles.prizeName} numberOfLines={1}>{prizeName}</Text>
+                  <Text style={styles.dateText}>{formatDate(new Date(item.created_at))}</Text>
+                </View>
+                <View style={[styles.costBadge, { backgroundColor: colors.accent.filhoBg }]}>
+                  <Star size={12} color={colors.accent.filho} strokeWidth={2} />
+                  <Text style={[styles.costText, { color: colors.accent.filho }]}>
+                    {item.pontos_debitados}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.rowInfo}>
-                <Text style={styles.rowNome}>{item.premios?.nome ?? 'Prêmio removido'}</Text>
-              </View>
-              <View style={styles.rowRight}>
-                <Text style={[styles.rowStatus, { color: statusColor }]}>
+              <View style={[styles.statusBadge, { backgroundColor: statusColor + '22' }]}>
+                <Text style={[styles.statusText, { color: statusColor }]}>
                   {getRedemptionStatusLabel(item.status)}
                 </Text>
-                <Text style={styles.rowData}>{formatDate(new Date(item.created_at))}</Text>
               </View>
             </View>
           );
@@ -197,8 +161,8 @@ export default function ChildRedemptionsScreen() {
   return (
     <SafeScreenFrame bottomInset={false}>
       <StatusBar style={colors.statusBar} />
-      <ScreenHeader title="Meus Resgates" role="filho" />
-
+      <ScreenHeader title="Resgates" role="filho" />
+      <SegmentedBar options={tabs} value={tab} onChange={setTab} role="filho" />
       {renderContent()}
       <HomeFooterBar
         items={footerItems}
@@ -211,63 +175,65 @@ export default function ChildRedemptionsScreen() {
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    container: { flex: 1 },
-    emptyContainer: { flex: 1, alignItems: 'center' },
-    list: { paddingHorizontal: spacing['4'] },
-    sectionHeader: {
-      borderBottomWidth: 1,
-      paddingBottom: spacing['2'],
-      marginBottom: spacing['2'],
-      marginTop: spacing['3'],
+    lista: { paddingHorizontal: spacing['4'] },
+    card: {
+      backgroundColor: colors.bg.surface,
+      borderRadius: radii.xl,
+      borderCurve: 'continuous',
+      borderWidth: 1,
+      borderColor: colors.border.subtle,
+      padding: spacing['4'],
+      gap: spacing['3'],
+      marginBottom: spacing['3'],
+      ...shadows.card,
     },
-    sectionTitleRow: {
+    topRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing['1.5'],
+      gap: spacing['3'],
     },
-    sectionTitle: {
-      fontFamily: typography.family.bold,
-      fontSize: typography.size.md,
-      color: colors.text.primary,
-    },
-    noHistory: {
-      fontSize: typography.size.sm,
-      color: colors.text.muted,
-      textAlign: 'center',
-      paddingVertical: spacing['4'],
-    },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: spacing['3'],
-      paddingHorizontal: spacing['3'],
-      gap: spacing['2'],
-    },
-    rowIcon: {
-      width: 30,
-      height: 30,
+    emojiCircle: {
+      width: 44,
+      height: 44,
       borderRadius: radii.full,
+      backgroundColor: colors.bg.muted,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    rowInfo: { flex: 1 },
-    rowNome: {
+    emojiText: { fontSize: 22 },
+    infoCol: { flex: 1, gap: spacing['0.5'] },
+    prizeName: {
       fontSize: typography.size.sm,
-      fontFamily: typography.family.semibold,
+      fontFamily: typography.family.bold,
       color: colors.text.primary,
     },
-    rowHint: {
+    dateText: {
       fontSize: typography.size.xs,
+      fontFamily: typography.family.medium,
       color: colors.text.muted,
-      fontStyle: 'italic',
-      marginTop: spacing['0.5'],
     },
-    rowRight: { alignItems: 'flex-end' },
-    rowStatus: { fontSize: typography.size.xs, fontFamily: typography.family.semibold },
-    rowData: {
-      fontSize: typography.size.xs,
-      color: colors.text.muted,
-      marginTop: spacing['0.5'],
+    costBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1'],
+      borderRadius: radii.md,
+      paddingHorizontal: spacing['2'],
+      paddingVertical: spacing['1'],
+    },
+    costText: {
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.black,
+    },
+    statusBadge: {
+      borderRadius: radii.md,
+      borderCurve: 'continuous',
+      paddingHorizontal: spacing['2'],
+      paddingVertical: spacing['1'],
+      alignSelf: 'flex-start',
+    },
+    statusText: {
+      fontSize: 10,
+      fontFamily: typography.family.bold,
     },
   });
 }

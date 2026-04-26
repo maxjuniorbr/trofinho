@@ -16,12 +16,12 @@ export type Redemption = {
 };
 
 export type RedemptionWithPrize = Redemption & {
-  premios: { nome: string; custo_pontos: number } | null;
+  premios: { nome: string; custo_pontos: number; emoji: string } | null;
 };
 
 export type RedemptionWithChildAndPrize = Redemption & {
   filhos: { nome: string; usuario_id: string | null };
-  premios: { nome: string };
+  premios: { nome: string; emoji: string };
 };
 
 export async function listRedemptions(
@@ -38,7 +38,7 @@ export async function listRedemptions(
   // .returns needed: joined shape (filhos + premios) differs from generated row type
   const { data, error } = await supabase
     .from('resgates')
-    .select('*, filhos(nome, usuario_id), premios(nome)')
+    .select('*, filhos(nome, usuario_id), premios(nome, emoji)')
     .order('created_at', { ascending: false })
     .range(from, to)
     .overrideTypes<RedemptionWithChildAndPrize[], { merge: false }>();
@@ -117,7 +117,7 @@ export async function listChildRedemptions(
   // .returns needed: joined shape (premios) differs from generated row type
   const { data, error } = await supabase
     .from('resgates')
-    .select('*, premios(nome, custo_pontos)')
+    .select('*, premios(nome, custo_pontos, emoji)')
     .order('created_at', { ascending: false })
     .range(from, to)
     .overrideTypes<RedemptionWithPrize[], { merge: false }>();

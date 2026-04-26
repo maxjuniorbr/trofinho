@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as fc from 'fast-check';
 
 import {
   deriveAdminNotifs,
@@ -6,6 +7,7 @@ import {
   type AdminNotifInput,
   type ChildNotifInput,
 } from './notification-inbox';
+import type { AssignmentStatus } from './tasks';
 
 // ── Test fixtures ────────────────────────────────────────
 
@@ -101,7 +103,7 @@ describe('deriveAdminNotifs', () => {
           created_at: minsAgo(30),
           updated_at: minsAgo(30),
           filhos: { nome: 'Ana', usuario_id: 'u1' },
-          premios: { nome: 'Sorvete' },
+          premios: { nome: 'Sorvete', emoji: '🍦' },
         },
       ],
     };
@@ -126,7 +128,7 @@ describe('deriveAdminNotifs', () => {
           created_at: minsAgo(30),
           updated_at: minsAgo(5),
           filhos: { nome: 'Ana', usuario_id: 'u1' },
-          premios: { nome: 'Sorvete' },
+          premios: { nome: 'Sorvete', emoji: '🍦' },
         },
       ],
     };
@@ -180,6 +182,9 @@ describe('deriveChildNotifs', () => {
           filho_id: 'f1',
           status: 'aprovada',
           pontos_snapshot: 50,
+          titulo_snapshot: 'Estudar matemática',
+          descricao_snapshot: null,
+          exige_evidencia_snapshot: false,
           evidencia_url: null,
           nota_rejeicao: null,
           concluida_em: minsAgo(30),
@@ -213,6 +218,9 @@ describe('deriveChildNotifs', () => {
           filho_id: 'f1',
           status: 'rejeitada',
           pontos_snapshot: 50,
+          titulo_snapshot: 'Estudar',
+          descricao_snapshot: null,
+          exige_evidencia_snapshot: false,
           evidencia_url: null,
           nota_rejeicao: 'Foto ilegível',
           concluida_em: minsAgo(30),
@@ -242,6 +250,9 @@ describe('deriveChildNotifs', () => {
           filho_id: 'f1',
           status: 'rejeitada',
           pontos_snapshot: 50,
+          titulo_snapshot: 'Estudar',
+          descricao_snapshot: null,
+          exige_evidencia_snapshot: false,
           evidencia_url: null,
           nota_rejeicao: null,
           concluida_em: minsAgo(30),
@@ -274,7 +285,7 @@ describe('deriveChildNotifs', () => {
           pontos_debitados: 100,
           created_at: hoursAgo(5),
           updated_at: minsAgo(30),
-          premios: { nome: 'Sorvete', custo_pontos: 100 },
+          premios: { nome: 'Sorvete', custo_pontos: 100, emoji: '🍦' },
         },
         {
           id: 'r2',
@@ -284,7 +295,7 @@ describe('deriveChildNotifs', () => {
           pontos_debitados: 200,
           created_at: hoursAgo(1),
           updated_at: hoursAgo(1),
-          premios: { nome: 'Brinquedo', custo_pontos: 200 },
+          premios: { nome: 'Brinquedo', custo_pontos: 200, emoji: '🧸' },
         },
       ],
     };
@@ -327,11 +338,72 @@ describe('deriveChildNotifs', () => {
           pontos_debitados: 100,
           created_at: hoursAgo(5),
           updated_at: minsAgo(30),
-          premios: { nome: 'Sorvete', custo_pontos: 100 },
+          premios: { nome: 'Sorvete', custo_pontos: 100, emoji: '🍦' },
         },
       ],
     };
     expect(deriveChildNotifs(input)).toEqual([]);
+  });
+});
+
+describe('deriveChildNotifs – cancelada filtering', () => {
+  const makeAssignment = (
+    overrides: Partial<ChildNotifInput['assignments'][number]>,
+  ): ChildNotifInput['assignments'][number] => ({
+    id: 'a1',
+    tarefa_id: 't1',
+    filho_id: 'f1',
+    status: 'aprovada',
+    pontos_snapshot: 10,
+    titulo_snapshot: 'Test',
+    descricao_snapshot: null,
+    exige_evidencia_snapshot: false,
+    evidencia_url: null,
+    nota_rejeicao: null,
+    concluida_em: minsAgo(10),
+    validada_em: minsAgo(5),
+    validada_por: 'admin1',
+    created_at: minsAgo(60),
+    competencia: null,
+    tentativas: 0,
+    tarefas: {
+      id: 't1',
+      titulo: 'Test',
+    } as ChildNotifInput['assignments'][number]['tarefas'],
+    ...overrides,
+  });
+
+  it('produces zero task notifications when all assignments are cancelada', () => {
+    const input: ChildNotifInput = {
+      assignments: [
+        makeAssignment({ id: 'a1', status: 'cancelada' }),
+        makeAssignment({ id: 'a2', status: 'cancelada' }),
+      ],
+      redemptions: [],
+    };
+    const notifs = deriveChildNotifs(input);
+    const taskNotifs = notifs.filter((n) => n.type === 'task');
+    expect(taskNotifs).toHaveLength(0);
+  });
+
+  it('produces notifications for aprovada/rejeitada but not cancelada in mixed list', () => {
+    const input: ChildNotifInput = {
+      assignments: [
+        makeAssignment({ id: 'a1', status: 'cancelada' }),
+        makeAssignment({ id: 'a2', status: 'aprovada', pontos_snapshot: 20 }),
+        makeAssignment({ id: 'a3', status: 'rejeitada', nota_rejeicao: 'Incompleta' }),
+        makeAssignment({ id: 'a4', status: 'cancelada' }),
+      ],
+      redemptions: [],
+    };
+    const notifs = deriveChildNotifs(input);
+    const taskNotifs = notifs.filter((n) => n.type === 'task');
+    expect(taskNotifs).toHaveLength(2);
+    expect(taskNotifs.some((n) => n.id === 'task-approved-a2')).toBe(true);
+    expect(taskNotifs.some((n) => n.id === 'task-rejected-a3')).toBe(true);
+    // No notification references a cancelada assignment
+    expect(taskNotifs.some((n) => n.id.includes('a1'))).toBe(false);
+    expect(taskNotifs.some((n) => n.id.includes('a4'))).toBe(false);
   });
 });
 
@@ -344,6 +416,9 @@ describe('edge cases: missing and malformed dates', () => {
     filho_id: 'f1',
     status: 'aprovada',
     pontos_snapshot: 10,
+    titulo_snapshot: 'Test',
+    descricao_snapshot: null,
+    exige_evidencia_snapshot: false,
     evidencia_url: null,
     nota_rejeicao: null,
     concluida_em: minsAgo(10),
@@ -434,5 +509,98 @@ describe('edge cases: missing and malformed dates', () => {
     const notifs = deriveChildNotifs(input);
     expect(notifs).toHaveLength(1);
     expect(notifs[0].description).toContain('Prêmio');
+  });
+});
+
+
+// ── Property-Based Tests ─────────────────────────────────
+
+describe('Property tests — cancelled assignment notifications', () => {
+  // Feature: task-soft-delete-and-cancelada, Property 2: Cancelled assignments produce zero child notifications
+  // **Validates: Requirements 11.1, 11.2**
+  it('P2: for any list of assignments with mixed statuses, deriveChildNotifs produces zero notifications referencing cancelada assignments', () => {
+    const ALL_STATUSES: AssignmentStatus[] = [
+      'pendente',
+      'aguardando_validacao',
+      'aprovada',
+      'rejeitada',
+      'cancelada',
+    ];
+
+    const arbStatus = fc.constantFrom(...ALL_STATUSES);
+
+    const arbAssignment = fc.record({
+      id: fc.uuid(),
+      tarefa_id: fc.uuid(),
+      filho_id: fc.uuid(),
+      status: arbStatus,
+      pontos_snapshot: fc.integer({ min: 1, max: 500 }),
+      titulo_snapshot: fc.string({ minLength: 1, maxLength: 30 }),
+      descricao_snapshot: fc.oneof(fc.constant(null), fc.string({ maxLength: 50 })),
+      exige_evidencia_snapshot: fc.boolean(),
+      evidencia_url: fc.constant(null),
+      nota_rejeicao: fc.oneof(fc.constant(null), fc.constant('Motivo qualquer')),
+      concluida_em: fc.oneof(
+        fc.constant(null),
+        fc.constant('2026-04-18T11:00:00.000Z'),
+      ),
+      validada_em: fc.oneof(
+        fc.constant(null),
+        fc.constant('2026-04-18T11:30:00.000Z'),
+      ),
+      validada_por: fc.oneof(fc.constant(null), fc.uuid()),
+      created_at: fc.constant('2026-04-18T10:00:00.000Z'),
+      competencia: fc.oneof(fc.constant(null), fc.constant('2026-04-18')),
+      tentativas: fc.integer({ min: 0, max: 3 }),
+      tarefas: fc.record({
+        id: fc.uuid(),
+        familia_id: fc.uuid(),
+        titulo: fc.string({ minLength: 1, maxLength: 30 }),
+        descricao: fc.oneof(fc.constant(null), fc.string({ maxLength: 50 })),
+        pontos: fc.integer({ min: 1, max: 500 }),
+        dias_semana: fc.integer({ min: 1, max: 127 }),
+        exige_evidencia: fc.boolean(),
+        criado_por: fc.oneof(fc.constant(null), fc.uuid()),
+        created_at: fc.constant('2026-04-18T09:00:00.000Z'),
+        ativo: fc.boolean(),
+        arquivada_em: fc.oneof(fc.constant(null), fc.constant('2026-04-10T00:00:00.000Z')),
+        excluida_em: fc.oneof(fc.constant(null), fc.constant('2026-04-15T00:00:00.000Z')),
+      }),
+    });
+
+    fc.assert(
+      fc.property(
+        fc.array(arbAssignment, { minLength: 0, maxLength: 15 }),
+        (assignments) => {
+          const input: ChildNotifInput = {
+            assignments,
+            redemptions: [],
+          };
+
+          const notifs = deriveChildNotifs(input);
+
+          // Collect IDs of all cancelada assignments
+          const canceladaIds = new Set(
+            assignments.filter((a) => a.status === 'cancelada').map((a) => a.id),
+          );
+
+          // No notification should reference a cancelada assignment ID
+          for (const notif of notifs) {
+            for (const canceladaId of canceladaIds) {
+              expect(notif.id).not.toContain(canceladaId);
+            }
+          }
+
+          // Additionally: the count of task notifications should equal
+          // the count of aprovada + rejeitada assignments (not cancelada, pendente, or aguardando_validacao)
+          const taskNotifs = notifs.filter((n) => n.type === 'task');
+          const expectedCount = assignments.filter(
+            (a) => a.status === 'aprovada' || a.status === 'rejeitada',
+          ).length;
+          expect(taskNotifs).toHaveLength(expectedCount);
+        },
+      ),
+      { numRuns: 100 },
+    );
   });
 });

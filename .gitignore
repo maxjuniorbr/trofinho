@@ -33,6 +33,7 @@ npm-debug.*
 .github/instructions/
 .github/prompts/
 .local-expo-mcp/
+.kiro/
 
 # Supabase local artifacts
 supabase/.temp/

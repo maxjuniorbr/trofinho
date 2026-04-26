@@ -9,7 +9,7 @@ import { Button } from '../ui/button';
 import { AuthShell } from './auth-shell';
 import { AuthTextField } from './auth-text-field';
 
-vi.mock('../../../assets/trofinho-mascot.png', () => ({
+vi.mock('../../../assets/icon.png', () => ({
   default: 1,
 }));
 
@@ -18,6 +18,10 @@ vi.mock('expo-router', () => ({
     canGoBack: () => true,
     replace: vi.fn(),
   }),
+}));
+
+vi.mock('@/context/impersonation-context', () => ({
+  useImpersonation: () => ({ impersonating: null, startImpersonation: vi.fn(), stopImpersonation: vi.fn() }),
 }));
 
 function render(element: React.ReactElement) {

@@ -25,6 +25,10 @@ vi.mock('expo-router', () => ({
   useRouter: () => routerMock,
 }));
 
+vi.mock('@/context/impersonation-context', () => ({
+  useImpersonation: () => ({ impersonating: null, startImpersonation: vi.fn(), stopImpersonation: vi.fn() }),
+}));
+
 function flattenStyle(style: unknown): Record<string, any> {
   return StyleSheet.flatten(style) as Record<string, any>;
 }
@@ -196,9 +200,9 @@ describe('ui components', () => {
         .join(' '),
     ).toContain('Sem tarefas');
 
-    // Empty state uses mascot image instead of emoji
-    const mascotImage = emptyRenderer.root.findByType(Image);
-    expect(mascotImage.props.accessibilityLabel).toContain('Trofinho');
+    // Empty state uses Inbox icon
+    const inboxIcon = emptyRenderer.root.findAll((node) => String(node.type) === 'Inbox');
+    expect(inboxIcon.length).toBe(1);
 
     const nullRenderer = render(<EmptyState />);
     expect(nullRenderer.toJSON()).toBeNull();

@@ -6,19 +6,20 @@ import { radii, spacing, typography, withAlpha } from '@/constants/theme';
 type LogoutButtonProps = Readonly<{
   onPress: () => void;
   loading: boolean;
+  disabled?: boolean;
 }>;
 
-export function LogoutButton({ onPress, loading }: LogoutButtonProps) {
+export function LogoutButton({ onPress, loading, disabled }: LogoutButtonProps) {
   const { colors } = useTheme();
 
   return (
     <Pressable
       style={[
         styles.container,
-        { borderColor: withAlpha(colors.semantic.error, 0.375), opacity: loading ? 0.55 : 1 },
+        { borderColor: withAlpha(colors.semantic.error, 0.375), opacity: loading || disabled ? 0.55 : 1 },
       ]}
       onPress={onPress}
-      disabled={loading}
+      disabled={loading || disabled}
       accessibilityRole="button"
       accessibilityLabel="Sair da conta"
     >

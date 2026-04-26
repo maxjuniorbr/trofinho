@@ -110,6 +110,7 @@ vi.mock('react-native', () => ({
   AppState: { addEventListener: vi.fn(() => ({ remove: vi.fn() })) },
   KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
   Modal: createHostComponent('Modal'),
+  Platform: { OS: 'ios', select: (obj: Record<string, unknown>) => obj.ios },
   Pressable: createHostComponent('Pressable'),
   RefreshControl: createHostComponent('RefreshControl'),
   ScrollView: createHostComponent('ScrollView'),
@@ -213,6 +214,10 @@ vi.mock('@/components/profile/theme-card', () => ({
 vi.mock('@/components/profile/notification-card', () => ({
   NotificationCard: (props: Record<string, unknown>) =>
     React.createElement('NotificationCard', props),
+}));
+
+vi.mock('@/context/impersonation-context', () => ({
+  useImpersonation: () => ({ impersonating: null, startImpersonation: vi.fn(), stopImpersonation: vi.fn() }),
 }));
 
 function render(element: React.ReactElement) {
