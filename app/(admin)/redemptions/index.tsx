@@ -73,7 +73,7 @@ export default function AdminRedemptionsScreen() {
   const shouldShowEmptyState = hasError || filtered.length === 0;
 
   const emptyMessages: Record<TabKey, string> = {
-    pendentes: 'Nenhum resgate pendente.',
+    pendentes: 'Tudo em dia 🎉',
     concluidos: 'Nenhum resgate concluído.',
     todos: 'Nenhum resgate registrado.',
   };

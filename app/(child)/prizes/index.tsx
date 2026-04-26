@@ -319,7 +319,7 @@ function PrizeCard({ item, freeBalance, redeeming, onRedeem, isReadOnly }: Prize
       <Button
         variant="primary"
         size="sm"
-        label={outOfStock ? 'Esgotado' : canRedeem ? 'Resgatar' : `Faltam ${item.custo_pontos - freeBalance} pts`}
+        label={outOfStock ? 'Indisponível' : canRedeem ? 'Resgatar' : `Faltam ${item.custo_pontos - freeBalance} pts`}
         disabled={!canRedeem || redeeming !== null || isReadOnly}
         loading={isRedeeming}
         loadingLabel="Resgatando…"

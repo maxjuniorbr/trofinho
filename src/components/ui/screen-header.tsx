@@ -11,6 +11,7 @@ import { getSafeHorizontalPadding, getSafeTopPadding } from '@lib/safe-area';
 
 interface ScreenHeaderProps {
   title: string;
+  subtitle?: string;
   onBack?: () => void;
   backLabel?: string;
   rightAction?: ReactNode;
@@ -68,6 +69,7 @@ export function HeaderIconButton({
 
 export function ScreenHeader({
   title,
+  subtitle,
   onBack,
   backLabel = 'Voltar',
   rightAction,
@@ -113,9 +115,16 @@ export function ScreenHeader({
           />
         ) : null}
 
-        <Text style={[styles.title, { color: colors.text.primary }]} numberOfLines={1}>
-          {title}
-        </Text>
+        <View style={styles.titleCol}>
+          <Text style={[styles.title, { color: colors.text.primary }]} numberOfLines={1}>
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text style={[styles.subtitle, { color: colors.text.muted }]} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
       </View>
 
       {rightAction ? <View style={styles.rightAction}>{rightAction}</View> : null}
@@ -151,5 +160,14 @@ const styles = StyleSheet.create({
     fontFamily: typography.family.bold,
     flexShrink: 1,
     textAlign: 'left',
+  },
+  titleCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  subtitle: {
+    fontSize: typography.size.xs,
+    fontFamily: typography.family.medium,
+    marginTop: spacing['0.5'],
   },
 });

@@ -151,9 +151,13 @@ export default function AdminPrizesScreen() {
                 {item.custo_pontos}
               </Text>
             </View>
-            <Text style={[styles.stockText, { color: colors.text.muted }]}>
-              {item.estoque === 0 ? 'Esgotado' : `${item.estoque} disponíveis`}
-            </Text>
+            {item.estoque === 0 ? (
+              <Text style={[styles.stockText, { color: colors.text.muted }]}>Esgotado</Text>
+            ) : item.estoque <= 3 ? (
+              <Text style={[styles.stockText, { color: colors.semantic.warningText }]}>
+                Só {item.estoque} restantes
+              </Text>
+            ) : null}
             <Pressable
               style={({ pressed }) => [
                 styles.editBtn,

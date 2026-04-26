@@ -193,7 +193,7 @@ export default function OnboardingScreen() {
           onBlur={() => setFocusedField(null)}
           autoCapitalize="words"
           maxLength={60}
-          editable={!loading}
+          editable={isFromRegister ? false : !loading}
           accessibilityLabel="Campo de nome do administrador"
           leftIcon={User}
         />

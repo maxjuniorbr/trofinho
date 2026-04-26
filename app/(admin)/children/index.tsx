@@ -123,6 +123,13 @@ export default function AdminChildrenScreen() {
       <StatusBar style={colors.statusBar} />
       <ScreenHeader
         title="Filhos"
+        subtitle={
+          children.length === 0
+            ? 'Nenhum cadastrado'
+            : children.length === 1
+              ? '1 cadastrado'
+              : `${children.length} cadastrados`
+        }
         onBack={() => router.back()}
         rightAction={
           <HeaderIconButton
