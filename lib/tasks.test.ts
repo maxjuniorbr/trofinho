@@ -3,6 +3,7 @@ import * as fc from 'fast-check';
 
 import {
   approveAssignment,
+  buildTaskArchiveMessage,
   buildValidationLine,
   cancelAssignmentSubmission,
   buildTaskDeactivateMessage,
@@ -16,12 +17,14 @@ import {
   getAssignmentCancellationState,
   getAssignmentCompletionState,
   getAssignmentPoints,
+  getAssignmentRetryState,
   getTaskEditState,
   getChildAssignment,
   getTaskWithAssignments,
   listAdminTasks,
   listChildAssignments,
   listTaskAssignments,
+  MAX_TENTATIVAS,
   reactivateTask,
   rejectAssignment,
   renewRecurringTasks,
@@ -1583,5 +1586,102 @@ describe('tasks', () => {
       expect(result).toContain('(tarefa de');
       expect(result).not.toContain('(Tarefa de');
     });
+  });
+});
+
+describe('buildTaskArchiveMessage', () => {
+  it('includes pending count when there are pending assignments', () => {
+    const message = buildTaskArchiveMessage([
+      { status: 'pendente' },
+      { status: 'pendente' },
+      { status: 'aprovada' },
+    ]);
+    expect(message).toContain('2 atribuições pendentes serão canceladas');
+  });
+
+  it('uses singular form for exactly 1 pending assignment', () => {
+    const message = buildTaskArchiveMessage([{ status: 'pendente' }]);
+    expect(message).toContain('1 atribuição pendente será cancelada');
+  });
+
+  it('includes awaiting validation count', () => {
+    const message = buildTaskArchiveMessage([
+      { status: 'aguardando_validacao' },
+      { status: 'aguardando_validacao' },
+    ]);
+    expect(message).toContain('2 atribuições aguardando validação serão mantidas');
+  });
+
+  it('uses singular form for exactly 1 awaiting validation', () => {
+    const message = buildTaskArchiveMessage([{ status: 'aguardando_validacao' }]);
+    expect(message).toContain('1 atribuição aguardando validação será mantida');
+  });
+
+  it('always includes the history preservation note', () => {
+    const message = buildTaskArchiveMessage([]);
+    expect(message).toContain('histórico aprovado fica preservado');
+  });
+
+  it('combines pending, awaiting, and history note', () => {
+    const message = buildTaskArchiveMessage([
+      { status: 'pendente' },
+      { status: 'aguardando_validacao' },
+      { status: 'aprovada' },
+    ]);
+    expect(message).toContain('1 atribuição pendente');
+    expect(message).toContain('histórico aprovado');
+    expect(message).toContain('1 atribuição aguardando validação');
+  });
+});
+
+describe('getAssignmentRetryState', () => {
+  it('returns canRetry=false for non-rejected assignments', () => {
+    expect(getAssignmentRetryState({ status: 'pendente', tentativas: 0 })).toEqual({
+      canRetry: false,
+      attemptsLeft: 0,
+      reason: null,
+    });
+    expect(getAssignmentRetryState({ status: 'aprovada', tentativas: 0 })).toEqual({
+      canRetry: false,
+      attemptsLeft: 0,
+      reason: null,
+    });
+    expect(getAssignmentRetryState({ status: 'aguardando_validacao', tentativas: 0 })).toEqual({
+      canRetry: false,
+      attemptsLeft: 0,
+      reason: null,
+    });
+  });
+
+  it('returns canRetry=true when rejected with attempts remaining', () => {
+    const result = getAssignmentRetryState({ status: 'rejeitada', tentativas: 0 });
+    expect(result.canRetry).toBe(true);
+    expect(result.attemptsLeft).toBe(MAX_TENTATIVAS);
+    expect(result.reason).toBeNull();
+  });
+
+  it('returns canRetry=false when all attempts are used', () => {
+    const result = getAssignmentRetryState({ status: 'rejeitada', tentativas: MAX_TENTATIVAS });
+    expect(result.canRetry).toBe(false);
+    expect(result.attemptsLeft).toBe(0);
+    expect(result.reason).toContain('todas as tentativas');
+  });
+
+  it('handles null tentativas as 0 used', () => {
+    const result = getAssignmentRetryState({
+      status: 'rejeitada',
+      tentativas: undefined as unknown as number,
+    });
+    expect(result.canRetry).toBe(true);
+    expect(result.attemptsLeft).toBe(MAX_TENTATIVAS);
+  });
+
+  it('never returns negative attemptsLeft', () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 0, max: 100 }), (tentativas) => {
+        const result = getAssignmentRetryState({ status: 'rejeitada', tentativas });
+        expect(result.attemptsLeft).toBeGreaterThanOrEqual(0);
+      }),
+    );
   });
 });
