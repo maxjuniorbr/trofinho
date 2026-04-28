@@ -73,6 +73,10 @@ describe('resolveNavDecision', () => {
     it('returns null when on register screen (mid-flow to onboarding)', () => {
       expect(resolveNavDecision(true, noFamily, ['(auth)', 'register'])).toBeNull();
     });
+
+    it('returns null when on join-family screen (accepting invite code)', () => {
+      expect(resolveNavDecision(true, noFamily, ['(auth)', 'join-family'])).toBeNull();
+    });
   });
 
   describe('when authenticated admin user', () => {

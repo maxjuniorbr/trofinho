@@ -24,12 +24,16 @@ import { ChangePasswordSheet } from '@/components/profile/change-password-sheet'
 import { ChildSelectionSheet } from '@/components/profile/child-selection-sheet';
 import { ThemeCard } from '@/components/profile/theme-card';
 import { NotificationCard } from '@/components/profile/notification-card';
+import { AdminSection } from '@/components/profile/admin-section';
+import { InviteSheet } from '@/components/profile/invite-sheet';
+import { RemoveAdminSheet } from '@/components/profile/remove-admin-sheet';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/constants/theme';
 import { useImpersonation } from '@/context/impersonation-context';
 import { signOut } from '@lib/auth';
 import { setNotificationPrefs, type NotificationPrefs } from '@lib/notifications';
+import type { FamilyAdmin } from '@lib/admin-invite';
 import {
   useProfile,
   useFamily,
@@ -37,6 +41,11 @@ import {
   useNotificationPrefs,
   useDeleteAccount,
   useChildrenList,
+  useAdminInvite,
+  useFamilyAdmins,
+  useGenerateInvite,
+  useCancelInvite,
+  useRemoveCoAdmin,
   combineQueryStates,
 } from '@/hooks/queries';
 
@@ -72,6 +81,16 @@ export default function ProfileScreen() {
   const email = authUser?.email ?? '';
   const avatarUri = authUser?.avatarUrl ?? null;
 
+  // Admin invite hooks
+  const familyAdminsQuery = useFamilyAdmins();
+  const adminInviteQuery = useAdminInvite(profile?.familia_id);
+  const generateInviteMutation = useGenerateInvite();
+  const cancelInviteMutation = useCancelInvite();
+  const removeCoAdminMutation = useRemoveCoAdmin();
+
+  const admins = familyAdminsQuery.data ?? [];
+  const pendingInvite = adminInviteQuery.data ?? null;
+
   const [localAvatarUri, setLocalAvatarUri] = useState<string | null>(null);
   const [localName, setLocalName] = useState<string | null>(null);
   const [notificationPreferences, setNotificationPreferences] = useState<NotificationPrefs | null>(
@@ -85,6 +104,13 @@ export default function ProfileScreen() {
   const [showPersonalData, setShowPersonalData] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showChildSelection, setShowChildSelection] = useState(false);
+
+  // Admin invite sheet state
+  const [showInviteSheet, setShowInviteSheet] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
+  const [inviteExpiresAt, setInviteExpiresAt] = useState('');
+  const [showRemoveAdminSheet, setShowRemoveAdminSheet] = useState(false);
+  const [adminToRemove, setAdminToRemove] = useState<FamilyAdmin | null>(null);
   const deleteAccountMutation = useDeleteAccount();
 
   const { data: allChildren = [] } = useChildrenList();
@@ -142,6 +168,38 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleGenerateInvite = useCallback(() => {
+    generateInviteMutation.mutate(undefined, {
+      onSuccess: (data) => {
+        setInviteCode(data.codigo);
+        setInviteExpiresAt(data.expires_at);
+        setShowInviteSheet(true);
+      },
+    });
+  }, [generateInviteMutation]);
+
+  const handleCancelInvite = useCallback(
+    (inviteId: string) => {
+      cancelInviteMutation.mutate(inviteId);
+    },
+    [cancelInviteMutation],
+  );
+
+  const handleRemoveAdmin = useCallback((admin: FamilyAdmin) => {
+    setAdminToRemove(admin);
+    setShowRemoveAdminSheet(true);
+  }, []);
+
+  const handleConfirmRemoveAdmin = useCallback(() => {
+    if (!adminToRemove) return;
+    removeCoAdminMutation.mutate(adminToRemove.id, {
+      onSuccess: () => {
+        setShowRemoveAdminSheet(false);
+        setAdminToRemove(null);
+      },
+    });
+  }, [adminToRemove, removeCoAdminMutation]);
+
   useEffect(() => {
     if (!isLoading && !authUser) {
       router.replace('/(auth)/login');
@@ -189,6 +247,18 @@ export default function ProfileScreen() {
                 onPreferencesChange={handleNotificationPreferencesChange}
               />
             ) : null}
+
+            {/* Administradores */}
+            <AdminSection
+              admins={admins}
+              currentUserId={profile?.id}
+              pendingInvite={pendingInvite}
+              onGenerateInvite={handleGenerateInvite}
+              onCancelInvite={handleCancelInvite}
+              onRemoveAdmin={handleRemoveAdmin}
+              generatingInvite={generateInviteMutation.isPending}
+              cancellingInvite={cancelInviteMutation.isPending}
+            />
 
             {/* Dados pessoais */}
             <SectionCard title="Dados pessoais" colors={colors} styles={styles}>
@@ -281,6 +351,24 @@ export default function ProfileScreen() {
           startImpersonation({ childId: child.id, childName: child.nome });
           router.replace('/(child)' as never);
         }}
+      />
+
+      <InviteSheet
+        visible={showInviteSheet}
+        onClose={() => setShowInviteSheet(false)}
+        code={inviteCode}
+        expiresAt={inviteExpiresAt}
+      />
+
+      <RemoveAdminSheet
+        visible={showRemoveAdminSheet}
+        onClose={() => {
+          setShowRemoveAdminSheet(false);
+          setAdminToRemove(null);
+        }}
+        adminName={adminToRemove?.nome ?? ''}
+        onConfirm={handleConfirmRemoveAdmin}
+        isRemoving={removeCoAdminMutation.isPending}
       />
     </>
   );

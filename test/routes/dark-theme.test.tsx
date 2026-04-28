@@ -155,6 +155,11 @@ vi.mock('@/hooks/queries', () => ({
   useCurrentAuthUser: () => authUserMock,
   useNotificationPrefs: () => notifPrefsMock,
   useDeleteAccount: () => deleteAccountMock,
+  useFamilyAdmins: () => ({ data: [], isLoading: false, error: null }),
+  useAdminInvite: () => ({ data: null, isLoading: false, error: null }),
+  useGenerateInvite: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useCancelInvite: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useRemoveCoAdmin: () => ({ mutateAsync: vi.fn(), isPending: false }),
   combineQueryStates: (...queries: Record<string, unknown>[]) => ({
     isLoading: queries.some((q) => q.isLoading),
     error: queries.find((q) => q.error)?.error ?? null,
@@ -218,6 +223,21 @@ vi.mock('@/components/profile/theme-card', () => ({
 vi.mock('@/components/profile/notification-card', () => ({
   NotificationCard: (props: Record<string, unknown>) =>
     React.createElement('NotificationCard', props),
+}));
+
+vi.mock('@/components/profile/admin-section', () => ({
+  AdminSection: (props: Record<string, unknown>) =>
+    React.createElement('AdminSection', props),
+}));
+
+vi.mock('@/components/profile/invite-sheet', () => ({
+  InviteSheet: (props: Record<string, unknown>) =>
+    React.createElement('InviteSheet', props),
+}));
+
+vi.mock('@/components/profile/remove-admin-sheet', () => ({
+  RemoveAdminSheet: (props: Record<string, unknown>) =>
+    React.createElement('RemoveAdminSheet', props),
 }));
 
 vi.mock('@/context/impersonation-context', () => ({

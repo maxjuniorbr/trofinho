@@ -57,6 +57,12 @@ export const queryKeys = {
     pendingCount: () => [...queryKeys.piggyBankWithdrawals.all, 'pending-count'] as const,
     childPending: () => [...queryKeys.piggyBankWithdrawals.all, 'child-pending'] as const,
   },
+  adminInvite: {
+    all: ['admin-invite'] as const,
+    pending: (familyId: string) => [...queryKeys.adminInvite.all, 'pending', familyId] as const,
+    admins: () => [...queryKeys.adminInvite.all, 'admins'] as const,
+    validate: (code: string) => [...queryKeys.adminInvite.all, 'validate', code] as const,
+  },
 } as const;
 
 export const STALE_TIMES = {
@@ -68,6 +74,7 @@ export const STALE_TIMES = {
   redemptions: 60_000,
   family: 60_000,
   piggyBankWithdrawals: 30_000,
+  adminInvite: 30_000,
 } as const;
 
 export const PAGE_SIZES = {

@@ -76,6 +76,7 @@ vi.mock('react-native', () => ({
     addListener: vi.fn(() => ({ remove: vi.fn() })),
     dismiss: vi.fn(),
   },
+  Platform: { OS: 'ios', select: (obj: Record<string, unknown>) => obj.ios },
   Pressable: createHostComponent('Pressable'),
   ScrollView: createHostComponent('ScrollView'),
   StyleSheet: { create: <T,>(styles: T) => styles },
@@ -106,6 +107,11 @@ vi.mock('@/hooks/queries', () => ({
   useNotificationPrefs: () => notifPrefsMock,
   useDeleteAccount: () => deleteAccountMock,
   useChildrenList: () => childrenListMock,
+  useFamilyAdmins: () => ({ data: [], isLoading: false, error: null }),
+  useAdminInvite: () => ({ data: null, isLoading: false, error: null }),
+  useGenerateInvite: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useCancelInvite: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useRemoveCoAdmin: () => ({ mutateAsync: vi.fn(), isPending: false }),
   combineQueryStates: (...queries: Record<string, unknown>[]) => ({
     isLoading: queries.some((q) => q.isLoading),
   }),
@@ -179,6 +185,21 @@ vi.mock('@/components/profile/theme-card', () => ({
 vi.mock('@/components/profile/notification-card', () => ({
   NotificationCard: (props: Record<string, unknown>) =>
     React.createElement('NotificationCard', props),
+}));
+
+vi.mock('@/components/profile/admin-section', () => ({
+  AdminSection: (props: Record<string, unknown>) =>
+    React.createElement('AdminSection', props),
+}));
+
+vi.mock('@/components/profile/invite-sheet', () => ({
+  InviteSheet: (props: Record<string, unknown>) =>
+    React.createElement('InviteSheet', props),
+}));
+
+vi.mock('@/components/profile/remove-admin-sheet', () => ({
+  RemoveAdminSheet: (props: Record<string, unknown>) =>
+    React.createElement('RemoveAdminSheet', props),
 }));
 
 function render(element: React.ReactElement) {

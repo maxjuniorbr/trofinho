@@ -213,6 +213,16 @@ export default function OnboardingScreen() {
           </FormFooter>
         </View>
 
+        <Pressable
+          style={({ pressed }) => [styles.inviteLink, { opacity: pressed ? 0.65 : 1 }]}
+          onPress={() => router.push('/(auth)/join-family')}
+          disabled={loading}
+          accessibilityRole="link"
+          accessibilityLabel="Tenho um convite"
+        >
+          <Text style={styles.inviteLinkText}>Tenho um convite</Text>
+        </Pressable>
+
         <View style={styles.footerPush}>
           <Pressable
             style={({ pressed }) => [styles.secondaryButton, { opacity: pressed ? 0.65 : 1 }]}
@@ -315,6 +325,17 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
     },
     formActions: {
       marginTop: spacing['4'],
+    },
+    inviteLink: {
+      marginTop: spacing['4'],
+      paddingVertical: spacing['2'],
+      alignItems: 'center',
+    },
+    inviteLinkText: {
+      fontFamily: typography.family.semibold,
+      fontSize: typography.size.sm,
+      color: palette.borderFocus,
+      textDecorationLine: 'underline',
     },
     footerPush: {
       marginTop: 'auto',

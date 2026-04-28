@@ -30,10 +30,14 @@ export function resolveNavDecision(
   const roleHome: NavTarget = profile.papel === 'admin' ? '/(admin)/' : '/(child)/';
 
   if (!profile.familia_id) {
-    // Allow both onboarding (already there) and register (mid-flow — register
-    // itself does router.replace to onboarding with name/email params, so the
-    // nav guard must not race it with a param-less redirect).
-    return seg1 === 'onboarding' || seg1 === 'register' ? null : '/(auth)/onboarding';
+    // Allow onboarding (already there), register (mid-flow — register itself
+    // does router.replace to onboarding with name/email params, so the nav
+    // guard must not race it with a param-less redirect), and join-family
+    // (user navigated from onboarding to accept an invite code — e.g. a
+    // removed co-admin re-joining via a new invite).
+    return seg1 === 'onboarding' || seg1 === 'register' || seg1 === 'join-family'
+      ? null
+      : '/(auth)/onboarding';
   }
 
   if (inAuth) return roleHome;
