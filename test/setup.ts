@@ -128,6 +128,12 @@ vi.mock('expo-image', () => ({
   Image: createHostComponent('Image'),
 }));
 
+vi.mock('expo-clipboard', () => ({
+  setStringAsync: vi.fn().mockResolvedValue(true),
+  getStringAsync: vi.fn().mockResolvedValue(''),
+  hasStringAsync: vi.fn().mockResolvedValue(false),
+}));
+
 vi.mock('@tanstack/react-query', () => ({
   QueryClient: vi.fn(),
   QueryClientProvider: ({ children }: Props) => children,
@@ -208,6 +214,10 @@ vi.mock('react-native-gesture-handler', () => {
     GestureHandlerRootView: createHostComponent('GestureHandlerRootView'),
   };
 });
+
+vi.mock('react-native-worklets', () => ({
+  scheduleOnRN: vi.fn((fn: unknown) => fn),
+}));
 
 vi.mock('react-native-reanimated', () => {
   const AnimatedView = createHostComponent('Animated.View');
