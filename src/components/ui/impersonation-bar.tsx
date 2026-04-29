@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Eye, X } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
-import { spacing, typography } from '@/constants/theme';
+import { radii, spacing, typography, withAlpha } from '@/constants/theme';
 
 interface ImpersonationBarProps {
     childName: string;
@@ -22,21 +22,24 @@ export function ImpersonationBar({ childName, onExit }: ReadonlyImpersonationBar
             accessibilityLabel={`Vendo como ${childName}`}
         >
             <View style={styles.left}>
-                <Eye size={18} color={colors.text.onBrand} strokeWidth={2} />
+                <Eye size={14} color={colors.text.onBrand} strokeWidth={2.5} />
                 <Text style={[styles.label, { color: colors.text.onBrand }]} numberOfLines={1}>
-                    Vendo como {childName}
+                    Vendo como <Text style={styles.labelBold}>{childName}</Text>
                 </Text>
             </View>
 
             <Pressable
                 onPress={onExit}
-                style={({ pressed }) => [styles.exitButton, { opacity: pressed ? 0.7 : 1 }]}
+                style={({ pressed }) => [
+                    styles.exitButton,
+                    { backgroundColor: withAlpha(colors.text.onBrand, pressed ? 0.25 : 0.15) },
+                ]}
                 hitSlop={8}
                 accessibilityRole="button"
                 accessibilityLabel="Sair do modo de visualização"
             >
+                <X size={12} color={colors.text.onBrand} strokeWidth={3} />
                 <Text style={[styles.exitLabel, { color: colors.text.onBrand }]}>Sair</Text>
-                <X size={16} color={colors.text.onBrand} strokeWidth={2.5} />
             </Pressable>
         </View>
     );
@@ -58,9 +61,12 @@ const styles = StyleSheet.create({
         minWidth: 0,
     },
     label: {
-        fontSize: typography.size.sm,
-        fontFamily: typography.family.semibold,
+        fontSize: typography.size.xxs,
+        fontFamily: typography.family.bold,
         flexShrink: 1,
+    },
+    labelBold: {
+        fontFamily: typography.family.extrabold,
     },
     exitButton: {
         flexDirection: 'row',
@@ -68,9 +74,14 @@ const styles = StyleSheet.create({
         gap: spacing['1'],
         flexShrink: 0,
         marginLeft: spacing['3'],
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: radii.full,
     },
     exitLabel: {
-        fontSize: typography.size.sm,
+        fontSize: 10,
         fontFamily: typography.family.bold,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
 });

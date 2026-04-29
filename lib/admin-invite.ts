@@ -1,4 +1,5 @@
 import { localizeRpcError } from './api-error';
+import { resolveStorageUrls } from './storage';
 import { supabase } from './supabase';
 
 // --- Types ---
@@ -25,6 +26,7 @@ export type FamilyAdmin = {
   id: string;
   nome: string;
   email: string | null;
+  avatarUrl: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -106,7 +108,19 @@ export async function listFamilyAdmins(): Promise<{
   const { data, error } = await untypedRpc('listar_admins_familia');
 
   if (error) return { data: [], error: localizeRpcError(error.message) };
-  return { data: (data as FamilyAdmin[]) ?? [], error: null };
+
+  const admins = (data as FamilyAdmin[]) ?? [];
+  if (admins.length === 0) return { data: [], error: null };
+
+  const signedUrls = await resolveStorageUrls(
+    'avatars',
+    admins.map((a) => a.avatarUrl),
+  );
+
+  return {
+    data: admins.map((admin, i) => ({ ...admin, avatarUrl: signedUrls[i] })),
+    error: null,
+  };
 }
 
 export async function getPendingInvite(familyId: string): Promise<{

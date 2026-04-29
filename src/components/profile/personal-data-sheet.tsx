@@ -209,7 +209,7 @@ function makeStyles(colors: ThemeColors) {
     successContainer: {
       alignItems: 'center',
       justifyContent: 'center',
-      paddingVertical: spacing['10'],
+      paddingVertical: spacing['8'],
       gap: spacing['3'],
     },
     successIcon: {
@@ -221,7 +221,7 @@ function makeStyles(colors: ThemeColors) {
     },
     successTitle: {
       fontFamily: typography.family.bold,
-      fontSize: typography.size.xl,
+      fontSize: typography.size.md,
     },
     successDesc: {
       fontFamily: typography.family.medium,

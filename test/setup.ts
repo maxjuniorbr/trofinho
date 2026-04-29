@@ -101,6 +101,7 @@ vi.mock('lucide-react-native', () => ({
   BellOff: createIcon('BellOff'),
   Bell: createIcon('Bell'),
   ShieldCheck: createIcon('ShieldCheck'),
+  Shield: createIcon('Shield'),
   Palette: createIcon('Palette'),
   Lock: createIcon('Lock'),
   Settings: createIcon('Settings'),

@@ -14,11 +14,7 @@ type ChangePasswordSheetProps = Readonly<{
   onClose: () => void;
 }>;
 
-const RULES = [
-  { key: 'length', test: (pw: string) => pw.length >= 8, label: 'Pelo menos 8 caracteres' },
-  { key: 'uppercase', test: (pw: string) => /[A-Z]/.test(pw), label: 'Uma letra maiúscula' },
-  { key: 'number', test: (pw: string) => /\d/.test(pw), label: 'Um número' },
-] as const;
+const MIN_PASSWORD_LENGTH = 8;
 
 export function ChangePasswordSheet({ visible, onClose }: ChangePasswordSheetProps) {
   const { colors } = useTheme();
@@ -27,10 +23,8 @@ export function ChangePasswordSheet({ visible, onClose }: ChangePasswordSheetPro
 
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
-  const [confirm, setConfirm] = useState('');
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNext, setShowNext] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
   const [success, setSuccess] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -43,18 +37,14 @@ export function ChangePasswordSheet({ visible, onClose }: ChangePasswordSheetPro
 
   useEffect(() => clearCloseTimer, [clearCloseTimer]);
 
-  const ruleResults = RULES.map((r) => ({ key: r.key, ok: r.test(next), label: r.label }));
-  const passwordsMatch = next.length > 0 && next === confirm;
-  const canSubmit = current.length > 0 && ruleResults.every((r) => r.ok) && passwordsMatch;
+  const canSubmit = current.length > 0 && next.length >= MIN_PASSWORD_LENGTH;
 
   const resetForm = useCallback(() => {
     clearCloseTimer();
     setCurrent('');
     setNext('');
-    setConfirm('');
     setShowCurrent(false);
     setShowNext(false);
-    setShowConfirm(false);
     setSuccess(false);
     updatePasswordMutation.reset();
   }, [updatePasswordMutation, clearCloseTimer]);
@@ -147,54 +137,9 @@ export function ChangePasswordSheet({ visible, onClose }: ChangePasswordSheetPro
             styles={styles}
           />
 
-          {/* Live strength rules */}
-          <View style={styles.rulesContainer}>
-            {ruleResults.map((r) => (
-              <View key={r.key} style={styles.ruleRow}>
-                <View
-                  style={[
-                    styles.ruleDot,
-                    {
-                      backgroundColor: r.ok ? colors.semantic.successBg : colors.bg.muted,
-                    },
-                  ]}
-                >
-                  <Check
-                    size={10}
-                    color={r.ok ? colors.semantic.success : colors.text.muted}
-                    strokeWidth={2.5}
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.ruleLabel,
-                    {
-                      color: r.ok ? colors.semantic.success : colors.text.secondary,
-                    },
-                  ]}
-                >
-                  {r.label}
-                </Text>
-              </View>
-            ))}
-          </View>
-
-          <PasswordField
-            label="Confirmar nova senha"
-            value={confirm}
-            onChangeText={(v) => {
-              setConfirm(v);
-              updatePasswordMutation.reset();
-            }}
-            secureTextEntry={!showConfirm}
-            onToggleVisibility={() => setShowConfirm((p) => !p)}
-            colors={colors}
-            styles={styles}
-          />
-
-          {confirm.length > 0 && !passwordsMatch ? (
-            <Text style={[styles.mismatchError, { color: colors.semantic.error }]}>
-              As senhas não coincidem.
+          {next.length > 0 && next.length < MIN_PASSWORD_LENGTH ? (
+            <Text style={[styles.passwordHint, { color: colors.text.secondary }]}>
+              Mínimo {MIN_PASSWORD_LENGTH} caracteres
             </Text>
           ) : null}
 
@@ -339,28 +284,9 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
       alignItems: 'center',
       width: 36,
     },
-    rulesContainer: {
-      gap: spacing['1.5'],
-    },
-    ruleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing['2'],
-    },
-    ruleDot: {
-      width: 16,
-      height: 16,
-      borderRadius: radii.full,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    ruleLabel: {
-      fontSize: 11,
+    passwordHint: {
       fontFamily: typography.family.semibold,
-    },
-    mismatchError: {
-      fontSize: 11,
-      fontFamily: typography.family.bold,
+      fontSize: typography.size.xs,
     },
     successContainer: {
       paddingVertical: spacing['8'],
@@ -379,8 +305,8 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
       fontFamily: typography.family.bold,
     },
     successDesc: {
-      fontSize: typography.size.xs,
-      fontFamily: typography.family.semibold,
+      fontSize: typography.size.sm,
+      fontFamily: typography.family.medium,
     },
   });
 }

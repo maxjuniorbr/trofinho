@@ -11,7 +11,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ChevronRight, Eye, Info, Lock, User } from 'lucide-react-native';
+import { ChevronRight, Eye, Info, Lock, User, Users } from 'lucide-react-native';
 import { getAppVersion } from '@lib/app-version';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { HomeFooterBar } from '@/components/ui/home-footer-bar';
@@ -24,8 +24,7 @@ import { ChangePasswordSheet } from '@/components/profile/change-password-sheet'
 import { ChildSelectionSheet } from '@/components/profile/child-selection-sheet';
 import { ThemeCard } from '@/components/profile/theme-card';
 import { NotificationCard } from '@/components/profile/notification-card';
-import { AdminSection } from '@/components/profile/admin-section';
-import { InviteSheet } from '@/components/profile/invite-sheet';
+import { AdminManagementSheet } from '@/components/profile/admin-management-sheet';
 import { RemoveAdminSheet } from '@/components/profile/remove-admin-sheet';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography, withAlpha } from '@/constants/theme';
@@ -105,10 +104,7 @@ export default function ProfileScreen() {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showChildSelection, setShowChildSelection] = useState(false);
 
-  // Admin invite sheet state
-  const [showInviteSheet, setShowInviteSheet] = useState(false);
-  const [inviteCode, setInviteCode] = useState('');
-  const [inviteExpiresAt, setInviteExpiresAt] = useState('');
+  const [showAdminManagement, setShowAdminManagement] = useState(false);
   const [showRemoveAdminSheet, setShowRemoveAdminSheet] = useState(false);
   const [adminToRemove, setAdminToRemove] = useState<FamilyAdmin | null>(null);
   const deleteAccountMutation = useDeleteAccount();
@@ -169,13 +165,7 @@ export default function ProfileScreen() {
   };
 
   const handleGenerateInvite = useCallback(() => {
-    generateInviteMutation.mutate(undefined, {
-      onSuccess: (data) => {
-        setInviteCode(data.codigo);
-        setInviteExpiresAt(data.expires_at);
-        setShowInviteSheet(true);
-      },
-    });
+    generateInviteMutation.mutate(undefined);
   }, [generateInviteMutation]);
 
   const handleCancelInvite = useCallback(
@@ -248,19 +238,27 @@ export default function ProfileScreen() {
               />
             ) : null}
 
-            {/* Administradores */}
-            <AdminSection
-              admins={admins}
-              currentUserId={profile?.id}
-              pendingInvite={pendingInvite}
-              onGenerateInvite={handleGenerateInvite}
-              onCancelInvite={handleCancelInvite}
-              onRemoveAdmin={handleRemoveAdmin}
-              generatingInvite={generateInviteMutation.isPending}
-              cancellingInvite={cancelInviteMutation.isPending}
-            />
-
-            {/* Dados pessoais */}
+            {/* Família */}
+            <SectionCard title="Família" colors={colors} styles={styles}>
+              <MenuRow
+                icon={Users}
+                label="Administradores"
+                rightText={`${admins.length}/2`}
+                onPress={() => setShowAdminManagement(true)}
+                colors={colors}
+                styles={styles}
+                hasBorder
+              />
+              <MenuRow
+                icon={Eye}
+                label="Ver app como filho"
+                disabled={!hasActiveChildren}
+                disabledHint={hasActiveChildren ? undefined : 'Sem filhos'}
+                onPress={() => setShowChildSelection(true)}
+                colors={colors}
+                styles={styles}
+              />
+            </SectionCard>
             <SectionCard title="Dados pessoais" colors={colors} styles={styles}>
               <MenuRow
                 icon={User}
@@ -277,19 +275,6 @@ export default function ProfileScreen() {
                 icon={Lock}
                 label="Alterar senha"
                 onPress={() => setShowChangePassword(true)}
-                colors={colors}
-                styles={styles}
-              />
-            </SectionCard>
-
-            {/* Ferramentas */}
-            <SectionCard title="Ferramentas" colors={colors} styles={styles}>
-              <MenuRow
-                icon={Eye}
-                label="Ver app como filho"
-                disabled={!hasActiveChildren}
-                disabledHint={hasActiveChildren ? undefined : 'Sem filhos'}
-                onPress={() => setShowChildSelection(true)}
                 colors={colors}
                 styles={styles}
               />
@@ -353,11 +338,17 @@ export default function ProfileScreen() {
         }}
       />
 
-      <InviteSheet
-        visible={showInviteSheet}
-        onClose={() => setShowInviteSheet(false)}
-        code={inviteCode}
-        expiresAt={inviteExpiresAt}
+      <AdminManagementSheet
+        visible={showAdminManagement}
+        onClose={() => setShowAdminManagement(false)}
+        admins={admins}
+        currentUserId={profile?.id}
+        pendingInvite={pendingInvite}
+        onGenerateInvite={handleGenerateInvite}
+        onCancelInvite={handleCancelInvite}
+        onRemoveAdmin={handleRemoveAdmin}
+        generatingInvite={generateInviteMutation.isPending}
+        cancellingInvite={cancelInviteMutation.isPending}
       />
 
       <RemoveAdminSheet
@@ -404,6 +395,8 @@ type MenuRowProps = Readonly<{
   label: string;
   disabled?: boolean;
   disabledHint?: string;
+  rightText?: string;
+  hasBorder?: boolean;
   onPress?: () => void;
   colors: ThemeColors;
   styles: ReturnType<typeof makeStyles>;
@@ -414,6 +407,8 @@ const MenuRow = ({
   label,
   disabled = false,
   disabledHint,
+  rightText,
+  hasBorder = false,
   onPress,
   colors,
   styles,
@@ -421,6 +416,7 @@ const MenuRow = ({
   <Pressable
     style={({ pressed }) => [
       styles.menuRow,
+      hasBorder && styles.menuRowBorder,
       pressed && !disabled && { backgroundColor: colors.bg.muted },
     ]}
     onPress={onPress}
@@ -446,11 +442,16 @@ const MenuRow = ({
         </View>
       ) : null}
     </View>
-    <ChevronRight
-      size={16}
-      color={disabled ? colors.text.muted : colors.text.secondary}
-      strokeWidth={2}
-    />
+    <View style={styles.menuRowRight}>
+      {rightText ? (
+        <Text style={[styles.menuRowRightText, { color: colors.text.muted }]}>{rightText}</Text>
+      ) : null}
+      <ChevronRight
+        size={16}
+        color={disabled ? colors.text.muted : colors.text.secondary}
+        strokeWidth={2}
+      />
+    </View>
   </Pressable>
 );
 
@@ -496,6 +497,15 @@ function makeStyles(colors: ThemeColors) {
     menuRowLabel: {
       fontFamily: typography.family.semibold,
       fontSize: typography.size.sm,
+    },
+    menuRowRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['2'],
+    },
+    menuRowRightText: {
+      fontFamily: typography.family.extrabold,
+      fontSize: typography.size.xxs,
     },
     hintBadge: {
       paddingHorizontal: spacing['2'],

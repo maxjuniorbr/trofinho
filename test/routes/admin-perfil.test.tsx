@@ -76,6 +76,7 @@ vi.mock('react-native', () => ({
     addListener: vi.fn(() => ({ remove: vi.fn() })),
     dismiss: vi.fn(),
   },
+  Modal: createHostComponent('Modal'),
   Platform: { OS: 'ios', select: (obj: Record<string, unknown>) => obj.ios },
   Pressable: createHostComponent('Pressable'),
   ScrollView: createHostComponent('ScrollView'),
@@ -157,6 +158,7 @@ vi.mock('lucide-react-native', () => ({
   Info: createHostComponent('Info'),
   Lock: createHostComponent('Lock'),
   User: createHostComponent('User'),
+  Users: createHostComponent('Users'),
 }));
 
 vi.mock('@/components/profile/avatar-section', () => ({
@@ -192,6 +194,11 @@ vi.mock('@/components/profile/admin-section', () => ({
     React.createElement('AdminSection', props),
 }));
 
+vi.mock('@/components/profile/admin-management-sheet', () => ({
+  AdminManagementSheet: (props: Record<string, unknown>) =>
+    React.createElement('AdminManagementSheet', props),
+}));
+
 vi.mock('@/components/profile/invite-sheet', () => ({
   InviteSheet: (props: Record<string, unknown>) =>
     React.createElement('InviteSheet', props),
@@ -219,7 +226,7 @@ function profileBlockMarkers(renderer: ReactTestRenderer): string[] {
     if (node.type === 'Text') {
       if (node.props.children === 'Dados pessoais') markers.push('dados');
       if (node.props.children === 'Segurança') markers.push('seguranca');
-      if (node.props.children === 'Ferramentas') markers.push('ferramentas');
+      if (node.props.children === 'Família') markers.push('familia');
       if (node.props.children === 'Sobre') markers.push('sobre');
     }
     return false;
@@ -276,9 +283,9 @@ describe('ProfileScreen (admin)', () => {
       'usuario',
       'aparencia',
       'notificacoes',
+      'familia',
       'dados',
       'seguranca',
-      'ferramentas',
       'sobre',
     ]);
   });

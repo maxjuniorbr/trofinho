@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useMemo } from 'react';
-import { ChevronRight, Star, Users } from 'lucide-react-native';
+import { ChevronRight, Eye, Star } from 'lucide-react-native';
 import { BottomSheetModal } from '@/components/ui/bottom-sheet';
 import { Avatar } from '@/components/ui/avatar';
 import { useChildrenList, useAdminBalances } from '@/hooks/queries';
@@ -45,7 +45,7 @@ export function ChildSelectionSheet({
         >
             <View style={styles.header}>
                 <View style={[styles.headerIcon, { backgroundColor: colors.accent.adminBg }]}>
-                    <Users size={18} color={colors.accent.adminDim} strokeWidth={2.4} />
+                    <Eye size={18} color={colors.accent.adminDim} strokeWidth={2.4} />
                 </View>
                 <View style={styles.headerText}>
                     <Text style={[styles.title, { color: colors.text.primary }]}>Ver app como filho</Text>
