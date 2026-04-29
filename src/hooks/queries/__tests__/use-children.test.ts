@@ -123,3 +123,29 @@ describe('use-children mutation hooks', () => {
     });
   });
 });
+
+describe('use-children mutationFn execution', () => {
+  it('useDeactivateChild mutationFn calls deactivateChild with correct args', async () => {
+    const { useDeactivateChild } = await loadHooks();
+    useDeactivateChild();
+    const mutationFn = lastMutationOpts().mutationFn as (id: string) => Promise<unknown>;
+    await mutationFn('child-1');
+    expect(childrenLib.deactivateChild).toHaveBeenCalledWith('child-1');
+  });
+
+  it('useReactivateChild mutationFn calls reactivateChild with correct args', async () => {
+    const { useReactivateChild } = await loadHooks();
+    useReactivateChild();
+    const mutationFn = lastMutationOpts().mutationFn as (id: string) => Promise<unknown>;
+    await mutationFn('child-1');
+    expect(childrenLib.reactivateChild).toHaveBeenCalledWith('child-1');
+  });
+
+  it('useMyChildId queryFn calls getMyChildId and throws when result is null', async () => {
+    vi.mocked(childrenLib.getMyChildId).mockResolvedValueOnce(null);
+    const { useMyChildId } = await loadHooks();
+    useMyChildId('user-1');
+    const qf = lastQueryOpts().queryFn as () => Promise<unknown>;
+    await expect(qf()).rejects.toThrow('Perfil de filho não encontrado.');
+  });
+});

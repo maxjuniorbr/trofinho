@@ -25,9 +25,28 @@ vi.mock('../../../../lib/auth', () => ({
 vi.mock('../../../../lib/notifications', () => ({
   getNotificationPrefs: vi.fn().mockResolvedValue({
     tarefasPendentes: true,
+    tarefaAprovada: true,
+    tarefaRejeitada: true,
     tarefaConcluida: true,
     resgatesSolicitado: true,
+    resgateConfirmado: true,
+    resgateCancelado: true,
+    resgateCofrinhoSolicitado: true,
+    resgateCofrinhoConfirmado: true,
+    resgateCofrinhoCancelado: true,
   }),
+  DEFAULT_NOTIFICATION_PREFS: {
+    tarefasPendentes: true,
+    tarefaAprovada: true,
+    tarefaRejeitada: true,
+    tarefaConcluida: true,
+    resgatesSolicitado: true,
+    resgateConfirmado: true,
+    resgateCancelado: true,
+    resgateCofrinhoSolicitado: true,
+    resgateCofrinhoConfirmado: true,
+    resgateCofrinhoCancelado: true,
+  },
 }));
 
 const qh = getQueryHelpers(rq as unknown as Record<string, unknown>);
@@ -120,6 +139,70 @@ describe('use-profile mutation hooks', () => {
       useDeleteAccount();
       const opts = lastMutationOpts();
       expect(opts.onSuccess).toBeUndefined();
+    });
+  });
+});
+
+describe('use-profile mutationFn execution', () => {
+  it('useUpdateUserName mutationFn calls updateUserName with correct args', async () => {
+    const { useUpdateUserName } = await loadHooks();
+    useUpdateUserName();
+    const mutationFn = lastMutationOpts().mutationFn as (name: string) => Promise<unknown>;
+    await mutationFn('New Name');
+    expect(authLib.updateUserName).toHaveBeenCalledWith('New Name');
+  });
+
+  it('useUpdateUserPassword mutationFn calls updateUserPassword with correct args', async () => {
+    const { useUpdateUserPassword } = await loadHooks();
+    useUpdateUserPassword();
+    const mutationFn = lastMutationOpts().mutationFn as (args: { currentPassword: string; newPassword: string }) => Promise<unknown>;
+    await mutationFn({ currentPassword: 'old123', newPassword: 'new456' });
+    expect(authLib.updateUserPassword).toHaveBeenCalledWith('old123', 'new456');
+  });
+
+  it('useUpdateUserAvatar mutationFn calls updateUserAvatar and returns url', async () => {
+    vi.mocked(authLib.updateUserAvatar).mockResolvedValueOnce({ url: 'https://img.test/new.png', error: null });
+    const { useUpdateUserAvatar } = await loadHooks();
+    useUpdateUserAvatar();
+    const mutationFn = lastMutationOpts().mutationFn as (uri: string) => Promise<unknown>;
+    const result = await mutationFn('file://photo.jpg');
+    expect(authLib.updateUserAvatar).toHaveBeenCalledWith('file://photo.jpg');
+    expect(result).toBe('https://img.test/new.png');
+  });
+
+  it('useUpdateUserAvatar mutationFn throws when lib returns error', async () => {
+    vi.mocked(authLib.updateUserAvatar).mockResolvedValueOnce({ url: null, error: 'Upload falhou' });
+    const { useUpdateUserAvatar } = await loadHooks();
+    useUpdateUserAvatar();
+    const mutationFn = lastMutationOpts().mutationFn as (uri: string) => Promise<unknown>;
+    await expect(mutationFn('file://photo.jpg')).rejects.toThrow('Upload falhou');
+  });
+
+  it('useDeleteAccount mutationFn calls deleteAccount', async () => {
+    const { useDeleteAccount } = await loadHooks();
+    useDeleteAccount();
+    const mutationFn = lastMutationOpts().mutationFn as () => Promise<unknown>;
+    await mutationFn();
+    expect(authLib.deleteAccount).toHaveBeenCalled();
+  });
+
+  it('useNotificationPrefs queryFn returns DEFAULT_NOTIFICATION_PREFS when getNotificationPrefs throws', async () => {
+    vi.mocked(notificationsLib.getNotificationPrefs).mockRejectedValueOnce(new Error('Network error'));
+    const { useNotificationPrefs } = await loadHooks();
+    useNotificationPrefs();
+    const qf = lastQueryOpts().queryFn as () => Promise<unknown>;
+    const result = await qf();
+    expect(result).toEqual({
+      tarefasPendentes: true,
+      tarefaAprovada: true,
+      tarefaRejeitada: true,
+      tarefaConcluida: true,
+      resgatesSolicitado: true,
+      resgateConfirmado: true,
+      resgateCancelado: true,
+      resgateCofrinhoSolicitado: true,
+      resgateCofrinhoConfirmado: true,
+      resgateCofrinhoCancelado: true,
     });
   });
 });

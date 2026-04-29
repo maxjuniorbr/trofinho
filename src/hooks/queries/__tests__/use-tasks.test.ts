@@ -36,7 +36,12 @@ vi.mock('../../../../lib/tasks', () => ({
   cancelAssignmentSubmission: vi.fn().mockResolvedValue({ error: null }),
   completeAssignment: vi.fn().mockResolvedValue({ error: null }),
   renewRecurringTasks: vi.fn().mockResolvedValue(undefined),
+  deactivateTask: vi.fn().mockResolvedValue({ data: { pendingValidationCount: 0 }, error: null }),
   deleteTask: vi.fn().mockResolvedValue({ data: { pendingValidationCount: 0 }, error: null }),
+  reactivateTask: vi.fn().mockResolvedValue({ error: null }),
+  archiveTask: vi.fn().mockResolvedValue({ error: null }),
+  unarchiveTask: vi.fn().mockResolvedValue({ error: null }),
+  discardRejection: vi.fn().mockResolvedValue({ error: null }),
 }));
 
 const qh = getQueryHelpers(rq as unknown as Record<string, unknown>);
@@ -214,5 +219,129 @@ describe('use-tasks mutation hooks', () => {
       onSuccess();
       expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.tasks.all });
     });
+  });
+});
+
+describe('use-tasks mutationFn execution', () => {
+  it('useCreateTask mutationFn calls createTask with correct args', async () => {
+    const { useCreateTask } = await loadHooks();
+    useCreateTask();
+    const mutationFn = lastMutationOpts().mutationFn as (args: unknown) => Promise<unknown>;
+    const input = { titulo: 'Test', descricao: null, pontos: 10, dias_semana: 127, exige_evidencia: false, filhoIds: ['c1'] };
+    const opts = { familiaId: 'f1', filhoIds: ['c1'] };
+    await mutationFn({ input, opts });
+    expect(tasksLib.createTask).toHaveBeenCalledWith(input, opts);
+  });
+
+  it('useUpdateTask mutationFn calls updateTask with correct args', async () => {
+    const { useUpdateTask } = await loadHooks();
+    useUpdateTask();
+    const mutationFn = lastMutationOpts().mutationFn as (args: unknown) => Promise<unknown>;
+    const input = { titulo: 'Updated', descricao: null, pontos: 20, exige_evidencia: true, dias_semana: 127 };
+    await mutationFn({ taskId: 'task-1', input });
+    expect(tasksLib.updateTask).toHaveBeenCalledWith('task-1', input);
+  });
+
+  it('useApproveAssignment mutationFn calls approveAssignment with correct args', async () => {
+    const { useApproveAssignment } = await loadHooks();
+    useApproveAssignment();
+    const mutationFn = lastMutationOpts().mutationFn as (args: unknown) => Promise<unknown>;
+    const opts = { familiaId: 'f1', userId: 'u1', taskTitle: 'Task' };
+    await mutationFn({ assignmentId: 'a1', opts });
+    expect(tasksLib.approveAssignment).toHaveBeenCalledWith('a1', opts);
+  });
+
+  it('useRejectAssignment mutationFn calls rejectAssignment with correct args', async () => {
+    const { useRejectAssignment } = await loadHooks();
+    useRejectAssignment();
+    const mutationFn = lastMutationOpts().mutationFn as (args: unknown) => Promise<unknown>;
+    const opts = { familiaId: 'f1', userId: 'u1', taskTitle: 'Task' };
+    await mutationFn({ assignmentId: 'a1', note: 'bad', opts });
+    expect(tasksLib.rejectAssignment).toHaveBeenCalledWith('a1', 'bad', opts);
+  });
+
+  it('useCancelAssignmentSubmission mutationFn calls cancelAssignmentSubmission', async () => {
+    const { useCancelAssignmentSubmission } = await loadHooks();
+    useCancelAssignmentSubmission();
+    const mutationFn = lastMutationOpts().mutationFn as (args: unknown) => Promise<unknown>;
+    await mutationFn({ assignmentId: 'a1' });
+    expect(tasksLib.cancelAssignmentSubmission).toHaveBeenCalledWith('a1');
+  });
+
+  it('useCompleteAssignment mutationFn calls completeAssignment with correct args', async () => {
+    const { useCompleteAssignment } = await loadHooks();
+    useCompleteAssignment();
+    const mutationFn = lastMutationOpts().mutationFn as (args: unknown) => Promise<unknown>;
+    const opts = { familiaId: 'f1', childName: 'Child', taskTitle: 'Task' };
+    await mutationFn({ assignmentId: 'a1', imageUri: 'file://img.jpg', opts });
+    expect(tasksLib.completeAssignment).toHaveBeenCalledWith('a1', 'file://img.jpg', opts);
+  });
+
+  it('useDeactivateTask mutationFn calls deactivateTask and returns data', async () => {
+    vi.mocked(tasksLib.deactivateTask).mockResolvedValueOnce({ data: { pendingValidationCount: 2 }, error: null });
+    const { useDeactivateTask } = await loadHooks();
+    useDeactivateTask();
+    const mutationFn = lastMutationOpts().mutationFn as (id: string) => Promise<unknown>;
+    const result = await mutationFn('task-1');
+    expect(tasksLib.deactivateTask).toHaveBeenCalledWith('task-1');
+    expect(result).toEqual({ pendingValidationCount: 2 });
+  });
+
+  it('useDeactivateTask mutationFn throws when lib returns error', async () => {
+    vi.mocked(tasksLib.deactivateTask).mockResolvedValueOnce({ data: null, error: 'Tarefa não encontrada' });
+    const { useDeactivateTask } = await loadHooks();
+    useDeactivateTask();
+    const mutationFn = lastMutationOpts().mutationFn as (id: string) => Promise<unknown>;
+    await expect(mutationFn('task-1')).rejects.toThrow('Tarefa não encontrada');
+  });
+
+  it('useDeleteTask mutationFn calls deleteTask and returns data', async () => {
+    vi.mocked(tasksLib.deleteTask).mockResolvedValueOnce({ data: { pendingValidationCount: 3 }, error: null });
+    const { useDeleteTask } = await loadHooks();
+    useDeleteTask();
+    const mutationFn = lastMutationOpts().mutationFn as (id: string) => Promise<unknown>;
+    const result = await mutationFn('task-1');
+    expect(tasksLib.deleteTask).toHaveBeenCalledWith('task-1');
+    expect(result).toEqual({ pendingValidationCount: 3 });
+  });
+
+  it('useDeleteTask mutationFn throws when lib returns error', async () => {
+    vi.mocked(tasksLib.deleteTask).mockResolvedValueOnce({ data: null, error: 'Tarefa não encontrada' });
+    const { useDeleteTask } = await loadHooks();
+    useDeleteTask();
+    const mutationFn = lastMutationOpts().mutationFn as (id: string) => Promise<unknown>;
+    await expect(mutationFn('task-1')).rejects.toThrow('Tarefa não encontrada');
+  });
+
+  it('useReactivateTask mutationFn calls reactivateTask', async () => {
+    const { useReactivateTask } = await loadHooks();
+    useReactivateTask();
+    const mutationFn = lastMutationOpts().mutationFn as (id: string) => Promise<unknown>;
+    await mutationFn('task-1');
+    expect(tasksLib.reactivateTask).toHaveBeenCalledWith('task-1');
+  });
+
+  it('useArchiveTask mutationFn calls archiveTask', async () => {
+    const { useArchiveTask } = await loadHooks();
+    useArchiveTask();
+    const mutationFn = lastMutationOpts().mutationFn as (id: string) => Promise<unknown>;
+    await mutationFn('task-1');
+    expect(tasksLib.archiveTask).toHaveBeenCalledWith('task-1');
+  });
+
+  it('useUnarchiveTask mutationFn calls unarchiveTask', async () => {
+    const { useUnarchiveTask } = await loadHooks();
+    useUnarchiveTask();
+    const mutationFn = lastMutationOpts().mutationFn as (id: string) => Promise<unknown>;
+    await mutationFn('task-1');
+    expect(tasksLib.unarchiveTask).toHaveBeenCalledWith('task-1');
+  });
+
+  it('useDiscardRejection mutationFn calls discardRejection', async () => {
+    const { useDiscardRejection } = await loadHooks();
+    useDiscardRejection();
+    const mutationFn = lastMutationOpts().mutationFn as (id: string) => Promise<unknown>;
+    await mutationFn('a1');
+    expect(tasksLib.discardRejection).toHaveBeenCalledWith('a1');
   });
 });

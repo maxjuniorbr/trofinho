@@ -18,8 +18,10 @@ vi.mock('../../../../lib/balances', () => ({
     .mockResolvedValue({ data: { filho_id: 'x', saldo_livre: 0, cofrinho: 0 }, error: null }),
   listAdminBalances: vi.fn().mockResolvedValue({ data: [], error: null }),
   listTransactions: vi.fn().mockResolvedValue({ data: [], error: null }),
-  applyPenalty: vi.fn().mockResolvedValue({ error: null }),
+  listTransactionsByPeriod: vi.fn().mockResolvedValue({ data: [], error: null }),
+  applyPenalty: vi.fn().mockResolvedValue({ data: { deducted: 10 }, error: null }),
   configureAppreciation: vi.fn().mockResolvedValue({ error: null }),
+  configurePiggyBank: vi.fn().mockResolvedValue({ error: null }),
   transferToPiggyBank: vi.fn().mockResolvedValue({ error: null }),
   syncAutomaticAppreciation: (...args: unknown[]) => mockSyncAppreciation(...args),
 }));
@@ -160,5 +162,49 @@ describe('use-balances mutation hooks', () => {
       expect(mockSyncAppreciation).not.toHaveBeenCalled();
       expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.balances.all });
     });
+  });
+});
+
+describe('use-balances mutationFn execution', () => {
+  it('useApplyPenalty mutationFn calls applyPenalty with correct args and returns data', async () => {
+    vi.mocked(balancesLib.applyPenalty).mockResolvedValueOnce({ data: { deducted: 5 }, error: null });
+    const { useApplyPenalty } = await loadHooks();
+    useApplyPenalty();
+    const mutationFn = lastMutationOpts().mutationFn as (args: { childId: string; amount: number; description: string }) => Promise<unknown>;
+    const result = await mutationFn({ childId: 'c1', amount: 5, description: 'Late' });
+    expect(balancesLib.applyPenalty).toHaveBeenCalledWith('c1', 5, 'Late');
+    expect(result).toEqual({ deducted: 5 });
+  });
+
+  it('useApplyPenalty mutationFn throws when lib returns error', async () => {
+    vi.mocked(balancesLib.applyPenalty).mockResolvedValueOnce({ data: null, error: 'Saldo insuficiente' });
+    const { useApplyPenalty } = await loadHooks();
+    useApplyPenalty();
+    const mutationFn = lastMutationOpts().mutationFn as (args: { childId: string; amount: number; description: string }) => Promise<unknown>;
+    await expect(mutationFn({ childId: 'c1', amount: 999, description: 'Too much' })).rejects.toThrow('Saldo insuficiente');
+  });
+
+  it('useTransferToPiggyBank mutationFn calls transferToPiggyBank with correct args', async () => {
+    const { useTransferToPiggyBank } = await loadHooks();
+    useTransferToPiggyBank();
+    const mutationFn = lastMutationOpts().mutationFn as (args: { childId: string; amount: number }) => Promise<unknown>;
+    await mutationFn({ childId: 'c1', amount: 50 });
+    expect(balancesLib.transferToPiggyBank).toHaveBeenCalledWith('c1', 50);
+  });
+
+  it('useConfigureAppreciation mutationFn calls configureAppreciation with correct args', async () => {
+    const { useConfigureAppreciation } = await loadHooks();
+    useConfigureAppreciation();
+    const mutationFn = lastMutationOpts().mutationFn as (args: { childId: string; rate: number }) => Promise<unknown>;
+    await mutationFn({ childId: 'c1', rate: 5 });
+    expect(balancesLib.configureAppreciation).toHaveBeenCalledWith('c1', 5);
+  });
+
+  it('useConfigurePiggyBank mutationFn calls configurePiggyBank with correct args', async () => {
+    const { useConfigurePiggyBank } = await loadHooks();
+    useConfigurePiggyBank();
+    const mutationFn = lastMutationOpts().mutationFn as (args: { childId: string; rate: number; withdrawalRate: number; prazo: number }) => Promise<unknown>;
+    await mutationFn({ childId: 'c1', rate: 3, withdrawalRate: 10, prazo: 30 });
+    expect(balancesLib.configurePiggyBank).toHaveBeenCalledWith('c1', { rate: 3, withdrawalRate: 10, prazo: 30 });
   });
 });

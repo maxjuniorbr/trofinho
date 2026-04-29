@@ -16,6 +16,7 @@ vi.mock('../../../../lib/redemptions', () => ({
   confirmRedemption: vi.fn().mockResolvedValue({ error: null }),
   cancelRedemption: vi.fn().mockResolvedValue({ error: null }),
   requestRedemption: vi.fn().mockResolvedValue({ data: 'ok', error: null }),
+  countPendingRedemptions: vi.fn().mockResolvedValue({ data: 0, error: null }),
 }));
 
 const qh = getQueryHelpers(rq as unknown as Record<string, unknown>);
@@ -85,5 +86,34 @@ describe('use-redemptions mutation hooks', () => {
       expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.balances.all });
       expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.prizes.all });
     });
+  });
+});
+
+describe('use-redemptions mutationFn execution', () => {
+  it('useConfirmRedemption mutationFn calls confirmRedemption with correct args', async () => {
+    const { useConfirmRedemption } = await loadHooks();
+    useConfirmRedemption();
+    const mutationFn = lastMutationOpts().mutationFn as (args: unknown) => Promise<unknown>;
+    const opts = { familiaId: 'f1', userId: 'u1', prizeName: 'Ice cream' };
+    await mutationFn({ redemptionId: 'r1', opts });
+    expect(redemptionsLib.confirmRedemption).toHaveBeenCalledWith('r1', opts);
+  });
+
+  it('useCancelRedemption mutationFn calls cancelRedemption with correct args', async () => {
+    const { useCancelRedemption } = await loadHooks();
+    useCancelRedemption();
+    const mutationFn = lastMutationOpts().mutationFn as (args: unknown) => Promise<unknown>;
+    const opts = { familiaId: 'f1', userId: 'u1', prizeName: 'Ice cream' };
+    await mutationFn({ redemptionId: 'r1', opts });
+    expect(redemptionsLib.cancelRedemption).toHaveBeenCalledWith('r1', opts);
+  });
+
+  it('useRequestRedemption mutationFn calls requestRedemption with correct args', async () => {
+    const { useRequestRedemption } = await loadHooks();
+    useRequestRedemption();
+    const mutationFn = lastMutationOpts().mutationFn as (args: unknown) => Promise<unknown>;
+    const opts = { familiaId: 'f1', childName: 'Child', prizeName: 'Ice cream' };
+    await mutationFn({ prizeId: 'p1', opts });
+    expect(redemptionsLib.requestRedemption).toHaveBeenCalledWith('p1', opts);
   });
 });

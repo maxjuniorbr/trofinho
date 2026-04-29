@@ -15,8 +15,8 @@ vi.mock('../../../../lib/prizes', () => ({
   getPrize: vi.fn().mockResolvedValue({ data: { id: 'x', nome: 'Test' }, error: null }),
   listActivePrizes: vi.fn().mockResolvedValue({ data: [], hasMore: false, error: null }),
   createPrize: vi.fn().mockResolvedValue({ data: { id: 'new' }, error: null }),
-  updatePrize: vi.fn().mockResolvedValue({ error: null, imageUrl: null, pointsMessage: null }),
-  deactivatePrize: vi.fn().mockResolvedValue({ error: null }),
+  updatePrize: vi.fn().mockResolvedValue({ error: null, pointsMessage: null }),
+  deactivatePrize: vi.fn().mockResolvedValue({ data: { pendingCount: 0 }, error: null, warning: null }),
   reactivatePrize: vi.fn().mockResolvedValue({ error: null }),
 }));
 
@@ -106,5 +106,59 @@ describe('use-prizes mutation hooks', () => {
       onSuccess();
       expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.prizes.all });
     });
+  });
+});
+
+describe('use-prizes mutationFn execution', () => {
+  it('useCreatePrize mutationFn calls createPrize with correct args', async () => {
+    const { useCreatePrize } = await loadHooks();
+    useCreatePrize();
+    const mutationFn = lastMutationOpts().mutationFn as (args: unknown) => Promise<unknown>;
+    const input = { nome: 'Ice cream', descricao: null, custo_pontos: 50, emoji: '🍦', estoque: 10 };
+    await mutationFn({ input, familiaId: 'f1' });
+    expect(prizesLib.createPrize).toHaveBeenCalledWith(input, 'f1');
+  });
+
+  it('useUpdatePrize mutationFn calls updatePrize and throws on error', async () => {
+    vi.mocked(prizesLib.updatePrize).mockResolvedValueOnce({ error: 'Prêmio não encontrado', pointsMessage: null });
+    const { useUpdatePrize } = await loadHooks();
+    useUpdatePrize();
+    const mutationFn = lastMutationOpts().mutationFn as (args: unknown) => Promise<unknown>;
+    const input = { nome: 'Updated', descricao: null, custo_pontos: 100, emoji: '🎁', estoque: 5 };
+    await expect(mutationFn({ id: 'p1', input })).rejects.toThrow('Prêmio não encontrado');
+    expect(prizesLib.updatePrize).toHaveBeenCalledWith('p1', input);
+  });
+
+  it('useDeactivatePrize mutationFn calls deactivatePrize and returns data+warning', async () => {
+    vi.mocked(prizesLib.deactivatePrize).mockResolvedValueOnce({
+      data: { pendingCount: 2 },
+      error: null,
+      warning: 'Existem 2 resgates pendentes para este prêmio.',
+    });
+    const { useDeactivatePrize } = await loadHooks();
+    useDeactivatePrize();
+    const mutationFn = lastMutationOpts().mutationFn as (id: string) => Promise<unknown>;
+    const result = await mutationFn('p1');
+    expect(prizesLib.deactivatePrize).toHaveBeenCalledWith('p1');
+    expect(result).toEqual({
+      data: { pendingCount: 2 },
+      warning: 'Existem 2 resgates pendentes para este prêmio.',
+    });
+  });
+
+  it('useDeactivatePrize mutationFn throws when lib returns error', async () => {
+    vi.mocked(prizesLib.deactivatePrize).mockResolvedValueOnce({ data: null, error: 'Prêmio não encontrado', warning: null });
+    const { useDeactivatePrize } = await loadHooks();
+    useDeactivatePrize();
+    const mutationFn = lastMutationOpts().mutationFn as (id: string) => Promise<unknown>;
+    await expect(mutationFn('p1')).rejects.toThrow('Prêmio não encontrado');
+  });
+
+  it('useReactivatePrize mutationFn calls reactivatePrize', async () => {
+    const { useReactivatePrize } = await loadHooks();
+    useReactivatePrize();
+    const mutationFn = lastMutationOpts().mutationFn as (id: string) => Promise<unknown>;
+    await mutationFn('p1');
+    expect(prizesLib.reactivatePrize).toHaveBeenCalledWith('p1');
   });
 });
