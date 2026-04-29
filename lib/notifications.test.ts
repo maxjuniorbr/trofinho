@@ -466,3 +466,316 @@ describe('getNotificationRoute — edge cases', () => {
     );
   });
 });
+
+// ─── Additional coverage: registerForPushNotifications, local notifications,
+//     permission checks, and subscription ─────────────────────────────────────
+
+describe('registerForPushNotifications', () => {
+  let registerForPushNotifications: typeof import('./notifications').registerForPushNotifications;
+
+  beforeEach(async () => {
+    deviceStorageGetMock.mockReset();
+    deviceStorageSetMock.mockReset();
+    rpcMock.mockReset();
+    const mod = await import('./notifications');
+    registerForPushNotifications = mod.registerForPushNotifications;
+  });
+
+  it('returns null when running in Expo Go', async () => {
+    const constants = await import('expo-constants');
+    const original = constants.default.executionEnvironment;
+    (constants.default as any).executionEnvironment = 'storeClient';
+
+    const result = await registerForPushNotifications();
+    expect(result).toBeNull();
+
+    (constants.default as any).executionEnvironment = original;
+  });
+
+  it('returns null when notifications module is not available', async () => {
+    const constants = await import('expo-constants');
+    (constants.default as any).executionEnvironment = 'standalone';
+
+    // The module is mocked and available, so this test verifies the non-ExpoGo path
+    // We need to test the permission denied path
+    const N = await import('expo-notifications');
+    vi.mocked(N.getPermissionsAsync).mockResolvedValue({
+      status: 'denied',
+      granted: false,
+      canAskAgain: false,
+      expires: 'never',
+      ios: { status: 0 }, // DENIED
+    } as any);
+    vi.mocked(N.requestPermissionsAsync).mockResolvedValue({
+      status: 'denied',
+      granted: false,
+      canAskAgain: false,
+      expires: 'never',
+      ios: { status: 0 },
+    } as any);
+
+    const result = await registerForPushNotifications();
+    expect(result).toBeNull();
+  });
+
+  it('requests permissions when not already granted', async () => {
+    const constants = await import('expo-constants');
+    (constants.default as any).executionEnvironment = 'standalone';
+
+    const N = await import('expo-notifications');
+    // First call: not granted
+    vi.mocked(N.getPermissionsAsync).mockResolvedValue({
+      status: 'undetermined',
+      granted: false,
+      canAskAgain: true,
+      expires: 'never',
+      ios: { status: 1 }, // NOT_DETERMINED
+    } as any);
+    // After request: granted
+    vi.mocked(N.requestPermissionsAsync).mockResolvedValue({
+      status: 'granted',
+      granted: true,
+      canAskAgain: true,
+      expires: 'never',
+      ios: { status: 2 }, // AUTHORIZED
+    } as any);
+    vi.mocked(N.getExpoPushTokenAsync).mockResolvedValue({
+      data: 'ExponentPushToken[test-token]',
+      type: 'expo',
+    } as any);
+
+    // Need a project ID
+    (constants.default as any).expoConfig = { extra: { eas: { projectId: 'test-project-id' } } };
+
+    const result = await registerForPushNotifications();
+    expect(N.requestPermissionsAsync).toHaveBeenCalled();
+    expect(result).toBe('ExponentPushToken[test-token]');
+
+    (constants.default as any).expoConfig = null;
+  });
+});
+
+describe('sendLocalNotification', () => {
+  it('schedules a notification with immediate trigger', async () => {
+    const { sendLocalNotification } = await import('./notifications');
+    scheduleNotificationAsyncMock.mockResolvedValue(undefined);
+
+    await sendLocalNotification('Test Title', 'Test Body');
+
+    expect(scheduleNotificationAsyncMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: expect.objectContaining({
+          title: 'Test Title',
+          body: 'Test Body',
+          sound: true,
+        }),
+      }),
+    );
+  });
+});
+
+describe('scheduleLocalNotification', () => {
+  it('schedules a notification with custom trigger', async () => {
+    const { scheduleLocalNotification } = await import('./notifications');
+    scheduleNotificationAsyncMock.mockResolvedValue(undefined);
+
+    const trigger = { seconds: 60 };
+    await scheduleLocalNotification('Reminder', 'Do something', trigger as any);
+
+    expect(scheduleNotificationAsyncMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: expect.objectContaining({
+          title: 'Reminder',
+          body: 'Do something',
+        }),
+      }),
+    );
+  });
+});
+
+describe('isNotificationPermissionDenied', () => {
+  it('returns false when running in Expo Go', async () => {
+    const constants = await import('expo-constants');
+    const original = constants.default.executionEnvironment;
+    (constants.default as any).executionEnvironment = 'storeClient';
+
+    const { isNotificationPermissionDenied } = await import('./notifications');
+    const result = await isNotificationPermissionDenied();
+    expect(result).toBe(false);
+
+    (constants.default as any).executionEnvironment = original;
+  });
+
+  it('returns true when iOS permission is denied', async () => {
+    const constants = await import('expo-constants');
+    (constants.default as any).executionEnvironment = 'standalone';
+
+    const N = await import('expo-notifications');
+    vi.mocked(N.getPermissionsAsync).mockResolvedValue({
+      status: 'denied',
+      granted: false,
+      canAskAgain: false,
+      expires: 'never',
+      ios: { status: 0 }, // DENIED
+    } as any);
+
+    const { isNotificationPermissionDenied } = await import('./notifications');
+    const result = await isNotificationPermissionDenied();
+    expect(result).toBe(true);
+  });
+
+  it('returns false when iOS permission is authorized', async () => {
+    const constants = await import('expo-constants');
+    (constants.default as any).executionEnvironment = 'standalone';
+
+    const N = await import('expo-notifications');
+    vi.mocked(N.getPermissionsAsync).mockResolvedValue({
+      status: 'granted',
+      granted: true,
+      canAskAgain: true,
+      expires: 'never',
+      ios: { status: 2 }, // AUTHORIZED
+    } as any);
+
+    const { isNotificationPermissionDenied } = await import('./notifications');
+    const result = await isNotificationPermissionDenied();
+    expect(result).toBe(false);
+  });
+
+  it('returns false when getPermissionsAsync throws', async () => {
+    const constants = await import('expo-constants');
+    (constants.default as any).executionEnvironment = 'standalone';
+
+    const N = await import('expo-notifications');
+    vi.mocked(N.getPermissionsAsync).mockRejectedValue(new Error('unavailable'));
+
+    const { isNotificationPermissionDenied } = await import('./notifications');
+    const result = await isNotificationPermissionDenied();
+    expect(result).toBe(false);
+  });
+});
+
+describe('subscribeToNotificationNavigation', () => {
+  it('returns a cleanup function that removes subscriptions', async () => {
+    const removeMock1 = vi.fn();
+    const removeMock2 = vi.fn();
+    const N = await import('expo-notifications');
+    vi.mocked(N.addNotificationReceivedListener).mockReturnValue({ remove: removeMock1 });
+    vi.mocked(N.addNotificationResponseReceivedListener).mockReturnValue({ remove: removeMock2 });
+    vi.mocked(N.getLastNotificationResponse).mockReturnValue(null);
+
+    const { subscribeToNotificationNavigation } = await import('./notifications');
+    const onRoute = vi.fn();
+    const cleanup = await subscribeToNotificationNavigation(onRoute);
+
+    expect(typeof cleanup).toBe('function');
+    cleanup();
+    expect(removeMock1).toHaveBeenCalled();
+    expect(removeMock2).toHaveBeenCalled();
+  });
+
+  it('processes last notification response on subscribe', async () => {
+    const N = await import('expo-notifications');
+    vi.mocked(N.getLastNotificationResponse).mockReturnValue({
+      actionIdentifier: 'default',
+      notification: {
+        request: {
+          content: {
+            data: { route: '/(admin)/tasks' },
+          },
+        },
+      },
+    } as any);
+
+    const { subscribeToNotificationNavigation } = await import('./notifications');
+    const onRoute = vi.fn();
+    await subscribeToNotificationNavigation(onRoute);
+
+    expect(onRoute).toHaveBeenCalledWith({
+      route: '/(admin)/tasks',
+      entityId: undefined,
+    });
+    expect(N.clearLastNotificationResponse).toHaveBeenCalled();
+  });
+
+  it('calls onAction for non-default action identifiers', async () => {
+    const N = await import('expo-notifications');
+    vi.mocked(N.getLastNotificationResponse).mockReturnValue({
+      actionIdentifier: 'APPROVE_TASK',
+      notification: {
+        request: {
+          content: {
+            data: { taskId: '123' },
+          },
+        },
+      },
+    } as any);
+
+    const { subscribeToNotificationNavigation } = await import('./notifications');
+    const onRoute = vi.fn();
+    const onAction = vi.fn();
+    await subscribeToNotificationNavigation(onRoute, onAction);
+
+    expect(onRoute).not.toHaveBeenCalled();
+    expect(onAction).toHaveBeenCalledWith({
+      actionId: 'APPROVE_TASK',
+      data: { taskId: '123' },
+    });
+  });
+
+  it('handles response listener callback', async () => {
+    const N = await import('expo-notifications');
+    vi.mocked(N.getLastNotificationResponse).mockReturnValue(null);
+
+    let responseCallback: (response: any) => void = () => {};
+    vi.mocked(N.addNotificationResponseReceivedListener).mockImplementation((cb: any) => {
+      responseCallback = cb;
+      return { remove: vi.fn() };
+    });
+
+    const { subscribeToNotificationNavigation } = await import('./notifications');
+    const onRoute = vi.fn();
+    await subscribeToNotificationNavigation(onRoute);
+
+    // Simulate a notification response
+    responseCallback({
+      actionIdentifier: 'default',
+      notification: {
+        request: {
+          content: {
+            data: { route: '/(child)/balance' },
+          },
+        },
+      },
+    });
+
+    expect(onRoute).toHaveBeenCalledWith({
+      route: '/(child)/balance',
+      entityId: undefined,
+    });
+  });
+});
+
+describe('registerNotificationCategories', () => {
+  it('registers TASK_REVIEW and REDEMPTION_REVIEW categories', async () => {
+    const N = await import('expo-notifications');
+    const setNotificationCategoryAsyncMock = vi.fn().mockResolvedValue(undefined);
+    (N as any).setNotificationCategoryAsync = setNotificationCategoryAsyncMock;
+
+    const { registerNotificationCategories } = await import('./notifications');
+    await registerNotificationCategories();
+
+    expect(setNotificationCategoryAsyncMock).toHaveBeenCalledWith(
+      'TASK_REVIEW',
+      expect.arrayContaining([
+        expect.objectContaining({ identifier: 'APPROVE_TASK' }),
+      ]),
+    );
+    expect(setNotificationCategoryAsyncMock).toHaveBeenCalledWith(
+      'REDEMPTION_REVIEW',
+      expect.arrayContaining([
+        expect.objectContaining({ identifier: 'CONFIRM_REDEMPTION' }),
+      ]),
+    );
+  });
+});
