@@ -21,8 +21,10 @@ export const useRedemptionsLiveSync = (familiaId: string | undefined) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.redemptions.all });
     };
 
+    // Stable channel name keyed on familiaId — avoids channel accumulation
+    // when the component remounts rapidly (e.g. tab switches).
     const channel = supabase
-      .channel(`redemptions-live-sync-${Date.now()}-${Math.random().toString(36).slice(2)}`) // NOSONAR — not security-sensitive, just channel uniqueness
+      .channel(`redemptions-live-sync-${familiaId}`)
       .on(
         'postgres_changes',
         {
