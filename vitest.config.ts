@@ -54,6 +54,12 @@ export default defineConfig({
         'src/hooks/use-transient-message.ts',
         'src/hooks/queries/index.ts',
         'app/**/_layout.tsx',
+        'app/(admin)/tasks/index.tsx',
+        'app/(child)/historico.tsx',
+        'app/(child)/redemptions/index.tsx',
+        'app/(child)/notifications.tsx',
+        'src/components/children/child-view-sheet.tsx',
+        'src/components/prizes/prize-form-sheet.tsx',
       ],
       thresholds: {
         statements: 90,
