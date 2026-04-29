@@ -190,6 +190,7 @@ vi.mock('react-native', () => ({
       left: 0,
     },
   },
+  Switch: createHostComponent('Switch'),
   Text: createHostComponent('Text'),
   TextInput: createHostComponent('TextInput'),
   View: createHostComponent('View'),
