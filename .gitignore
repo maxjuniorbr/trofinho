@@ -27,6 +27,7 @@ npm-debug.*
 *.code-workspace
 .vscode/
 .sonarlint/
+.scannerwork/
 
 # AI assistants — local config, not shared
 .agents/
