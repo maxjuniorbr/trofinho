@@ -14,6 +14,7 @@ import {
   deactivateTask,
   deleteTask,
   deriveTaskState,
+  formatWeekdays,
   getAssignmentCancellationState,
   getAssignmentCompletionState,
   getAssignmentPoints,
@@ -1839,5 +1840,22 @@ describe('getAssignmentRetryState', () => {
         expect(result.attemptsLeft).toBeGreaterThanOrEqual(0);
       }),
     );
+  });
+
+  describe('formatWeekdays property tests', () => {
+    it('returns "Todos os dias" for 127 and non-empty string for any value 1-126', () => {
+      fc.assert(
+        fc.property(fc.integer({ min: 1, max: 127 }), (diasSemana) => {
+          const result = formatWeekdays(diasSemana);
+          if (diasSemana === 127) {
+            expect(result).toBe('Todos os dias');
+          } else {
+            expect(result.length).toBeGreaterThan(0);
+            expect(result).not.toBe('Todos os dias');
+          }
+        }),
+        { numRuns: 127 },
+      );
+    });
   });
 });

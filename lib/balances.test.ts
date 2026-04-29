@@ -18,7 +18,7 @@ import {
   syncAutomaticAppreciation,
   transferToPiggyBank,
 } from './balances';
-import type { TransactionCategory, TransactionType } from './balances';
+import type { Transaction, TransactionCategory, TransactionType } from './balances';
 
 const supabaseMock = vi.hoisted(() => ({
   from: vi.fn(),
@@ -585,6 +585,88 @@ describe('balances', () => {
       const result = formatTransactionDates(tx, today);
       expect(result.sameDay).toBe(true);
       expect(result.showRecordedPhrase).toBe(false);
+    });
+  });
+
+  describe('property tests', () => {
+    it('calculateProjection always returns ≥1 when rate > 0 and cofrinho > 0', () => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 1, max: 100_000 }),
+          fc.integer({ min: 1, max: 100 }),
+          (cofrinho, rate) => {
+            expect(calculateProjection(cofrinho, rate)).toBeGreaterThanOrEqual(1);
+          },
+        ),
+        { numRuns: 200 },
+      );
+    });
+
+    it('calculateProjection returns 0 when rate ≤ 0 or cofrinho ≤ 0', () => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: -100_000, max: 0 }),
+          fc.integer({ min: -100, max: 100 }),
+          (cofrinho, rate) => {
+            expect(calculateProjection(cofrinho, rate)).toBe(0);
+          },
+        ),
+        { numRuns: 200 },
+      );
+      fc.assert(
+        fc.property(
+          fc.integer({ min: -100_000, max: 100_000 }),
+          fc.integer({ min: -100, max: 0 }),
+          (cofrinho, rate) => {
+            expect(calculateProjection(cofrinho, rate)).toBe(0);
+          },
+        ),
+        { numRuns: 200 },
+      );
+    });
+
+    it('formatTransactionDates never returns empty eventDate for any transaction', () => {
+      const transactionTypes: TransactionType[] = [
+        'credito',
+        'debito',
+        'transferencia_cofrinho',
+        'valorizacao',
+        'penalizacao',
+        'resgate',
+        'estorno_resgate',
+        'resgate_cofrinho',
+      ];
+
+      // Use integer timestamps to avoid Invalid Date edge cases from fc.date()
+      const safeDate = fc
+        .integer({ min: 1577836800000, max: 1924991999000 }) // 2020-01-01 to 2030-12-31
+        .map((ms) => new Date(ms));
+
+      fc.assert(
+        fc.property(
+          fc.constantFrom(...transactionTypes),
+          safeDate,
+          fc.option(
+            safeDate.map((d) => d.toISOString().slice(0, 10)),
+            { nil: null },
+          ),
+          (tipo, createdAt, dataReferencia) => {
+            const tx: Transaction = {
+              id: '1',
+              filho_id: 'f1',
+              valor: 10,
+              descricao: 'Test',
+              referencia_id: null,
+              tipo,
+              data_referencia: dataReferencia,
+              created_at: createdAt.toISOString(),
+            };
+            const result = formatTransactionDates(tx);
+            expect(result.eventDate.length).toBeGreaterThan(0);
+          },
+        ),
+        { numRuns: 200 },
+      );
     });
   });
 });
