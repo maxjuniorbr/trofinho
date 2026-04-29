@@ -315,7 +315,7 @@ export default function FilhoHomeScreen() {
 
         {pendingTasks.length === 0 ? (
           <Text style={[styles.emptyTasksHint, { color: colors.text.muted }]}>
-            Nada para hoje! 🎉
+            Nada para hoje!
           </Text>
         ) : (
           <View style={styles.taskList}>
