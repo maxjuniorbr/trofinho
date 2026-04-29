@@ -112,4 +112,17 @@ describe('useTasksLiveSync', () => {
 
     expect(removeChannelMock).not.toHaveBeenCalled();
   });
+
+  it('uses a stable channel name derived from familiaId', () => {
+    let renderer!: ReactTestRenderer;
+    act(() => {
+      renderer = create(<TestComponent familiaId={TEST_FAMILIA_ID} />);
+    });
+
+    expect(supabase.channel).toHaveBeenCalledWith(`tasks-live-sync-${TEST_FAMILIA_ID}`);
+
+    act(() => {
+      renderer.unmount();
+    });
+  });
 });

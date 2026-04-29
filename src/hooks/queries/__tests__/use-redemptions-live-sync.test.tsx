@@ -106,4 +106,17 @@ describe('useRedemptionsLiveSync', () => {
 
     expect(invalidateQueriesMock).toHaveBeenCalledTimes(3);
   });
+
+  it('uses a stable channel name derived from familiaId', () => {
+    let renderer!: ReactTestRenderer;
+    act(() => {
+      renderer = create(<TestComponent familiaId={TEST_FAMILIA_ID} />);
+    });
+
+    expect(supabase.channel).toHaveBeenCalledWith(`redemptions-live-sync-${TEST_FAMILIA_ID}`);
+
+    act(() => {
+      renderer.unmount();
+    });
+  });
 });
