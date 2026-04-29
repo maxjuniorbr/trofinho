@@ -124,8 +124,11 @@ function TaskCard({
       accessibilityLabel,
     };
 
+  // Pressable and View accept different style prop shapes; the union type
+  // is not directly spreadable. A targeted cast keeps the component generic
+  // without duplicating the entire JSX tree for each wrapper variant.
   return (
-    <Wrapper {...(wrapperProps as any)}>
+    <Wrapper {...(wrapperProps as React.ComponentProps<typeof Wrapper>)}>
       <View style={styles.cardTopRow}>
         <View style={[styles.cardIcon, { backgroundColor: icon.bg }]}>
           <icon.Icon size={16} color={icon.color} strokeWidth={2} />

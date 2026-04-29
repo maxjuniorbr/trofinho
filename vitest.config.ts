@@ -29,6 +29,7 @@ export default defineConfig({
     },
      
     coverage: {
+      // @ts-expect-error -- `all` is functional in Vitest 4.x but was removed from CoverageOptions types; will self-flag when types catch up
       all: true,
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
@@ -67,7 +68,6 @@ export default defineConfig({
         functions: 90,
         branches: 85,
       },
-      // `all` is functional in Vitest 4.x but removed from CoverageOptions types
-    } as any,
+    },
   },
 });

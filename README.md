@@ -79,6 +79,13 @@ src/components → UI reutilizável
 src/constants  → Design tokens (cores, espaçamento, tipografia)
 src/hooks      → React Query hooks (queries/mutations)
 src/context    → Providers (tema, impersonação, query client)
+src/types      → Tipos TypeScript (database.types.ts gerado, env.d.ts)
 supabase/      → Migrations, edge functions, seed
 test/          → Helpers e route tests
 ```
+
+## Notas
+
+- Testes rodam com timezone `America/Sao_Paulo` (ver `vitest.config.ts`).
+- SonarCloud config consolidada em `.sonarcloud.properties`.
+- React Compiler habilitado experimentalmente em `app.json`.
