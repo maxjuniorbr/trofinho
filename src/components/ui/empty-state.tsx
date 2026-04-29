@@ -10,8 +10,6 @@ interface EmptyStateProps {
   empty?: boolean;
   emptyTitle?: string;
   emptyMessage?: string;
-  /** Whether to show the default icon above the empty message. Defaults to true. */
-  showIcon?: boolean;
   onRetry?: () => void;
 }
 
@@ -23,7 +21,6 @@ export function EmptyState({
   empty = false,
   emptyTitle,
   emptyMessage = 'Nenhum item encontrado.',
-  showIcon = true,
   onRetry,
 }: ReadonlyEmptyStateProps) {
   const { colors } = useTheme();
@@ -63,7 +60,7 @@ export function EmptyState({
   if (empty) {
     return (
       <View style={styles.center}>
-        {showIcon ? <Inbox size={40} color={colors.text.muted} strokeWidth={1.2} /> : null}
+        <Inbox size={40} color={colors.text.muted} strokeWidth={1.2} />
         {hasEmptyTitle ? (
           <Text style={[styles.title, { color: colors.text.primary }]}>{emptyTitle}</Text>
         ) : null}

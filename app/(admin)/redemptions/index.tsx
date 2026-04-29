@@ -267,7 +267,6 @@ export default function AdminRedemptionsScreen() {
           error={error?.message ?? null}
           empty={!error}
           emptyMessage={emptyMessages[tab]}
-          showIcon={tab !== 'pendentes'}
           onRetry={() => refetch()}
         />
       );
