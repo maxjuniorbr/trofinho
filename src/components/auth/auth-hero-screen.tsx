@@ -1,8 +1,8 @@
 import { StatusBar } from 'expo-status-bar';
-import { useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
+  Keyboard,
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -41,16 +41,27 @@ export const AuthHeroScreen = ({
 }: AuthHeroScreenProps) => {
   const insets = useSafeAreaInsets();
   const { palette, gradient, isDark } = useHeroPalette();
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardOpen(true));
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardOpen(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
   const styles = useMemo(
-    () => makeStyles(insets.top, insets.bottom, palette),
-    [insets.top, insets.bottom, palette],
+    () => makeStyles(insets.top, insets.bottom, keyboardOpen, palette),
+    [insets.top, insets.bottom, keyboardOpen, palette],
   );
   const hasTopBar = Boolean(onBack ?? topBarRight ?? topBarCenter);
 
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior="padding"
     >
       <View style={styles.flex}>
         <LinearGradient
@@ -68,6 +79,8 @@ export const AuthHeroScreen = ({
         <ScrollView
           style={styles.flex}
           overScrollMode="never"
+          bounces={keyboardOpen}
+          scrollEnabled={keyboardOpen}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -99,7 +112,17 @@ export const AuthHeroScreen = ({
   );
 };
 
-function makeStyles(topInset: number, bottomInset: number, palette: ReturnType<typeof useHeroPalette>['palette']) {
+function makeStyles(
+  topInset: number,
+  bottomInset: number,
+  keyboardOpen: boolean,
+  palette: ReturnType<typeof useHeroPalette>['palette'],
+) {
+  // Extra bottom padding when keyboard is open so the last field can scroll
+  // above the keyboard. When closed, use only the safe-area inset so the
+  // content fits the screen without unnecessary scroll.
+  const extraBottom = keyboardOpen ? spacing['8'] : 0;
+
   return StyleSheet.create({
     flex: { flex: 1, backgroundColor: palette.navyDeep },
     glowTopRight: {
@@ -125,7 +148,7 @@ function makeStyles(topInset: number, bottomInset: number, palette: ReturnType<t
     scrollContent: {
       flexGrow: 1,
       paddingTop: topInset + spacing['4'],
-      paddingBottom: Math.max(bottomInset, spacing['8']),
+      paddingBottom: Math.max(bottomInset, spacing['8']) + extraBottom,
       paddingHorizontal: spacing['6'],
     },
     topBar: {
@@ -159,4 +182,3 @@ function makeStyles(topInset: number, bottomInset: number, palette: ReturnType<t
     },
   });
 }
-
