@@ -18,10 +18,12 @@ jobs:
 
       - uses: actions/setup-node@v4.4.0 # 49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
 
-      - run: npm ci
+      # S6505/S8543: --ignore-scripts prevents post-install scripts from
+      # executing untrusted code. Node version pinned via .nvmrc above.
+      - run: npm ci --ignore-scripts
 
       - run: npm run typecheck
 
@@ -48,10 +50,12 @@ jobs:
 
       - uses: actions/setup-node@v4.4.0 # 49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
 
-      - run: npm ci
+      # S6505/S8543: --ignore-scripts prevents post-install scripts from
+      # executing untrusted code. Node version pinned via .nvmrc above.
+      - run: npm ci --ignore-scripts
 
       - uses: supabase/setup-cli@v1.6.0 # b60b5899c73b63a2d2d651b1e90db8d4c9392f51
         with:

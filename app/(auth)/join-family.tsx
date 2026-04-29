@@ -46,7 +46,7 @@ export default function JoinFamilyScreen() {
 
     const handleCodeChange = (value: string) => {
         // Auto-uppercase and limit to CODE_LENGTH alphanumeric chars
-        const formatted = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, CODE_LENGTH);
+        const formatted = value.toUpperCase().replaceAll(/[^A-Z0-9]/g, '').slice(0, CODE_LENGTH);
         setCode(formatted);
         setError('');
         acceptInvite.reset();
