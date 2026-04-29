@@ -46,51 +46,52 @@ export function NotificationCard({
   };
 
   return (
-    <View
-      style={[
-        styles.card,
-        { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-      ]}
-    >
+    <View>
       <View style={styles.titleRow}>
-        <Bell size={16} color={colors.text.primary} strokeWidth={2} />
-        <Text style={[styles.title, { color: colors.text.primary }]}>Notificações</Text>
+        <Bell size={16} color={colors.text.secondary} strokeWidth={2} />
+        <Text style={[styles.title, { color: colors.text.secondary }]}>Notificações</Text>
       </View>
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+        ]}
+      >
+        {OPTIONS.filter((o) => o.roles.includes(role)).map(({ key, label }, index, arr) => (
+          <View
+            key={key}
+            style={[
+              styles.row,
+              index < arr.length - 1 && {
+                borderBottomWidth: 1,
+                borderBottomColor: colors.border.subtle,
+              },
+            ]}
+          >
+            <Text style={[styles.label, { color: colors.text.primary }]}>{label}</Text>
+            <Switch
+              value={preferences[key]}
+              disabled={saving || disabled}
+              onValueChange={(value) => handleToggle(key, value)}
+              accessibilityLabel={label}
+              accessibilityState={{ disabled: saving }}
+              trackColor={{
+                false: colors.border.default,
+                true: accentColor,
+              }}
+              thumbColor={colors.text.inverse}
+            />
+          </View>
+        ))}
 
-      {OPTIONS.filter((o) => o.roles.includes(role)).map(({ key, label }, index, arr) => (
-        <View
-          key={key}
-          style={[
-            styles.row,
-            index < arr.length - 1 && {
-              borderBottomWidth: 1,
-              borderBottomColor: colors.border.subtle,
-            },
-          ]}
-        >
-          <Text style={[styles.label, { color: colors.text.primary }]}>{label}</Text>
-          <Switch
-            value={preferences[key]}
-            disabled={saving || disabled}
-            onValueChange={(value) => handleToggle(key, value)}
-            accessibilityLabel={label}
-            accessibilityState={{ disabled: saving }}
-            trackColor={{
-              false: colors.border.default,
-              true: accentColor,
-            }}
-            thumbColor={colors.text.inverse}
-          />
-        </View>
-      ))}
+        {saving ? (
+          <Text style={[styles.feedbackText, { color: colors.text.secondary }]}>
+            Salvando preferências...
+          </Text>
+        ) : null}
 
-      {saving ? (
-        <Text style={[styles.feedbackText, { color: colors.text.secondary }]}>
-          Salvando preferências...
-        </Text>
-      ) : null}
-
-      {error ? <InlineMessage message={error} variant="error" /> : null}
+        {error ? <InlineMessage message={error} variant="error" /> : null}
+      </View>
     </View>
   );
 }
@@ -107,11 +108,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing['1.5'],
+    paddingHorizontal: spacing['1'],
     marginBottom: spacing['2'],
   },
   title: {
     fontFamily: typography.family.bold,
-    fontSize: typography.size.md,
+    fontSize: typography.size.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   row: {
     flexDirection: 'row',

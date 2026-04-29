@@ -21,51 +21,53 @@ export function ThemeCard({ role = 'admin', disabled }: ThemeCardProps) {
   const accentColor = role === 'filho' ? colors.accent.filhoDim : colors.accent.adminDim;
 
   return (
-    <View
-      style={[
-        styles.card,
-        { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-      ]}
-    >
+    <View>
       <View style={styles.titleRow}>
-        <Palette size={16} color={colors.text.primary} strokeWidth={2} />
-        <Text style={[styles.title, { color: colors.text.primary }]}>Aparência</Text>
+        <Palette size={16} color={colors.text.secondary} strokeWidth={2} />
+        <Text style={[styles.title, { color: colors.text.secondary }]}>Aparência</Text>
       </View>
-      <View style={styles.row}>
-        {THEME_OPTIONS.map(({ value, label, Icon }) => {
-          const isActive = scheme === value;
-          return (
-            <Pressable
-              key={value}
-              style={[
-                styles.option,
-                {
-                  backgroundColor: isActive ? accentColor : colors.bg.elevated,
-                  borderColor: isActive ? accentColor : colors.border.subtle,
-                },
-              ]}
-              onPress={() => !disabled && setScheme(value)}
-              disabled={disabled}
-              accessibilityRole="button"
-              accessibilityLabel={`Tema ${label}`}
-              accessibilityState={{ selected: isActive }}
-            >
-              <Icon
-                size={16}
-                color={isActive ? colors.text.inverse : colors.text.secondary}
-                strokeWidth={2}
-              />
-              <Text
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+        ]}
+      >
+        <View style={styles.row}>
+          {THEME_OPTIONS.map(({ value, label, Icon }) => {
+            const isActive = scheme === value;
+            return (
+              <Pressable
+                key={value}
                 style={[
-                  styles.optionLabel,
-                  { color: isActive ? colors.text.inverse : colors.text.secondary },
+                  styles.option,
+                  {
+                    backgroundColor: isActive ? accentColor : colors.bg.elevated,
+                    borderColor: isActive ? accentColor : colors.border.subtle,
+                  },
                 ]}
+                onPress={() => !disabled && setScheme(value)}
+                disabled={disabled}
+                accessibilityRole="button"
+                accessibilityLabel={`Tema ${label}`}
+                accessibilityState={{ selected: isActive }}
               >
-                {label}
-              </Text>
-            </Pressable>
-          );
-        })}
+                <Icon
+                  size={16}
+                  color={isActive ? colors.text.inverse : colors.text.secondary}
+                  strokeWidth={2}
+                />
+                <Text
+                  style={[
+                    styles.optionLabel,
+                    { color: isActive ? colors.text.inverse : colors.text.secondary },
+                  ]}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
     </View>
   );
@@ -77,17 +79,19 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     borderWidth: 1,
     padding: spacing['4'],
-    gap: spacing['1'],
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing['1.5'],
+    paddingHorizontal: spacing['1'],
     marginBottom: spacing['2'],
   },
   title: {
     fontFamily: typography.family.bold,
-    fontSize: typography.size.md,
+    fontSize: typography.size.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   row: { flexDirection: 'row', gap: spacing['2'] },
   option: {

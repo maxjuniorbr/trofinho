@@ -101,163 +101,166 @@ export function AdminSection({
     }, [pendingInvite]);
 
     return (
-        <View
-            style={[
-                styles.card,
-                { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-            ]}
-        >
+        <View>
             {/* Title */}
             <View style={styles.titleRow}>
-                <Shield size={16} color={colors.text.primary} strokeWidth={2} />
-                <Text style={[styles.title, { color: colors.text.primary }]}>
+                <Shield size={16} color={colors.text.secondary} strokeWidth={2} />
+                <Text style={[styles.title, { color: colors.text.secondary }]}>
                     Administradores
                 </Text>
             </View>
 
-            {/* Admin list */}
-            {admins.map((admin, index) => {
-                const isCurrentUser = admin.id === currentUserId;
-                const isLast = index === admins.length - 1 && !pendingInvite && !showInviteButton;
+            <View
+                style={[
+                    styles.card,
+                    { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+                ]}
+            >
 
-                return (
-                    <View
-                        key={admin.id}
-                        style={[
-                            styles.adminRow,
-                            !isLast && { borderBottomWidth: 1, borderBottomColor: colors.border.subtle },
-                        ]}
-                    >
-                        <View style={styles.adminInfo}>
-                            <Text style={[styles.adminName, { color: colors.text.primary }]}>
-                                {admin.nome}
-                                {isCurrentUser ? ' (você)' : ''}
-                            </Text>
-                            {admin.email ? (
-                                <Text style={[styles.adminEmail, { color: colors.text.secondary }]}>
-                                    {admin.email}
+                {/* Admin list */}
+                {admins.map((admin, index) => {
+                    const isCurrentUser = admin.id === currentUserId;
+                    const isLast = index === admins.length - 1 && !pendingInvite && !showInviteButton;
+
+                    return (
+                        <View
+                            key={admin.id}
+                            style={[
+                                styles.adminRow,
+                                !isLast && { borderBottomWidth: 1, borderBottomColor: colors.border.subtle },
+                            ]}
+                        >
+                            <View style={styles.adminInfo}>
+                                <Text style={[styles.adminName, { color: colors.text.primary }]}>
+                                    {admin.nome}
+                                    {isCurrentUser ? ' (você)' : ''}
                                 </Text>
-                            ) : null}
+                                {admin.email ? (
+                                    <Text style={[styles.adminEmail, { color: colors.text.secondary }]}>
+                                        {admin.email}
+                                    </Text>
+                                ) : null}
+                            </View>
+
+                            {!isCurrentUser && (
+                                <Pressable
+                                    onPress={() => onRemoveAdmin(admin)}
+                                    hitSlop={8}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`Remover ${admin.nome}`}
+                                >
+                                    <Trash2 size={16} color={colors.semantic.error} strokeWidth={2} />
+                                </Pressable>
+                            )}
                         </View>
+                    );
+                })}
 
-                        {!isCurrentUser && (
-                            <Pressable
-                                onPress={() => onRemoveAdmin(admin)}
-                                hitSlop={8}
-                                accessibilityRole="button"
-                                accessibilityLabel={`Remover ${admin.nome}`}
+                {/* Pending invite */}
+                {pendingInvite && (
+                    <View style={styles.inviteSection}>
+                        <View
+                            style={[
+                                styles.inviteCard,
+                                {
+                                    backgroundColor: withAlpha(colors.brand.vivid, 0.08),
+                                    borderColor: withAlpha(colors.brand.vivid, 0.2),
+                                },
+                            ]}
+                        >
+                            <Text style={[styles.inviteLabel, { color: colors.text.secondary }]}>
+                                Convite pendente
+                            </Text>
+
+                            <Text
+                                style={[styles.inviteCode, { color: colors.text.primary }]}
+                                accessibilityLabel={`Código de convite: ${pendingInvite.codigo}`}
+                                selectable
                             >
-                                <Trash2 size={16} color={colors.semantic.error} strokeWidth={2} />
-                            </Pressable>
-                        )}
-                    </View>
-                );
-            })}
+                                {pendingInvite.codigo}
+                            </Text>
 
-            {/* Pending invite */}
-            {pendingInvite && (
-                <View style={styles.inviteSection}>
-                    <View
-                        style={[
-                            styles.inviteCard,
+                            <View style={styles.countdownRow}>
+                                <Clock size={12} color={colors.text.secondary} strokeWidth={2} />
+                                <Text style={[styles.countdownText, { color: colors.text.secondary }]}>
+                                    {countdown}
+                                </Text>
+                            </View>
+
+                            <View style={styles.inviteActions}>
+                                <Pressable
+                                    style={[
+                                        styles.actionBtn,
+                                        { backgroundColor: colors.bg.elevated, borderColor: colors.border.subtle },
+                                    ]}
+                                    onPress={handleCopy}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Copiar código"
+                                >
+                                    <Copy size={14} color={colors.text.primary} strokeWidth={2} />
+                                    <Text style={[styles.actionBtnText, { color: colors.text.primary }]}>
+                                        {copied ? 'Copiado!' : 'Copiar'}
+                                    </Text>
+                                </Pressable>
+
+                                <Pressable
+                                    style={[
+                                        styles.actionBtn,
+                                        { backgroundColor: colors.bg.elevated, borderColor: colors.border.subtle },
+                                    ]}
+                                    onPress={handleShare}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Compartilhar código"
+                                >
+                                    <Share2 size={14} color={colors.text.primary} strokeWidth={2} />
+                                    <Text style={[styles.actionBtnText, { color: colors.text.primary }]}>
+                                        Compartilhar
+                                    </Text>
+                                </Pressable>
+                            </View>
+
+                            <Pressable
+                                style={[
+                                    styles.cancelBtn,
+                                    { borderColor: withAlpha(colors.semantic.error, 0.3) },
+                                ]}
+                                onPress={() => onCancelInvite(pendingInvite.id)}
+                                disabled={cancellingInvite}
+                                accessibilityRole="button"
+                                accessibilityLabel="Cancelar convite"
+                            >
+                                <X size={14} color={colors.semantic.error} strokeWidth={2} />
+                                <Text style={[styles.cancelBtnText, { color: colors.semantic.error }]}>
+                                    {cancellingInvite ? 'Cancelando…' : 'Cancelar convite'}
+                                </Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                )}
+
+                {/* Invite button */}
+                {showInviteButton && (
+                    <Pressable
+                        style={({ pressed }) => [
+                            styles.inviteBtn,
                             {
-                                backgroundColor: withAlpha(colors.brand.vivid, 0.08),
-                                borderColor: withAlpha(colors.brand.vivid, 0.2),
+                                backgroundColor: pressed
+                                    ? withAlpha(colors.brand.vivid, 0.15)
+                                    : withAlpha(colors.brand.vivid, 0.08),
                             },
                         ]}
+                        onPress={onGenerateInvite}
+                        disabled={generatingInvite}
+                        accessibilityRole="button"
+                        accessibilityLabel="Convidar administrador"
                     >
-                        <Text style={[styles.inviteLabel, { color: colors.text.secondary }]}>
-                            Convite pendente
+                        <UserPlus size={16} color={colors.brand.dim} strokeWidth={2} />
+                        <Text style={[styles.inviteBtnText, { color: colors.brand.dim }]}>
+                            {generatingInvite ? 'Gerando convite…' : 'Convidar administrador'}
                         </Text>
-
-                        <Text
-                            style={[styles.inviteCode, { color: colors.text.primary }]}
-                            accessibilityLabel={`Código de convite: ${pendingInvite.codigo}`}
-                            selectable
-                        >
-                            {pendingInvite.codigo}
-                        </Text>
-
-                        <View style={styles.countdownRow}>
-                            <Clock size={12} color={colors.text.secondary} strokeWidth={2} />
-                            <Text style={[styles.countdownText, { color: colors.text.secondary }]}>
-                                {countdown}
-                            </Text>
-                        </View>
-
-                        <View style={styles.inviteActions}>
-                            <Pressable
-                                style={[
-                                    styles.actionBtn,
-                                    { backgroundColor: colors.bg.elevated, borderColor: colors.border.subtle },
-                                ]}
-                                onPress={handleCopy}
-                                accessibilityRole="button"
-                                accessibilityLabel="Copiar código"
-                            >
-                                <Copy size={14} color={colors.text.primary} strokeWidth={2} />
-                                <Text style={[styles.actionBtnText, { color: colors.text.primary }]}>
-                                    {copied ? 'Copiado!' : 'Copiar'}
-                                </Text>
-                            </Pressable>
-
-                            <Pressable
-                                style={[
-                                    styles.actionBtn,
-                                    { backgroundColor: colors.bg.elevated, borderColor: colors.border.subtle },
-                                ]}
-                                onPress={handleShare}
-                                accessibilityRole="button"
-                                accessibilityLabel="Compartilhar código"
-                            >
-                                <Share2 size={14} color={colors.text.primary} strokeWidth={2} />
-                                <Text style={[styles.actionBtnText, { color: colors.text.primary }]}>
-                                    Compartilhar
-                                </Text>
-                            </Pressable>
-                        </View>
-
-                        <Pressable
-                            style={[
-                                styles.cancelBtn,
-                                { borderColor: withAlpha(colors.semantic.error, 0.3) },
-                            ]}
-                            onPress={() => onCancelInvite(pendingInvite.id)}
-                            disabled={cancellingInvite}
-                            accessibilityRole="button"
-                            accessibilityLabel="Cancelar convite"
-                        >
-                            <X size={14} color={colors.semantic.error} strokeWidth={2} />
-                            <Text style={[styles.cancelBtnText, { color: colors.semantic.error }]}>
-                                {cancellingInvite ? 'Cancelando…' : 'Cancelar convite'}
-                            </Text>
-                        </Pressable>
-                    </View>
-                </View>
-            )}
-
-            {/* Invite button */}
-            {showInviteButton && (
-                <Pressable
-                    style={({ pressed }) => [
-                        styles.inviteBtn,
-                        {
-                            backgroundColor: pressed
-                                ? withAlpha(colors.brand.vivid, 0.15)
-                                : withAlpha(colors.brand.vivid, 0.08),
-                        },
-                    ]}
-                    onPress={onGenerateInvite}
-                    disabled={generatingInvite}
-                    accessibilityRole="button"
-                    accessibilityLabel="Convidar administrador"
-                >
-                    <UserPlus size={16} color={colors.brand.dim} strokeWidth={2} />
-                    <Text style={[styles.inviteBtnText, { color: colors.brand.dim }]}>
-                        {generatingInvite ? 'Gerando convite…' : 'Convidar administrador'}
-                    </Text>
-                </Pressable>
-            )}
+                    </Pressable>
+                )}
+            </View>
         </View>
     );
 }
@@ -276,11 +279,14 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: spacing['1.5'],
+        paddingHorizontal: spacing['1'],
         marginBottom: spacing['2'],
     },
     title: {
         fontFamily: typography.family.bold,
-        fontSize: typography.size.md,
+        fontSize: typography.size.xs,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
 
     // Admin rows

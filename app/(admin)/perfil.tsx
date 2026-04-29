@@ -384,14 +384,16 @@ type SectionCardProps = Readonly<{
 }>;
 
 const SectionCard = ({ title, colors, styles, children }: SectionCardProps) => (
-  <View
-    style={[
-      styles.sectionCard,
-      { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-    ]}
-  >
+  <View>
     <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>{title}</Text>
-    {children}
+    <View
+      style={[
+        styles.sectionCard,
+        { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+      ]}
+    >
+      {children}
+    </View>
   </View>
 );
 
@@ -472,9 +474,8 @@ function makeStyles(colors: ThemeColors) {
       fontSize: typography.size.xs,
       textTransform: 'uppercase',
       letterSpacing: 0.5,
-      paddingHorizontal: spacing['4'],
-      paddingTop: spacing['3'],
-      paddingBottom: spacing['1'],
+      paddingHorizontal: spacing['1'],
+      marginBottom: spacing['2'],
     },
     menuRow: {
       flexDirection: 'row',
