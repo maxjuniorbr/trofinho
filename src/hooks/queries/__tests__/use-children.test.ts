@@ -14,10 +14,15 @@ vi.mock('@tanstack/react-query', async () => {
 vi.mock('../../../../lib/children', () => ({
   listChildren: vi.fn().mockResolvedValue({ data: [], error: null }),
   getChild: vi.fn().mockResolvedValue({ data: { id: 'x', nome: 'Test' }, error: null }),
+  getMyChildId: vi.fn().mockResolvedValue('child-id-1'),
+  deactivateChild: vi.fn().mockResolvedValue({ error: null }),
+  reactivateChild: vi.fn().mockResolvedValue({ error: null }),
 }));
 
 const qh = getQueryHelpers(rq as unknown as Record<string, unknown>);
 const lastQueryOpts = qh.lastQueryOpts;
+const lastMutationOpts = qh.lastMutationOpts;
+const mockInvalidateQueries = qh.mockInvalidateQueries;
 
 beforeEach(() => qh.reset());
 
@@ -74,6 +79,47 @@ describe('use-children query hooks', () => {
       useChildDetail('abc-123');
       expect(lastQueryOpts().queryKey).toEqual(queryKeys.children.detail('abc-123'));
       expect(lastQueryOpts().staleTime).toBe(STALE_TIMES.children);
+    });
+  });
+});
+
+describe('use-children additional query hooks', () => {
+  describe('Property 3: Hooks with optional ID disable query when ID is undefined', () => {
+    it('useMyChildId sets enabled: false when userId is undefined', async () => {
+      const { useMyChildId } = await loadHooks();
+      useMyChildId(undefined);
+      expect(lastQueryOpts().enabled).toBe(false);
+    });
+
+    it('useMyChildId sets enabled: true when userId is provided', async () => {
+      const { useMyChildId } = await loadHooks();
+      useMyChildId('user-123');
+      expect(lastQueryOpts().enabled).toBe(true);
+    });
+  });
+});
+
+describe('use-children mutation hooks', () => {
+  // Feature: react-query-migration, Property 5: Mutation hooks invalidate the correct query key prefixes on success
+  describe('Property 5: Mutation hooks invalidate the correct query key prefixes on success', () => {
+    it('useDeactivateChild invalidates children.all, balances.all, and tasks.all', async () => {
+      const { useDeactivateChild } = await loadHooks();
+      useDeactivateChild();
+      const onSuccess = lastMutationOpts().onSuccess as () => void;
+      onSuccess();
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.children.all });
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.balances.all });
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.tasks.all });
+    });
+
+    it('useReactivateChild invalidates children.all, balances.all, and tasks.all', async () => {
+      const { useReactivateChild } = await loadHooks();
+      useReactivateChild();
+      const onSuccess = lastMutationOpts().onSuccess as () => void;
+      onSuccess();
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.children.all });
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.balances.all });
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.tasks.all });
     });
   });
 });

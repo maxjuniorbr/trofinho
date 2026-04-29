@@ -19,6 +19,7 @@ vi.mock('../../../../lib/auth', () => ({
   updateUserName: vi.fn().mockResolvedValue({ error: null }),
   updateUserPassword: vi.fn().mockResolvedValue({ error: null }),
   updateUserAvatar: vi.fn().mockResolvedValue({ url: 'https://img.test/avatar.png', error: null }),
+  deleteAccount: vi.fn().mockResolvedValue({ error: null }),
 }));
 
 vi.mock('../../../../lib/notifications', () => ({
@@ -110,6 +111,13 @@ describe('use-profile mutation hooks', () => {
     it('useUpdateUserPassword does not invalidate any queries', async () => {
       const { useUpdateUserPassword } = await loadHooks();
       useUpdateUserPassword();
+      const opts = lastMutationOpts();
+      expect(opts.onSuccess).toBeUndefined();
+    });
+
+    it('useDeleteAccount does not invalidate any queries', async () => {
+      const { useDeleteAccount } = await loadHooks();
+      useDeleteAccount();
       const opts = lastMutationOpts();
       expect(opts.onSuccess).toBeUndefined();
     });
