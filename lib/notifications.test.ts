@@ -422,3 +422,47 @@ describe('Contract parity: push events & notification prefs', () => {
     }
   });
 });
+
+describe('getNotificationRoute — edge cases', () => {
+  it('returns null for primitive data types', () => {
+    expect(getNotificationRoute(42)).toBeNull();
+    expect(getNotificationRoute(true)).toBeNull();
+    expect(getNotificationRoute('string')).toBeNull();
+  });
+
+  it('returns null for arrays (typeof object but not a record)', () => {
+    expect(getNotificationRoute([])).toBeNull();
+    expect(getNotificationRoute([{ route: '/(admin)/tasks' }])).toBeNull();
+  });
+
+  it('returns null when route key exists but value is not a known route', () => {
+    expect(getNotificationRoute({ route: '/(admin)/unknown' })).toBeNull();
+    expect(getNotificationRoute({ route: '/invalid' })).toBeNull();
+    expect(getNotificationRoute({ route: '' })).toBeNull();
+  });
+
+  it('omits entityId when it is a non-string type', () => {
+    const result = getNotificationRoute({ route: '/(child)/balance', entityId: 42 });
+    expect(result).toEqual({ route: '/(child)/balance', entityId: undefined });
+  });
+
+  it('property: arbitrary non-route strings always return null', () => {
+    const VALID_ROUTES = [
+      '/(admin)/tasks',
+      '/(admin)/redemptions',
+      '/(admin)/balances',
+      '/(child)/redemptions',
+      '/(child)/tasks',
+      '/(child)/balance',
+    ];
+    fc.assert(
+      fc.property(
+        fc.string().filter((s) => !VALID_ROUTES.includes(s)),
+        (route) => {
+          return getNotificationRoute({ route }) === null;
+        },
+      ),
+      { numRuns: 100 },
+    );
+  });
+});
