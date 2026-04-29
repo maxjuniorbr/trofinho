@@ -16,8 +16,10 @@ export const useTasksLiveSync = (familiaId: string | undefined) => {
     // Subscribe to both tarefas and atribuicoes, filtered by familia_id.
     // Migration 20260426200000 added familia_id to atribuicoes, enabling
     // safe family-scoped subscriptions (previously blocked — S2 risk).
+    // Stable channel name keyed on familiaId — avoids channel accumulation
+    // when the component remounts rapidly (e.g. tab switches).
     const channel = supabase
-      .channel(`tasks-live-sync-${Date.now()}-${Math.random().toString(36).slice(2)}`) // NOSONAR — not security-sensitive, just channel uniqueness
+      .channel(`tasks-live-sync-${familiaId}`)
       .on(
         'postgres_changes',
         {

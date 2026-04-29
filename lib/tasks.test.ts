@@ -1053,6 +1053,150 @@ describe('tasks', () => {
     expect(storageBucketMock.createSignedUrl).not.toHaveBeenCalled();
   });
 
+  describe('evidence path validation', () => {
+    it('rejects raw paths with directory traversal — preserves original, skips signing', async () => {
+      supabaseMock.from.mockReturnValueOnce(
+        createSingleQuery({
+          data: { id: 'a-1', evidencia_url: '../../../etc/passwd' },
+          error: null,
+        }),
+      );
+
+      const result = await getChildAssignment('a-1');
+      // Traversal path is rejected by isValidEvidencePath → normalizeEvidencePath returns null
+      // → resolveEvidenceUrl returns the original value (not passed to createSignedUrl)
+      expect(result.data?.evidencia_url).toBe('../../../etc/passwd');
+      expect(storageBucketMock.createSignedUrl).not.toHaveBeenCalled();
+    });
+
+    it('rejects raw paths without the expected dir/dir/file structure — skips signing', async () => {
+      supabaseMock.from.mockReturnValueOnce(
+        createSingleQuery({
+          data: { id: 'a-1', evidencia_url: 'just-a-filename.jpg' },
+          error: null,
+        }),
+      );
+
+      const result = await getChildAssignment('a-1');
+      expect(result.data?.evidencia_url).toBe('just-a-filename.jpg');
+      expect(storageBucketMock.createSignedUrl).not.toHaveBeenCalled();
+    });
+
+    it('rejects raw paths with only two segments — skips signing', async () => {
+      supabaseMock.from.mockReturnValueOnce(
+        createSingleQuery({
+          data: { id: 'a-1', evidencia_url: 'family/filename.jpg' },
+          error: null,
+        }),
+      );
+
+      const result = await getChildAssignment('a-1');
+      expect(result.data?.evidencia_url).toBe('family/filename.jpg');
+      expect(storageBucketMock.createSignedUrl).not.toHaveBeenCalled();
+    });
+
+    it('rejects URLs where the extracted path contains traversal — preserves original', async () => {
+      const maliciousUrl =
+        'https://example.com/storage/v1/object/public/evidencias/../../secret/file.jpg';
+      supabaseMock.from.mockReturnValueOnce(
+        createSingleQuery({
+          data: { id: 'a-1', evidencia_url: maliciousUrl },
+          error: null,
+        }),
+      );
+
+      const result = await getChildAssignment('a-1');
+      expect(result.data?.evidencia_url).toBe(maliciousUrl);
+      expect(storageBucketMock.createSignedUrl).not.toHaveBeenCalled();
+    });
+
+    it('rejects URLs where the extracted path is a single segment — preserves original', async () => {
+      const flatUrl =
+        'https://example.com/storage/v1/object/public/evidencias/flat-file.jpg';
+      supabaseMock.from.mockReturnValueOnce(
+        createSingleQuery({
+          data: { id: 'a-1', evidencia_url: flatUrl },
+          error: null,
+        }),
+      );
+
+      const result = await getChildAssignment('a-1');
+      expect(result.data?.evidencia_url).toBe(flatUrl);
+      expect(storageBucketMock.createSignedUrl).not.toHaveBeenCalled();
+    });
+
+    it('accepts valid three-segment paths from URLs', async () => {
+      supabaseMock.from.mockReturnValueOnce(
+        createSingleQuery({
+          data: {
+            id: 'a-1',
+            evidencia_url:
+              'https://example.com/storage/v1/object/public/evidencias/fam-id/child-id/photo.jpg?token=1',
+          },
+          error: null,
+        }),
+      );
+      storageBucketMock.createSignedUrl.mockResolvedValueOnce({
+        data: { signedUrl: 'https://signed.example.com/valid' },
+        error: null,
+      });
+
+      const result = await getChildAssignment('a-1');
+      expect(result.data?.evidencia_url).toBe('https://signed.example.com/valid');
+      expect(storageBucketMock.createSignedUrl).toHaveBeenCalledWith(
+        'fam-id/child-id/photo.jpg',
+        3600,
+      );
+    });
+
+    it('rejects raw paths with leading slash — skips signing', async () => {
+      supabaseMock.from.mockReturnValueOnce(
+        createSingleQuery({
+          data: { id: 'a-1', evidencia_url: '/family/child/file.jpg' },
+          error: null,
+        }),
+      );
+
+      const result = await getChildAssignment('a-1');
+      expect(result.data?.evidencia_url).toBe('/family/child/file.jpg');
+      expect(storageBucketMock.createSignedUrl).not.toHaveBeenCalled();
+    });
+
+    it('filters invalid paths from batch signing — only valid paths are signed', async () => {
+      supabaseMock.from.mockReturnValueOnce(
+        createSingleQuery({
+          data: {
+            id: 'task-1',
+            atribuicoes: [
+              { id: 'a-1', evidencia_url: '../traversal/attack.jpg', filhos: { nome: 'A' } },
+              { id: 'a-2', evidencia_url: 'single-segment.jpg', filhos: { nome: 'B' } },
+              { id: 'a-3', evidencia_url: 'fam/child/valid.jpg', filhos: { nome: 'C' } },
+              { id: 'a-4', evidencia_url: null, filhos: { nome: 'D' } },
+            ],
+          },
+          error: null,
+        }),
+      );
+      storageBucketMock.createSignedUrls.mockResolvedValueOnce({
+        data: [{ signedUrl: 'https://signed.example.com/valid', error: null }],
+        error: null,
+      });
+
+      const result = await getTaskWithAssignments('task-1');
+
+      // Only the valid three-segment path should be sent for signing
+      expect(storageBucketMock.createSignedUrls).toHaveBeenCalledWith(
+        ['fam/child/valid.jpg'],
+        3600,
+      );
+      // Invalid paths are preserved as-is, valid path gets signed URL
+      expect(result.data?.atribuicoes[0].evidencia_url).toBe('../traversal/attack.jpg');
+      expect(result.data?.atribuicoes[1].evidencia_url).toBe('single-segment.jpg');
+      expect(result.data?.atribuicoes[2].evidencia_url).toBe('https://signed.example.com/valid');
+      expect(result.data?.atribuicoes[3].evidencia_url).toBeNull();
+    });
+  });
+
   describe('push notification dispatch', () => {
     it('approveAssignment dispatches tarefa_aprovada with correct payload when opts provided', async () => {
       supabaseMock.rpc.mockResolvedValueOnce({ error: null });

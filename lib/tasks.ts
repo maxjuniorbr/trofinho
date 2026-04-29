@@ -932,9 +932,20 @@ async function resolveEvidenceUrl(evidence: string | null): Promise<string | nul
   return data.signedUrl;
 }
 
+/**
+ * Expected evidence path format: `<familia_id>/<filho_id>/<filename>`.
+ * Rejects paths with directory traversal (`..`), leading slashes, or
+ * unexpected depth to prevent malformed URLs from reaching `createSignedUrl`.
+ */
+const EVIDENCE_PATH_PATTERN = /^[^/][^?#]*\/[^/][^?#]*\/[^/][^?#]+$/;
+
+function isValidEvidencePath(path: string): boolean {
+  return EVIDENCE_PATH_PATTERN.test(path) && !path.includes('..');
+}
+
 function normalizeEvidencePath(evidence: string): string | null {
   if (!evidence.includes('://')) {
-    return evidence;
+    return isValidEvidencePath(evidence) ? evidence : null;
   }
 
   const knownMarkers = [
@@ -947,7 +958,8 @@ function normalizeEvidencePath(evidence: string): string | null {
   for (const marker of knownMarkers) {
     if (evidence.includes(marker)) {
       const path = evidence.split(marker)[1]?.split('?')[0] ?? '';
-      return path ? decodeURIComponent(path) : null;
+      const decoded = path ? decodeURIComponent(path) : '';
+      return decoded && isValidEvidencePath(decoded) ? decoded : null;
     }
   }
 
@@ -958,7 +970,8 @@ function normalizeEvidencePath(evidence: string): string | null {
     if (bucketIndex === -1) return null;
 
     const path = url.pathname.slice(bucketIndex + '/evidencias/'.length);
-    return path ? decodeURIComponent(path) : null;
+    const decoded = path ? decodeURIComponent(path) : '';
+    return decoded && isValidEvidencePath(decoded) ? decoded : null;
   } catch {
     return null;
   }

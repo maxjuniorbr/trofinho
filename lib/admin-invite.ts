@@ -38,10 +38,26 @@ export type FamilyAdmin = {
 
 // Narrowly-scoped type escapes for untyped RPCs and tables.
 // Remove once `supabase gen types` includes admin-invite entities.
-const untypedRpc: (fn: string, params?: Record<string, unknown>) => Promise<{ data: any; error: any }> =
-  supabase.rpc.bind(supabase) as any;
+type UntypedRpc = (
+  fn: string,
+  params?: Record<string, unknown>,
+) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
 
-const untypedFrom: (table: string) => any = supabase.from.bind(supabase) as any;
+type UntypedFrom = (table: string) => {
+  select: (columns: string) => {
+    eq: (col: string, val: string) => {
+      eq: (col2: string, val2: string) => {
+        maybeSingle: () => PromiseLike<{ data: unknown; error: { message: string } | null }>;
+      };
+    };
+  };
+};
+
+// Double cast through `unknown` is required because the Supabase generated
+// types are deeply generic and don't overlap with our simplified interfaces.
+const untypedRpc = supabase.rpc.bind(supabase) as unknown as UntypedRpc;
+
+const untypedFrom = supabase.from.bind(supabase) as unknown as UntypedFrom;
 
 // --- Data access functions ---
 

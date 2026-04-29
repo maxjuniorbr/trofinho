@@ -544,6 +544,104 @@ export default function ChildTaskDetailScreen() {
     );
   }
 
+  return (
+    <AssignmentDetailContent
+      assignment={assignment}
+      approvedCount={approvedCount}
+      totalPointsEarned={totalPointsEarned}
+      visibleFeedback={visibleFeedback}
+      imgLoading={imgLoading}
+      imgError={imgError}
+      completionError={completionError}
+      cancelError={cancelError}
+      discardError={discardError}
+      fullscreenImageUrl={fullscreenImageUrl}
+      completingPending={completeMutation.isPending}
+      cancelingPending={cancelMutation.isPending}
+      discardingPending={discardMutation.isPending}
+      isReadOnly={isReadOnly}
+      onBack={() => router.back()}
+      onRefetch={() => refetch()}
+      onComplete={handleComplete}
+      onDiscardRejection={handleDiscardRejection}
+      onCancelSubmission={handleCancelSubmission}
+      onImgLoadStart={() => setImgLoading(true)}
+      onImgLoadEnd={() => setImgLoading(false)}
+      onImgError={() => {
+        setImgLoading(false);
+        setImgError(true);
+      }}
+      onRetryImage={() => {
+        setImgError(false);
+        setImgLoading(true);
+      }}
+      onImagePress={(url) => setFullscreenImageUrl(url)}
+      onCloseFullscreen={() => setFullscreenImageUrl(null)}
+      colors={colors}
+      styles={styles}
+    />
+  );
+}
+
+type AssignmentDetailContentProps = Readonly<{
+  assignment: ChildAssignment;
+  approvedCount: number;
+  totalPointsEarned: number;
+  visibleFeedback: string | null;
+  imgLoading: boolean;
+  imgError: boolean;
+  completionError: string | null;
+  cancelError: string | null;
+  discardError: string | null;
+  fullscreenImageUrl: string | null;
+  completingPending: boolean;
+  cancelingPending: boolean;
+  discardingPending: boolean;
+  isReadOnly: boolean;
+  onBack: () => void;
+  onRefetch: () => void;
+  onComplete: () => void;
+  onDiscardRejection: () => void;
+  onCancelSubmission: () => void;
+  onImgLoadStart: () => void;
+  onImgLoadEnd: () => void;
+  onImgError: () => void;
+  onRetryImage: () => void;
+  onImagePress: (url: string) => void;
+  onCloseFullscreen: () => void;
+  colors: ThemeColors;
+  styles: ReturnType<typeof makeStyles>;
+}>;
+
+function AssignmentDetailContent({
+  assignment,
+  approvedCount,
+  totalPointsEarned,
+  visibleFeedback,
+  imgLoading,
+  imgError,
+  completionError,
+  cancelError,
+  discardError,
+  fullscreenImageUrl,
+  completingPending,
+  cancelingPending,
+  discardingPending,
+  isReadOnly,
+  onBack,
+  onRefetch,
+  onComplete,
+  onDiscardRejection,
+  onCancelSubmission,
+  onImgLoadStart,
+  onImgLoadEnd,
+  onImgError,
+  onRetryImage,
+  onImagePress,
+  onCloseFullscreen,
+  colors,
+  styles,
+}: AssignmentDetailContentProps) {
   const task = assignment.tarefas;
   const statusTone = getAssignmentStatusTone(assignment.status, colors);
   const completionState = getAssignmentCompletionState(assignment, task);
@@ -557,7 +655,7 @@ export default function ChildTaskDetailScreen() {
         <StatusBar style={colors.statusBar} />
         <ScreenHeader
           title="Detalhe"
-          onBack={() => router.back()}
+          onBack={onBack}
           backLabel="Tarefas"
           role="filho"
         />
@@ -567,7 +665,7 @@ export default function ChildTaskDetailScreen() {
           refreshControl={
             <RefreshControl
               refreshing={false}
-              onRefresh={() => refetch()}
+              onRefresh={onRefetch}
               tintColor={colors.accent.filho}
             />
           }
@@ -645,17 +743,11 @@ export default function ChildTaskDetailScreen() {
             evidenceUrl={assignment.evidencia_url}
             imgLoading={imgLoading}
             imgError={imgError}
-            onImgLoadStart={() => setImgLoading(true)}
-            onImgLoadEnd={() => setImgLoading(false)}
-            onImgError={() => {
-              setImgLoading(false);
-              setImgError(true);
-            }}
-            onRetryImage={() => {
-              setImgError(false);
-              setImgLoading(true);
-            }}
-            onImagePress={(url) => setFullscreenImageUrl(url)}
+            onImgLoadStart={onImgLoadStart}
+            onImgLoadEnd={onImgLoadEnd}
+            onImgError={onImgError}
+            onRetryImage={onRetryImage}
+            onImagePress={onImagePress}
             colors={colors}
             styles={styles}
           />
@@ -674,9 +766,9 @@ export default function ChildTaskDetailScreen() {
           <View style={styles.actionsSection}>
             <StatusActions
               assignment={assignment}
-              completing={completeMutation.isPending}
-              canceling={cancelMutation.isPending}
-              discarding={discardMutation.isPending}
+              completing={completingPending}
+              canceling={cancelingPending}
+              discarding={discardingPending}
               completionReason={completionState.reason}
               completionError={completionError}
               cancelError={cancelError}
@@ -685,11 +777,11 @@ export default function ChildTaskDetailScreen() {
               attemptsLeft={retryState.attemptsLeft}
               canRetry={retryState.canRetry && task.ativo !== false}
               discardError={discardError}
-              onComplete={handleComplete}
-              onRetry={handleComplete}
-              onDiscardRejection={handleDiscardRejection}
-              onCancelSubmission={handleCancelSubmission}
-              onBack={() => router.back()}
+              onComplete={onComplete}
+              onRetry={onComplete}
+              onDiscardRejection={onDiscardRejection}
+              onCancelSubmission={onCancelSubmission}
+              onBack={onBack}
               colors={colors}
               styles={styles}
               disabled={isReadOnly}
@@ -702,7 +794,7 @@ export default function ChildTaskDetailScreen() {
         <FullscreenImageViewer
           visible
           imageUrl={fullscreenImageUrl}
-          onClose={() => setFullscreenImageUrl(null)}
+          onClose={onCloseFullscreen}
         />
       ) : null}
     </>

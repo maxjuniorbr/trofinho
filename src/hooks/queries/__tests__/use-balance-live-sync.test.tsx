@@ -94,4 +94,17 @@ describe('useBalanceLiveSync', () => {
 
     expect(removeChannelMock).not.toHaveBeenCalled();
   });
+
+  it('uses a stable channel name derived from childId', () => {
+    let renderer!: ReactTestRenderer;
+    act(() => {
+      renderer = create(<TestComponent childId={TEST_CHILD_ID} />);
+    });
+
+    expect(supabase.channel).toHaveBeenCalledWith(`balance-live-sync-${TEST_CHILD_ID}`);
+
+    act(() => {
+      renderer.unmount();
+    });
+  });
 });

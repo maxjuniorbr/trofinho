@@ -263,7 +263,7 @@ export async function applyPenalty(
     p_descricao: description,
   });
   if (error) return { data: null, error: localizeRpcError(error.message) };
-  return { data: { deducted: (data as number) ?? amount }, error: null };
+  return { data: { deducted: data ?? amount }, error: null };
 }
 
 export const calculateProjection = (cofrinho: number, rate: number): number => {

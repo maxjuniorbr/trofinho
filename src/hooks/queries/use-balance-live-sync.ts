@@ -21,8 +21,10 @@ export const useBalanceLiveSync = (childId: string | undefined) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });
     };
 
+    // Stable channel name keyed on childId — avoids channel accumulation
+    // when the component remounts rapidly (e.g. tab switches).
     const channel = supabase
-      .channel(`balance-live-sync-${Date.now()}-${Math.random().toString(36).slice(2)}`) // NOSONAR — not security-sensitive, just channel uniqueness
+      .channel(`balance-live-sync-${childId}`)
       .on(
         'postgres_changes',
         {
