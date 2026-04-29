@@ -232,6 +232,34 @@ type PrizeCardProps = Readonly<{
   isReadOnly: boolean;
 }>;
 
+type PrizeStatusBadgeProps = Readonly<{
+  outOfStock: boolean;
+  hasBalance: boolean;
+  deficit: number;
+  colors: ThemeColors;
+}>;
+
+function PrizeStatusBadge({ outOfStock, hasBalance, deficit, colors }: PrizeStatusBadgeProps) {
+  if (outOfStock) {
+    return <Text style={[cardStyles.statusText, { color: colors.text.muted }]}>Esgotado</Text>;
+  }
+  if (hasBalance) {
+    return (
+      <View style={cardStyles.statusInner}>
+        <CheckCircle2 size={12} color={colors.semantic.success} strokeWidth={2} />
+        <Text style={[cardStyles.statusText, { color: colors.semantic.success }]}>
+          Disponível!
+        </Text>
+      </View>
+    );
+  }
+  return (
+    <Text style={[cardStyles.statusText, { color: colors.text.muted }]}>
+      Faltam {deficit} pts
+    </Text>
+  );
+}
+
 function PrizeCard({ item, freeBalance, redeeming, onRedeem, isReadOnly }: PrizeCardProps) {
   const { colors } = useTheme();
   const outOfStock = item.estoque === 0;
@@ -240,6 +268,25 @@ function PrizeCard({ item, freeBalance, redeeming, onRedeem, isReadOnly }: Prize
   const progress = item.custo_pontos > 0 ? Math.min(freeBalance / item.custo_pontos, 1) : 1;
   const isRedeeming = redeeming === item.id;
   const progressAnim = useRef(new Animated.Value(0)).current;
+  const deficit = item.custo_pontos - freeBalance;
+
+  const statusBgColor = outOfStock
+    ? colors.bg.muted
+    : hasBalance
+      ? colors.semantic.successBg
+      : colors.bg.muted;
+
+  const buttonLabel = outOfStock
+    ? 'Indisponível'
+    : canRedeem
+      ? 'Resgatar'
+      : `Faltam ${deficit} pts`;
+
+  const buttonA11yLabel = outOfStock
+    ? `${item.nome} esgotado`
+    : canRedeem
+      ? `Resgatar ${item.nome}`
+      : `Saldo insuficiente para ${item.nome}`;
 
   useEffect(() => {
     const animation = Animated.timing(progressAnim, {
@@ -297,36 +344,26 @@ function PrizeCard({ item, freeBalance, redeeming, onRedeem, isReadOnly }: Prize
       <View
         style={[
           cardStyles.statusRow,
-          { backgroundColor: outOfStock ? colors.bg.muted : hasBalance ? colors.semantic.successBg : colors.bg.muted },
+          { backgroundColor: statusBgColor },
         ]}
       >
-        {outOfStock ? (
-          <Text style={[cardStyles.statusText, { color: colors.text.muted }]}>Esgotado</Text>
-        ) : hasBalance ? (
-          <View style={cardStyles.statusInner}>
-            <CheckCircle2 size={12} color={colors.semantic.success} strokeWidth={2} />
-            <Text style={[cardStyles.statusText, { color: colors.semantic.success }]}>
-              Disponível!
-            </Text>
-          </View>
-        ) : (
-          <Text style={[cardStyles.statusText, { color: colors.text.muted }]}>
-            Faltam {item.custo_pontos - freeBalance} pts
-          </Text>
-        )}
+        <PrizeStatusBadge
+          outOfStock={outOfStock}
+          hasBalance={hasBalance}
+          deficit={deficit}
+          colors={colors}
+        />
       </View>
 
       <Button
         variant="primary"
         size="sm"
-        label={outOfStock ? 'Indisponível' : canRedeem ? 'Resgatar' : `Faltam ${item.custo_pontos - freeBalance} pts`}
+        label={buttonLabel}
         disabled={!canRedeem || redeeming !== null || isReadOnly}
         loading={isRedeeming}
         loadingLabel="Resgatando…"
         onPress={() => onRedeem(item)}
-        accessibilityLabel={
-          outOfStock ? `${item.nome} esgotado` : canRedeem ? `Resgatar ${item.nome}` : `Saldo insuficiente para ${item.nome}`
-        }
+        accessibilityLabel={buttonA11yLabel}
         accessibilityState={{ disabled: !canRedeem || redeeming !== null || isReadOnly }}
       />
     </View>

@@ -159,22 +159,13 @@ export default function ChildProfileScreen() {
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
-              {isReadOnly ? (
-                <AvatarSection
-                  name={effectiveName}
-                  email=""
-                  avatarUri={effectiveAvatarUri}
-                  role="filho"
-                />
-              ) : (
-                <AvatarSection
-                  name={effectiveName}
-                  email={email}
-                  avatarUri={effectiveAvatarUri}
-                  role="filho"
-                  onAvatarChange={setLocalAvatarUri}
-                />
-              )}
+              <AvatarSection
+                name={effectiveName}
+                email={isReadOnly ? '' : email}
+                avatarUri={effectiveAvatarUri}
+                role="filho"
+                onAvatarChange={isReadOnly ? undefined : setLocalAvatarUri}
+              />
 
               <ThemeCard role="filho" disabled={isReadOnly} />
 

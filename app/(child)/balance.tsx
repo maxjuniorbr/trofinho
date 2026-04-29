@@ -40,6 +40,7 @@ import { InlineMessage } from '@/components/ui/inline-message';
 import { BottomSheetModal } from '@/components/ui/bottom-sheet';
 import { getSafeBottomPadding } from '@lib/safe-area';
 import { calculateNetAmount, getMinimumWithdrawalAmount } from '@lib/piggy-bank-withdrawal';
+import type { PiggyBankWithdrawal } from '@lib/piggy-bank-withdrawal';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 
 const todayRange = () => {
@@ -407,210 +408,39 @@ export default function ChildBalanceScreen() {
           />
         }
         ListHeaderComponent={
-          <>
-            {successFeedback ? (
-              <View style={{ marginBottom: spacing['3'] }}>
-                <InlineMessage message={successFeedback} variant="success" />
-              </View>
-            ) : null}
-
-            {/* Two side-by-side balance cards — same pattern as admin */}
-            <View style={styles.balanceCards}>
-              <LinearGradient
-                colors={gradients.gold.colors}
-                start={gradients.gold.start}
-                end={gradients.gold.end}
-                style={styles.balanceCard}
-              >
-                <View style={styles.balanceCardTop}>
-                  <Wallet size={14} color="rgba(255,255,255,0.7)" strokeWidth={2} />
-                  <Text style={styles.balanceCardLabel}>SALDO LIVRE</Text>
-                </View>
-                <Text style={styles.balanceCardValue}>{freeBalance.toLocaleString('pt-BR')}</Text>
-                <Text style={styles.balanceCardUnit}>pontos</Text>
-              </LinearGradient>
-
-              <View
-                style={[
-                  styles.balanceCard,
-                  styles.cofrinhoCard,
-                  { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-                ]}
-              >
-                <View style={styles.balanceCardTop}>
-                  <PiggyBank size={14} color={colors.text.muted} strokeWidth={2} />
-                  <Text style={[styles.balanceCardLabel, { color: colors.text.muted }]}>
-                    COFRINHO
-                  </Text>
-                </View>
-                <Text style={[styles.balanceCardValue, { color: colors.text.primary }]}>
-                  {piggyBank.toLocaleString('pt-BR')}
-                </Text>
-                <Text style={[styles.balanceCardUnit, { color: colors.text.muted }]}>pontos</Text>
-              </View>
-            </View>
-
-            {/* Progress bar */}
-            {totalPts > 0 ? (
-              <View style={styles.progressSection}>
-                <View style={[styles.progressTrack, { backgroundColor: colors.bg.muted }]}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      { flex: cofrinhoPercent, backgroundColor: colors.brand.vivid },
-                    ]}
-                  />
-                  <View style={{ flex: 100 - cofrinhoPercent }} />
-                </View>
-                <Text style={[styles.progressLabel, { color: colors.text.muted }]}>
-                  {cofrinhoPercent}% no cofrinho
-                </Text>
-              </View>
-            ) : null}
-
-            {/* Action buttons */}
-            <View style={styles.actionBtns}>
-              <View style={{ flex: 1 }}>
-                <Button
-                  variant="primary"
-                  label="Depositar"
-                  disabled={freeBalance === 0 || isReadOnly}
-                  onPress={() => {
-                    setModalVisible(true);
-                    setAmountStr('');
-                    setModalError(null);
-                  }}
-                  accessibilityLabel="Guardar pontos no cofrinho"
-                />
-              </View>
-              {showWithdrawButton ? (
-                <View style={{ flex: 1 }}>
-                  <Button
-                    variant="secondary"
-                    label="Retirar"
-                    disabled={!canWithdraw || isReadOnly}
-                    onPress={() => {
-                      setWithdrawModalVisible(true);
-                      setAmountStr('');
-                      setModalError(null);
-                    }}
-                    accessibilityLabel="Solicitar resgate de pontos do cofrinho"
-                  />
-                </View>
-              ) : null}
-            </View>
-
-            {/* Insufficient balance hint for withdrawal */}
-            {showWithdrawButton && !canWithdraw ? (
-              <View style={{ marginBottom: spacing['3'] }}>
-                <InlineMessage
-                  message={`Saldo mínimo para resgate: ${minimumWithdrawal} pts (taxa de ${withdrawalRate}%).`}
-                  variant="info"
-                />
-              </View>
-            ) : null}
-
-            {/* Pending withdrawal banner */}
-            {showPendingWithdrawal ? (
-              <View style={styles.pendingWithdrawalBox}>
-                <InlineMessage
-                  message={`Resgate pendente: ${pendingWithdrawal.valor_solicitado} pts (receberá ${pendingWithdrawal.valor_liquido} pts). Aguardando aprovação.`}
-                  variant="warning"
-                />
-                <View style={{ marginTop: spacing['2'] }}>
-                  <Button
-                    variant="outline"
-                    label="Cancelar resgate"
-                    loading={cancelWithdrawalMutation.isPending}
-                    loadingLabel="Cancelando…"
-                    onPress={handleCancelWithdrawal}
-                    disabled={isReadOnly}
-                    accessibilityLabel="Cancelar solicitação de resgate do cofrinho"
-                  />
-                </View>
-              </View>
-            ) : null}
-
-            {/* Piggy rules summary card (read-only) */}
-            <View
-              style={[
-                styles.rulesCard,
-                { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-              ]}
-            >
-              <View style={styles.rulesCardHeader}>
-                <View style={[styles.rulesIconBox, { backgroundColor: colors.semantic.successBg }]}>
-                  <TrendingUp size={16} color={colors.semantic.success} strokeWidth={2} />
-                </View>
-                <Text style={[styles.rulesTitle, { color: colors.text.primary }]}>
-                  Regras do cofrinho
-                </Text>
-              </View>
-
-              {hasAppreciationConfigured ? (
-                <>
-                  <View style={styles.rulesRateRow}>
-                    <Text style={[styles.rulesRateValue, { color: colors.text.primary }]}>
-                      {appreciationRate}%
-                    </Text>
-                    <Text style={[styles.rulesRateUnit, { color: colors.text.muted }]}>ao mês</Text>
-                  </View>
-                  {projection > 0 && piggyBank > 0 ? (
-                    <View
-                      style={[styles.projectionBox, { backgroundColor: colors.semantic.successBg }]}
-                    >
-                      <View style={styles.projectionRow}>
-                        <TrendingUp size={12} color={colors.semantic.successText} strokeWidth={2} />
-                        <Text
-                          style={[styles.projectionText, { color: colors.semantic.successText }]}
-                        >
-                          Projeção: +{projection} pts no próximo mês
-                        </Text>
-                      </View>
-                      <Text
-                        style={[styles.projectionDetail, { color: colors.semantic.successText }]}
-                      >
-                        Sobre {piggyBank} pts no cofrinho a {appreciationRate}%
-                      </Text>
-                    </View>
-                  ) : null}
-                </>
-              ) : (
-                <View style={styles.noAppreciationRow}>
-                  <AlertTriangle size={16} color={colors.semantic.warning} strokeWidth={2} />
-                  <Text style={[styles.noAppreciationText, { color: colors.text.muted }]}>
-                    Rendimento não configurado
-                  </Text>
-                </View>
-              )}
-
-              <View style={styles.rulesStatsRow}>
-                <View style={[styles.rulesStat, { backgroundColor: colors.bg.muted }]}>
-                  <Text style={[styles.rulesStatLabel, { color: colors.text.muted }]}>
-                    TAXA DE SAQUE
-                  </Text>
-                  <Text style={[styles.rulesStatValue, { color: colors.semantic.warning }]}>
-                    -{withdrawalRate}%
-                  </Text>
-                </View>
-                <View style={[styles.rulesStat, { backgroundColor: colors.bg.muted }]}>
-                  <Text style={[styles.rulesStatLabel, { color: colors.text.muted }]}>
-                    SEM TAXA APÓS
-                  </Text>
-                  <Text style={[styles.rulesStatValue, { color: colors.semantic.success }]}>
-                    {prazoBloqueio} dias
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.historicoHeader}>
-              <Text style={styles.secaoTitulo}>Atividades de hoje</Text>
-            </View>
-            {hasTransactions ? null : (
-              <Text style={styles.vazio}>Nenhuma movimentação hoje.</Text>
-            )}
-          </>
+          <BalanceListHeader
+            successFeedback={successFeedback}
+            freeBalance={freeBalance}
+            piggyBank={piggyBank}
+            totalPts={totalPts}
+            cofrinhoPercent={cofrinhoPercent}
+            appreciationRate={appreciationRate}
+            withdrawalRate={withdrawalRate}
+            prazoBloqueio={prazoBloqueio}
+            hasAppreciationConfigured={hasAppreciationConfigured}
+            projection={projection}
+            hasTransactions={hasTransactions}
+            showWithdrawButton={showWithdrawButton}
+            canWithdraw={canWithdraw}
+            minimumWithdrawal={minimumWithdrawal}
+            showPendingWithdrawal={showPendingWithdrawal}
+            pendingWithdrawal={pendingWithdrawal}
+            cancelWithdrawalLoading={cancelWithdrawalMutation.isPending}
+            isReadOnly={isReadOnly}
+            onDeposit={() => {
+              setModalVisible(true);
+              setAmountStr('');
+              setModalError(null);
+            }}
+            onWithdraw={() => {
+              setWithdrawModalVisible(true);
+              setAmountStr('');
+              setModalError(null);
+            }}
+            onCancelWithdrawal={handleCancelWithdrawal}
+            colors={colors}
+            styles={styles}
+          />
         }
         renderItem={({ item }) => {
           const cat = getTransactionCategory(item.tipo);
@@ -658,6 +488,257 @@ export default function ChildBalanceScreen() {
       {renderTransferModal()}
       {renderWithdrawModal()}
     </SafeScreenFrame>
+  );
+}
+
+type BalanceListHeaderProps = Readonly<{
+  successFeedback: string | null;
+  freeBalance: number;
+  piggyBank: number;
+  totalPts: number;
+  cofrinhoPercent: number;
+  appreciationRate: number;
+  withdrawalRate: number;
+  prazoBloqueio: number;
+  hasAppreciationConfigured: boolean;
+  projection: number;
+  hasTransactions: boolean;
+  showWithdrawButton: boolean;
+  canWithdraw: boolean;
+  minimumWithdrawal: number;
+  showPendingWithdrawal: boolean;
+  pendingWithdrawal: PiggyBankWithdrawal | null;
+  cancelWithdrawalLoading: boolean;
+  isReadOnly: boolean;
+  onDeposit: () => void;
+  onWithdraw: () => void;
+  onCancelWithdrawal: () => void;
+  colors: ThemeColors;
+  styles: ReturnType<typeof makeStyles>;
+}>;
+
+function BalanceListHeader({
+  successFeedback,
+  freeBalance,
+  piggyBank,
+  totalPts,
+  cofrinhoPercent,
+  appreciationRate,
+  withdrawalRate,
+  prazoBloqueio,
+  hasAppreciationConfigured,
+  projection,
+  hasTransactions,
+  showWithdrawButton,
+  canWithdraw,
+  minimumWithdrawal,
+  showPendingWithdrawal,
+  pendingWithdrawal,
+  cancelWithdrawalLoading,
+  isReadOnly,
+  onDeposit,
+  onWithdraw,
+  onCancelWithdrawal,
+  colors,
+  styles,
+}: BalanceListHeaderProps) {
+  return (
+    <>
+      {successFeedback ? (
+        <View style={{ marginBottom: spacing['3'] }}>
+          <InlineMessage message={successFeedback} variant="success" />
+        </View>
+      ) : null}
+
+      {/* Two side-by-side balance cards — same pattern as admin */}
+      <View style={styles.balanceCards}>
+        <LinearGradient
+          colors={gradients.gold.colors}
+          start={gradients.gold.start}
+          end={gradients.gold.end}
+          style={styles.balanceCard}
+        >
+          <View style={styles.balanceCardTop}>
+            <Wallet size={14} color="rgba(255,255,255,0.7)" strokeWidth={2} />
+            <Text style={styles.balanceCardLabel}>SALDO LIVRE</Text>
+          </View>
+          <Text style={styles.balanceCardValue}>{freeBalance.toLocaleString('pt-BR')}</Text>
+          <Text style={styles.balanceCardUnit}>pontos</Text>
+        </LinearGradient>
+
+        <View
+          style={[
+            styles.balanceCard,
+            styles.cofrinhoCard,
+            { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+          ]}
+        >
+          <View style={styles.balanceCardTop}>
+            <PiggyBank size={14} color={colors.text.muted} strokeWidth={2} />
+            <Text style={[styles.balanceCardLabel, { color: colors.text.muted }]}>
+              COFRINHO
+            </Text>
+          </View>
+          <Text style={[styles.balanceCardValue, { color: colors.text.primary }]}>
+            {piggyBank.toLocaleString('pt-BR')}
+          </Text>
+          <Text style={[styles.balanceCardUnit, { color: colors.text.muted }]}>pontos</Text>
+        </View>
+      </View>
+
+      {/* Progress bar */}
+      {totalPts > 0 ? (
+        <View style={styles.progressSection}>
+          <View style={[styles.progressTrack, { backgroundColor: colors.bg.muted }]}>
+            <View
+              style={[
+                styles.progressFill,
+                { flex: cofrinhoPercent, backgroundColor: colors.brand.vivid },
+              ]}
+            />
+            <View style={{ flex: 100 - cofrinhoPercent }} />
+          </View>
+          <Text style={[styles.progressLabel, { color: colors.text.muted }]}>
+            {cofrinhoPercent}% no cofrinho
+          </Text>
+        </View>
+      ) : null}
+
+      {/* Action buttons */}
+      <View style={styles.actionBtns}>
+        <View style={{ flex: 1 }}>
+          <Button
+            variant="primary"
+            label="Depositar"
+            disabled={freeBalance === 0 || isReadOnly}
+            onPress={onDeposit}
+            accessibilityLabel="Guardar pontos no cofrinho"
+          />
+        </View>
+        {showWithdrawButton ? (
+          <View style={{ flex: 1 }}>
+            <Button
+              variant="secondary"
+              label="Retirar"
+              disabled={!canWithdraw || isReadOnly}
+              onPress={onWithdraw}
+              accessibilityLabel="Solicitar resgate de pontos do cofrinho"
+            />
+          </View>
+        ) : null}
+      </View>
+
+      {/* Insufficient balance hint for withdrawal */}
+      {showWithdrawButton && !canWithdraw ? (
+        <View style={{ marginBottom: spacing['3'] }}>
+          <InlineMessage
+            message={`Saldo mínimo para resgate: ${minimumWithdrawal} pts (taxa de ${withdrawalRate}%).`}
+            variant="info"
+          />
+        </View>
+      ) : null}
+
+      {/* Pending withdrawal banner */}
+      {showPendingWithdrawal && pendingWithdrawal ? (
+        <View style={styles.pendingWithdrawalBox}>
+          <InlineMessage
+            message={`Resgate pendente: ${pendingWithdrawal.valor_solicitado} pts (receberá ${pendingWithdrawal.valor_liquido} pts). Aguardando aprovação.`}
+            variant="warning"
+          />
+          <View style={{ marginTop: spacing['2'] }}>
+            <Button
+              variant="outline"
+              label="Cancelar resgate"
+              loading={cancelWithdrawalLoading}
+              loadingLabel="Cancelando…"
+              onPress={onCancelWithdrawal}
+              disabled={isReadOnly}
+              accessibilityLabel="Cancelar solicitação de resgate do cofrinho"
+            />
+          </View>
+        </View>
+      ) : null}
+
+      {/* Piggy rules summary card (read-only) */}
+      <View
+        style={[
+          styles.rulesCard,
+          { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+        ]}
+      >
+        <View style={styles.rulesCardHeader}>
+          <View style={[styles.rulesIconBox, { backgroundColor: colors.semantic.successBg }]}>
+            <TrendingUp size={16} color={colors.semantic.success} strokeWidth={2} />
+          </View>
+          <Text style={[styles.rulesTitle, { color: colors.text.primary }]}>
+            Regras do cofrinho
+          </Text>
+        </View>
+
+        {hasAppreciationConfigured ? (
+          <>
+            <View style={styles.rulesRateRow}>
+              <Text style={[styles.rulesRateValue, { color: colors.text.primary }]}>
+                {appreciationRate}%
+              </Text>
+              <Text style={[styles.rulesRateUnit, { color: colors.text.muted }]}>ao mês</Text>
+            </View>
+            {projection > 0 && piggyBank > 0 ? (
+              <View
+                style={[styles.projectionBox, { backgroundColor: colors.semantic.successBg }]}
+              >
+                <View style={styles.projectionRow}>
+                  <TrendingUp size={12} color={colors.semantic.successText} strokeWidth={2} />
+                  <Text
+                    style={[styles.projectionText, { color: colors.semantic.successText }]}
+                  >
+                    Projeção: +{projection} pts no próximo mês
+                  </Text>
+                </View>
+                <Text
+                  style={[styles.projectionDetail, { color: colors.semantic.successText }]}
+                >
+                  Sobre {piggyBank} pts no cofrinho a {appreciationRate}%
+                </Text>
+              </View>
+            ) : null}
+          </>
+        ) : (
+          <View style={styles.noAppreciationRow}>
+            <AlertTriangle size={16} color={colors.semantic.warning} strokeWidth={2} />
+            <Text style={[styles.noAppreciationText, { color: colors.text.muted }]}>
+              Rendimento não configurado
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.rulesStatsRow}>
+          <View style={[styles.rulesStat, { backgroundColor: colors.bg.muted }]}>
+            <Text style={[styles.rulesStatLabel, { color: colors.text.muted }]}>
+              TAXA DE SAQUE
+            </Text>
+            <Text style={[styles.rulesStatValue, { color: colors.semantic.warning }]}>
+              -{withdrawalRate}%
+            </Text>
+          </View>
+          <View style={[styles.rulesStat, { backgroundColor: colors.bg.muted }]}>
+            <Text style={[styles.rulesStatLabel, { color: colors.text.muted }]}>
+              SEM TAXA APÓS
+            </Text>
+            <Text style={[styles.rulesStatValue, { color: colors.semantic.success }]}>
+              {prazoBloqueio} dias
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.historicoHeader}>
+        <Text style={styles.secaoTitulo}>Atividades de hoje</Text>
+      </View>
+      {hasTransactions ? null : (
+        <Text style={styles.vazio}>Nenhuma movimentação hoje.</Text>
+      )}
+    </>
   );
 }
 
