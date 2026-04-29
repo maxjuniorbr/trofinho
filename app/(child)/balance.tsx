@@ -157,7 +157,7 @@ export default function ChildBalanceScreen() {
       setModalVisible(false);
       setAmountStr('');
       const s = pluralS(v);
-      setTransferSuccess(`${v} ponto${s} guardado${s} no cofrinho! 🐷`);
+      setTransferSuccess(`${v} ponto${s} guardado${s} no cofrinho!`);
     } catch (e) {
       setModalError(extractErrorMessage(e, 'Não foi possível transferir.'));
     }
