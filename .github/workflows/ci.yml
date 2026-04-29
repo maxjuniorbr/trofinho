@@ -36,6 +36,9 @@ jobs:
 
       - name: SonarCloud Scan
         if: env.SONAR_TOKEN != ''
+        # SonarCloud scan is informational — transient API errors (HTTP 500)
+        # must not block the pipeline when code quality checks already passed.
+        continue-on-error: true
         uses: SonarSource/sonarqube-scan-action@299e4b793aaa83bf2aba7c9c14bedbb485688ec4 # v7.1.0
         with:
           args: -Dproject.settings=.sonarcloud.properties
