@@ -19,11 +19,11 @@ describe('getAppVersion', () => {
   it('falls back to dash when both sources are unavailable', async () => {
     const constants = await import('expo-constants');
     const original = constants.default.expoConfig;
-    constants.default.expoConfig = null as ReturnType<typeof constants.default.expoConfig>;
+    (constants.default as Record<string, unknown>).expoConfig = null;
 
     const { getAppVersion } = await import('./app-version');
     expect(getAppVersion()).toBe('—');
 
-    constants.default.expoConfig = original;
+    (constants.default as Record<string, unknown>).expoConfig = original;
   });
 });
