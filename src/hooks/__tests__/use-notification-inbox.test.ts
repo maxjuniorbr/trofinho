@@ -208,7 +208,7 @@ describe('useChildUnreadNotifCount', () => {
       { id: '1', group: 'Hoje' },
       { id: '2', group: 'Hoje' },
       { id: '3', group: 'Ontem' },
-    ];
+    ] as any;
     mockDeriveChildNotifs.mockReturnValue(todayNotifs);
 
     const { useChildUnreadNotifCount } = await loadHooks();
@@ -228,7 +228,7 @@ describe('useChildUnreadNotifCount', () => {
     mockDeriveChildNotifs.mockReturnValue([
       { id: '1', group: 'Ontem' },
       { id: '2', group: 'Anterior' },
-    ]);
+    ] as any);
 
     const { useChildUnreadNotifCount } = await loadHooks();
     const count = useChildUnreadNotifCount();
