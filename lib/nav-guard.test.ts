@@ -99,6 +99,28 @@ describe('resolveNavDecision', () => {
     });
   });
 
+  describe('impersonation mode (admin viewing child screens)', () => {
+    it('allows admin in child group when isImpersonating is true', () => {
+      expect(resolveNavDecision(true, admin, ['(child)'], true)).toBeNull();
+      expect(resolveNavDecision(true, admin, ['(child)', 'tasks'], true)).toBeNull();
+      expect(resolveNavDecision(true, admin, ['(child)', 'balance'], true)).toBeNull();
+    });
+
+    it('redirects admin from child group when isImpersonating is false (default)', () => {
+      expect(resolveNavDecision(true, admin, ['(child)'])).toBe('/(admin)/');
+      expect(resolveNavDecision(true, admin, ['(child)', 'tasks'], false)).toBe('/(admin)/');
+    });
+
+    it('does not affect filho users — they access child group regardless of flag', () => {
+      expect(resolveNavDecision(true, filho, ['(child)'], true)).toBeNull();
+      expect(resolveNavDecision(true, filho, ['(child)'], false)).toBeNull();
+    });
+
+    it('does not allow filho to access admin group even with isImpersonating', () => {
+      expect(resolveNavDecision(true, filho, ['(admin)'], true)).toBe('/(child)/');
+    });
+  });
+
   describe('when authenticated filho user', () => {
     it('redirects to child home when in auth group', () => {
       expect(resolveNavDecision(true, filho, ['(auth)', 'login'])).toBe('/(child)/');

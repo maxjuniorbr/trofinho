@@ -3,6 +3,7 @@ import fc from 'fast-check';
 
 import {
   createFamily,
+  deleteAccount,
   getCurrentAuthUser,
   getProfile,
   refreshAuthSession,
@@ -477,6 +478,62 @@ describe('auth', () => {
     await expect(updateUserAvatar('/test/avatar.unknown')).resolves.toEqual({
       url: null,
       error: 'Não foi possível ler a imagem selecionada',
+    });
+  });
+
+  describe('deleteAccount', () => {
+    it('calls excluir_minha_conta RPC and signs out on success', async () => {
+      supabaseMock.rpc.mockReturnValue(
+        supabaseMock.rpc._createResult({ data: null, error: null }),
+      );
+      supabaseMock.auth.signOut.mockResolvedValue({});
+
+      const result = await deleteAccount();
+
+      expect(supabaseMock.rpc).toHaveBeenCalledWith('excluir_minha_conta');
+      expect(supabaseMock.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
+      expect(result).toEqual({ error: null });
+    });
+
+    it('returns localized error when RPC fails and does not sign out', async () => {
+      supabaseMock.rpc.mockReturnValue(
+        supabaseMock.rpc._createResult({
+          data: null,
+          error: { message: 'unexpected db error' },
+        }),
+      );
+
+      const result = await deleteAccount();
+
+      expect(result.error).toBe('Algo deu errado. Tente novamente.');
+      expect(supabaseMock.auth.signOut).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('signUp edge cases', () => {
+    it('surfaces weak password errors with actionable message', async () => {
+      supabaseMock.auth.signUp.mockResolvedValue({
+        error: { message: 'Password should be at least 6 characters' },
+      });
+
+      const result = await signUp('test@example.com', '123');
+
+      expect(result.error).toBe('A senha deve ter ao menos 6 caracteres.');
+    });
+
+    it('returns generic message for "User already registered" to prevent enumeration', async () => {
+      supabaseMock.auth.signUp.mockResolvedValue({
+        error: { message: 'User already registered' },
+      });
+
+      const result = await signUp('existing@example.com', 'password123');
+
+      expect(result.error).toBe(
+        'Não foi possível concluir o cadastro. Verifique o e-mail e a senha e tente novamente.',
+      );
+      // Must NOT contain "already registered" or similar enumeration hints
+      expect(result.error).not.toContain('already');
+      expect(result.error).not.toContain('cadastrado');
     });
   });
 

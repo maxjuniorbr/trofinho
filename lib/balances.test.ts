@@ -5,6 +5,7 @@ import {
   applyPenalty,
   calculateProjection,
   configureAppreciation,
+  configurePiggyBank,
   formatTransactionDates,
   getAppreciationPeriodLabel,
   getBalance,
@@ -13,6 +14,7 @@ import {
   isCredit,
   listAdminBalances,
   listTransactions,
+  listTransactionsByPeriod,
   syncAutomaticAppreciation,
   transferToPiggyBank,
 } from './balances';
@@ -224,6 +226,84 @@ describe('balances', () => {
     );
   });
 
+  describe('listTransactionsByPeriod', () => {
+    it('calls the RPC with correct parameters and returns data', async () => {
+      const txData = [{ id: 'tx-1', tipo: 'credito', valor: 10 }];
+      supabaseMock.rpc.mockReturnValue({
+        overrideTypes: vi.fn().mockResolvedValue({ data: txData, error: null }),
+      });
+
+      const result = await listTransactionsByPeriod('child-1', '2026-04-01', '2026-04-30');
+
+      expect(supabaseMock.rpc).toHaveBeenCalledWith('listar_movimentacoes_por_periodo', {
+        p_filho_id: 'child-1',
+        p_from: '2026-04-01',
+        p_to: '2026-04-30',
+      });
+      expect(result).toEqual({ data: txData, error: null });
+    });
+
+    it('returns empty array and error on RPC failure', async () => {
+      supabaseMock.rpc.mockReturnValue({
+        overrideTypes: vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'period query failed' },
+        }),
+      });
+
+      const result = await listTransactionsByPeriod('child-1', '2026-04-01', '2026-04-30');
+
+      expect(result).toEqual({
+        data: [],
+        error: 'Algo deu errado. Tente novamente.',
+      });
+    });
+
+    it('returns empty array when RPC returns null data without error', async () => {
+      supabaseMock.rpc.mockReturnValue({
+        overrideTypes: vi.fn().mockResolvedValue({ data: null, error: null }),
+      });
+
+      const result = await listTransactionsByPeriod('child-1', '2026-04-01', '2026-04-30');
+
+      expect(result).toEqual({ data: [], error: null });
+    });
+  });
+
+  describe('configurePiggyBank', () => {
+    it('calls the RPC with correct parameters on success', async () => {
+      supabaseMock.rpc.mockResolvedValue({ error: null });
+
+      const result = await configurePiggyBank('child-1', {
+        rate: 10,
+        withdrawalRate: 5,
+        prazo: 30,
+      });
+
+      expect(supabaseMock.rpc).toHaveBeenCalledWith('configurar_cofrinho', {
+        p_filho_id: 'child-1',
+        p_indice: 10,
+        p_taxa: 5,
+        p_prazo: 30,
+      });
+      expect(result).toEqual({ error: null });
+    });
+
+    it('returns localized error on RPC failure', async () => {
+      supabaseMock.rpc.mockResolvedValue({
+        error: { message: 'Índice deve estar entre 0 e 100' },
+      });
+
+      const result = await configurePiggyBank('child-1', {
+        rate: 150,
+        withdrawalRate: 5,
+        prazo: 30,
+      });
+
+      expect(result).toEqual({ error: 'Índice deve estar entre 0 e 100.' });
+    });
+  });
+
   describe('property tests', () => {
     const allTransactionTypes: TransactionType[] = [
       'credito',
@@ -297,6 +377,58 @@ describe('balances', () => {
 
     it('calculates correctly for typical values', () => {
       expect(calculateProjection(200, 15)).toBe(30);
+    });
+
+    it('returns 0 for negative rate', () => {
+      expect(calculateProjection(100, -5)).toBe(0);
+    });
+
+    it('returns 0 for negative cofrinho', () => {
+      expect(calculateProjection(-10, 10)).toBe(0);
+    });
+
+    // P0 property: projection is always non-negative and ≤ cofrinho for valid inputs
+    it('property: projection is non-negative for any non-negative cofrinho and rate', () => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 0, max: 100_000 }),
+          fc.integer({ min: 0, max: 100 }),
+          (cofrinho, rate) => {
+            const result = calculateProjection(cofrinho, rate);
+            return result >= 0;
+          },
+        ),
+        { numRuns: 200 },
+      );
+    });
+
+    // P0 property: projection never exceeds the cofrinho balance
+    it('property: projection never exceeds cofrinho', () => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 0, max: 100_000 }),
+          fc.integer({ min: 0, max: 100 }),
+          (cofrinho, rate) => {
+            const result = calculateProjection(cofrinho, rate);
+            return result <= cofrinho;
+          },
+        ),
+        { numRuns: 200 },
+      );
+    });
+
+    // P0 property: for positive cofrinho and positive rate, projection is at least 1
+    it('property: positive cofrinho + positive rate → projection ≥ 1', () => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 1, max: 100_000 }),
+          fc.integer({ min: 1, max: 100 }),
+          (cofrinho, rate) => {
+            return calculateProjection(cofrinho, rate) >= 1;
+          },
+        ),
+        { numRuns: 200 },
+      );
     });
   });
 
