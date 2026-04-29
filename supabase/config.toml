@@ -175,6 +175,8 @@ enable_manual_linking = false
 minimum_password_length = 8
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
+# Production recommendation: set to "lower_upper_letters_digits" for stronger passwords.
+# Local dev uses empty string for easier testing.
 password_requirements = ""
 
 [auth.rate_limit]

@@ -335,42 +335,14 @@ export async function listPendingValidations(): Promise<{
     .is('tarefas.arquivada_em', null)
     .is('tarefas.excluida_em', null)
     .order('concluida_em', { ascending: true })
-    .returns<PendingValidationItem[]>();
+    .overrideTypes<PendingValidationItem[], { merge: false }>();
 
   if (error) return { data: [], error: localizeRpcError(error.message) };
 
   const items = data ?? [];
   if (items.length === 0) return { data: [], error: null };
 
-  const paths = items.map((a) => (a.evidencia_url ? normalizeEvidencePath(a.evidencia_url) : null));
-  const validEntries = paths
-    .map((path, index) => (path ? { path, index } : null))
-    .filter((e): e is { path: string; index: number } => e !== null);
-
-  if (validEntries.length === 0) return { data: items, error: null };
-
-  const { data: signedData, error: signedError } = await supabase.storage
-    .from('evidencias')
-    .createSignedUrls(
-      validEntries.map((e) => e.path),
-      EVIDENCE_URL_TTL_SECONDS,
-    );
-
-  const signedMap = new Map<number, string>();
-  if (!signedError && signedData) {
-    for (let i = 0; i < validEntries.length; i++) {
-      const signed = signedData[i];
-      if (signed && !signed.error) {
-        signedMap.set(validEntries[i].index, signed.signedUrl);
-      }
-    }
-  }
-
-  const signed = items.map((a, index) => {
-    const url = signedMap.get(index);
-    return url ? { ...a, evidencia_url: url } : a;
-  });
-
+  const signed = await batchSignEvidenceUrls(items);
   return { data: signed, error: null };
 }
 
@@ -425,36 +397,7 @@ export async function listTaskAssignments(
 async function signAssignmentListEvidence(
   assignments: AssignmentWithChild[],
 ): Promise<AssignmentWithChild[]> {
-  const paths = assignments.map((a) => {
-    if (!a.evidencia_url) return null;
-    return normalizeEvidencePath(a.evidencia_url);
-  });
-
-  const validEntries = paths
-    .map((path, index) => (path ? { path, index } : null))
-    .filter((e): e is { path: string; index: number } => e !== null);
-
-  if (validEntries.length === 0) return assignments;
-
-  const { data, error } = await supabase.storage.from('evidencias').createSignedUrls(
-    validEntries.map((e) => e.path),
-    EVIDENCE_URL_TTL_SECONDS,
-  );
-
-  if (error || !data) return assignments;
-
-  const signedMap = new Map<number, string>();
-  for (let i = 0; i < validEntries.length; i++) {
-    const signed = data[i];
-    if (signed && !signed.error) {
-      signedMap.set(validEntries[i].index, signed.signedUrl);
-    }
-  }
-
-  return assignments.map((a, index) => {
-    const signedUrl = signedMap.get(index);
-    return signedUrl ? { ...a, evidencia_url: signedUrl } : a;
-  });
+  return batchSignEvidenceUrls(assignments);
 }
 
 export async function approveAssignment(
@@ -925,40 +868,49 @@ function createEvidenceSuffix(): string {
 
 const EVIDENCE_URL_TTL_SECONDS = 60 * 60;
 
-async function signTaskEvidence(task: TaskDetail): Promise<TaskDetail> {
-  const paths = task.atribuicoes.map((a) => {
-    if (!a.evidencia_url) return null;
-    return normalizeEvidencePath(a.evidencia_url);
-  });
+/**
+ * Signs evidence URLs in batch for a list of items that have an `evidencia_url` field.
+ * Returns a new array with signed URLs replacing the original paths.
+ */
+async function batchSignEvidenceUrls<T extends { evidencia_url: string | null }>(
+  items: T[],
+): Promise<T[]> {
+  const paths = items.map((item) =>
+    item.evidencia_url ? normalizeEvidencePath(item.evidencia_url) : null,
+  );
 
   const validEntries = paths
     .map((path, index) => (path ? { path, index } : null))
     .filter((e): e is { path: string; index: number } => e !== null);
 
-  if (validEntries.length === 0) return task;
+  if (validEntries.length === 0) return items;
 
-  const { data, error } = await supabase.storage.from('evidencias').createSignedUrls(
-    validEntries.map((e) => e.path),
-    EVIDENCE_URL_TTL_SECONDS,
-  );
+  const { data, error } = await supabase.storage
+    .from('evidencias')
+    .createSignedUrls(
+      validEntries.map((e) => e.path),
+      EVIDENCE_URL_TTL_SECONDS,
+    );
+
+  if (error || !data) return items;
 
   const signedMap = new Map<number, string>();
-  if (!error && data) {
-    for (let i = 0; i < validEntries.length; i++) {
-      const signed = data[i];
-      if (signed && !signed.error) {
-        signedMap.set(validEntries[i].index, signed.signedUrl);
-      }
+  for (let i = 0; i < validEntries.length; i++) {
+    const signed = data[i];
+    if (signed && !signed.error) {
+      signedMap.set(validEntries[i].index, signed.signedUrl);
     }
   }
 
-  const assignments = task.atribuicoes.map((a, index) => {
+  return items.map((item, index) => {
     const signedUrl = signedMap.get(index);
-    if (signedUrl) return { ...a, evidencia_url: signedUrl };
-    return a;
+    return signedUrl ? { ...item, evidencia_url: signedUrl } : item;
   });
+}
 
-  return { ...task, atribuicoes: assignments };
+async function signTaskEvidence(task: TaskDetail): Promise<TaskDetail> {
+  const signedAssignments = await batchSignEvidenceUrls(task.atribuicoes);
+  return { ...task, atribuicoes: signedAssignments };
 }
 
 async function signEvidence<T extends { evidencia_url: string | null }>(item: T): Promise<T> {

@@ -71,25 +71,14 @@ export async function getPrize(id: string): Promise<{
   return { data: data as Prize | null, error: null };
 }
 
-export async function createPrize(input: PrizeInput): Promise<{
+export async function createPrize(input: PrizeInput, familiaId: string): Promise<{
   data: Prize | null;
   error: string | null;
 }> {
-  const { data: authUser } = await supabase.auth.getUser();
-  if (!authUser.user) return { data: null, error: 'Usuário não autenticado' };
-
-  const { data: profile } = await supabase
-    .from('usuarios')
-    .select('familia_id')
-    .eq('id', authUser.user.id)
-    .single();
-
-  if (!profile) return { data: null, error: 'Perfil não encontrado' };
-
   const { data, error } = await supabase
     .from('premios')
     .insert({
-      familia_id: profile.familia_id,
+      familia_id: familiaId,
       nome: input.nome,
       descricao: input.descricao,
       custo_pontos: input.custo_pontos,

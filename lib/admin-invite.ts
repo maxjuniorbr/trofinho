@@ -28,12 +28,18 @@ export type FamilyAdmin = {
 };
 
 // ---------------------------------------------------------------------------
-// Untyped RPC / table helper
-// The Supabase generated types do not yet include the admin-invite RPCs and
-// the `convites_admin` table.  We use a narrowly-scoped cast so the rest of
-// the module stays fully typed.  Remove once `supabase gen types` is re-run.
+// The admin-invite RPCs and `convites_admin` table are not yet in the
+// generated Supabase types. The typed client's `.rpc()` and `.from()` methods
+// accept any string at runtime, so we call `supabase` directly with targeted
+// type suppressions. Re-run `supabase gen types` to remove these.
 // ---------------------------------------------------------------------------
-const db = supabase as any;
+
+// Narrowly-scoped type escapes for untyped RPCs and tables.
+// Remove once `supabase gen types` includes admin-invite entities.
+const untypedRpc: (fn: string, params?: Record<string, unknown>) => Promise<{ data: any; error: any }> =
+  supabase.rpc.bind(supabase) as any;
+
+const untypedFrom: (table: string) => any = supabase.from.bind(supabase) as any;
 
 // --- Data access functions ---
 
@@ -41,7 +47,7 @@ export async function generateInvite(): Promise<{
   data: { codigo: string; expires_at: string } | null;
   error: string | null;
 }> {
-  const { data, error } = await db.rpc('gerar_convite_admin');
+  const { data, error } = await untypedRpc('gerar_convite_admin');
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
   return { data: data as { codigo: string; expires_at: string }, error: null };
@@ -51,7 +57,7 @@ export async function validateInvite(code: string): Promise<{
   data: InvitePreview | null;
   error: string | null;
 }> {
-  const { data, error } = await db.rpc('validar_convite_admin', {
+  const { data, error } = await untypedRpc('validar_convite_admin', {
     p_codigo: code,
   });
 
@@ -66,7 +72,7 @@ export async function acceptInvite(
   data: { familia_id: string } | null;
   error: string | null;
 }> {
-  const { data, error } = await db.rpc('aceitar_convite_admin', {
+  const { data, error } = await untypedRpc('aceitar_convite_admin', {
     p_codigo: code,
     p_nome: name,
   });
@@ -76,7 +82,7 @@ export async function acceptInvite(
 }
 
 export async function cancelInvite(inviteId: string): Promise<{ error: string | null }> {
-  const { error } = await db.rpc('cancelar_convite_admin', {
+  const { error } = await untypedRpc('cancelar_convite_admin', {
     p_convite_id: inviteId,
   });
 
@@ -85,7 +91,7 @@ export async function cancelInvite(inviteId: string): Promise<{ error: string | 
 }
 
 export async function removeCoAdmin(userId: string): Promise<{ error: string | null }> {
-  const { error } = await db.rpc('remover_co_admin', {
+  const { error } = await untypedRpc('remover_co_admin', {
     p_usuario_id: userId,
   });
 
@@ -97,7 +103,7 @@ export async function listFamilyAdmins(): Promise<{
   data: FamilyAdmin[];
   error: string | null;
 }> {
-  const { data, error } = await db.rpc('listar_admins_familia');
+  const { data, error } = await untypedRpc('listar_admins_familia');
 
   if (error) return { data: [], error: localizeRpcError(error.message) };
   return { data: (data as FamilyAdmin[]) ?? [], error: null };
@@ -107,8 +113,7 @@ export async function getPendingInvite(familyId: string): Promise<{
   data: AdminInvite | null;
   error: string | null;
 }> {
-  const { data, error } = await db
-    .from('convites_admin')
+  const { data, error } = await untypedFrom('convites_admin')
     .select('*')
     .eq('familia_id', familyId)
     .eq('status', 'pendente')

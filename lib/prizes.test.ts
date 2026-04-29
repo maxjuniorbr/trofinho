@@ -116,13 +116,11 @@ describe('prizes', () => {
   });
 
   it('creates a prize for the authenticated family', async () => {
-    const profileQuery = createSingleQuery({ data: { familia_id: 'family-1' }, error: null });
     const insertQuery = createSingleQuery({ data: { id: 'prize-1' }, error: null });
 
-    supabaseMock.auth.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
-    supabaseMock.from.mockReturnValueOnce(profileQuery).mockReturnValueOnce(insertQuery);
+    supabaseMock.from.mockReturnValueOnce(insertQuery);
 
-    const result = await createPrize({ nome: 'Sorvete', descricao: null, custo_pontos: 50, emoji: '🎁', estoque: 99 });
+    const result = await createPrize({ nome: 'Sorvete', descricao: null, custo_pontos: 50, emoji: '🎁', estoque: 99 }, 'family-1');
 
     expect(insertQuery.insert).toHaveBeenCalledWith({
       familia_id: 'family-1',
@@ -136,19 +134,16 @@ describe('prizes', () => {
   });
 
   it('returns translated failures while creating a prize', async () => {
-    supabaseMock.auth.getUser.mockResolvedValue({ data: { user: null } });
-    await expect(createPrize({ nome: 'A', descricao: null, custo_pontos: 1, emoji: '🎁', estoque: 99 })).resolves.toEqual({
+    const insertErrorQuery = createSingleQuery({
       data: null,
-      error: 'Usuário não autenticado',
+      error: { message: 'constraint violation' },
     });
 
-    supabaseMock.auth.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
-    const profileQuery = createSingleQuery({ data: null, error: null });
-    supabaseMock.from.mockReturnValue(profileQuery);
+    supabaseMock.from.mockReturnValueOnce(insertErrorQuery);
 
-    await expect(createPrize({ nome: 'A', descricao: null, custo_pontos: 1, emoji: '🎁', estoque: 99 })).resolves.toEqual({
+    await expect(createPrize({ nome: 'A', descricao: null, custo_pontos: 1, emoji: '🎁', estoque: 99 }, 'family-1')).resolves.toEqual({
       data: null,
-      error: 'Perfil não encontrado',
+      error: 'Algo deu errado. Tente novamente.',
     });
   });
 
@@ -346,7 +341,6 @@ describe('prizes', () => {
   it('returns errors from write operations and handles edge cases', async () => {
     const countErrorQuery = createEqQuery({ count: null, error: { message: 'count error' } });
     const countNullQuery = createEqQuery({ count: null, error: null });
-    const profileQuery = createSingleQuery({ data: { familia_id: 'fam-1' }, error: null });
     const insertErrorQuery = createSingleQuery({
       data: null,
       error: { message: 'constraint violation' },
@@ -355,7 +349,6 @@ describe('prizes', () => {
     supabaseMock.from
       .mockReturnValueOnce(countErrorQuery)
       .mockReturnValueOnce(countNullQuery)
-      .mockReturnValueOnce(profileQuery)
       .mockReturnValueOnce(insertErrorQuery);
 
     supabaseMock.rpc
@@ -379,7 +372,7 @@ describe('prizes', () => {
       requestRedemption('prize-1', { familiaId: 'f1', childName: 'C', prizeName: 'P' }),
     ).resolves.toEqual({ data: null, error: 'Algo deu errado. Tente novamente.' });
     await expect(cancelRedemption('red-2')).resolves.toEqual({ error: null });
-    await expect(createPrize({ nome: 'A', descricao: null, custo_pontos: 1, emoji: '🎁', estoque: 99 })).resolves.toEqual({
+    await expect(createPrize({ nome: 'A', descricao: null, custo_pontos: 1, emoji: '🎁', estoque: 99 }, 'fam-1')).resolves.toEqual({
       data: null,
       error: 'Algo deu errado. Tente novamente.',
     });

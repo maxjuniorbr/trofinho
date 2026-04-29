@@ -225,7 +225,7 @@ export async function listTransactionsByPeriod(
       p_from: from,
       p_to: to,
     })
-    .returns<Transaction[]>();
+    .overrideTypes<Transaction[], { merge: false }>();
 
   if (error) return { data: [], error: localizeRpcError(error.message) };
   return { data: data ?? [], error: null };

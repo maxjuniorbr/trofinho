@@ -55,7 +55,8 @@ export const useActivePrizes = () =>
 export const useCreatePrize = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: PrizeInput) => mutationFnAdapter(() => createPrize(input))(),
+    mutationFn: ({ input, familiaId }: { input: PrizeInput; familiaId: string }) =>
+      mutationFnAdapter(() => createPrize(input, familiaId))(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.prizes.all });
     },

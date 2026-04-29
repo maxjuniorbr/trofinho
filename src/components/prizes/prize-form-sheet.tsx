@@ -12,6 +12,7 @@ import {
     useUpdatePrize,
     useDeactivatePrize,
     useReactivatePrize,
+    useProfile,
 } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
@@ -32,6 +33,7 @@ export function PrizeFormSheet({ visible, mode, prize, onClose, onSuccess }: Pri
     const updateMutation = useUpdatePrize();
     const deactivateMutation = useDeactivatePrize();
     const reactivateMutation = useReactivatePrize();
+    const { data: profile } = useProfile();
     const nameInputRef = useRef<TextInput>(null);
 
     const isEdit = mode === 'edit';
@@ -104,8 +106,13 @@ export function PrizeFormSheet({ visible, mode, prize, onClose, onSuccess }: Pri
         const { ok, cost, stock } = validate();
         if (!ok) return;
 
+        if (!profile?.familia_id) {
+            setError('Perfil não encontrado. Tente novamente.');
+            return;
+        }
+
         createMutation.mutate(
-            { nome: name.trim(), descricao: description.trim() || null, custo_pontos: cost, emoji, estoque: stock },
+            { input: { nome: name.trim(), descricao: description.trim() || null, custo_pontos: cost, emoji, estoque: stock }, familiaId: profile.familia_id },
             {
                 onSuccess: () => {
                     onSuccess?.('Prêmio criado com sucesso.');
