@@ -56,7 +56,7 @@ jobs:
 
       - uses: supabase/setup-cli@v1.6.0 # b60b5899c73b63a2d2d651b1e90db8d4c9392f51
         with:
-          version: latest
+          version: 2.95.6
 
       - name: Regenerate types and check for drift
         env:
