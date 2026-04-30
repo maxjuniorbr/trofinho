@@ -205,6 +205,72 @@ export async function deleteAccount(): Promise<{ error: string | null }> {
   return { error: null };
 }
 
+export async function requestPasswordReset(
+  email: string,
+): Promise<{ error: string | null }> {
+  Sentry.addBreadcrumb({
+    category: 'auth',
+    message: 'password_reset_requested',
+  });
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: 'https://trofinho.com.br/reset-password',
+  });
+
+  if (error) {
+    // Only surface rate-limit errors — all other errors are suppressed
+    // to prevent user enumeration (never reveal if an email exists).
+    if (error.message.includes('Email rate limit exceeded')) {
+      return { error: localizeSupabaseError(error.message) };
+    }
+    return { error: null };
+  }
+
+  return { error: null };
+}
+
+export async function confirmPasswordReset(
+  accessToken: string,
+  refreshToken: string,
+  newPassword: string,
+): Promise<{ error: string | null }> {
+  // Step 1: Establish the recovery session using the tokens from the redirect
+  const { error: sessionError } = await supabase.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
+
+  if (sessionError) {
+    Sentry.addBreadcrumb({
+      category: 'auth',
+      message: 'password_reset_token_failed',
+    });
+    return { error: localizeSupabaseError(sessionError.message) };
+  }
+
+  // Step 2: Update the user's password
+  const { error: updateError } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+
+  if (updateError) {
+    // Clean up the recovery session to prevent the user from being
+    // unexpectedly logged in after a failed password update.
+    await supabase.auth.signOut({ scope: 'local' });
+    return { error: localizeSupabaseError(updateError.message) };
+  }
+
+  // Step 3: Sign out locally
+  await supabase.auth.signOut({ scope: 'local' });
+
+  Sentry.addBreadcrumb({
+    category: 'auth',
+    message: 'password_reset_completed',
+  });
+
+  return { error: null };
+}
+
 export async function updateUserAvatar(
   imageUri: string,
 ): Promise<{ url: string | null; error: string | null }> {

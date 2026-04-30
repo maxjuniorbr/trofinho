@@ -38,6 +38,11 @@ export function createAuthStateHandler({
   }
 
   function handleAuthStateChange(event: AuthChangeEvent, session: Session | null) {
+    if (event === 'PASSWORD_RECOVERY') {
+      Sentry.addBreadcrumb({ category: 'auth', message: 'password_recovery_event_suppressed', level: 'info' });
+      return;
+    }
+
     if (event === 'SIGNED_OUT' || !session) {
       requestId += 1;
       clearPendingTimeout();

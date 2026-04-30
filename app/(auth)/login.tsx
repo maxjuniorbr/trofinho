@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useState, useMemo, useCallback } from 'react';
 import { Mail, Lock, ArrowRight } from 'lucide-react-native';
 import { signIn } from '@lib/auth';
@@ -11,11 +11,13 @@ import { BrandLogo } from '@/components/auth/brand-logo';
 import { useHeroPalette } from '@/components/auth/use-hero-palette';
 import { Button } from '@/components/ui/button';
 import { FormFooter } from '@/components/ui/form-footer';
+import { InlineMessage } from '@/components/ui/inline-message';
 
 type LoginField = 'email' | 'password';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { resetSuccess } = useLocalSearchParams<{ resetSuccess?: string }>();
   const { palette } = useHeroPalette();
   const styles = useMemo(() => makeStyles(palette), [palette]);
 
@@ -127,9 +129,24 @@ export default function LoginScreen() {
           }
         />
 
-        <Text style={styles.forgotText}>
-          Esqueci minha senha <Text style={styles.forgotBadge}>(em breve)</Text>
-        </Text>
+        <Pressable
+          onPress={() => router.push('/(auth)/forgot-password')}
+          disabled={loading}
+          accessibilityRole="button"
+          accessibilityLabel="Esqueci minha senha"
+          style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
+        >
+          <Text style={styles.forgotText}>Esqueci minha senha</Text>
+        </Pressable>
+
+        {resetSuccess === '1' ? (
+          <View style={styles.successMessage}>
+            <InlineMessage
+              message="Senha redefinida com sucesso. Faça login com sua nova senha."
+              variant="success"
+            />
+          </View>
+        ) : null}
 
         <FormFooter message={shouldShowError ? error : null} includeSafeBottom={false}>
           <Button
@@ -192,14 +209,12 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
       fontSize: typography.size.xs,
       color: palette.textOnNavyMuted,
       textAlign: 'center',
-      marginTop: spacing['3'],
-      marginBottom: spacing['2'],
+      marginTop: spacing['4'],
+      marginBottom: spacing['3'],
     },
-    forgotBadge: {
-      fontFamily: typography.family.medium,
-      fontSize: typography.size.xxs,
-      color: palette.textOnNavyMuted,
-      opacity: 0.6,
+    successMessage: {
+      marginTop: spacing['2'],
+      marginBottom: spacing['2'],
     },
     footerPush: {
       marginTop: 'auto',

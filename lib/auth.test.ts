@@ -2,11 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 
 import {
+  confirmPasswordReset,
   createFamily,
   deleteAccount,
   getCurrentAuthUser,
   getProfile,
   refreshAuthSession,
+  requestPasswordReset,
   signIn,
   signOut,
   signUp,
@@ -60,6 +62,9 @@ const supabaseMock = vi.hoisted(() => {
       signUp: vi.fn(),
       refreshSession: vi.fn(),
       updateUser: vi.fn(),
+      resetPasswordForEmail: vi.fn(),
+      verifyOtp: vi.fn(),
+      setSession: vi.fn(),
     },
     from: vi.fn(),
     rpc: rpcFn,
@@ -127,6 +132,9 @@ describe('auth', () => {
     supabaseMock.auth.signUp.mockReset();
     supabaseMock.auth.refreshSession.mockReset();
     supabaseMock.auth.updateUser.mockReset();
+    supabaseMock.auth.resetPasswordForEmail.mockReset();
+    supabaseMock.auth.verifyOtp.mockReset();
+    supabaseMock.auth.setSession.mockReset();
     supabaseMock.from.mockReset();
     supabaseMock.rpc.mockReset();
     supabaseMock.storage.from.mockReset();
@@ -619,6 +627,60 @@ describe('auth', () => {
         ),
         { numRuns: 100 },
       );
+    });
+  });
+
+  describe('requestPasswordReset', () => {
+    it('returns localized rate-limit message when Supabase returns rate-limit error', async () => {
+      supabaseMock.auth.resetPasswordForEmail.mockResolvedValue({
+        error: { message: 'Email rate limit exceeded' },
+      });
+
+      const result = await requestPasswordReset('user@example.com');
+
+      expect(result).toEqual({
+        error: 'Muitas tentativas. Aguarde um momento e tente novamente.',
+      });
+    });
+
+    it('returns { error: null } on network error to prevent enumeration', async () => {
+      supabaseMock.auth.resetPasswordForEmail.mockResolvedValue({
+        error: { message: 'Network error' },
+      });
+
+      const result = await requestPasswordReset('user@example.com');
+
+      expect(result).toEqual({ error: null });
+    });
+  });
+
+  describe('confirmPasswordReset', () => {
+    it('returns localized error when session tokens are invalid', async () => {
+      supabaseMock.auth.setSession.mockResolvedValue({
+        error: { message: 'Token has expired or is invalid' },
+      });
+
+      const result = await confirmPasswordReset('bad-access', 'bad-refresh', 'newPassword123');
+
+      expect(result).toEqual({
+        error: 'Link expirado ou inválido. Solicite um novo link de redefinição.',
+      });
+      expect(supabaseMock.auth.updateUser).not.toHaveBeenCalled();
+    });
+
+    it('returns localized error when new password is same as old password', async () => {
+      supabaseMock.auth.setSession.mockResolvedValue({ error: null });
+      supabaseMock.auth.updateUser.mockResolvedValue({
+        error: { message: 'New password should be different from the old password' },
+      });
+      supabaseMock.auth.signOut.mockResolvedValue({ error: null });
+
+      const result = await confirmPasswordReset('valid-access', 'valid-refresh', 'sameOldPassword');
+
+      expect(result).toEqual({
+        error: 'A nova senha deve ser diferente da anterior.',
+      });
+      expect(supabaseMock.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
     });
   });
 });

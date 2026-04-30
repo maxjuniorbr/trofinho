@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   View,
+  type LayoutChangeEvent,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronLeft } from 'lucide-react-native';
@@ -16,10 +17,6 @@ import { useHeroPalette } from '@/components/auth/use-hero-palette';
 
 type AuthHeroScreenProps = Readonly<{
   children: ReactNode;
-  /**
-   * Optional top-bar content rendered above the form area. When `onBack` is
-   * provided, a back chip is rendered on the leading edge automatically.
-   */
   topBarRight?: ReactNode;
   topBarCenter?: ReactNode;
   onBack?: () => void;
@@ -27,10 +24,14 @@ type AuthHeroScreenProps = Readonly<{
 }>;
 
 /**
- * Hero shell used by the auth flow (login, signup, forgot-password). Renders
- * a gradient backdrop with two ambient gold halos and a keyboard-aware
- * scrollable content area. The surface follows the device color scheme: dark
- * devices get the navy hero, light devices get the warm cream hero.
+ * Hero shell used by the auth flow (login, signup, forgot-password).
+ *
+ * Keyboard strategy: the body uses a fixed `minHeight` captured on first
+ * layout (before the keyboard opens). This keeps footer elements positioned
+ * with `marginTop: 'auto'` anchored at the bottom of the viewport regardless
+ * of keyboard state. The ScrollView allows the user to scroll to any input
+ * when the keyboard is open, while `adjustResize` (Android default) shrinks
+ * the window so the ScrollView becomes scrollable.
  */
 export const AuthHeroScreen = ({
   children,
@@ -43,6 +44,20 @@ export const AuthHeroScreen = ({
   const { palette, gradient, isDark } = useHeroPalette();
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
+  // Capture the body height on first layout (before keyboard opens).
+  // This becomes the fixed minHeight so the footer stays anchored.
+  const [bodyMinHeight, setBodyMinHeight] = useState(0);
+  const captured = useRef(false);
+
+  const onBodyLayout = (e: LayoutChangeEvent) => {
+    if (captured.current) return;
+    const h = e.nativeEvent.layout.height;
+    if (h > 0) {
+      captured.current = true;
+      setBodyMinHeight(h);
+    }
+  };
+
   useEffect(() => {
     const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardOpen(true));
     const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardOpen(false));
@@ -53,8 +68,8 @@ export const AuthHeroScreen = ({
   }, []);
 
   const styles = useMemo(
-    () => makeStyles(insets.top, insets.bottom, keyboardOpen, palette),
-    [insets.top, insets.bottom, keyboardOpen, palette],
+    () => makeStyles(insets.top, insets.bottom, keyboardOpen, bodyMinHeight, palette),
+    [insets.top, insets.bottom, keyboardOpen, bodyMinHeight, palette],
   );
   const hasTopBar = Boolean(onBack ?? topBarRight ?? topBarCenter);
 
@@ -80,7 +95,6 @@ export const AuthHeroScreen = ({
           style={styles.flex}
           overScrollMode="never"
           bounces={keyboardOpen}
-          scrollEnabled={keyboardOpen}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -105,7 +119,9 @@ export const AuthHeroScreen = ({
             </View>
           ) : null}
 
-          <View style={styles.body}>{children}</View>
+          <View style={styles.body} onLayout={onBodyLayout}>
+            {children}
+          </View>
         </ScrollView>
       </View>
     </KeyboardAvoidingView>
@@ -116,13 +132,9 @@ function makeStyles(
   topInset: number,
   bottomInset: number,
   keyboardOpen: boolean,
+  bodyMinHeight: number,
   palette: ReturnType<typeof useHeroPalette>['palette'],
 ) {
-  // Extra bottom padding when keyboard is open so the last field can scroll
-  // above the keyboard. When closed, use only the safe-area inset so the
-  // content fits the screen without unnecessary scroll.
-  const extraBottom = keyboardOpen ? spacing['8'] : 0;
-
   return StyleSheet.create({
     flex: { flex: 1, backgroundColor: palette.navyDeep },
     glowTopRight: {
@@ -146,9 +158,10 @@ function makeStyles(
       opacity: 0.55,
     },
     scrollContent: {
-      flexGrow: 1,
+      // No flexGrow — the body's minHeight handles full-screen layout.
+      // This lets the ScrollView scroll naturally when keyboard is open.
       paddingTop: topInset + spacing['4'],
-      paddingBottom: Math.max(bottomInset, spacing['8']) + extraBottom,
+      paddingBottom: Math.max(bottomInset, spacing['8']),
       paddingHorizontal: spacing['6'],
     },
     topBar: {
@@ -178,7 +191,10 @@ function makeStyles(
       justifyContent: 'center',
     },
     body: {
-      flex: 1,
+      // Before first layout: flex: 1 fills the screen so the footer lands
+      // at the bottom. After layout: minHeight locks that height so the
+      // footer doesn't move when the keyboard shrinks the window.
+      ...(bodyMinHeight > 0 ? { minHeight: bodyMinHeight } : { flex: 1 }),
     },
   });
 }

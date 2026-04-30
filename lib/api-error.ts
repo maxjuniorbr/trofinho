@@ -9,6 +9,8 @@ const authErrorMatchers = [
   ['User not found', 'Usuário não encontrado.'],
   ['different from the old', 'A nova senha deve ser diferente da anterior.'],
   ['Auth session missing!', 'Sessão expirada. Faça login novamente.'],
+  ['Token has expired or is invalid', 'Link expirado ou inválido. Solicite um novo link de redefinição.'],
+  ['otp_expired', 'Link expirado ou inválido. Solicite um novo link de redefinição.'],
 ] as const;
 
 export function localizeSupabaseError(message: string): string {

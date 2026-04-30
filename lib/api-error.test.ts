@@ -15,6 +15,24 @@ describe('localizeSupabaseError', () => {
     );
   });
 
+  it('maps "Token has expired or is invalid" to PT-BR recovery error', () => {
+    expect(localizeSupabaseError('Token has expired or is invalid')).toBe(
+      'Link expirado ou inválido. Solicite um novo link de redefinição.',
+    );
+  });
+
+  it('maps "otp_expired" to PT-BR recovery error', () => {
+    expect(localizeSupabaseError('otp_expired')).toBe(
+      'Link expirado ou inválido. Solicite um novo link de redefinição.',
+    );
+  });
+
+  it('existing matcher "different from the old" still works correctly', () => {
+    expect(localizeSupabaseError('New password should be different from the old password.')).toBe(
+      'A nova senha deve ser diferente da anterior.',
+    );
+  });
+
   it('returns a generic fallback for unknown errors', () => {
     expect(localizeSupabaseError('Some unexpected error')).toBe(
       'Algo deu errado. Tente novamente.',

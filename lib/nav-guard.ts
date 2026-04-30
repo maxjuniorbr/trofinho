@@ -35,12 +35,16 @@ export function resolveNavDecision(
     // guard must not race it with a param-less redirect), and join-family
     // (user navigated from onboarding to accept an invite code — e.g. a
     // removed co-admin re-joining via a new invite).
-    return seg1 === 'onboarding' || seg1 === 'register' || seg1 === 'join-family'
+    return seg1 === 'onboarding' || seg1 === 'register' || seg1 === 'join-family' || seg1 === 'reset-password'
       ? null
       : '/(auth)/onboarding';
   }
 
-  if (inAuth) return roleHome;
+  if (inAuth) {
+    // Allow reset-password even for authenticated users (deep link while logged in)
+    if (seg1 === 'reset-password') return null;
+    return roleHome;
+  }
 
   const inAdmin = segments[0] === '(admin)';
   const inChild = segments[0] === '(child)';

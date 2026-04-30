@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LoginScreen from '../../app/(auth)/login';
 import OnboardingScreen from '../../app/(auth)/onboarding';
 import RegisterScreen from '../../app/(auth)/register';
+import ResetPasswordScreen from '../../app/(auth)/reset-password';
 
 const routerMock = vi.hoisted(() => ({
   back: vi.fn(),
@@ -14,6 +15,7 @@ const routerMock = vi.hoisted(() => ({
 }));
 
 const authMocks = vi.hoisted(() => ({
+  confirmPasswordReset: vi.fn(),
   createFamily: vi.fn(),
   getCurrentAuthUser: vi.fn(),
   refreshAuthSession: vi.fn(),
@@ -109,6 +111,7 @@ describe('auth screens', () => {
     routerMock.push.mockReset();
     routerMock.replace.mockReset();
 
+    authMocks.confirmPasswordReset.mockReset();
     authMocks.createFamily.mockReset();
     authMocks.getCurrentAuthUser.mockReset().mockResolvedValue(null);
     authMocks.refreshAuthSession.mockReset().mockResolvedValue({ error: null });
@@ -169,6 +172,38 @@ describe('auth screens', () => {
     await pressButton(renderer, 'Criar conta');
 
     expect(routerMock.push).toHaveBeenCalledWith('/(auth)/register');
+  });
+
+  it('navigates to forgot-password screen when "Esqueci minha senha" is tapped', async () => {
+    const renderer = render(<LoginScreen />);
+
+    await pressButton(renderer, 'Esqueci minha senha');
+
+    expect(routerMock.push).toHaveBeenCalledWith('/(auth)/forgot-password');
+  });
+
+  it('disables "Esqueci minha senha" while login form is loading', async () => {
+    authMocks.signIn.mockResolvedValueOnce({ error: null });
+
+    const renderer = render(<LoginScreen />);
+    changeInput(renderer, 0, 'max@example.com');
+    changeInput(renderer, 1, '12345678');
+
+    await pressButton(renderer, 'Entrar');
+
+    // After successful sign-in the button stays in loading state
+    const forgotButton = getButton(renderer, 'Esqueci minha senha');
+    expect(forgotButton.props.disabled).toBe(true);
+  });
+
+  it('shows success InlineMessage when resetSuccess param is "1"', () => {
+    localSearchParamsState.value = { resetSuccess: '1' } as unknown as { name?: string; email?: string };
+
+    const renderer = render(<LoginScreen />);
+
+    expect(screenText(renderer)).toContain(
+      'Senha redefinida com sucesso. Faça login com sua nova senha.',
+    );
   });
 
   it('covers the remaining login validation and field focus branches', async () => {
@@ -376,6 +411,50 @@ describe('auth screens', () => {
     });
 
     expect(authMocks.signOut).toHaveBeenCalled();
+    expect(routerMock.replace).toHaveBeenCalledWith('/(auth)/login');
+  });
+
+  // ─── Reset Password Screen ───────────────────────────────────────────────────
+
+  it('shows error message and login button when tokens are missing', () => {
+    localSearchParamsState.value = {} as any;
+
+    const renderer = render(<ResetPasswordScreen />);
+
+    expect(screenText(renderer)).toContain(
+      'Link inválido. Solicite um novo link de redefinição.',
+    );
+
+    expect(screenText(renderer)).toContain('Ir para o login');
+  });
+
+  it('shows short password error on reset-password screen', async () => {
+    localSearchParamsState.value = { access_token: 'valid-access', refresh_token: 'valid-refresh' } as any;
+
+    const renderer = render(<ResetPasswordScreen />);
+    changeInput(renderer, 0, '123');
+
+    await pressButton(renderer, 'Redefinir senha');
+
+    expect(screenText(renderer)).toContain('A senha deve ter pelo menos 8 caracteres.');
+    expect(authMocks.confirmPasswordReset).not.toHaveBeenCalled();
+  });
+
+  it('shows success screen with "Ir para o login" button after successful password reset', async () => {
+    localSearchParamsState.value = { access_token: 'valid-access', refresh_token: 'valid-refresh' } as any;
+    authMocks.confirmPasswordReset.mockResolvedValueOnce({ error: null });
+
+    const renderer = render(<ResetPasswordScreen />);
+    changeInput(renderer, 0, 'newPassword123');
+
+    await pressButton(renderer, 'Redefinir senha');
+
+    expect(authMocks.confirmPasswordReset).toHaveBeenCalledWith('valid-access', 'valid-refresh', 'newPassword123');
+    expect(screenText(renderer)).toContain('Tudo certo!');
+    expect(screenText(renderer)).toContain('Senha atualizada');
+
+    await pressButton(renderer, 'Ir para o login');
+
     expect(routerMock.replace).toHaveBeenCalledWith('/(auth)/login');
   });
 });
