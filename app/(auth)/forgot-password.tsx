@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { ArrowRight, Mail, MailCheck, RotateCw } from 'lucide-react-native';
 import * as Sentry from '@sentry/react-native';
 import { requestPasswordReset } from '@lib/auth';
+import { markSent, remainingCooldown } from '@lib/resend-cooldown';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
 import { spacing, typography, radii } from '@/constants/theme';
 import { AuthHeroScreen } from '@/components/auth/auth-hero-screen';
@@ -16,17 +17,20 @@ import { FormFooter } from '@/components/ui/form-footer';
 type Step = 'email' | 'sent';
 
 const RESEND_COOLDOWN = 60;
+const COOLDOWN_KEY = 'recovery';
 
 export default function ForgotPasswordScreen() {
     const router = useRouter();
     const { palette } = useHeroPalette();
     const styles = useMemo(() => makeStyles(palette), [palette]);
 
-    const [step, setStep] = useState<Step>('email');
+    const [step, setStep] = useState<Step>(() =>
+        remainingCooldown(COOLDOWN_KEY, RESEND_COOLDOWN) > 0 ? 'sent' : 'email',
+    );
     const [email, setEmail] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const [resendIn, setResendIn] = useState(0);
+    const [resendIn, setResendIn] = useState(() => remainingCooldown(COOLDOWN_KEY, RESEND_COOLDOWN));
     const [focused, setFocused] = useState(false);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -39,8 +43,24 @@ export default function ForgotPasswordScreen() {
 
     useEffect(() => () => clearTimer(), [clearTimer]);
 
+    // Resume countdown if there is remaining cooldown from a previous mount
+    useEffect(() => {
+        if (resendIn > 0 && !timerRef.current) {
+            timerRef.current = setInterval(() => {
+                setResendIn((prev) => {
+                    if (prev <= 1) {
+                        clearTimer();
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        }
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
     const startCooldown = useCallback(() => {
         clearTimer();
+        markSent(COOLDOWN_KEY);
         setResendIn(RESEND_COOLDOWN);
         timerRef.current = setInterval(() => {
             setResendIn((prev) => {

@@ -7,6 +7,11 @@ import { supabase } from './supabase';
 
 const AVATAR_BUCKET = 'avatars';
 
+/** Base URL for web redirect pages (email confirmation, password reset). */
+const WEB_BASE_URL = 'https://trofinho.com.br';
+const CONFIRM_EMAIL_REDIRECT = `${WEB_BASE_URL}/confirm-email`;
+const RESET_PASSWORD_REDIRECT = `${WEB_BASE_URL}/reset-password`;
+
 export type UserProfile = {
   id: string;
   familia_id: string;
@@ -19,7 +24,7 @@ export async function signIn(
   email: string,
   password: string,
 ): Promise<{ profile: UserProfile | null; error: string | null }> {
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { error } = await supabase.auth.signInWithPassword({ email: email.toLowerCase(), password });
 
   if (error) {
     return { profile: null, error: localizeSupabaseError(error.message) };
@@ -30,7 +35,13 @@ export async function signIn(
 }
 
 export async function signUp(email: string, password: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.auth.signUp({ email, password });
+  const { error } = await supabase.auth.signUp({
+    email: email.toLowerCase(),
+    password,
+    options: {
+      emailRedirectTo: CONFIRM_EMAIL_REDIRECT,
+    },
+  });
 
   if (error) {
     // Avoid leaking whether the email is already registered (user enumeration).
@@ -56,6 +67,7 @@ export async function signUp(email: string, password: string): Promise<{ error: 
 export async function getCurrentAuthUser(): Promise<{
   email: string;
   avatarUrl: string | null;
+  emailConfirmedAt: string | null;
 } | null> {
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) return null;
@@ -63,6 +75,7 @@ export async function getCurrentAuthUser(): Promise<{
   return {
     email: data.user.email ?? '',
     avatarUrl: await resolveStorageUrl('avatars', rawAvatarUrl),
+    emailConfirmedAt: data.user.email_confirmed_at ?? null,
   };
 }
 
@@ -73,16 +86,18 @@ export async function signOut(): Promise<void> {
     } = await supabase.auth.getUser();
     if (user) {
       const deviceId = await deviceStorage.getItem('device_id');
-      let query = supabase.from('push_tokens').delete().eq('user_id', user.id);
       if (deviceId) {
-        query = query.eq('device_id', deviceId);
-      }
-      const { error: deleteError } = await query;
-      if (deleteError) {
-        Sentry.captureMessage('signOut: failed to clean up push token', {
-          level: 'warning',
-          extra: { message: deleteError.message, hasDeviceId: Boolean(deviceId) },
-        });
+        const { error: deleteError } = await supabase
+          .from('push_tokens')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('device_id', deviceId);
+        if (deleteError) {
+          Sentry.captureMessage('signOut: failed to clean up push token', {
+            level: 'warning',
+            extra: { message: deleteError.message },
+          });
+        }
       }
     }
   } catch (err) {
@@ -213,8 +228,8 @@ export async function requestPasswordReset(
     message: 'password_reset_requested',
   });
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: 'https://trofinho.com.br/reset-password',
+  const { error } = await supabase.auth.resetPasswordForEmail(email.toLowerCase(), {
+    redirectTo: RESET_PASSWORD_REDIRECT,
   });
 
   if (error) {
@@ -229,11 +244,39 @@ export async function requestPasswordReset(
   return { error: null };
 }
 
+export async function resendConfirmationEmail(
+  email: string,
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email: email.toLowerCase(),
+    options: {
+      emailRedirectTo: CONFIRM_EMAIL_REDIRECT,
+    },
+  });
+
+  if (error) {
+    // Surface rate-limit errors with localized message.
+    // Suppress all other errors to prevent email enumeration
+    // (same anti-enumeration pattern as requestPasswordReset).
+    if (error.message.includes('Email rate limit exceeded')) {
+      return { error: localizeSupabaseError(error.message) };
+    }
+    return { error: null };
+  }
+
+  return { error: null };
+}
+
 export async function confirmPasswordReset(
   accessToken: string,
   refreshToken: string,
   newPassword: string,
 ): Promise<{ error: string | null }> {
+  if (!accessToken || !refreshToken) {
+    return { error: 'Link expirado ou inválido. Solicite um novo link de redefinição.' };
+  }
+
   // Step 1: Establish the recovery session using the tokens from the redirect
   const { error: sessionError } = await supabase.auth.setSession({
     access_token: accessToken,

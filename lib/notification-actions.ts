@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react-native';
+import { supabase } from './supabase';
 import { approveAssignment } from './tasks';
 import { confirmRedemption } from './redemptions';
 
@@ -16,11 +17,38 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const isUuid = (value: unknown): value is string =>
   typeof value === 'string' && UUID_RE.test(value);
 
+/**
+ * Ensures the session is valid before executing a background action.
+ * Push notification actions run without UI, so a stale/expired token
+ * would silently fail. Returns true if the session is usable.
+ */
+async function ensureValidSession(): Promise<boolean> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return false;
+
+  const expiresAt = session.expires_at ?? 0;
+  const nowS = Math.floor(Date.now() / 1000);
+  if (expiresAt - nowS >= 30) return true;
+
+  const { error } = await supabase.auth.refreshSession();
+  return !error;
+}
+
 export async function handleNotificationAction(
   actionId: string,
   data: Record<string, unknown>,
 ): Promise<void> {
   try {
+    const hasSession = await ensureValidSession();
+    if (!hasSession) {
+      Sentry.addBreadcrumb({
+        category: 'notification-action',
+        level: 'warning',
+        message: `${actionId} ignored: no valid session`,
+      });
+      return;
+    }
+
     if (actionId === ACTION_IDS.APPROVE_TASK) {
       const assignmentId = data.assignmentId;
       const familiaId = data.familiaId;

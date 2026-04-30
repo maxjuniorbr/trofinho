@@ -43,65 +43,114 @@ async function getFreshAccessToken(): Promise<string | null> {
   return refreshed.session?.access_token ?? null;
 }
 
+/** Maximum retry attempts for transient push failures. */
+const MAX_PUSH_RETRIES = 2;
+/** Base delay in ms for exponential backoff between retries. */
+const RETRY_BASE_DELAY_MS = 1_000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isTransientError(error: { name?: string; context?: { status?: number } }): boolean {
+  if (error.name === 'FunctionsFetchError' || error.name === 'FunctionsRelayError') return true;
+  const status = error.context?.status;
+  return status !== undefined && (status === 429 || status >= 500);
+}
+
 export async function dispatchPushNotification(
   event: PushEvent,
   familiaId: string,
   payload: Record<string, string | string[]>,
 ): Promise<void> {
-  try {
-    const accessToken = await getFreshAccessToken();
+  let lastError: unknown = null;
 
-    if (!accessToken) {
-      // No valid session — can't authenticate with the edge function.
-      // Fire-and-forget: skip silently.
-      return;
-    }
+  for (let attempt = 0; attempt <= MAX_PUSH_RETRIES; attempt++) {
+    try {
+      const accessToken = await getFreshAccessToken();
 
-    const { data, error } = await supabase.functions.invoke('send-push-notification', {
-      body: { event, familiaId, payload },
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-
-    if (error) {
-      // Supabase Edge Functions retornam erros específicos herdados de FunctionsError
-      let errorCategory = 'Inesperado';
-      let statusCode: number | undefined;
-      if (error.name === 'FunctionsHttpError') {
-        statusCode = (error as { context?: { status?: number } }).context?.status;
-        errorCategory = `HTTP/${statusCode ?? 'desconhecido'}`;
-      } else if (error.name === 'FunctionsFetchError' || error.name === 'FunctionsRelayError') {
-        errorCategory = 'Rede/Conexão';
+      if (!accessToken) {
+        Sentry.addBreadcrumb({
+          category: 'push',
+          message: `Skipped '${event}': no valid session`,
+          level: 'info',
+        });
+        return;
       }
 
-      Sentry.captureException(error, {
-        tags: { subsystem: 'push', event, errorCategory: error.name || 'Unknown' },
-        extra: { statusCode, errorCategory, message: error.message ?? String(error) },
-      });
-      return;
-    }
+      if (attempt > 0) {
+        await sleep(RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1));
+      }
 
-    if (__DEV__) {
-      Sentry.addBreadcrumb({
-        category: 'push',
-        message: `Evento '${event}' processado`,
-        level: 'info',
-        data: data as Record<string, unknown> | undefined,
+      const { data, error } = await supabase.functions.invoke('send-push-notification', {
+        body: { event, familiaId, payload },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
-    }
 
-    // Surface partial-failure: the edge function returns
-    // { sent: number, failed: number } when it fans out to multiple tokens.
-    const result = data as { failed?: number; sent?: number } | null;
-    if (result && typeof result.failed === 'number' && result.failed > 0) {
-      Sentry.captureMessage('push: partial delivery failure', {
-        level: 'warning',
-        tags: { subsystem: 'push', event },
-        extra: { failed: result.failed, sent: result.sent ?? 0, familiaId },
-      });
+      if (error) {
+        lastError = error;
+
+        if (attempt < MAX_PUSH_RETRIES && isTransientError(error as { name?: string; context?: { status?: number } })) {
+          Sentry.addBreadcrumb({
+            category: 'push',
+            message: `Retry ${attempt + 1}/${MAX_PUSH_RETRIES} for '${event}'`,
+            level: 'warning',
+            data: { errorName: error.name, message: error.message },
+          });
+          continue;
+        }
+
+        // Non-transient or final attempt — capture to Sentry
+        let statusCode: number | undefined;
+        if (error.name === 'FunctionsHttpError') {
+          statusCode = (error as { context?: { status?: number } }).context?.status;
+        }
+
+        Sentry.captureException(error, {
+          tags: { subsystem: 'push', event, errorCategory: error.name || 'Unknown' },
+          extra: { statusCode, attempt, message: error.message ?? String(error) },
+        });
+        return;
+      }
+
+      if (__DEV__) {
+        Sentry.addBreadcrumb({
+          category: 'push',
+          message: `Evento '${event}' processado`,
+          level: 'info',
+          data: data as Record<string, unknown> | undefined,
+        });
+      }
+
+      // Surface partial-failure: the edge function returns
+      // { sent: number, failed: number } when it fans out to multiple tokens.
+      const result = data as { failed?: number; sent?: number } | null;
+      if (result && typeof result.failed === 'number' && result.failed > 0) {
+        Sentry.captureMessage('push: partial delivery failure', {
+          level: 'warning',
+          tags: { subsystem: 'push', event },
+          extra: { failed: result.failed, sent: result.sent ?? 0, familiaId },
+        });
+      }
+
+      return; // Success — exit retry loop
+    } catch (err) {
+      lastError = err;
+      if (attempt >= MAX_PUSH_RETRIES) {
+        Sentry.captureException(err, {
+          tags: { subsystem: 'push', event, errorCategory: 'Exception' },
+          extra: { attempt },
+        });
+      }
     }
-  } catch (err) {
-    Sentry.captureException(err, {
-      tags: { subsystem: 'push', event, errorCategory: 'Exception' },
+  }
+
+  // All retries exhausted
+  if (lastError) {
+    Sentry.captureMessage('push: all retries exhausted', {
+      level: 'error',
+      tags: { subsystem: 'push', event },
+      extra: { familiaId, attempts: MAX_PUSH_RETRIES + 1 },
     });
   }
 }

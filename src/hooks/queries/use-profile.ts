@@ -31,6 +31,7 @@ export const useCurrentAuthUser = () =>
       return user;
     },
     staleTime: STALE_TIMES.profile,
+    refetchOnWindowFocus: true,
   });
 
 export const useNotificationPrefs = () =>

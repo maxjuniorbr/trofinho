@@ -7,6 +7,7 @@ App mobile de tarefas e recompensas para famílias. React Native + Expo + Supaba
 - React Native 0.83 / Expo SDK 55 / Expo Router
 - TypeScript strict
 - Supabase (auth, Postgres, storage, edge functions, realtime)
+- Resend (e-mails transacionais via SMTP)
 - React Query v5
 - Sentry (error tracking)
 - SonarCloud (code quality)
@@ -88,4 +89,5 @@ test/          → Helpers e route tests
 
 - Testes rodam com timezone `America/Sao_Paulo` (ver `vitest.config.ts`).
 - SonarCloud config consolidada em `.sonarcloud.properties`.
+- Resend configurado como SMTP do Supabase Auth (confirmação de e-mail, recuperação de senha, notificações de senha alterada). Domínio customizado pendente — atualmente envia via `onboarding@resend.dev`.
 - React Compiler habilitado experimentalmente em `app.json`.

@@ -23,6 +23,7 @@ const rpcErrorMatchers = [
   ['Apenas filhos', 'Acesso negado.'],
   ['Acesso negado', 'Acesso negado.'],
   ['não autenticado', 'Sessão expirada. Faça login novamente.'],
+  ['Limite de 5 filhos', 'Sua família já atingiu o limite de 5 filhos cadastrados.'],
   ['Saldo livre insuficiente', 'Saldo livre insuficiente.'],
   ['Saldo insuficiente', 'Saldo insuficiente.'],
   ['Saldo não encontrado', 'Saldo não encontrado.'],

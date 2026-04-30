@@ -35,11 +35,11 @@ export interface SupabaseClientLike {
     admin: SupabaseAuthAdmin;
   };
   from(table: string): {
-    select(columns: string): {
+    select(columns: string, options?: { count?: string; head?: boolean }): {
       eq(
         column: string,
         value: string,
-      ): PromiseLike<{ data: Record<string, unknown>[] | null; error: unknown }>;
+      ): PromiseLike<{ data: Record<string, unknown>[] | null; count?: number | null; error: unknown }>;
     };
   };
   rpc(
@@ -76,6 +76,11 @@ export function validateRequest(
   }
 
   const sanitizedAvatar = typeof avatar === 'string' && avatar.trim() ? avatar.trim() : undefined;
+
+  // Avatar must be a safe emoji or storage-like path — reject URLs and traversal attempts
+  if (sanitizedAvatar && (sanitizedAvatar.includes('..') || sanitizedAvatar.startsWith('http'))) {
+    return { valid: false, error: 'avatar must be an emoji or a storage path' };
+  }
 
   return {
     valid: true,
@@ -167,7 +172,7 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
   // This prevents non-admin users from triggering createUser + rollback cycles.
   const { data: callerRows, error: callerError } = await adminClient
     .from('usuarios')
-    .select('papel')
+    .select('papel, familia_id')
     .eq('id', authData.user.id);
 
   if (callerError || !callerRows || callerRows.length === 0) {
@@ -182,6 +187,22 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
       status: 403,
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+
+  // Step 1b: Enforce max 5 children per family (defense-in-depth — DB RPC also checks)
+  const callerFamiliaId = callerRows[0].familia_id as string;
+  if (callerFamiliaId) {
+    const { data: childRows, error: countError } = await adminClient
+      .from('filhos')
+      .select('id')
+      .eq('familia_id', callerFamiliaId);
+
+    if (!countError && childRows && childRows.length >= 5) {
+      return new Response(
+        JSON.stringify({ error: 'Limite de 5 filhos por família atingido' }),
+        { status: 422, headers: { 'Content-Type': 'application/json' } },
+      );
+    }
   }
 
   // Step 2: Create auth user via admin API (bypasses email confirmation flow)

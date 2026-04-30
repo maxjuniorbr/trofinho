@@ -22,6 +22,7 @@ import { AvatarSection } from '@/components/profile/avatar-section';
 import { PersonalDataSheet } from '@/components/profile/personal-data-sheet';
 import { ChangePasswordSheet } from '@/components/profile/change-password-sheet';
 import { ChildSelectionSheet } from '@/components/profile/child-selection-sheet';
+import { EmailVerificationBanner } from '@/components/profile/email-verification-banner';
 import { ThemeCard } from '@/components/profile/theme-card';
 import { NotificationCard } from '@/components/profile/notification-card';
 import { AdminManagementSheet } from '@/components/profile/admin-management-sheet';
@@ -224,6 +225,13 @@ export default function ProfileScreen() {
               avatarUri={effectiveAvatarUri}
               onAvatarChange={setLocalAvatarUri}
             />
+
+            {authUser?.emailConfirmedAt === null ? (
+              <EmailVerificationBanner
+                email={email}
+                emailConfirmedAt={authUser?.emailConfirmedAt ?? null}
+              />
+            ) : null}
 
             {/* Aparência */}
             <ThemeCard />

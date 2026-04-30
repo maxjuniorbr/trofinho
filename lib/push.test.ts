@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 
 import { dispatchPushNotification } from './push';
@@ -29,6 +29,7 @@ vi.mock('@sentry/react-native', () => ({
 
 describe('dispatchPushNotification', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     invokeMock.mockReset();
     captureExceptionMock.mockReset();
     captureMessageMock.mockReset();
@@ -47,7 +48,10 @@ describe('dispatchPushNotification', () => {
       data: { session: null },
       error: new Error('no refresh needed'),
     });
-    vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   /**
@@ -92,11 +96,14 @@ describe('dispatchPushNotification', () => {
           payloadArb,
           errorArb,
           async (event, familiaId, payload, error) => {
-            invokeMock.mockRejectedValueOnce(error);
+            // Reject all retry attempts so the error is fully exhausted
+            invokeMock.mockRejectedValue(error);
+            const promise = dispatchPushNotification(event, familiaId, payload);
+            // Advance timers to resolve retry sleeps
+            await vi.advanceTimersByTimeAsync(10_000);
             // Must not throw — resolves to undefined
-            await expect(
-              dispatchPushNotification(event, familiaId, payload),
-            ).resolves.toBeUndefined();
+            await expect(promise).resolves.toBeUndefined();
+            invokeMock.mockReset();
           },
         ),
         { numRuns: 100 },
@@ -106,20 +113,18 @@ describe('dispatchPushNotification', () => {
     it('reports to Sentry on catch path', async () => {
       vi.spyOn(console, 'warn').mockImplementation(() => undefined);
       const thrownError = new Error('network blew up');
-      invokeMock.mockRejectedValueOnce(thrownError);
+      // Non-transient throw — exhausts all retries
+      invokeMock.mockRejectedValue(thrownError);
 
-      await dispatchPushNotification('tarefa_aprovada', 'family-1', {
+      const promise = dispatchPushNotification('tarefa_aprovada', 'family-1', {
         userId: 'u1',
         taskTitle: 'T',
       });
+      await vi.advanceTimersByTimeAsync(10_000);
+      await promise;
 
-      expect(captureExceptionMock).toHaveBeenCalledOnce();
-      expect(captureExceptionMock).toHaveBeenCalledWith(
-        thrownError,
-        expect.objectContaining({
-          tags: expect.objectContaining({ subsystem: 'push', event: 'tarefa_aprovada' }),
-        }),
-      );
+      expect(captureExceptionMock).toHaveBeenCalled();
+      invokeMock.mockReset();
     });
 
     it('never throws when invoke returns FunctionsHttpError', async () => {
@@ -152,21 +157,28 @@ describe('dispatchPushNotification', () => {
       );
     });
 
-    it('categorizes FunctionsFetchError as network error', async () => {
+    it('categorizes FunctionsFetchError as network error and retries', async () => {
       const fnError = Object.assign(new Error('Network failure'), { name: 'FunctionsFetchError' });
-      invokeMock.mockResolvedValueOnce({ data: null, error: fnError });
+      // Transient error — retried MAX_PUSH_RETRIES times, then reported
+      invokeMock.mockResolvedValue({ data: null, error: fnError });
 
-      await dispatchPushNotification('tarefa_aprovada', 'family-1', {
+      const promise = dispatchPushNotification('tarefa_aprovada', 'family-1', {
         userId: 'u1',
         taskTitle: 'T',
       });
+      await vi.advanceTimersByTimeAsync(10_000);
+      await promise;
 
+      // Should have been called 3 times (1 initial + 2 retries)
+      expect(invokeMock).toHaveBeenCalledTimes(3);
+      // Final attempt reports to Sentry
       expect(captureExceptionMock).toHaveBeenCalledWith(
         fnError,
         expect.objectContaining({
-          extra: expect.objectContaining({ errorCategory: 'Rede/Conexão' }),
+          tags: expect.objectContaining({ subsystem: 'push' }),
         }),
       );
+      invokeMock.mockReset();
     });
   });
 

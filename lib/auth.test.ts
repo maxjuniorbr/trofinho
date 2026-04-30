@@ -9,6 +9,7 @@ import {
   getProfile,
   refreshAuthSession,
   requestPasswordReset,
+  resendConfirmationEmail,
   signIn,
   signOut,
   signUp,
@@ -63,6 +64,7 @@ const supabaseMock = vi.hoisted(() => {
       refreshSession: vi.fn(),
       updateUser: vi.fn(),
       resetPasswordForEmail: vi.fn(),
+      resend: vi.fn(),
       verifyOtp: vi.fn(),
       setSession: vi.fn(),
     },
@@ -133,6 +135,7 @@ describe('auth', () => {
     supabaseMock.auth.refreshSession.mockReset();
     supabaseMock.auth.updateUser.mockReset();
     supabaseMock.auth.resetPasswordForEmail.mockReset();
+    supabaseMock.auth.resend.mockReset();
     supabaseMock.auth.verifyOtp.mockReset();
     supabaseMock.auth.setSession.mockReset();
     supabaseMock.from.mockReset();
@@ -149,6 +152,7 @@ describe('auth', () => {
           user: {
             id: 'u1',
             email: 'max@test.com',
+            email_confirmed_at: '2024-01-15T10:30:00Z',
             user_metadata: { avatar_url: 'https://avatar' },
           },
         },
@@ -156,7 +160,11 @@ describe('auth', () => {
       });
 
       const result = await getCurrentAuthUser();
-      expect(result).toEqual({ email: 'max@test.com', avatarUrl: 'https://signed-url' });
+      expect(result).toEqual({
+        email: 'max@test.com',
+        avatarUrl: 'https://signed-url',
+        emailConfirmedAt: '2024-01-15T10:30:00Z',
+      });
     });
 
     it('returns null when there is an auth error', async () => {
@@ -184,7 +192,42 @@ describe('auth', () => {
       });
 
       const result = await getCurrentAuthUser();
-      expect(result).toEqual({ email: '', avatarUrl: null });
+      expect(result).toEqual({ email: '', avatarUrl: null, emailConfirmedAt: null });
+    });
+
+    it('returns emailConfirmedAt when email_confirmed_at is present on the user object', async () => {
+      supabaseMock.auth.getUser.mockResolvedValue({
+        data: {
+          user: {
+            id: 'u1',
+            email: 'admin@test.com',
+            email_confirmed_at: '2024-06-01T12:00:00Z',
+            user_metadata: {},
+          },
+        },
+        error: null,
+      });
+
+      const result = await getCurrentAuthUser();
+      expect(result).not.toBeNull();
+      expect(result!.emailConfirmedAt).toBe('2024-06-01T12:00:00Z');
+    });
+
+    it('defaults emailConfirmedAt to null when email_confirmed_at is missing', async () => {
+      supabaseMock.auth.getUser.mockResolvedValue({
+        data: {
+          user: {
+            id: 'u1',
+            email: 'admin@test.com',
+            user_metadata: {},
+          },
+        },
+        error: null,
+      });
+
+      const result = await getCurrentAuthUser();
+      expect(result).not.toBeNull();
+      expect(result!.emailConfirmedAt).toBeNull();
     });
   });
 
@@ -630,6 +673,36 @@ describe('auth', () => {
     });
   });
 
+  describe('Feature: email-verification-nonblocking, Property 2: Resend function never leaks email existence', () => {
+    /**
+     * **Validates: Requirements 4.1, 4.3, 4.4**
+     *
+     * For any random error message returned by supabase.auth.resend(),
+     * only messages containing "Email rate limit exceeded" should surface
+     * a non-null error. All other error messages must return { error: null },
+     * preventing email existence leakage.
+     */
+    it('only surfaces rate-limit errors; all other errors return { error: null }', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.string(), async (errorMessage) => {
+          supabaseMock.auth.resend.mockReset();
+          supabaseMock.auth.resend.mockResolvedValue({
+            error: { message: errorMessage },
+          });
+
+          const result = await resendConfirmationEmail('test@example.com');
+
+          if (errorMessage.includes('Email rate limit exceeded')) {
+            expect(result.error).not.toBeNull();
+          } else {
+            expect(result).toEqual({ error: null });
+          }
+        }),
+        { numRuns: 100 },
+      );
+    });
+  });
+
   describe('requestPasswordReset', () => {
     it('returns localized rate-limit message when Supabase returns rate-limit error', async () => {
       supabaseMock.auth.resetPasswordForEmail.mockResolvedValue({
@@ -649,6 +722,45 @@ describe('auth', () => {
       });
 
       const result = await requestPasswordReset('user@example.com');
+
+      expect(result).toEqual({ error: null });
+    });
+  });
+
+  describe('resendConfirmationEmail', () => {
+    it('calls supabase.auth.resend with correct params and returns { error: null } on success', async () => {
+      supabaseMock.auth.resend.mockResolvedValue({ error: null });
+
+      const result = await resendConfirmationEmail('Admin@Example.com');
+
+      expect(supabaseMock.auth.resend).toHaveBeenCalledWith({
+        type: 'signup',
+        email: 'admin@example.com',
+        options: {
+          emailRedirectTo: 'https://trofinho.com.br/confirm-email',
+        },
+      });
+      expect(result).toEqual({ error: null });
+    });
+
+    it('returns localized rate-limit message when Supabase returns rate-limit error', async () => {
+      supabaseMock.auth.resend.mockResolvedValue({
+        error: { message: 'Email rate limit exceeded' },
+      });
+
+      const result = await resendConfirmationEmail('user@example.com');
+
+      expect(result).toEqual({
+        error: 'Muitas tentativas. Aguarde um momento e tente novamente.',
+      });
+    });
+
+    it('returns { error: null } on non-rate-limit errors to prevent enumeration', async () => {
+      supabaseMock.auth.resend.mockResolvedValue({
+        error: { message: 'User not found' },
+      });
+
+      const result = await resendConfirmationEmail('unknown@example.com');
 
       expect(result).toEqual({ error: null });
     });

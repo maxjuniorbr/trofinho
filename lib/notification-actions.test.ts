@@ -17,6 +17,16 @@ const captureExceptionMock = vi.hoisted(() => vi.fn());
 
 vi.mock('./tasks', () => ({ approveAssignment: approveAssignmentMock }));
 vi.mock('./redemptions', () => ({ confirmRedemption: confirmRedemptionMock }));
+vi.mock('./supabase', () => ({
+  supabase: {
+    auth: {
+      getSession: vi.fn().mockResolvedValue({
+        data: { session: { access_token: 'tok', expires_at: Math.floor(Date.now() / 1000) + 3600 } },
+      }),
+      refreshSession: vi.fn().mockResolvedValue({ error: null }),
+    },
+  },
+}));
 vi.mock('@sentry/react-native', () => ({
   captureException: captureExceptionMock,
   captureMessage: vi.fn(),

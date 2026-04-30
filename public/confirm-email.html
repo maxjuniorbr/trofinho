@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trofinho — Redefinir Senha</title>
+  <title>Trofinho — E-mail Confirmado</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -18,9 +18,9 @@
     }
     .container { text-align: center; max-width: 400px; width: 100%; }
     .logo { font-size: 32px; font-weight: 700; color: #FAC114; margin-bottom: 32px; letter-spacing: -0.5px; }
+    .icon { font-size: 48px; margin-bottom: 16px; }
     .message { font-size: 18px; line-height: 1.5; color: #ffffff; margin-bottom: 16px; }
     .submessage { font-size: 14px; line-height: 1.5; color: rgba(255, 255, 255, 0.6); }
-    .icon { font-size: 48px; margin-bottom: 16px; }
     .error { color: #FAC114; font-size: 18px; line-height: 1.5; }
     .spinner {
       width: 40px; height: 40px;
@@ -30,7 +30,6 @@
       animation: spin 0.8s linear infinite;
       margin: 0 auto 24px;
     }
-    .debug { margin-top: 24px; font-size: 11px; color: rgba(255,255,255,0.25); word-break: break-all; }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
@@ -44,41 +43,36 @@
     (function() {
       var content = document.getElementById('content');
 
-      // Supabase redirects with params in the URL fragment (#) after verifying
-      // the token server-side. The fragment contains access_token, refresh_token,
-      // and type=recovery. We forward these to the app via deep link.
+      // Supabase redirects with tokens in the URL fragment (#) after
+      // verifying the signup token server-side. If the fragment contains
+      // access_token and type=signup, the email was confirmed successfully.
       var raw = globalThis.location.hash.substring(1) || globalThis.location.search.substring(1);
       var params = new URLSearchParams(raw);
 
       var accessToken = params.get('access_token');
-      var refreshToken = params.get('refresh_token');
       var type = params.get('type');
 
-      if (!accessToken || !refreshToken || type !== 'recovery') {
+      if (!accessToken || type !== 'signup') {
         content.innerHTML = '<p class="error">Link inválido ou expirado.</p>';
         return;
       }
 
+      // Email was confirmed server-side by Supabase before redirecting here.
       var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
       if (isMobile) {
         content.innerHTML =
           '<div class="spinner"></div>' +
-          '<p class="message">Redirecionando para o app…</p>' +
+          '<p class="message">E-mail confirmado! Redirecionando…</p>' +
           '<p class="submessage">Se o app não abrir automaticamente, verifique se o Trofinho está instalado.</p>';
 
-        var deepLink = 'trofinho://reset-password'
-          + '?access_token=' + encodeURIComponent(accessToken)
-          + '&refresh_token=' + encodeURIComponent(refreshToken)
-          + '&type=recovery';
-
-        globalThis.location.href = deepLink;
+        globalThis.location.href = 'trofinho://email-confirmed';
       } else {
         content.innerHTML =
-          '<div class="icon">⚠️</div>' +
-          '<p class="message">A redefinição de senha só funciona pelo app no celular.</p>' +
-          '<p class="submessage">Abra o link do e-mail diretamente no seu celular com o Trofinho instalado.<br><br>' +
-          'Se você já clicou aqui, o link foi usado. Solicite um novo pelo app.</p>';
+          '<div class="icon">✅</div>' +
+          '<p class="message">E-mail confirmado com sucesso!</p>' +
+          '<p class="submessage">Para a melhor experiência, recomendamos abrir links do Trofinho pelo celular.<br><br>' +
+          'Volte ao app no seu celular para continuar.</p>';
       }
     })();
   </script>

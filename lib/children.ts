@@ -116,6 +116,8 @@ function translateEdgeFunctionError(msg: string): string {
     return 'Esta conta já está vinculada a um perfil de filho.';
   if (msg.includes('Apenas admins podem cadastrar filhos'))
     return 'Somente administradores podem cadastrar filhos.';
+  if (msg.includes('Limite de 5 filhos'))
+    return 'Sua família já atingiu o limite de 5 filhos cadastrados.';
   if (msg.includes('Usuário não autenticado')) return 'Sua sessão expirou. Faça login novamente.';
 
   return 'Não foi possível cadastrar o filho. Tente novamente.';
