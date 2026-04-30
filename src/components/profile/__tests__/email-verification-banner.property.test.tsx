@@ -4,6 +4,7 @@ import fc from 'fast-check';
 import { act, create } from '../../../../test/helpers/test-renderer-compat';
 import { EmailVerificationBanner } from '../email-verification-banner';
 import type { ReactTestRenderer } from '../../../../test/helpers/test-renderer-compat';
+import { resetAllCooldowns } from '@lib/resend-cooldown';
 
 /**
  * Feature: email-verification-nonblocking
@@ -37,7 +38,6 @@ vi.mock('lucide-react-native', async () => {
 });
 
 // Reset persisted cooldowns between tests so each run starts fresh
-import { resetAllCooldowns } from '@lib/resend-cooldown';
 beforeEach(() => {
     resetAllCooldowns();
 });
