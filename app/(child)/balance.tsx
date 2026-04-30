@@ -44,13 +44,13 @@ import type { PiggyBankWithdrawal } from '@lib/piggy-bank-withdrawal';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 
 const todayRange = () => {
-  // data_referencia in the DB is stored as UTC date (created_at::date).
-  // Send UTC date boundaries so the filter matches correctly.
+  // data_referencia is set to the task's competencia (local device date).
+  // Use local calendar date so the filter matches the user's "today".
   const now = new Date();
-  const utcDate = now.toISOString().slice(0, 10); // e.g. '2026-04-26'
-  const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
-  const utcTomorrow = tomorrow.toISOString().slice(0, 10);
-  return { from: utcDate, to: utcTomorrow };
+  const from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const to = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+  return { from, to };
 };
 
 function parseAmountValue(
