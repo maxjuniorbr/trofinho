@@ -243,7 +243,7 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
         successIconContainer: {
             width: 40,
             height: 40,
-            borderRadius: 20,
+            borderRadius: radii.full,
             backgroundColor: palette.borderFocus + '20',
             alignItems: 'center',
             justifyContent: 'center',
@@ -257,7 +257,7 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
             color: palette.textOnNavy,
         },
         successDescription: {
-            marginTop: 2,
+            marginTop: spacing['0.5'],
             fontFamily: typography.family.medium,
             fontSize: typography.size.xs,
             color: palette.textOnNavyMuted,

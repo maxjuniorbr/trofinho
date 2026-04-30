@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { spacing, typography } from '@/constants/theme';
+import { opacityDisabled, spacing, typography } from '@/constants/theme';
 import { WEEKDAY_LABELS, isDayActive, toggleDay } from '@lib/tasks';
 
 const WEEKDAY_FULL_NAMES = [
@@ -81,7 +81,7 @@ function makeStyles(colors: ThemeColors) {
       borderColor: colors.border.default,
     },
     circleDisabled: {
-      opacity: 0.55,
+      opacity: opacityDisabled.medium,
     },
     label: {
       fontSize: typography.size.sm,

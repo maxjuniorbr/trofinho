@@ -101,7 +101,7 @@ describe('TaskFormFields', () => {
         const pointsInput = findByA11yLabel(renderer, 'Quantidade de pontos da tarefa');
 
         expect(pointsInput.props.editable).toBe(false);
-        // The component applies a style with opacity: 0.55 when not editable
+        // The component applies a style with opacityDisabled.medium when not editable
         const flatStyle = [pointsInput.props.style].flat(Infinity);
         const hasDisabledOpacity = flatStyle.some(
             (s: Record<string, unknown> | undefined) => s && s.opacity === 0.55,

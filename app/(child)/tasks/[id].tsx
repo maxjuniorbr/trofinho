@@ -27,7 +27,7 @@ import {
 import { useTheme } from '@/context/theme-context';
 import { useImpersonation } from '@/context/impersonation-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, shadows, spacing, typography } from '@/constants/theme';
+import { opacityDisabled, opacityPressed, radii, shadows, spacing, typography } from '@/constants/theme';
 import { TaskPointsPill } from '@/components/tasks/task-points-pill';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -164,7 +164,7 @@ function ActionButton({
         {
           backgroundColor: bgColor ?? colors.bg.surface,
           borderColor: borderColor ?? colors.border.subtle,
-          opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
+          opacity: disabled ? opacityDisabled.heavy : pressed ? opacityPressed.surface : 1,
         },
       ]}
       accessibilityRole="button"

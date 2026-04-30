@@ -6,7 +6,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { Pencil, Plus, Star } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, shadows, spacing, typography } from '@/constants/theme';
+import { opacityDisabled, opacityPressed, radii, shadows, spacing, typography } from '@/constants/theme';
 import { HomeFooterBar } from '@/components/ui/home-footer-bar';
 import { useAdminFooterItems } from '@/hooks/use-footer-items';
 import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
@@ -132,7 +132,7 @@ export default function AdminPrizesScreen() {
               styles.card,
               { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
               !item.ativo && styles.cardArquivado,
-              pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] },
+              pressed && { opacity: opacityPressed.surface, transform: [{ scale: 0.97 }] },
             ]}
             onPress={() => setEditPrizeId(item.id)}
             accessibilityRole="button"
@@ -162,7 +162,7 @@ export default function AdminPrizesScreen() {
               style={({ pressed }) => [
                 styles.editBtn,
                 { backgroundColor: colors.bg.muted },
-                pressed && { opacity: 0.7 },
+                pressed && { opacity: opacityPressed.control },
               ]}
               onPress={() => setEditPrizeId(item.id)}
               accessibilityRole="button"
@@ -254,8 +254,8 @@ function makeStyles(colors: ThemeColors) {
       marginBottom: spacing['3'],
       ...shadows.card,
     },
-    cardArquivado: { opacity: 0.55 },
-    emoji: { fontSize: 36, marginBottom: spacing['2'] },
+    cardArquivado: { opacity: opacityDisabled.medium },
+    emoji: { fontSize: typography.size['4xl'], marginBottom: spacing['2'] },
     cardNome: {
       fontSize: typography.size.sm,
       fontFamily: typography.family.bold,
@@ -277,7 +277,7 @@ function makeStyles(colors: ThemeColors) {
       fontFamily: typography.family.black,
     },
     stockText: {
-      fontSize: 10,
+      fontSize: typography.size.xxs,
       fontFamily: typography.family.medium,
       marginBottom: spacing['2'],
     },

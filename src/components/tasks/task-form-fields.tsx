@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { WeekdaySelector } from '@/components/tasks/weekday-selector';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, spacing, typography } from '@/constants/theme';
+import { opacityDisabled, radii, spacing, typography } from '@/constants/theme';
 
 type TaskFormFieldsProps = Readonly<{
   title: string;
@@ -120,7 +120,7 @@ function makeStyles(colors: ThemeColors) {
       textAlignVertical: 'top',
     },
     disabledInput: {
-      opacity: 0.55,
+      opacity: opacityDisabled.medium,
     },
     section: {
       marginBottom: spacing['2'],

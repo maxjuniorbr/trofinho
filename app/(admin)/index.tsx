@@ -26,7 +26,7 @@ import {
   combineQueryStates,
 } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
-import { radii, shadows, spacing, staticTextColors, typography } from '@/constants/theme';
+import { opacityPressed, radii, shadows, spacing, staticTextColors, typography } from '@/constants/theme';
 import { gradients, heroPalette } from '@/constants/shadows';
 import { Avatar } from '@/components/ui/avatar';
 import { NotificationPermissionBanner } from '@/components/ui/notification-permission-banner';
@@ -159,7 +159,7 @@ export default function AdminHomeScreen() {
         <View style={styles.hero}>
           <View style={styles.heroText}>
             <Text style={[styles.heroSub, { color: colors.text.secondary }]}>
-              {getGreeting()} 👋
+              {getGreeting()}
             </Text>
             <Text style={[styles.heroTitle, { color: colors.text.primary }]}>
               {family ? `Família ${family.nome}` : (profile?.nome ?? 'Admin')}
@@ -169,10 +169,11 @@ export default function AdminHomeScreen() {
             onPress={() => router.push('/(admin)/notifications')}
             accessibilityRole="button"
             accessibilityLabel={bellLabel}
+            hitSlop={12}
             style={({ pressed }) => [
               styles.bellButton,
               { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-              pressed && { opacity: 0.7 },
+              pressed && { opacity: opacityPressed.control },
             ]}
           >
             <Bell size={18} color={colors.text.primary} strokeWidth={2} />
@@ -226,7 +227,7 @@ export default function AdminHomeScreen() {
               hitSlop={8}
               accessibilityRole="button"
               accessibilityLabel="Gerenciar filhos"
-              style={({ pressed }) => [styles.sectionLink, pressed && { opacity: 0.65 }]}
+              style={({ pressed }) => [styles.sectionLink, pressed && { opacity: opacityPressed.link }]}
             >
               <Text style={[styles.sectionLinkText, { color: colors.accent.adminDim }]}>
                 Gerenciar
@@ -248,7 +249,7 @@ export default function AdminHomeScreen() {
                     style={({ pressed }) => [
                       styles.childCard,
                       { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-                      pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
+                      pressed && { opacity: opacityPressed.surface, transform: [{ scale: 0.98 }] },
                     ]}
                     onPress={() =>
                       router.push({
@@ -322,7 +323,7 @@ export default function AdminHomeScreen() {
                   style={({ pressed }) => [
                     styles.emptyStateButton,
                     { backgroundColor: colors.accent.admin },
-                    pressed && { opacity: 0.85 },
+                    pressed && { opacity: opacityPressed.surface },
                   ]}
                 >
                   <Text style={[styles.emptyStateButtonText, { color: colors.text.onBrand }]}>
@@ -368,11 +369,11 @@ function makeStyles() {
       borderRadius: radii.full,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingHorizontal: 4,
+      paddingHorizontal: spacing['1'],
     },
     bellBadgeText: {
       fontFamily: typography.family.black,
-      fontSize: 10,
+      fontSize: typography.size.xxs,
       color: staticTextColors.inverse,
     },
     heroSub: { fontFamily: typography.family.bold, fontSize: typography.size.sm },

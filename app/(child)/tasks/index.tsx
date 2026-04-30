@@ -20,7 +20,7 @@ import { useChildAssignments, useDiscardRejection } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import { useImpersonation } from '@/context/impersonation-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, shadows, spacing, typography } from '@/constants/theme';
+import { opacityDisabled, radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
@@ -132,7 +132,7 @@ function TaskCard({ item, filter, colors, styles, router, isReadOnly }: TaskCard
   const hasPhoto = item.exige_evidencia_snapshot;
   const isRejected = item.status === 'rejeitada';
   const isAwaiting = item.status === 'aguardando_validacao';
-  const opacity = isInactive ? 0.6 : 1;
+  const opacity = isInactive ? opacityDisabled.light : 1;
 
   const handlePress = () => {
     if (isUnavailable) {
@@ -222,7 +222,7 @@ function RejectedActions({
   };
 
   return (
-    <View style={[styles.rejectedActions, disabled && { opacity: 0.5 }]}>
+    <View style={[styles.rejectedActions, disabled && { opacity: opacityDisabled.heavy }]}>
       <Text style={[styles.rejectedHint, { color: colors.semantic.warningText }]}>{hint}</Text>
       <Pressable
         onPress={handleDiscard}
@@ -389,7 +389,7 @@ function makeStyles(colors: ThemeColors) {
       paddingVertical: spacing['1'],
     },
     cardBadgeText: {
-      fontSize: 10,
+      fontSize: typography.size.xxs,
       fontFamily: typography.family.bold,
     },
     cardTrailing: {

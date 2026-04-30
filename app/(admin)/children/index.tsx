@@ -14,7 +14,7 @@ import { ChildNewSheet } from '@/components/children/child-new-sheet';
 import { useChildrenList, useAdminBalances, combineQueryStates } from '@/hooks/queries';
 import type { BalanceWithChild } from '@lib/balances';
 import { useTheme } from '@/context/theme-context';
-import { radii, shadows, spacing, typography } from '@/constants/theme';
+import { opacityDisabled, radii, shadows, spacing, typography } from '@/constants/theme';
 
 export default function AdminChildrenScreen() {
   const router = useRouter();
@@ -74,7 +74,7 @@ export default function AdminChildrenScreen() {
           const balance = balancesMap.get(item.id);
           const totalPts = balance ? balance.saldo_livre + balance.cofrinho : 0;
           return (
-            <View style={[styles.card, shadows.card, { opacity: item.ativo === false ? 0.5 : 1 }]}>
+            <View style={[styles.card, shadows.card, { opacity: item.ativo === false ? opacityDisabled.heavy : 1 }]}>
               <View style={styles.cardRow}>
                 <Avatar name={item.nome} size={56} imageUri={item.avatar_url} />
 
@@ -189,7 +189,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
       color: colors.text.primary,
     },
     ptsBreakdown: {
-      fontSize: 10,
+      fontSize: typography.size.xxs,
       color: colors.text.secondary,
     },
   });

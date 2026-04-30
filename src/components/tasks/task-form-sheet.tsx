@@ -1,3 +1,4 @@
+import { Check, Circle } from 'lucide-react-native';
 import {
   ActivityIndicator,
   Pressable,
@@ -231,14 +232,11 @@ export function TaskFormSheet({ visible, mode, task, onClose, onSuccess }: TaskF
               >
                 {child.nome}
               </Text>
-              <Text
-                style={[
-                  styles.filhoCheck,
-                  { color: sel ? colors.accent.admin : colors.text.muted },
-                ]}
-              >
-                {sel ? '✓' : '○'}
-              </Text>
+              {sel ? (
+                <Check size={20} color={colors.accent.admin} strokeWidth={2.5} />
+              ) : (
+                <Circle size={20} color={colors.text.muted} strokeWidth={2} />
+              )}
             </Pressable>
           );
         })}
@@ -343,7 +341,6 @@ function makeStyles(colors: ThemeColors) {
       padding: spacing['3'],
     },
     filhoNome: { fontSize: typography.size.md, fontFamily: typography.family.medium },
-    filhoCheck: { fontSize: typography.size.lg },
     semFilhos: {
       fontSize: typography.size.sm,
       textAlign: 'center',

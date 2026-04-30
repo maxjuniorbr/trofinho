@@ -43,7 +43,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/context/theme-context';
 import { useImpersonation } from '@/context/impersonation-context';
-import { radii, shadows, spacing, staticTextColors, typography } from '@/constants/theme';
+import { opacityDisabled, opacityPressed, radii, shadows, spacing, staticTextColors, typography } from '@/constants/theme';
 import { gradients, heroPalette } from '@/constants/shadows';
 import { NotificationPermissionBanner } from '@/components/ui/notification-permission-banner';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
@@ -212,10 +212,11 @@ export default function FilhoHomeScreen() {
             onPress={() => router.push('/(child)/notifications')}
             accessibilityRole="button"
             accessibilityLabel={bellLabel}
+            hitSlop={12}
             style={({ pressed }) => [
               styles.bellButton,
               { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-              pressed && { opacity: 0.7 },
+              pressed && { opacity: opacityPressed.control },
             ]}
           >
             <Bell size={18} color={colors.text.primary} strokeWidth={2} />
@@ -234,7 +235,7 @@ export default function FilhoHomeScreen() {
           onPress={() => router.push('/(child)/balance')}
           accessibilityRole="button"
           accessibilityLabel={`Saldo total: ${totalBalance} pontos, ver detalhes`}
-          style={({ pressed }) => [pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+          style={({ pressed }) => [pressed && { opacity: opacityPressed.surface, transform: [{ scale: 0.98 }] }]}
         >
           <LinearGradient
             colors={gradients.heroNavy.colors}
@@ -306,6 +307,7 @@ export default function FilhoHomeScreen() {
             onPress={() => router.push('/(child)/tasks' as never)}
             accessibilityRole="button"
             accessibilityLabel="Ver todas as tarefas"
+            hitSlop={8}
             style={styles.seeAllBtn}
           >
             <Text style={[styles.seeAllText, { color: colors.accent.filho }]}>Ver todas</Text>
@@ -416,7 +418,7 @@ function PendingTaskCard({ task, isReadOnly, colors, styles, onPress }: PendingT
         style={[
           styles.taskActionBtn,
           { backgroundColor: isRejected ? colors.semantic.error : colors.brand.vivid },
-          isReadOnly && { opacity: 0.45 },
+          isReadOnly && { opacity: opacityDisabled.heavy },
         ]}
         onPress={onPress}
         disabled={isReadOnly}
@@ -476,11 +478,11 @@ function makeStyles() {
       borderRadius: radii.full,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingHorizontal: 4,
+      paddingHorizontal: spacing['1'],
     },
     bellBadgeText: {
       fontFamily: typography.family.black,
-      fontSize: 10,
+      fontSize: typography.size.xxs,
       color: staticTextColors.inverse,
     },
 
@@ -599,7 +601,7 @@ function makeStyles() {
     seeAllBtn: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 2,
+      gap: spacing['0.5'],
     },
     seeAllText: {
       fontFamily: typography.family.semibold,
@@ -646,19 +648,19 @@ function makeStyles() {
     },
     taskCardMetaText: {
       fontFamily: typography.family.semibold,
-      fontSize: 11,
+      fontSize: typography.size.xs,
     },
     taskCardBadge: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 2,
+      gap: spacing['0.5'],
       paddingHorizontal: spacing['1.5'],
-      paddingVertical: 2,
+      paddingVertical: spacing['0.5'],
       borderRadius: radii.sm,
     },
     taskCardBadgeText: {
       fontFamily: typography.family.bold,
-      fontSize: 10,
+      fontSize: typography.size.xxs,
     },
     taskActionBtn: {
       flexDirection: 'row',
@@ -707,7 +709,7 @@ function makeStyles() {
     },
     statLabel: {
       fontFamily: typography.family.semibold,
-      fontSize: 10,
+      fontSize: typography.size.xxs,
       textTransform: 'uppercase',
     },
   });

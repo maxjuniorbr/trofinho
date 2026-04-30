@@ -62,6 +62,7 @@ vi.mock('react-native', () => ({
     dismiss: vi.fn(),
   },
   KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
+  Platform: { OS: 'ios', select: <T,>(spec: { ios?: T; android?: T; default?: T }) => spec.ios ?? spec.default },
   Pressable: createHostComponent('Pressable'),
   ScrollView: createHostComponent('ScrollView'),
   StyleSheet: { create: <T,>(styles: T) => styles },

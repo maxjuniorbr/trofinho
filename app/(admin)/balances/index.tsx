@@ -10,7 +10,7 @@ import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { Avatar } from '@/components/ui/avatar';
 import { useAdminBalances } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
-import { radii, shadows, spacing, typography } from '@/constants/theme';
+import { opacityDisabled, radii, shadows, spacing, typography } from '@/constants/theme';
 import { getSafeHorizontalPadding, getSafeTopPadding } from '@lib/safe-area';
 
 export default function BalancesAdminScreen() {
@@ -92,7 +92,7 @@ export default function BalancesAdminScreen() {
               <Pressable
                 style={({ pressed }) => {
                   let opacity = 1;
-                  if (isInactive) opacity = 0.5;
+                  if (isInactive) opacity = opacityDisabled.heavy;
                   else if (pressed) opacity = 0.9;
                   return [
                     styles.card,

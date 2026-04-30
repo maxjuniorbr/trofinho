@@ -120,11 +120,19 @@ export function AdminHomeScreenSkeleton() {
 
 // ── List screens (tasks, prizes, redemptions, etc.) ──────
 
+// Avatar/icon size used in list-card skeletons; kept as a local constant
+// because it must match the SkeletonBox width below for alignment.
+const LIST_CARD_AVATAR_SIZE = 36;
+
 function ListCardSkeleton() {
   return (
     <View style={styles.listCard}>
       <View style={styles.listCardTopRow}>
-        <SkeletonBox width={36} height={36} borderRadius={radii.full} />
+        <SkeletonBox
+          width={LIST_CARD_AVATAR_SIZE}
+          height={LIST_CARD_AVATAR_SIZE}
+          borderRadius={radii.full}
+        />
         <View style={styles.listCardInfo}>
           <SkeletonBox width="70%" height={14} />
           <SkeletonBox width="45%" height={11} />
@@ -212,6 +220,6 @@ const styles = StyleSheet.create({
   listCardBadgeRow: {
     flexDirection: 'row',
     gap: spacing['2'],
-    paddingLeft: 36 + spacing['3'], // align with text after icon
+    paddingLeft: LIST_CARD_AVATAR_SIZE + spacing['3'], // align with text after icon
   },
 });

@@ -3,8 +3,8 @@ import { act, create, type ReactTestRenderer } from '../../../test/helpers/test-
 import { Text } from 'react-native';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@react-native-community/slider', () => {
-    const { forwardRef, createElement } = require('react');
+vi.mock('@react-native-community/slider', async () => {
+    const { forwardRef, createElement } = await import('react');
     const Slider = forwardRef(function Slider(
         props: Record<string, unknown>,
         ref: React.ForwardedRef<unknown>,
@@ -15,6 +15,7 @@ vi.mock('@react-native-community/slider', () => {
     return { __esModule: true, default: Slider };
 });
 
+// eslint-disable-next-line import/first
 import { SteppedSlider } from './stepped-slider';
 
 function render(element: React.ReactElement) {

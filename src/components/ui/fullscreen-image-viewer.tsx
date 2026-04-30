@@ -2,7 +2,7 @@ import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { spacing } from '@/constants/theme';
+import { spacing, radii } from '@/constants/theme';
 
 type FullscreenImageViewerProps = Readonly<{
   visible: boolean;
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: radii.full,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',

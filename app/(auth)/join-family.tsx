@@ -263,7 +263,7 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
             color: palette.checkOnText,
         },
         previewAdminName: {
-            marginTop: 2,
+            marginTop: spacing['0.5'],
             fontFamily: typography.family.medium,
             fontSize: typography.size.xs,
             color: palette.textOnNavy,

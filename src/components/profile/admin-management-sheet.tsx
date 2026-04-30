@@ -315,8 +315,8 @@ function makeStyles(colors: ThemeColors) {
         adminInfo: { flex: 1, minWidth: 0 },
         adminNameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1.5'] },
         adminName: { fontFamily: typography.family.bold, fontSize: typography.size.sm, flexShrink: 1 },
-        youBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: radii.full },
-        youBadgeText: { fontFamily: typography.family.extrabold, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+        youBadge: { paddingHorizontal: spacing['1.5'], paddingVertical: spacing['0.5'], borderRadius: radii.full },
+        youBadgeText: { fontFamily: typography.family.extrabold, fontSize: typography.size.xxs, textTransform: 'uppercase', letterSpacing: 0.5 },
         adminEmail: { fontFamily: typography.family.medium, fontSize: typography.size.xxs, marginTop: 1 },
         removeBtn: {
             width: 36,

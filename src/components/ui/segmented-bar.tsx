@@ -117,7 +117,7 @@ function makeStyles(colors: ThemeColors) {
       paddingHorizontal: spacing['1'],
     },
     badgeText: {
-      fontSize: 10,
+      fontSize: typography.size.xxs,
       fontFamily: typography.family.bold,
     },
   });

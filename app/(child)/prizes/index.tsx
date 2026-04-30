@@ -393,7 +393,7 @@ const cardStyles = StyleSheet.create({
     justifyContent: 'center',
   },
   prizeEmoji: {
-    fontSize: 36,
+    fontSize: typography.size['4xl'],
   },
   name: {
     fontSize: typography.size.sm,

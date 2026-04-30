@@ -52,7 +52,7 @@ import { consumeNavigationFeedback, type NavigationFeedback } from '@lib/navigat
 import { formatDate } from '@lib/utils';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, shadows, spacing, typography, withAlpha } from '@/constants/theme';
+import { opacityDisabled, opacityPressed, radii, shadows, spacing, typography, withAlpha } from '@/constants/theme';
 
 type TabKey = 'ativas' | 'feitas' | 'arquivo';
 
@@ -202,7 +202,7 @@ const AdminTaskCard = ({ item, colors, styles, onPress, onMenuPress, variant }: 
         ? { Icon: Archive, color: colors.text.muted, bg: colors.bg.muted, label: 'Arquivada' }
         : { Icon: Clock, color: colors.semantic.warning, bg: colors.semantic.warningBg, label: 'Ativa' };
 
-  const opacity = isInactive || isArchived ? 0.6 : 1;
+  const opacity = isInactive || isArchived ? opacityDisabled.light : 1;
 
   return (
     <TaskCard
@@ -217,7 +217,7 @@ const AdminTaskCard = ({ item, colors, styles, onPress, onMenuPress, variant }: 
       trailingAction={
         <Pressable
           onPress={(e) => { e.stopPropagation(); onMenuPress(); }}
-          style={({ pressed }) => [styles.menuButton, pressed && { opacity: 0.6 }]}
+          style={({ pressed }) => [styles.menuButton, pressed && { opacity: opacityPressed.link }]}
           accessibilityRole="button"
           accessibilityLabel={`Abrir menu da tarefa ${item.titulo}`}
           hitSlop={8}
@@ -595,7 +595,7 @@ export default function AdminTasksScreen() {
                 style={({ pressed }) => [
                   styles.loadOlderBtn,
                   { borderColor: colors.border.default },
-                  pressed && { opacity: 0.7 },
+                  pressed && { opacity: opacityPressed.control },
                 ]}
                 onPress={() => setShowOlderApproved(true)}
                 accessibilityRole="button"
@@ -829,7 +829,7 @@ function makeStyles(colors: ThemeColors) {
       paddingVertical: spacing['1'],
     },
     cardBadgeText: {
-      fontSize: 10,
+      fontSize: typography.size.xxs,
       fontFamily: typography.family.bold,
     },
     cardTrailing: {

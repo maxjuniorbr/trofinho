@@ -14,6 +14,7 @@ beforeAll(() => {
     }
 });
 
+// eslint-disable-next-line import/first
 import {
     HomeScreenSkeleton,
     AdminHomeScreenSkeleton,

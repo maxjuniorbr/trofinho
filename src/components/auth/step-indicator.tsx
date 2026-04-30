@@ -47,7 +47,7 @@ export const StepIndicator = ({ currentStep, totalSteps = 2, labels }: StepIndic
         <View style={styles.labels}>
           {labels.map((label, i) => (
             <Text key={label} style={getLabelStyle(i)} allowFontScaling={false}>
-              {i + 1 < currentStep ? `${label} ✓` : label}
+              {label}
             </Text>
           ))}
         </View>

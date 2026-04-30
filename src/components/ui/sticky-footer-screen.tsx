@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react';
 import {
   KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   View,
@@ -109,7 +110,7 @@ export function StickyFooterScreen({
   return (
     <KeyboardAvoidingView
       style={[styles.flex, { backgroundColor: colors.bg.canvas }]}
-      behavior="padding"
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       {body}
     </KeyboardAvoidingView>

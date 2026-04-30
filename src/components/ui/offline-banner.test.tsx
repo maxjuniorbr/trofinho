@@ -9,6 +9,7 @@ vi.mock('@/hooks/use-network-status', () => ({
     useNetworkStatus: () => networkStatusMock,
 }));
 
+// eslint-disable-next-line import/first
 import { OfflineBanner } from './offline-banner';
 
 function render(element: React.ReactElement) {

@@ -260,7 +260,7 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
         sentIconContainer: {
             width: 40,
             height: 40,
-            borderRadius: 20,
+            borderRadius: radii.full,
             backgroundColor: palette.borderFocus + '33',
             alignItems: 'center',
             justifyContent: 'center',
@@ -274,7 +274,7 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
             color: palette.textOnNavy,
         },
         sentDescription: {
-            marginTop: 2,
+            marginTop: spacing['0.5'],
             fontFamily: typography.family.medium,
             fontSize: typography.size.xs,
             color: palette.textOnNavyMuted,
@@ -287,7 +287,7 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 6,
+            gap: spacing['1.5'],
             marginTop: 'auto',
             marginBottom: 'auto',
         },

@@ -492,7 +492,7 @@ function makeStyles(colors: ThemeColors) {
     menuRowLeft: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 10,
+      gap: spacing['2'],
     },
     menuRowLabel: {
       fontFamily: typography.family.semibold,
@@ -509,7 +509,7 @@ function makeStyles(colors: ThemeColors) {
     },
     hintBadge: {
       paddingHorizontal: spacing['2'],
-      paddingVertical: 2,
+      paddingVertical: spacing['0.5'],
       borderRadius: radii.full,
     },
     hintBadgeText: {

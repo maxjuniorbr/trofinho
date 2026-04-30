@@ -805,11 +805,11 @@ function makeStyles(colors: ThemeColors) {
       opacity: 0.85,
     },
     evidenceBadgeText: {
-      fontSize: 10,
+      fontSize: typography.size.xxs,
       fontFamily: typography.family.bold,
     },
     submittedLabel: {
-      fontSize: 11,
+      fontSize: typography.size.xs,
       fontFamily: typography.family.semibold,
     },
     errorBar: { paddingHorizontal: spacing['4'] },

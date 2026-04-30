@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/theme-context';
-import { spacing, typography } from '@/constants/theme';
+import { opacityPressed, radii, spacing, typography } from '@/constants/theme';
 import type { LucideIcon } from 'lucide-react-native';
 
 export type FooterItem = Readonly<{
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     gap: spacing['0.5'],
     paddingVertical: spacing['1'],
   },
-  tabPressed: { opacity: 0.6 },
+  tabPressed: { opacity: opacityPressed.control },
   iconContainer: { position: 'relative' },
   badge: {
     position: 'absolute',
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     right: -10,
     minWidth: 16,
     height: 16,
-    borderRadius: 8,
+    borderRadius: radii.sm,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing['0.5'],

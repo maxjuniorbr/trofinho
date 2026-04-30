@@ -11,7 +11,7 @@ import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@lib/status'
 import type { RedemptionWithChildAndPrize } from '@lib/redemptions';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, shadows, spacing, typography } from '@/constants/theme';
+import { opacityPressed, radii, shadows, spacing, typography } from '@/constants/theme';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ListScreenSkeleton } from '@/components/ui/skeleton';
 import { InlineMessage } from '@/components/ui/inline-message';
@@ -73,7 +73,7 @@ export default function AdminRedemptionsScreen() {
   const shouldShowEmptyState = hasError || filtered.length === 0;
 
   const emptyMessages: Record<TabKey, string> = {
-    pendentes: 'Tudo em dia 🎉',
+    pendentes: 'Tudo em dia',
     concluidos: 'Nenhum resgate concluído.',
     todos: 'Nenhum resgate registrado.',
   };
@@ -225,7 +225,7 @@ export default function AdminRedemptionsScreen() {
                   style={({ pressed }) => [
                     styles.btnReject,
                     { backgroundColor: colors.semantic.errorBg },
-                    pressed && { opacity: 0.7 },
+                    pressed && { opacity: opacityPressed.control },
                   ]}
                   onPress={() => handleCancel(item)}
                   disabled={isProcessing}
@@ -238,7 +238,7 @@ export default function AdminRedemptionsScreen() {
                   style={({ pressed }) => [
                     styles.btnApprove,
                     { backgroundColor: colors.accent.admin },
-                    pressed && { opacity: 0.85 },
+                    pressed && { opacity: opacityPressed.surface },
                   ]}
                   onPress={() => handleConfirm(item)}
                   disabled={isProcessing}
@@ -344,7 +344,7 @@ function makeStyles(colors: ThemeColors) {
       justifyContent: 'center',
     },
     emojiText: {
-      fontSize: 22,
+      fontSize: typography.size['2xl'],
     },
     infoCol: {
       flex: 1,
@@ -384,7 +384,7 @@ function makeStyles(colors: ThemeColors) {
       paddingVertical: spacing['1'],
     },
     statusText: {
-      fontSize: 10,
+      fontSize: typography.size.xxs,
       fontFamily: typography.family.bold,
     },
     actionsRow: {

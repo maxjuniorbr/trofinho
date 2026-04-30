@@ -1,7 +1,7 @@
 import React, { forwardRef } from 'react';
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { useTheme } from '@/context/theme-context';
-import { radii, spacing, typography } from '@/constants/theme';
+import { opacityDisabled, radii, spacing, typography } from '@/constants/theme';
 
 interface InputProps extends TextInputProps {
   label: string;
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     fontSize: typography.size.md,
   },
   disabled: {
-    opacity: 0.6,
+    opacity: opacityDisabled.light,
   },
   errorText: {
     fontSize: typography.size.xs,

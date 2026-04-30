@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -27,7 +28,7 @@ import { NotificationCard } from '@/components/profile/notification-card';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/context/theme-context';
 import { useImpersonation } from '@/context/impersonation-context';
-import { radii, spacing, typography } from '@/constants/theme';
+import { opacityDisabled, radii, spacing, typography } from '@/constants/theme';
 import type { ThemeColors } from '@/constants/theme';
 import { signOut } from '@lib/auth';
 import { setNotificationPrefs, type NotificationPrefs } from '@lib/notifications';
@@ -141,7 +142,7 @@ export default function ChildProfileScreen() {
     <>
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: colors.bg.canvas }}
-        behavior="padding"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <SafeScreenFrame bottomInset={false}>
           <StatusBar style={colors.statusBar} />
@@ -285,7 +286,7 @@ type MenuRowProps = Readonly<{
 
 const MenuRow = ({ icon: Icon, label, onPress, colors, styles, disabled }: MenuRowProps) => (
   <Pressable
-    style={({ pressed }) => [styles.menuRow, !disabled && pressed && { backgroundColor: colors.bg.muted }, disabled && { opacity: 0.5 }]}
+    style={({ pressed }) => [styles.menuRow, !disabled && pressed && { backgroundColor: colors.bg.muted }, disabled && { opacity: opacityDisabled.heavy }]}
     onPress={onPress}
     disabled={disabled}
     accessibilityRole="button"
@@ -330,7 +331,7 @@ function makeSectionStyles() {
     menuRowLeft: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 10,
+      gap: spacing['2'],
     },
     menuRowLabel: {
       fontFamily: typography.family.semibold,

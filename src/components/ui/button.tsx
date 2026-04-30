@@ -10,7 +10,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import type { LucideIcon } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
-import { gradients, radii, shadows, spacing, typography, withAlpha } from '@/constants/theme';
+import { gradients, opacityDisabled, radii, shadows, spacing, typography, withAlpha } from '@/constants/theme';
 import * as Haptics from 'expo-haptics';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
@@ -174,7 +174,7 @@ export const Button = ({
       }
       style={({ pressed }) => {
         let opacity = 1;
-        if (isDisabled) opacity = 0.45;
+        if (isDisabled) opacity = opacityDisabled.heavy;
         else if (pressed) opacity = isPrimary ? 0.82 : 0.8;
 
         return [

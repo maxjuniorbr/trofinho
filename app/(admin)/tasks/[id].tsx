@@ -55,7 +55,7 @@ import {
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, shadows, spacing, typography } from '@/constants/theme';
+import { opacityPressed, radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader, HeaderIconButton } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { InlineMessage } from '@/components/ui/inline-message';
@@ -288,7 +288,7 @@ function TaskContent({
               <View style={styles.reviewBtnRow}>
                 <Pressable
                   onPress={() => onReject(a.id)}
-                  style={({ pressed }) => [styles.reviewBtn, styles.reviewBtnReject, { borderColor: colors.semantic.error }, pressed && { opacity: 0.7 }]}
+                  style={({ pressed }) => [styles.reviewBtn, styles.reviewBtnReject, { borderColor: colors.semantic.error }, pressed && { opacity: opacityPressed.control }]}
                   accessibilityRole="button"
                   accessibilityLabel={`Rejeitar entrega de ${a.filhos.nome}`}
                 >
@@ -297,7 +297,7 @@ function TaskContent({
                 </Pressable>
                 <Pressable
                   onPress={() => onApprove(a.id)}
-                  style={({ pressed }) => [styles.reviewBtn, styles.reviewBtnApprove, { backgroundColor: colors.semantic.success }, pressed && { opacity: 0.85 }]}
+                  style={({ pressed }) => [styles.reviewBtn, styles.reviewBtnApprove, { backgroundColor: colors.semantic.success }, pressed && { opacity: opacityPressed.surface }]}
                   accessibilityRole="button"
                   accessibilityLabel={`Aprovar entrega de ${a.filhos.nome}`}
                 >

@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { AlertTriangle } from 'lucide-react-native';
 import { BottomSheetModal } from '@/components/ui/bottom-sheet';
 import { useTheme } from '@/context/theme-context';
-import { radii, spacing, typography } from '@/constants/theme';
+import { opacityDisabled, radii, spacing, typography } from '@/constants/theme';
 import { FormFooter } from '@/components/ui/form-footer';
 
 type PenaltyModalProps = Readonly<{
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   btnCancelText: { fontFamily: typography.family.semibold },
   btnConfirm: {},
   btnConfirmText: { fontFamily: typography.family.bold, fontSize: typography.size.md },
-  btnDisabled: { opacity: 0.5 },
+  btnDisabled: { opacity: opacityDisabled.heavy },
   triggerBtn: {
     borderRadius: radii.lg,
     paddingVertical: spacing['3'],

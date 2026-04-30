@@ -22,6 +22,7 @@ vi.mock('lucide-react-native', async (importOriginal) => {
     };
 });
 
+// eslint-disable-next-line import/first
 import JoinFamilyScreen from '../../app/(auth)/join-family';
 
 const routerMock = vi.hoisted(() => ({

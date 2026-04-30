@@ -11,7 +11,7 @@ import type { LucideIcon } from 'lucide-react-native';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { useTheme } from '@/context/theme-context';
-import { radii, shadows, spacing, typography } from '@/constants/theme';
+import { opacityPressed, radii, shadows, spacing, typography } from '@/constants/theme';
 import type { ThemeColors } from '@/constants/theme';
 import type { Notif, NotifType, NotifGroup } from '@lib/notification-inbox';
 
@@ -198,7 +198,7 @@ function NotifCard({ notif, colors, styles, onPress }: NotifCardProps) {
           borderColor: colors.border.default,
         },
         shadows.card,
-        pressed && { opacity: 0.85, transform: [{ scale: 0.985 }] },
+        pressed && { opacity: opacityPressed.surface, transform: [{ scale: 0.985 }] },
       ]}
     >
       <View
@@ -308,7 +308,7 @@ function makeStyles(colors: ThemeColors) {
       borderRadius: radii.full,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingHorizontal: 4,
+      paddingHorizontal: spacing['1'],
     },
     filterBadgeText: {
       fontFamily: typography.family.black,
@@ -375,7 +375,7 @@ function makeStyles(colors: ThemeColors) {
     },
     actionBadge: {
       paddingHorizontal: spacing['2'],
-      paddingVertical: 2,
+      paddingVertical: spacing['0.5'],
       borderRadius: radii.full,
     },
     actionBadgeText: {

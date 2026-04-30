@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -76,7 +77,7 @@ export const AuthHeroScreen = ({
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior="padding"
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.flex}>
         <LinearGradient

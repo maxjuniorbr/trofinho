@@ -16,7 +16,7 @@ import {
 } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, spacing, typography } from '@/constants/theme';
+import { opacityPressed, radii, spacing, typography } from '@/constants/theme';
 
 type PrizeFormSheetProps = Readonly<{
     visible: boolean;
@@ -308,7 +308,7 @@ export function PrizeFormSheet({ visible, mode, prize, onClose, onSuccess }: Pri
                             style={({ pressed }) => [
                                 styles.archiveBtn,
                                 { borderColor: colors.accent.admin },
-                                pressed && { opacity: 0.7 },
+                                pressed && { opacity: opacityPressed.control },
                             ]}
                             onPress={handleUnarchive}
                             disabled={reactivateMutation.isPending}
@@ -325,7 +325,7 @@ export function PrizeFormSheet({ visible, mode, prize, onClose, onSuccess }: Pri
                             style={({ pressed }) => [
                                 styles.archiveBtn,
                                 { borderColor: colors.semantic.error },
-                                pressed && { opacity: 0.7 },
+                                pressed && { opacity: opacityPressed.control },
                             ]}
                             onPress={handleArchive}
                             disabled={deactivateMutation.isPending}

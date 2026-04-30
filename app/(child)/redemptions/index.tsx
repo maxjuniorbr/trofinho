@@ -200,7 +200,7 @@ function makeStyles(colors: ThemeColors) {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    emojiText: { fontSize: 22 },
+    emojiText: { fontSize: typography.size['2xl'] },
     infoCol: { flex: 1, gap: spacing['0.5'] },
     prizeName: {
       fontSize: typography.size.sm,
@@ -232,7 +232,7 @@ function makeStyles(colors: ThemeColors) {
       alignSelf: 'flex-start',
     },
     statusText: {
-      fontSize: 10,
+      fontSize: typography.size.xxs,
       fontFamily: typography.family.bold,
     },
   });
