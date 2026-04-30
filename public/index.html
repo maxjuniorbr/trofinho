@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trofinho — Tarefas e Recompensas para Crianças</title>
+  <meta name="description" content="Trofinho transforma tarefas do dia a dia em conquistas. Crianças completam missões, ganham moedas e trocam por recompensas reais.">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background-color: #131720;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      height: 100vh;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      overflow: hidden;
+    }
+
+    .container {
+      text-align: center;
+      max-width: 420px;
+      width: 100%;
+    }
+
+    .emoji { font-size: clamp(40px, 8vw, 64px); margin-bottom: clamp(12px, 2vh, 24px); }
+
+    .logo {
+      font-size: clamp(28px, 5vw, 36px);
+      font-weight: 800;
+      color: #FAC114;
+      letter-spacing: -0.5px;
+      margin-bottom: clamp(6px, 1vh, 12px);
+    }
+
+    .tagline {
+      font-size: clamp(14px, 2.5vw, 18px);
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.85);
+      margin-bottom: clamp(16px, 3vh, 32px);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(250, 193, 20, 0.12);
+      border: 1px solid rgba(250, 193, 20, 0.25);
+      border-radius: 100px;
+      padding: clamp(8px, 1.2vh, 10px) clamp(14px, 2vw, 20px);
+      margin-bottom: clamp(16px, 3vh, 32px);
+    }
+
+    .badge-dot {
+      width: 8px; height: 8px;
+      background: #FAC114;
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .badge-text {
+      font-size: clamp(12px, 1.8vw, 14px);
+      font-weight: 600;
+      color: #FAC114;
+    }
+
+    .features {
+      display: flex;
+      gap: clamp(8px, 1.2vh, 12px);
+      margin-bottom: clamp(16px, 3vh, 32px);
+    }
+
+    .feature {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 12px;
+      padding: clamp(10px, 1.5vh, 14px) clamp(8px, 1vw, 12px);
+      text-align: center;
+    }
+
+    .feature-icon { font-size: clamp(18px, 3vw, 24px); margin-bottom: 6px; }
+
+    .feature-text {
+      font-size: clamp(11px, 1.5vw, 13px);
+      line-height: 1.4;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .footer {
+      font-size: clamp(11px, 1.3vw, 13px);
+      color: rgba(255, 255, 255, 0.25);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="emoji">🏆</div>
+    <div class="logo">Trofinho</div>
+    <p class="tagline">Transforme tarefas do dia a dia<br>em conquistas para seus filhos.</p>
+
+    <div class="badge">
+      <span class="badge-dot"></span>
+      <span class="badge-text">Em breve na Google Play</span>
+    </div>
+
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">📋</div>
+        <div class="feature-text">Crie tarefas</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">💰</div>
+        <div class="feature-text">Ganhe moedas</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🎁</div>
+        <div class="feature-text">Troque por prêmios</div>
+      </div>
+    </div>
+
+    <p class="footer">© Trofinho</p>
+  </div>
+</body>
+</html>
