@@ -2,6 +2,20 @@ import type { UserProfile } from './auth';
 
 export type NavTarget = '/(auth)/login' | '/(auth)/onboarding' | '/(admin)/' | '/(child)/';
 
+/** Auth sub-routes that bypass the normal redirect logic. */
+const AUTH_PASSTHROUGH_ROUTES = new Set(['onboarding', 'register', 'join-family', 'reset-password']);
+
+function getRoleHome(profile: UserProfile): NavTarget {
+  return profile.papel === 'admin' ? '/(admin)/' : '/(child)/';
+}
+
+/** Returns true when the user is in the correct route group for their role. */
+function isInCorrectRouteGroup(group: string, papel: string, isImpersonating: boolean): boolean {
+  if (group === '(admin)') return papel === 'admin';
+  if (group === '(child)') return papel === 'filho' || isImpersonating;
+  return false;
+}
+
 /**
  * Pure function that determines the navigation target for the root layout.
  * Returns the route the app should replace to, or null if no redirect is needed.
@@ -27,33 +41,20 @@ export function resolveNavDecision(
 
   if (profile === undefined) return null;
 
-  const roleHome: NavTarget = profile.papel === 'admin' ? '/(admin)/' : '/(child)/';
+  const roleHome = getRoleHome(profile);
 
+  // No family yet — only allow passthrough auth routes (onboarding, register,
+  // join-family, reset-password). Everything else redirects to onboarding.
   if (!profile.familia_id) {
-    // Allow onboarding (already there), register (mid-flow — register itself
-    // does router.replace to onboarding with name/email params, so the nav
-    // guard must not race it with a param-less redirect), and join-family
-    // (user navigated from onboarding to accept an invite code — e.g. a
-    // removed co-admin re-joining via a new invite).
-    return seg1 === 'onboarding' || seg1 === 'register' || seg1 === 'join-family' || seg1 === 'reset-password'
-      ? null
-      : '/(auth)/onboarding';
+    return AUTH_PASSTHROUGH_ROUTES.has(seg1 ?? '') ? null : '/(auth)/onboarding';
   }
 
   if (inAuth) {
     // Allow reset-password even for authenticated users (deep link while logged in)
-    if (seg1 === 'reset-password') return null;
-    return roleHome;
+    return seg1 === 'reset-password' ? null : roleHome;
   }
 
-  const inAdmin = segments[0] === '(admin)';
-  const inChild = segments[0] === '(child)';
+  if (isInCorrectRouteGroup(segments[0], profile.papel, isImpersonating)) return null;
 
-  if ((inAdmin && profile.papel !== 'admin') || (inChild && profile.papel !== 'filho' && !isImpersonating)) {
-    return roleHome;
-  }
-
-  if (!inAdmin && !inChild) return roleHome;
-
-  return null;
+  return roleHome;
 }
