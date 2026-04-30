@@ -13,7 +13,6 @@ import { Button } from './button';
 import { Card } from './card';
 import { EmptyState } from './empty-state';
 import { Input } from './input';
-import { PointsDisplay } from './points-display';
 import { HeaderIconButton, ScreenHeader } from './screen-header';
 
 const routerMock = vi.hoisted(() => ({
@@ -218,24 +217,6 @@ describe('ui components', () => {
 
     expect(nodes.map((node) => node.props.children)).toEqual(['Nome', 'Obrigatorio']);
     expect(flattenStyle(input.props.style).borderColor).toBe(lightColors.border.error);
-  });
-
-  it('formats point values with the correct visual variant and size', () => {
-    const goldRenderer = render(<PointsDisplay value={1250} label="Saldo" />);
-    const goldTexts = goldRenderer.root.findAllByType(Text);
-
-    expect(goldTexts[0].props.children).toBe('1.250');
-    expect(flattenStyle(goldTexts[0].props.style).color).toBe(lightColors.brand.vivid);
-
-    const amberRenderer = render(
-      <PointsDisplay value={30} label="Bonus" variant="amber" size="lg" />,
-    );
-    const amberTexts = amberRenderer.root.findAllByType(Text);
-    expect(flattenStyle(amberTexts[0].props.style).color).toBe(lightColors.brand.dim);
-
-    const defaultRenderer = render(<PointsDisplay value={4} label="Meta" variant="default" />);
-    const defaultTexts = defaultRenderer.root.findAllByType(Text);
-    expect(flattenStyle(defaultTexts[0].props.style).color).toBe(lightColors.text.primary);
   });
 
   it('uses the back callback when navigation can go back', async () => {

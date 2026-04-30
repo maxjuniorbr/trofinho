@@ -225,16 +225,6 @@ vi.mock('@/components/profile/notification-card', () => ({
     React.createElement('NotificationCard', props),
 }));
 
-vi.mock('@/components/profile/admin-section', () => ({
-  AdminSection: (props: Record<string, unknown>) =>
-    React.createElement('AdminSection', props),
-}));
-
-vi.mock('@/components/profile/invite-sheet', () => ({
-  InviteSheet: (props: Record<string, unknown>) =>
-    React.createElement('InviteSheet', props),
-}));
-
 vi.mock('@/components/profile/remove-admin-sheet', () => ({
   RemoveAdminSheet: (props: Record<string, unknown>) =>
     React.createElement('RemoveAdminSheet', props),

@@ -4,8 +4,9 @@ import { BottomSheetModal } from '@/components/ui/bottom-sheet';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { InlineMessage } from '@/components/ui/inline-message';
-import { useChildDetail, useDeactivateChild, useReactivateChild } from '@/hooks/queries';
+import { useChildDetail, useDeactivateChild, useReactivateChild, useAdminBalances } from '@/hooks/queries';
 import { localizeRpcError } from '@lib/api-error';
+import { buildChildDeactivateMessage } from '@lib/children';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { useTheme } from '@/context/theme-context';
 import { spacing, typography } from '@/constants/theme';
@@ -20,6 +21,7 @@ export function ChildViewSheet({ childId, onClose }: ChildViewSheetProps) {
   const { data: child, isLoading } = useChildDetail(childId ?? undefined);
   const deactivateMutation = useDeactivateChild();
   const reactivateMutation = useReactivateChild();
+  const { data: balances = [] } = useAdminBalances();
 
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [feedbackVariant, setFeedbackVariant] = useState<'success' | 'warning' | 'error'>(
@@ -56,19 +58,22 @@ export function ChildViewSheet({ childId, onClose }: ChildViewSheetProps) {
 
   const handleDeactivate = useCallback(() => {
     if (!child) return;
-    Alert.alert(
-      `Desativar ${child.nome}?`,
-      `${child.nome} não poderá mais fazer login no app. Atribuições pendentes serão canceladas.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Desativar',
-          style: 'destructive',
-          onPress: () => executeDeactivate(child.id, child.nome),
-        },
-      ],
-    );
-  }, [child, executeDeactivate]);
+    const balance = balances.find((b) => b.filho_id === child.id);
+    const totalBalance = balance ? balance.saldo_livre + balance.cofrinho : 0;
+    const message = buildChildDeactivateMessage(child.nome, {
+      pendingCount: 0,
+      awaitingCount: 0,
+      totalBalance,
+    });
+    Alert.alert(`Desativar ${child.nome}?`, message, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Desativar',
+        style: 'destructive',
+        onPress: () => executeDeactivate(child.id, child.nome),
+      },
+    ]);
+  }, [child, balances, executeDeactivate]);
 
   const handleReactivate = useCallback(() => {
     if (!child) return;
