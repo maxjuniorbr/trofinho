@@ -73,6 +73,16 @@ export function validateRequest(
     return { valid: false, error: 'date_of_birth must be a valid ISO 8601 date (YYYY-MM-DD)' };
   }
 
+  // Validate age: must be between 1900-01-01 and today minus 8 years
+  const minDate = new Date(Date.UTC(1900, 0, 1));
+  const now = new Date();
+  const maxDate = new Date(Date.UTC(now.getUTCFullYear() - 8, now.getUTCMonth(), now.getUTCDate()));
+  const utcDate = new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate()));
+
+  if (utcDate < minDate || utcDate > maxDate) {
+    return { valid: false, error: 'date_of_birth must be at least 8 years ago' };
+  }
+
   return {
     valid: true,
     data: { invite_code: invite_code.toUpperCase(), date_of_birth },

@@ -202,6 +202,14 @@ describe('vincular-filho handler', () => {
         { invite_code: 'ABC123', date_of_birth: '2010-13-01' },
         'date_of_birth must be a valid ISO 8601 date (YYYY-MM-DD)',
       ],
+      [
+        { invite_code: 'ABC123', date_of_birth: '2025-01-01' },
+        'date_of_birth must be at least 8 years ago',
+      ],
+      [
+        { invite_code: 'ABC123', date_of_birth: '1899-12-31' },
+        'date_of_birth must be at least 8 years ago',
+      ],
     ])('rejects invalid body %j with "%s"', (body, expectedError) => {
       const result = validateRequest(body);
       expect(result).toEqual({ valid: false, error: expectedError });
