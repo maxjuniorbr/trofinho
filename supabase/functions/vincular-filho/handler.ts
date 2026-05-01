@@ -146,21 +146,17 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
     return inviteResult.errorResponse;
   }
 
-  const { invite, familiaId, nomeFilho } = inviteResult;
+  const { invite, familiaId, filhoId: inviteFilhoId, nomeFilho } = inviteResult;
 
-  // Find the matching filhos record and verify it's not already linked
-  const filhoResult = await findUnlinkedFilho(adminClient, familiaId, nomeFilho);
-  if ('errorResponse' in filhoResult) {
-    return filhoResult.errorResponse;
+  const existingUserResult = await ensureUserCanJoin(adminClient, childUserId);
+  if ('errorResponse' in existingUserResult) {
+    return existingUserResult.errorResponse;
   }
 
-  // Check family child limit
-  const childCount = await countActiveChildren(adminClient, familiaId);
-  if (childCount >= 10) {
-    return jsonResponse(
-      { success: false, error: 'FAMILY_FULL' } satisfies VincularFilhoErrorResponse,
-      400,
-    );
+  // Find the matching filhos record and verify it's not already linked
+  const filhoResult = await findUnlinkedFilho(adminClient, familiaId, nomeFilho, inviteFilhoId);
+  if ('errorResponse' in filhoResult) {
+    return filhoResult.errorResponse;
   }
 
   // Perform the linking: update filhos, create usuarios, update invite, save metadata
@@ -219,12 +215,12 @@ async function lookupAndValidateInvite(
   client: SupabaseClientLike,
   code: string,
 ): Promise<
-  | { invite: Record<string, unknown>; familiaId: string; nomeFilho: string }
+  | { invite: Record<string, unknown>; familiaId: string; filhoId: string | null; nomeFilho: string }
   | { errorResponse: Response }
 > {
   const { data: invite, error } = await client
     .from('convites_filho')
-    .select('id, familia_id, nome_filho, aceito_por, expira_em')
+    .select('id, familia_id, filho_id, nome_filho, aceito_por, expira_em')
     .eq('codigo', code)
     .maybeSingle();
 
@@ -263,21 +259,51 @@ async function lookupAndValidateInvite(
   return {
     invite,
     familiaId: invite.familia_id as string,
+    filhoId: (invite.filho_id as string | null | undefined) ?? null,
     nomeFilho: invite.nome_filho as string,
   };
+}
+
+async function ensureUserCanJoin(
+  client: SupabaseClientLike,
+  userId: string,
+): Promise<{ ok: true } | { errorResponse: Response }> {
+  const { data: existingUser, error } = await client
+    .from('usuarios')
+    .select('id')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (error) {
+    return { errorResponse: jsonResponse({ error: 'Internal error' }, 500) };
+  }
+
+  if (existingUser) {
+    return {
+      errorResponse: jsonResponse(
+        { success: false, error: 'ALREADY_LINKED' } satisfies VincularFilhoErrorResponse,
+        400,
+      ),
+    };
+  }
+
+  return { ok: true };
 }
 
 async function findUnlinkedFilho(
   client: SupabaseClientLike,
   familiaId: string,
   nomeFilho: string,
+  filhoId: string | null,
 ): Promise<{ filhoId: string } | { errorResponse: Response }> {
-  const { data: filhoRecord, error } = await client
+  let query = client
     .from('filhos')
     .select('id, usuario_id')
-    .eq('familia_id', familiaId)
-    .eq('nome', nomeFilho)
-    .maybeSingle();
+    .eq('familia_id', familiaId);
+
+  query = filhoId ? query.eq('id', filhoId) : query.eq('nome', nomeFilho);
+
+  const { data: filhoRecord, error } = await query.maybeSingle();
 
   if (error || !filhoRecord) {
     return { errorResponse: jsonResponse({ error: 'Internal error' }, 500) };
@@ -293,21 +319,6 @@ async function findUnlinkedFilho(
   }
 
   return { filhoId: filhoRecord.id as string };
-}
-
-const MAX_CHILDREN_PER_FAMILY = 10;
-
-async function countActiveChildren(
-  client: SupabaseClientLike,
-  familiaId: string,
-): Promise<number> {
-  const { data, error } = await client
-    .from('filhos')
-    .select('id')
-    .eq('familia_id', familiaId);
-
-  if (error || !data) return 0;
-  return (data as unknown[]).length;
 }
 
 async function performLinking(
@@ -331,15 +342,23 @@ async function performLinking(
   // change the response — the original failure is still reported as 500.
 
   // Step 1: claim the filho row
-  const { error: updateFilhoError } = await client
+  const { data: claimedFilho, error: updateFilhoError } = await client
     .from('filhos')
     .update({ usuario_id: childUserId })
     .eq('id', filhoId)
+    .is('usuario_id', null)
     .select('id')
-    .single();
+    .maybeSingle();
 
   if (updateFilhoError) {
     return jsonResponse({ error: 'Internal error' }, 500);
+  }
+
+  if (!claimedFilho) {
+    return jsonResponse(
+      { success: false, error: 'ALREADY_LINKED' } satisfies VincularFilhoErrorResponse,
+      400,
+    );
   }
 
   // Step 2: create the usuarios record for the child
@@ -356,17 +375,27 @@ async function performLinking(
   }
 
   // Step 3: mark the invite as accepted
-  const { error: updateInviteError } = await client
+  const { data: acceptedInvite, error: updateInviteError } = await client
     .from('convites_filho')
     .update({ aceito_por: childUserId, aceito_em: new Date().toISOString() })
     .eq('id', inviteId)
+    .is('aceito_por', null)
     .select('id')
-    .single();
+    .maybeSingle();
 
   if (updateInviteError) {
     await rollbackUsuario(client, childUserId);
     await rollbackFilho(client, filhoId);
     return jsonResponse({ error: 'Internal error' }, 500);
+  }
+
+  if (!acceptedInvite) {
+    await rollbackUsuario(client, childUserId);
+    await rollbackFilho(client, filhoId);
+    return jsonResponse(
+      { success: false, error: 'ALREADY_LINKED' } satisfies VincularFilhoErrorResponse,
+      400,
+    );
   }
 
   // Step 4: save date_of_birth + LGPD consent in user_metadata and clear pending invite marker

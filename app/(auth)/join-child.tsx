@@ -22,6 +22,7 @@ type Step = 'code' | 'google' | 'dob';
 type InvitePreview = {
     id: string;
     familia_id: string;
+    filho_id: string | null;
     nome_filho: string;
     familyName: string;
     adminName: string;
@@ -83,6 +84,7 @@ export default function JoinChildScreen() {
                 error?: string;
                 id?: string;
                 familia_id?: string;
+                filho_id?: string | null;
                 nome_filho?: string;
                 familyName?: string;
                 adminName?: string;
@@ -101,6 +103,7 @@ export default function JoinChildScreen() {
             setPreview({
                 id: result.id!,
                 familia_id: result.familia_id!,
+                filho_id: result.filho_id ?? null,
                 nome_filho: result.nome_filho!,
                 familyName: result.familyName ?? 'Família',
                 adminName: result.adminName ?? 'Administrador',

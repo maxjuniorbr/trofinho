@@ -1,11 +1,11 @@
 -- Revert the open SELECT policy back to authenticated-only.
 -- The anon SELECT was a security risk — it exposed all invite records.
-DROP POLICY IF EXISTS "validar_convite_filho" ON public.convites_filho;
-
-CREATE POLICY "validar_convite_filho"
-  ON public.convites_filho
-  FOR SELECT
-  USING (auth.uid() IS NOT NULL);
+DO $$
+BEGIN
+  IF to_regclass('public.convites_filho') IS NOT NULL THEN
+    DROP POLICY IF EXISTS "validar_convite_filho" ON public.convites_filho;
+  END IF;
+END $$;
 
 -- Create a SECURITY DEFINER RPC that validates a single invite code.
 -- This runs with elevated privileges (bypasses RLS) but only returns
@@ -23,7 +23,7 @@ DECLARE
   v_admin_name text;
 BEGIN
   -- Look up the invite by code
-  SELECT c.id, c.familia_id, c.nome_filho, c.aceito_por, c.expira_em, c.criado_por
+  SELECT c.id, c.familia_id, c.filho_id, c.nome_filho, c.aceito_por, c.expira_em, c.criado_por
     INTO v_invite
     FROM public.convites_filho c
    WHERE c.codigo = upper(p_codigo);
@@ -57,6 +57,7 @@ BEGIN
     'valid', true,
     'id', v_invite.id,
     'familia_id', v_invite.familia_id,
+    'filho_id', v_invite.filho_id,
     'nome_filho', v_invite.nome_filho,
     'familyName', coalesce(v_family_name, 'Família'),
     'adminName', coalesce(v_admin_name, 'Administrador')

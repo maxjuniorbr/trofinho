@@ -7,12 +7,13 @@ import { InlineMessage } from '@/components/ui/inline-message';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
 import { supabase } from '@lib/supabase';
+import type { Child } from '@lib/children';
 
 type ChildAddSheetProps = Readonly<{
     visible: boolean;
     familiaId: string | undefined;
     onClose: () => void;
-    onChildAdded: (childName: string) => void;
+    onChildAdded: (child: Child) => void;
 }>;
 
 /**
@@ -55,9 +56,11 @@ export function ChildAddSheet({ visible, familiaId, onClose, onChildAdded }: Chi
         setError(null);
         setLoading(true);
 
-        const { error: insertError } = await supabase
+        const { data: child, error: insertError } = await supabase
             .from('filhos')
-            .insert({ familia_id: familiaId, nome: trimmed });
+            .insert({ familia_id: familiaId, nome: trimmed })
+            .select('id, nome, usuario_id, avatar_url, ativo')
+            .single();
 
         if (insertError) {
             setLoading(false);
@@ -71,7 +74,7 @@ export function ChildAddSheet({ visible, familiaId, onClose, onChildAdded }: Chi
 
         setLoading(false);
         resetForm();
-        onChildAdded(trimmed);
+        onChildAdded(child as Child);
     }, [name, familiaId, resetForm, onChildAdded]);
 
     return (

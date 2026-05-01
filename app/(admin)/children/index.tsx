@@ -1,6 +1,7 @@
 import { Alert, StyleSheet, Text, View, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
+import { getRandomBytes } from 'expo-crypto';
 import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Eye, Plus, Star, Ticket } from 'lucide-react-native';
@@ -19,6 +20,7 @@ import {
   combineQueryStates,
 } from '@/hooks/queries';
 import type { BalanceWithChild } from '@lib/balances';
+import type { Child } from '@lib/children';
 import { supabase } from '@lib/supabase';
 import { useTheme } from '@/context/theme-context';
 import { opacityDisabled, radii, shadows, spacing, typography } from '@/constants/theme';
@@ -30,9 +32,18 @@ const INVITE_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I to a
 
 function generateInviteCode(): string {
   let code = '';
-  for (let i = 0; i < INVITE_CODE_LENGTH; i++) {
-    code += INVITE_CODE_CHARS[Math.floor(Math.random() * INVITE_CODE_CHARS.length)];
+  const alphabetLength = INVITE_CODE_CHARS.length;
+  const maxUnbiasedByte = Math.floor(256 / alphabetLength) * alphabetLength - 1;
+
+  while (code.length < INVITE_CODE_LENGTH) {
+    const bytes = getRandomBytes(INVITE_CODE_LENGTH * 2);
+    for (const byte of bytes) {
+      if (byte > maxUnbiasedByte) continue;
+      code += INVITE_CODE_CHARS[byte % alphabetLength];
+      if (code.length === INVITE_CODE_LENGTH) break;
+    }
   }
+
   return code;
 }
 
@@ -68,71 +79,48 @@ export default function AdminChildrenScreen() {
   }, [refetchAll]);
 
   const handleGenerateInvite = useCallback(
-    async (childName: string) => {
+    async (child: Child) => {
       if (!profile) {
         Alert.alert('Erro', 'Perfil não carregado. Tente novamente.');
         return;
       }
 
-      setGeneratingInviteFor(childName);
+      setGeneratingInviteFor(child.id);
 
       try {
-        const codigo = generateInviteCode();
+        for (let attempt = 0; attempt < 5; attempt++) {
+          const codigo = generateInviteCode();
 
-        // The `convites_filho` table may not be in the generated DB types yet,
-        // so we cast through `any` to insert via the Supabase client.
+          // The `convites_filho` table may not be in the generated DB types yet,
+          // so we cast through `any` to insert via the Supabase client.
+          const { data, error: insertError } = await (supabase as any)
+            .from('convites_filho')
+            .insert({
+              familia_id: profile.familia_id,
+              filho_id: child.id,
+              codigo,
+              criado_por: profile.id,
+              nome_filho: child.nome,
+            })
+            .select('codigo, expira_em')
+            .single();
 
-        const { data, error: insertError } = await (supabase as any)
-          .from('convites_filho')
-          .insert({
-            familia_id: profile.familia_id,
-            codigo,
-            criado_por: profile.id,
-            nome_filho: childName,
-          })
-          .select('codigo, expira_em')
-          .single();
-
-        if (insertError) {
-          // Retry once with a new code in case of unique constraint violation
-          if (insertError.message?.includes('unique') || insertError.code === '23505') {
-            const retryCode = generateInviteCode();
-
-            const { data: retryData, error: retryError } = await (supabase as any)
-              .from('convites_filho')
-              .insert({
-                familia_id: profile.familia_id,
-                codigo: retryCode,
-                criado_por: profile.id,
-                nome_filho: childName,
-              })
-              .select('codigo, expira_em')
-              .single();
-
-            if (retryError) {
-              Alert.alert('Erro', 'Não foi possível gerar o convite. Tente novamente.');
-              return;
-            }
-
+          if (!insertError) {
             setCurrentInvite({
-              codigo: retryData.codigo,
-              nome_filho: childName,
-              expira_em: retryData.expira_em,
+              codigo: data.codigo,
+              nome_filho: child.nome,
+              expira_em: data.expira_em,
             });
             setInviteSheetVisible(true);
             return;
           }
 
-          Alert.alert('Erro', 'Não foi possível gerar o convite. Tente novamente.');
-          return;
+          if (!(insertError.message?.includes('unique') || insertError.code === '23505')) {
+            break;
+          }
         }
 
-        setCurrentInvite({
-          codigo: data.codigo,
-          nome_filho: childName,
-          expira_em: data.expira_em,
-        });
-        setInviteSheetVisible(true);
+        Alert.alert('Erro', 'Não foi possível gerar o convite. Tente novamente.');
       } finally {
         setGeneratingInviteFor(null);
       }
@@ -172,7 +160,7 @@ export default function AdminChildrenScreen() {
         renderItem={({ item }) => {
           const balance = balancesMap.get(item.id);
           const totalPts = balance ? balance.saldo_livre + balance.cofrinho : 0;
-          const isGenerating = generatingInviteFor === item.nome;
+          const isGenerating = generatingInviteFor === item.id;
           return (
             <View
               style={[
@@ -218,7 +206,7 @@ export default function AdminChildrenScreen() {
                     <HeaderIconButton
                       icon={Ticket}
                       onPress={() => {
-                        if (!isGenerating) handleGenerateInvite(item.nome);
+                        if (!isGenerating) handleGenerateInvite(item);
                       }}
                       accessibilityLabel={`Gerar convite para ${item.nome}`}
                     />
@@ -265,9 +253,9 @@ export default function AdminChildrenScreen() {
         visible={addSheetVisible}
         familiaId={profile?.familia_id}
         onClose={() => setAddSheetVisible(false)}
-        onChildAdded={(childName) => {
+        onChildAdded={(child) => {
           setAddSheetVisible(false);
-          refetchAll().then(() => handleGenerateInvite(childName));
+          refetchAll().then(() => handleGenerateInvite(child));
         }}
       />
       <ChildViewSheet childId={viewChildId} onClose={() => setViewChildId(null)} />

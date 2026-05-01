@@ -169,6 +169,108 @@ export type Database = {
           },
         ]
       }
+      convites_admin: {
+        Row: {
+          aceito_por: string | null
+          codigo: string
+          convidado_por: string
+          created_at: string
+          expires_at: string
+          familia_id: string
+          id: string
+          status: string
+        }
+        Insert: {
+          aceito_por?: string | null
+          codigo: string
+          convidado_por: string
+          created_at?: string
+          expires_at: string
+          familia_id: string
+          id?: string
+          status?: string
+        }
+        Update: {
+          aceito_por?: string | null
+          codigo?: string
+          convidado_por?: string
+          created_at?: string
+          expires_at?: string
+          familia_id?: string
+          id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "convites_admin_convidado_por_fkey"
+            columns: ["convidado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "convites_admin_familia_id_fkey"
+            columns: ["familia_id"]
+            isOneToOne: false
+            referencedRelation: "familias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      convites_filho: {
+        Row: {
+          aceito_em: string | null
+          aceito_por: string | null
+          codigo: string
+          criado_em: string
+          criado_por: string
+          expira_em: string
+          familia_id: string
+          filho_id: string | null
+          id: string
+          nome_filho: string
+        }
+        Insert: {
+          aceito_em?: string | null
+          aceito_por?: string | null
+          codigo: string
+          criado_em?: string
+          criado_por: string
+          expira_em?: string
+          familia_id: string
+          filho_id?: string | null
+          id?: string
+          nome_filho: string
+        }
+        Update: {
+          aceito_em?: string | null
+          aceito_por?: string | null
+          codigo?: string
+          criado_em?: string
+          criado_por?: string
+          expira_em?: string
+          familia_id?: string
+          filho_id?: string | null
+          id?: string
+          nome_filho?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "convites_filho_familia_id_fkey"
+            columns: ["familia_id"]
+            isOneToOne: false
+            referencedRelation: "familias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "convites_filho_filho_id_fkey"
+            columns: ["filho_id"]
+            isOneToOne: false
+            referencedRelation: "filhos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       familias: {
         Row: {
           created_at: string
@@ -548,6 +650,24 @@ export type Database = {
           },
         ]
       }
+      tentativas_convite: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       usuarios: {
         Row: {
           created_at: string
@@ -588,6 +708,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      aceitar_convite_admin: {
+        Args: { p_codigo: string; p_nome: string }
+        Returns: string
+      }
       aplicar_penalizacao: {
         Args: { p_descricao: string; p_filho_id: string; p_valor: number }
         Returns: number
@@ -606,6 +730,10 @@ export type Database = {
         Returns: string
       }
       bucket_evidencias_id: { Args: never; Returns: string }
+      cancelar_convite_admin: {
+        Args: { p_convite_id: string }
+        Returns: undefined
+      }
       cancelar_envio_atribuicao: {
         Args: { p_atribuicao_id: string }
         Returns: undefined
@@ -710,12 +838,15 @@ export type Database = {
       garantir_atribuicoes_recorrentes:
         | { Args: never; Returns: undefined }
         | { Args: { p_filho_id: string }; Returns: undefined }
+      gerar_codigo_convite: { Args: never; Returns: string }
+      gerar_convite_admin: { Args: never; Returns: Json }
       limpar_auth_user_orfao: {
         Args: { p_user_id: string }
         Returns: undefined
       }
       limpar_registros_antigos: { Args: never; Returns: Json }
       limpar_usuarios_orfaos_antigos: { Args: never; Returns: Json }
+      listar_admins_familia: { Args: never; Returns: Json[] }
       listar_atribuicoes_aprovadas: {
         Args: { p_desde?: string; p_limit?: number; p_offset?: number }
         Returns: {
@@ -781,6 +912,7 @@ export type Database = {
         Args: { p_atribuicao_id: string; p_nota_rejeicao: string }
         Returns: undefined
       }
+      remover_co_admin: { Args: { p_usuario_id: string }; Returns: undefined }
       sincronizar_avatar_filho: {
         Args: { p_avatar_url: string }
         Returns: undefined
@@ -801,6 +933,8 @@ export type Database = {
       }
       usuario_autenticado_id: { Args: never; Returns: string }
       usuario_e_admin: { Args: never; Returns: boolean }
+      validar_convite_admin: { Args: { p_codigo: string }; Returns: Json }
+      validar_convite_filho: { Args: { p_codigo: string }; Returns: Json }
       validar_filho_da_familia: {
         Args: { p_familia_id: string; p_filho_id: string }
         Returns: undefined
