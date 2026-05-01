@@ -118,6 +118,7 @@ vi.mock('lucide-react-native', () => ({
   Check: createIcon('Check'),
   UserPlus: createIcon('UserPlus'),
   Trash2: createIcon('Trash2'),
+  KeyRound: createIcon('KeyRound'),
 }));
 
 vi.mock('expo-linear-gradient', () => ({
@@ -176,7 +177,7 @@ vi.mock('react-native', () => ({
   },
   KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
   Modal: createHostComponent('Modal'),
-  Platform: { OS: 'ios', select: (obj: Record<string, unknown>) => obj.ios },
+  Platform: { OS: 'android', select: (obj: Record<string, unknown>) => obj.android },
   Pressable: createHostComponent('Pressable'),
   ScrollView: createHostComponent('ScrollView'),
   StyleSheet: {
@@ -287,7 +288,6 @@ vi.mock('expo-constants', () => ({
 vi.mock('expo-application', () => ({
   nativeApplicationVersion: '1.0.0',
   getAndroidId: vi.fn(() => 'test-android-id'),
-  getIosIdForVendorAsync: vi.fn().mockResolvedValue('test-ios-id'),
 }));
 
 vi.mock('@sentry/react-native', () => ({
@@ -357,8 +357,15 @@ vi.mock('@react-native-google-signin/google-signin', () => ({
     IN_PROGRESS: 'IN_PROGRESS',
     PLAY_SERVICES_NOT_AVAILABLE: 'PLAY_SERVICES_NOT_AVAILABLE',
   },
-  isErrorWithCode: vi.fn((error: unknown) => error != null && typeof error === 'object' && 'code' in error),
-  isSuccessResponse: vi.fn((response: unknown) => response != null && typeof response === 'object' && 'data' in (response as Record<string, unknown>)),
+  isErrorWithCode: vi.fn(
+    (error: unknown) => error != null && typeof error === 'object' && 'code' in error,
+  ),
+  isSuccessResponse: vi.fn(
+    (response: unknown) =>
+      response != null &&
+      typeof response === 'object' &&
+      'data' in (response as Record<string, unknown>),
+  ),
 }));
 
 afterEach(() => {

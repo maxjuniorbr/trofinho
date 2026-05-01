@@ -4,11 +4,6 @@ import type { GoogleAuthResult } from './google-auth';
 // Types
 // ---------------------------------------------------------------------------
 
-/** Minimal shape matching Supabase's UserIdentity. */
-export type Identity = {
-  provider: string;
-};
-
 /** Matches the `convites_filho` table columns used for validation. */
 export type InviteRecord = {
   aceito_por: string | null;
@@ -118,26 +113,6 @@ export function localizeOAuthError(
   }
 
   return 'Erro na autenticação. Tente novamente.';
-}
-
-// ---------------------------------------------------------------------------
-// Identity helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Returns `true` when the user does NOT have a Google identity linked,
- * meaning the migration banner should be displayed.
- */
-export function shouldShowGoogleMigrationBanner(identities: Identity[]): boolean {
-  return !identities.some((id) => id.provider === 'google');
-}
-
-/**
- * Returns `true` when the user has an email/password identity,
- * meaning the "Change password" section should be visible.
- */
-export function shouldShowChangePassword(identities: Identity[]): boolean {
-  return identities.some((id) => id.provider === 'email');
 }
 
 // ---------------------------------------------------------------------------

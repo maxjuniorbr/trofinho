@@ -63,14 +63,28 @@ export async function getGoogleIdToken(): Promise<GoogleAuthResult> {
       },
     };
   } catch (error: unknown) {
-    Sentry.captureException(error, {
-      tags: { area: 'google-auth', step: 'sign_in' },
-      extra: {
-        errorCode: isErrorWithCode(error) ? error.code : 'unknown',
-        errorMessage: error instanceof Error ? error.message : String(error),
-        webClientIdSet: Boolean(process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID),
-      },
+    const errorCode = isErrorWithCode(error) ? error.code : 'unknown';
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    // Capture as exception for non-cancellation errors so they appear in Sentry Issues.
+    if (errorCode !== statusCodes.SIGN_IN_CANCELLED && errorCode !== statusCodes.IN_PROGRESS) {
+      Sentry.captureException(error, {
+        tags: { area: 'google-auth', step: 'sign_in', errorCode },
+        extra: {
+          errorCode,
+          errorMessage,
+          webClientIdSet: Boolean(process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID),
+          webClientIdPrefix: (process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '').slice(0, 12),
+        },
+      });
+    }
+
+    Sentry.addBreadcrumb({
+      category: 'auth',
+      message: `google_sign_in_catch: code=${errorCode} msg=${errorMessage.slice(0, 120)}`,
+      level: errorCode === statusCodes.SIGN_IN_CANCELLED ? 'info' : 'error',
     });
+
     return mapGoogleSignInError(error);
   }
 }
@@ -141,6 +155,19 @@ function mapNetworkOrServerError(error: { code: string; message?: string }): Goo
       type: 'error',
       message:
         'O serviço do Google está temporariamente indisponível. Tente novamente em alguns minutos.',
+    };
+  }
+
+  if (
+    msg.includes('developer_error') ||
+    msg.includes('10:') ||
+    error.code === '10' ||
+    error.code === 'DEVELOPER_ERROR'
+  ) {
+    return {
+      type: 'error',
+      message:
+        'Configuração do Google Sign-In inválida. Verifique o SHA-1 e o webClientId.',
     };
   }
 

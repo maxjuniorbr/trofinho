@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,7 +12,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ChevronRight, Info, Lock, User } from 'lucide-react-native';
+import { ChevronRight, Info, User } from 'lucide-react-native';
 import { getAppVersion } from '@lib/app-version';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { HomeFooterBar } from '@/components/ui/home-footer-bar';
@@ -22,7 +21,6 @@ import { LogoutButton } from '@/components/ui/logout-button';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { AvatarSection } from '@/components/profile/avatar-section';
 import { PersonalDataSheet } from '@/components/profile/personal-data-sheet';
-import { ChangePasswordSheet } from '@/components/profile/change-password-sheet';
 import { ThemeCard } from '@/components/profile/theme-card';
 import { NotificationCard } from '@/components/profile/notification-card';
 import { Button } from '@/components/ui/button';
@@ -78,7 +76,6 @@ export default function ChildProfileScreen() {
   const [savingNotificationPreferences, setSavingNotificationPreferences] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [showPersonalData, setShowPersonalData] = useState(false);
-  const [showChangePassword, setShowChangePassword] = useState(false);
   const deleteAccountMutation = useDeleteAccount();
 
   const effectivePrefs = notificationPreferences ?? notificationPrefsQuery.data ?? null;
@@ -142,7 +139,6 @@ export default function ChildProfileScreen() {
     <>
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: colors.bg.canvas }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <SafeScreenFrame bottomInset={false}>
           <StatusBar style={colors.statusBar} />
@@ -192,17 +188,6 @@ export default function ChildProfileScreen() {
                 />
               </SectionCard>
 
-              <SectionCard title="Segurança" colors={colors} styles={sectionStyles}>
-                <MenuRow
-                  icon={Lock}
-                  label="Alterar senha"
-                  onPress={() => setShowChangePassword(true)}
-                  colors={colors}
-                  styles={sectionStyles}
-                  disabled={isReadOnly}
-                />
-              </SectionCard>
-
               <SectionCard title="Sobre" colors={colors} styles={sectionStyles}>
                 <View style={sectionStyles.menuRow}>
                   <View style={sectionStyles.menuRowLeft}>
@@ -245,11 +230,6 @@ export default function ChildProfileScreen() {
         email={email}
         onNameUpdated={(name) => setLocalName(name)}
       />
-
-      <ChangePasswordSheet
-        visible={showChangePassword}
-        onClose={() => setShowChangePassword(false)}
-      />
     </>
   );
 }
@@ -276,7 +256,7 @@ const SectionCard = ({ title, colors, styles, children }: SectionCardProps) => (
 );
 
 type MenuRowProps = Readonly<{
-  icon: typeof Lock;
+  icon: typeof User;
   label: string;
   onPress: () => void;
   colors: ThemeColors;

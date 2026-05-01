@@ -49,9 +49,8 @@ describe('resolveNavDecision', () => {
       expect(resolveNavDecision(true, null, [])).toBe('/(auth)/login');
     });
 
-    it('returns null when already in auth group (login or register)', () => {
+    it('returns null when already in auth group (login)', () => {
       expect(resolveNavDecision(true, null, ['(auth)', 'login'])).toBeNull();
-      expect(resolveNavDecision(true, null, ['(auth)', 'register'])).toBeNull();
     });
 
     it('returns null when signed out on onboarding (screen handles own exit)', () => {
@@ -68,10 +67,6 @@ describe('resolveNavDecision', () => {
 
     it('returns null when already on onboarding screen', () => {
       expect(resolveNavDecision(true, noFamily, ['(auth)', 'onboarding'])).toBeNull();
-    });
-
-    it('returns null when on register screen (mid-flow to onboarding)', () => {
-      expect(resolveNavDecision(true, noFamily, ['(auth)', 'register'])).toBeNull();
     });
 
     it('returns null when on join-family screen (accepting invite code)', () => {

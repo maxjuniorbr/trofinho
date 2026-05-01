@@ -10,12 +10,9 @@ export default function AuthLayout() {
       screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg.canvas } }}
     >
       <Stack.Screen name="login" />
-      <Stack.Screen name="register" />
       <Stack.Screen name="onboarding" />
       <Stack.Screen name="join-family" />
       <Stack.Screen name="join-child" />
-      <Stack.Screen name="forgot-password" />
-      <Stack.Screen name="reset-password" />
     </Stack>
   );
 }

@@ -92,7 +92,7 @@ vi.mock('react-native', () => ({
   },
   KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
   Modal: createHostComponent('Modal'),
-  Platform: { OS: 'ios', select: (obj: Record<string, unknown>) => obj.ios },
+  Platform: { OS: 'android', select: (obj: Record<string, unknown>) => obj.android },
   Pressable: createHostComponent('Pressable'),
   RefreshControl: createHostComponent('RefreshControl'),
   StyleSheet: { create: <T,>(styles: T) => styles, hairlineWidth: 0.5 },

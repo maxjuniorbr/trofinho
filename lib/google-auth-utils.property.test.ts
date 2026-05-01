@@ -1,17 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 
 import {
   isValidDateOfBirth,
-  shouldShowGoogleMigrationBanner,
-  shouldShowChangePassword,
   validateChildInviteCode,
-  type Identity,
   type InviteRecord,
-
   localizeOAuthError,
-  type SupabaseAuthError} from './google-auth-utils';
-
+  type SupabaseAuthError,
+} from './google-auth-utils';
 
 import type { GoogleAuthResult } from './google-auth';
 
@@ -37,12 +33,24 @@ function getMaxDateOfBirth(): Date {
 const MIN_DATE = new Date(Date.UTC(1900, 0, 1)); // 1 Jan 1900
 
 describe('Feature: google-oauth-migration, Property 1: Validação de data de nascimento', () => {
+  // Freeze time so `new Date()` inside isValidDateOfBirth matches the test's maxDate.
+  // Without this, the suite can flake when the UTC day rolls over mid-run.
+  const FROZEN_NOW = new Date('2026-04-30T12:00:00Z');
+
+  beforeEach(() => {
+    vi.useFakeTimers({ now: FROZEN_NOW });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('accepts any date within the valid range [1900-01-01, today - 13 years]', () => {
     const maxDate = getMaxDateOfBirth();
 
     fc.assert(
       fc.property(
-        fc.date({ min: MIN_DATE, max: maxDate }),
+        fc.date({ min: MIN_DATE, max: maxDate, noInvalidDate: true }),
         (date) => {
           expect(isValidDateOfBirth(date)).toBe(true);
         },
@@ -56,7 +64,7 @@ describe('Feature: google-oauth-migration, Property 1: Validação de data de na
 
     fc.assert(
       fc.property(
-        fc.date({ min: new Date(Date.UTC(1800, 0, 1)), max: beforeMin }),
+        fc.date({ min: new Date(Date.UTC(1800, 0, 1)), max: beforeMin, noInvalidDate: true }),
         (date) => {
           expect(isValidDateOfBirth(date)).toBe(false);
         },
@@ -72,7 +80,7 @@ describe('Feature: google-oauth-migration, Property 1: Validação de data de na
 
     fc.assert(
       fc.property(
-        fc.date({ min: dayAfterMax, max: futureLimit }),
+        fc.date({ min: dayAfterMax, max: futureLimit, noInvalidDate: true }),
         (date) => {
           expect(isValidDateOfBirth(date)).toBe(false);
         },
@@ -86,7 +94,7 @@ describe('Feature: google-oauth-migration, Property 1: Validação de data de na
 
     fc.assert(
       fc.property(
-        fc.date({ min: new Date(Date.UTC(1800, 0, 1)), max: new Date(Date.UTC(2100, 0, 1)) }),
+        fc.date({ min: new Date(Date.UTC(1800, 0, 1)), max: new Date(Date.UTC(2100, 0, 1)), noInvalidDate: true }),
         (date) => {
           const utcDate = new Date(
             Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
@@ -96,79 +104,6 @@ describe('Feature: google-oauth-migration, Property 1: Validação de data de na
           expect(isValidDateOfBirth(date)).toBe(expected);
         },
       ),
-      { numRuns: 100 },
-    );
-  });
-});
-
-/**
- * Feature: google-oauth-migration, Property 3: Detecção de estado de identidade Google
- *
- * Para qualquer configuração de identidades de usuário (lista de providers vinculados),
- * as funções `shouldShowGoogleMigrationBanner(identities)` e
- * `shouldShowChangePassword(identities)` SHALL retornar valores consistentes:
- * o banner de migração deve ser visível se e somente se o usuário NÃO possui
- * identidade Google; a seção de alterar senha deve ser visível se e somente se
- * o usuário possui identidade de e-mail/senha.
- *
- * **Validates: Requirements 4.4, 4.5, 8.2**
- */
-
-const PROVIDERS = ['google', 'email', 'phone', 'apple', 'github'] as const;
-
-/** Arbitrary that generates a single Identity with a random provider. */
-const identityArb: fc.Arbitrary<Identity> = fc.constantFrom(...PROVIDERS).map(
-  (provider) => ({ provider }),
-);
-
-/** Arbitrary that generates a list of identities (0 to 10 items). */
-const identityListArb: fc.Arbitrary<Identity[]> = fc.array(identityArb, {
-  minLength: 0,
-  maxLength: 10,
-});
-
-describe('Feature: google-oauth-migration, Property 3: Detecção de estado de identidade Google', () => {
-  it('shouldShowGoogleMigrationBanner returns true IFF no identity has provider === "google"', () => {
-    fc.assert(
-      fc.property(identityListArb, (identities) => {
-        const hasGoogle = identities.some((id) => id.provider === 'google');
-        const result = shouldShowGoogleMigrationBanner(identities);
-
-        expect(result).toBe(!hasGoogle);
-      }),
-      { numRuns: 100 },
-    );
-  });
-
-  it('shouldShowChangePassword returns true IFF at least one identity has provider === "email"', () => {
-    fc.assert(
-      fc.property(identityListArb, (identities) => {
-        const hasEmail = identities.some((id) => id.provider === 'email');
-        const result = shouldShowChangePassword(identities);
-
-        expect(result).toBe(hasEmail);
-      }),
-      { numRuns: 100 },
-    );
-  });
-
-  it('shouldShowGoogleMigrationBanner and shouldShowChangePassword are independent (no mutual exclusion)', () => {
-    fc.assert(
-      fc.property(identityListArb, (identities) => {
-        const banner = shouldShowGoogleMigrationBanner(identities);
-        const changePassword = shouldShowChangePassword(identities);
-
-        // Both can be true (e.g. email-only user: no google → banner=true, has email → changePassword=true)
-        // Both can be false (e.g. google-only user: has google → banner=false, no email → changePassword=false)
-        // banner=true, changePassword=false (e.g. phone-only user)
-        // banner=false, changePassword=true (e.g. google+email user)
-        // The key property: the two results are determined independently
-        const hasGoogle = identities.some((id) => id.provider === 'google');
-        const hasEmail = identities.some((id) => id.provider === 'email');
-
-        expect(banner).toBe(!hasGoogle);
-        expect(changePassword).toBe(hasEmail);
-      }),
       { numRuns: 100 },
     );
   });

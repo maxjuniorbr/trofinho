@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import {
   Animated,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -130,7 +129,6 @@ export const AuthShell = ({
   return (
     <KeyboardAvoidingView
       style={[styles.flex, { backgroundColor: colors.bg.canvas }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       {body}
     </KeyboardAvoidingView>

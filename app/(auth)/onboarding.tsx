@@ -24,26 +24,18 @@ import { FormFooter } from '@/components/ui/form-footer';
 type OnboardingField = 'familyName' | 'adminName';
 
 export default function OnboardingScreen() {
-  const params = useLocalSearchParams<{ name?: string; email?: string; googleName?: string }>();
+  const params = useLocalSearchParams<{ googleName?: string }>();
   const router = useRouter();
   const { palette } = useHeroPalette();
   const styles = useMemo(() => makeStyles(palette), [palette]);
 
-  // Determine the origin of the user:
-  // - isFromRegister: arrived from the email/password register flow (params.name is set)
-  // - isFromGoogle: arrived from Google sign-in (params.googleName is set)
-  const isFromRegister = Boolean(params.name);
-  const isFromGoogle = Boolean(params.googleName);
-
-  // Google users must complete the date-of-birth step first (step 1),
-  // then proceed to family creation (step 2).
-  // Users from email/password register skip the DOB step entirely.
-  const [step, setStep] = useState<1 | 2>(isFromGoogle ? 1 : 2);
+  // All users arrive from Google sign-in and must complete the date-of-birth
+  // step first (step 1), then proceed to family creation (step 2).
+  const [step, setStep] = useState<1 | 2>(1);
 
   const [familyName, setFamilyName] = useState('');
-  // Pre-fill "Seu nome" with Google name when available, falling back to register name.
-  const [adminName, setAdminName] = useState(params.googleName ?? params.name ?? '');
-  const [userEmail, setUserEmail] = useState(params.email ?? '');
+  const [adminName, setAdminName] = useState(params.googleName ?? '');
+  const [userEmail, setUserEmail] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<OnboardingField | null>(null);
@@ -56,10 +48,8 @@ export default function OnboardingScreen() {
   const shouldShowError = Boolean(error);
   const submitLabel = loading ? 'Criando família…' : 'Criar família';
 
-  // Orphan user arriving via login: fetch email from auth so the banner still
-  // shows the saved-account reassurance even without register params.
+  // Fetch email from auth for the account reassurance banner.
   useEffect(() => {
-    if (params.email) return; // already have it from register
     let mounted = true;
     getCurrentAuthUser().then((user) => {
       if (mounted && user?.email) setUserEmail(user.email);
@@ -67,7 +57,7 @@ export default function OnboardingScreen() {
     return () => {
       mounted = false;
     };
-  }, [params.email]);
+  }, []);
 
   const validate = (): string | null => {
     if (!familyName.trim()) return 'Informe o nome da família.';
@@ -150,33 +140,26 @@ export default function OnboardingScreen() {
   };
 
   const handleLeave = () => {
-    const message = isFromRegister
-      ? `Sua conta já foi criada e está salva. Você pode entrar a qualquer momento com ${userEmail || 'seu e-mail'} e criar a família depois.`
-      : 'Você pode entrar novamente e criar a família quando quiser.';
-
-    Alert.alert('Sair da criação da família?', message, [
-      { text: 'Continuar criando', style: 'cancel' },
-      { text: 'Sair', style: 'destructive', onPress: confirmAndLeave },
-    ]);
+    Alert.alert(
+      'Sair da criação da família?',
+      'Você pode entrar novamente e criar a família quando quiser.',
+      [
+        { text: 'Continuar criando', style: 'cancel' },
+        { text: 'Sair', style: 'destructive', onPress: confirmAndLeave },
+      ],
+    );
   };
 
-  // --- Step indicator labels ---
-  // Google users see: Nascimento (step 1) → Família (step 2)
-  // Register users see: Conta (done) → Família (step 2) — same as before
-  const stepLabels: readonly string[] = isFromGoogle
-    ? ['Nascimento', 'Família']
-    : ['Conta', 'Família'];
+  const stepLabels: readonly string[] = ['Nascimento', 'Família'];
 
-  const currentIndicatorStep: 1 | 2 = isFromGoogle ? step : 2;
+  const currentIndicatorStep: 1 | 2 = step;
 
   return (
     <AuthHeroScreen topBarCenter={<BrandLogo size="sm" withText />}>
-      {isFromRegister || isFromGoogle ? (
-        <StepIndicator currentStep={currentIndicatorStep} labels={stepLabels} />
-      ) : null}
+      <StepIndicator currentStep={currentIndicatorStep} labels={stepLabels} />
 
-      {/* Step 1: Date of birth collection (Google users only) */}
-      {step === 1 && isFromGoogle ? (
+      {/* Step 1: Date of birth collection */}
+      {step === 1 ? (
         <View style={styles.header}>
           <DateOfBirthStep
             value={dateOfBirth}
@@ -188,6 +171,19 @@ export default function OnboardingScreen() {
             error={dobError}
             loading={dobLoading}
           />
+
+          <Pressable
+            style={({ pressed }) => [styles.childLink, { opacity: pressed ? 0.65 : 1 }]}
+            onPress={() => router.replace('/(auth)/join-child')}
+            disabled={dobLoading}
+            accessibilityRole="button"
+            accessibilityLabel="Tenho um código de convite"
+          >
+            <Text style={styles.childLinkText}>
+              Sou filho e tenho um{' '}
+              <Text style={styles.childLinkAccent}>código de convite</Text>
+            </Text>
+          </Pressable>
         </View>
       ) : null}
 
@@ -195,57 +191,22 @@ export default function OnboardingScreen() {
       {step === 2 ? (
         <>
           <View style={styles.header}>
-            {isFromRegister ? (
-              <View style={styles.kickerChip} accessibilityRole="text">
-                <Check size={12} color={palette.checkOnText} strokeWidth={3} />
-                <Text style={styles.kickerChipText} allowFontScaling={false}>
-                  Conta criada
-                </Text>
-              </View>
-            ) : isFromGoogle ? (
-              <View style={styles.kickerChip} accessibilityRole="text">
-                <Check size={12} color={palette.checkOnText} strokeWidth={3} />
-                <Text style={styles.kickerChipText} allowFontScaling={false}>
-                  Dados salvos
-                </Text>
-              </View>
-            ) : (
-              <Text style={styles.kickerPlain} allowFontScaling={false}>
-                Configurar família
+            <View style={styles.kickerChip} accessibilityRole="text">
+              <Check size={12} color={palette.checkOnText} strokeWidth={3} />
+              <Text style={styles.kickerChipText} allowFontScaling={false}>
+                Dados salvos
               </Text>
-            )}
+            </View>
 
             <Text style={styles.title} allowFontScaling={false}>
-              {isFromRegister || isFromGoogle ? 'Agora, sua família' : 'Criar sua família'}
+              Agora, sua família
             </Text>
             <Text style={styles.subtitle}>
-              {isFromRegister || isFromGoogle
-                ? 'Você será o administrador. Vamos configurar a base — você poderá convidar os filhos depois.'
-                : 'Você será o administrador e poderá convidar os filhos depois.'}
+              Você será o administrador. Vamos configurar a base — você poderá convidar os filhos depois.
             </Text>
           </View>
 
-          {isFromRegister && params.email ? (
-            <View
-              style={styles.banner}
-              accessibilityRole="text"
-              accessibilityLabel="Sua conta está salva"
-            >
-              <View style={styles.bannerIconBox}>
-                <ShieldCheck size={20} color={palette.checkOnText} strokeWidth={2.5} />
-              </View>
-              <View style={styles.bannerContent}>
-                <Text style={styles.bannerLabel} allowFontScaling={false}>
-                  Sua conta está salva
-                </Text>
-                <Text style={styles.bannerEmail} numberOfLines={1}>
-                  {params.email}
-                </Text>
-              </View>
-            </View>
-          ) : null}
-
-          {!isFromRegister && userEmail ? (
+          {userEmail ? (
             <View
               style={styles.banner}
               accessibilityRole="text"
@@ -297,7 +258,7 @@ export default function OnboardingScreen() {
               onBlur={() => setFocusedField(null)}
               autoCapitalize="words"
               maxLength={60}
-              editable={isFromRegister ? false : !loading}
+              editable={!loading}
               accessibilityLabel="Campo de nome do administrador"
               leftIcon={User}
             />
@@ -457,6 +418,20 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
       fontFamily: typography.family.medium,
       fontSize: typography.size.sm,
       color: palette.textOnNavyMuted,
+    },
+    childLink: {
+      marginTop: spacing['5'],
+      paddingVertical: spacing['3'],
+      alignItems: 'center',
+    },
+    childLinkText: {
+      fontFamily: typography.family.medium,
+      fontSize: typography.size.sm,
+      color: palette.textOnNavyMuted,
+    },
+    childLinkAccent: {
+      fontFamily: typography.family.bold,
+      color: palette.borderFocus,
     },
   });
 }

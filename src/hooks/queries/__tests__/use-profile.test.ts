@@ -17,7 +17,6 @@ vi.mock('../../../../lib/auth', () => ({
     .mockResolvedValue({ id: 'u1', familia_id: 'f1', papel: 'admin', nome: 'Test' }),
   getCurrentAuthUser: vi.fn().mockResolvedValue({ email: 'test@test.com', avatarUrl: null }),
   updateUserName: vi.fn().mockResolvedValue({ error: null }),
-  updateUserPassword: vi.fn().mockResolvedValue({ error: null }),
   updateUserAvatar: vi.fn().mockResolvedValue({ url: 'https://img.test/avatar.png', error: null }),
   deleteAccount: vi.fn().mockResolvedValue({ error: null }),
 }));
@@ -127,13 +126,6 @@ describe('use-profile mutation hooks', () => {
       expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.profile.all });
     });
 
-    it('useUpdateUserPassword does not invalidate any queries', async () => {
-      const { useUpdateUserPassword } = await loadHooks();
-      useUpdateUserPassword();
-      const opts = lastMutationOpts();
-      expect(opts.onSuccess).toBeUndefined();
-    });
-
     it('useDeleteAccount does not invalidate any queries', async () => {
       const { useDeleteAccount } = await loadHooks();
       useDeleteAccount();
@@ -150,14 +142,6 @@ describe('use-profile mutationFn execution', () => {
     const mutationFn = lastMutationOpts().mutationFn as (name: string) => Promise<unknown>;
     await mutationFn('New Name');
     expect(authLib.updateUserName).toHaveBeenCalledWith('New Name');
-  });
-
-  it('useUpdateUserPassword mutationFn calls updateUserPassword with correct args', async () => {
-    const { useUpdateUserPassword } = await loadHooks();
-    useUpdateUserPassword();
-    const mutationFn = lastMutationOpts().mutationFn as (args: { currentPassword: string; newPassword: string }) => Promise<unknown>;
-    await mutationFn({ currentPassword: 'old123', newPassword: 'new456' });
-    expect(authLib.updateUserPassword).toHaveBeenCalledWith('old123', 'new456');
   });
 
   it('useUpdateUserAvatar mutationFn calls updateUserAvatar and returns url', async () => {

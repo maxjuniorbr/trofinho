@@ -9,8 +9,6 @@ import { getGoogleIdToken } from './google-auth';
 import { supabase } from './supabase';
 import {
   signInWithGoogle,
-  linkGoogleIdentity,
-  hasGoogleIdentity,
   updateDateOfBirth,
 } from './auth';
 
@@ -60,14 +58,12 @@ vi.mock('./device-storage', () => ({
 
 const mockGetGoogleIdToken = vi.mocked(getGoogleIdToken);
 const mockSignInWithIdToken = vi.mocked(supabase.auth.signInWithIdToken);
-const mockGetUser = vi.mocked(supabase.auth.getUser);
 const mockUpdateUser = vi.mocked(supabase.auth.updateUser);
 const mockRpc = vi.mocked(supabase.rpc);
 
 beforeEach(() => {
   mockGetGoogleIdToken.mockReset();
   mockSignInWithIdToken.mockReset();
-  mockGetUser.mockReset();
   mockUpdateUser.mockReset();
   mockRpc.mockReset();
   vi.mocked(Sentry.addBreadcrumb).mockClear();
@@ -223,174 +219,6 @@ describe('signInWithGoogle', () => {
         message: 'google_sign_in_new_user',
       }),
     );
-  });
-});
-
-// ===========================================================================
-// linkGoogleIdentity
-// ===========================================================================
-
-describe('linkGoogleIdentity', () => {
-  it('returns no error when Google sign-in is cancelled', async () => {
-    mockGetGoogleIdToken.mockResolvedValue({ type: 'cancelled' });
-
-    const result = await linkGoogleIdentity();
-
-    expect(result).toEqual({ error: null });
-  });
-
-  it('returns no error on successful link', async () => {
-    mockGetGoogleIdToken.mockResolvedValue({
-      type: 'success',
-      idToken: 'link-token',
-      user: { name: 'User', email: 'user@gmail.com' },
-    });
-
-    mockSignInWithIdToken.mockResolvedValue({
-      data: { user: { id: 'u1' }, session: {} },
-      error: null,
-    } as never);
-
-    const result = await linkGoogleIdentity();
-
-    expect(result).toEqual({ error: null });
-    expect(mockSignInWithIdToken).toHaveBeenCalledWith({
-      provider: 'google',
-      token: 'link-token',
-    });
-  });
-
-  it('returns provider conflict message when identity is already linked', async () => {
-    mockGetGoogleIdToken.mockResolvedValue({
-      type: 'success',
-      idToken: 'link-token',
-      user: { name: 'User', email: 'user@gmail.com' },
-    });
-
-    mockSignInWithIdToken.mockResolvedValue({
-      data: { user: null, session: null },
-      error: {
-        message: 'Identity provider already linked',
-        status: 422,
-      },
-    } as never);
-
-    const result = await linkGoogleIdentity();
-
-    expect(result.error).toBe(
-      'Esta conta já está vinculada a outro método de login. Faça login com e-mail/senha e vincule sua conta Google nas configurações.',
-    );
-  });
-
-  it('returns localized error when Google SDK fails', async () => {
-    mockGetGoogleIdToken.mockResolvedValue({
-      type: 'error',
-      message: 'O Google Play Services não está disponível. Atualize-o e tente novamente.',
-    });
-
-    const result = await linkGoogleIdentity();
-
-    expect(result.error).toBe(
-      'O Google Play Services não está disponível. Atualize-o e tente novamente.',
-    );
-  });
-
-  it('returns localized error for non-conflict Supabase errors', async () => {
-    mockGetGoogleIdToken.mockResolvedValue({
-      type: 'success',
-      idToken: 'link-token',
-      user: { name: 'User', email: 'user@gmail.com' },
-    });
-
-    mockSignInWithIdToken.mockResolvedValue({
-      data: { user: null, session: null },
-      error: { message: 'Server error 500', status: 500 },
-    } as never);
-
-    const result = await linkGoogleIdentity();
-
-    expect(result.error).toBe(
-      'O serviço do Google está temporariamente indisponível. Tente novamente em alguns minutos.',
-    );
-  });
-});
-
-// ===========================================================================
-// hasGoogleIdentity
-// ===========================================================================
-
-describe('hasGoogleIdentity', () => {
-  it('returns true when user has a google identity', async () => {
-    mockGetUser.mockResolvedValue({
-      data: {
-        user: {
-          id: 'u1',
-          identities: [
-            { provider: 'email', id: 'e1' },
-            { provider: 'google', id: 'g1' },
-          ],
-        },
-      },
-      error: null,
-    } as never);
-
-    const result = await hasGoogleIdentity();
-
-    expect(result).toBe(true);
-  });
-
-  it('returns false when user has no google identity', async () => {
-    mockGetUser.mockResolvedValue({
-      data: {
-        user: {
-          id: 'u1',
-          identities: [{ provider: 'email', id: 'e1' }],
-        },
-      },
-      error: null,
-    } as never);
-
-    const result = await hasGoogleIdentity();
-
-    expect(result).toBe(false);
-  });
-
-  it('returns false when user has empty identities array', async () => {
-    mockGetUser.mockResolvedValue({
-      data: {
-        user: {
-          id: 'u1',
-          identities: [],
-        },
-      },
-      error: null,
-    } as never);
-
-    const result = await hasGoogleIdentity();
-
-    expect(result).toBe(false);
-  });
-
-  it('returns false when getUser returns an error', async () => {
-    mockGetUser.mockResolvedValue({
-      data: { user: null },
-      error: { message: 'Not authenticated' },
-    } as never);
-
-    const result = await hasGoogleIdentity();
-
-    expect(result).toBe(false);
-  });
-
-  it('returns false when user is null', async () => {
-    mockGetUser.mockResolvedValue({
-      data: { user: null },
-      error: null,
-    } as never);
-
-    const result = await hasGoogleIdentity();
-
-    expect(result).toBe(false);
   });
 });
 

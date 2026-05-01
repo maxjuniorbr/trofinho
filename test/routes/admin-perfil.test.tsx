@@ -77,7 +77,7 @@ vi.mock('react-native', () => ({
     dismiss: vi.fn(),
   },
   Modal: createHostComponent('Modal'),
-  Platform: { OS: 'ios', select: (obj: Record<string, unknown>) => obj.ios },
+  Platform: { OS: 'android', select: (obj: Record<string, unknown>) => obj.android },
   Pressable: createHostComponent('Pressable'),
   ScrollView: createHostComponent('ScrollView'),
   StyleSheet: { create: <T,>(styles: T) => styles },
@@ -95,25 +95,6 @@ vi.mock('expo-router', () => ({
 
 vi.mock('@lib/auth', () => ({
   signOut: signOutMock,
-  signInWithGoogle: vi.fn().mockResolvedValue({ profile: null, isNewUser: false, error: null }),
-  hasGoogleIdentity: vi.fn().mockResolvedValue(false),
-  linkGoogleIdentity: vi.fn().mockResolvedValue({ error: null }),
-}));
-
-vi.mock('@lib/google-auth-utils', () => ({
-  shouldShowGoogleMigrationBanner: vi.fn().mockReturnValue(false),
-  shouldShowChangePassword: vi.fn().mockReturnValue(true),
-}));
-
-vi.mock('@lib/supabase', () => ({
-  supabase: {
-    auth: {
-      getUser: vi.fn().mockResolvedValue({
-        data: { user: { identities: [{ provider: 'email' }] } },
-        error: null,
-      }),
-    },
-  },
 }));
 
 vi.mock('@lib/notifications', () => ({
@@ -175,8 +156,6 @@ vi.mock('lucide-react-native', () => ({
   ChevronRight: createHostComponent('ChevronRight'),
   Eye: createHostComponent('Eye'),
   Info: createHostComponent('Info'),
-  Lock: createHostComponent('Lock'),
-  ShieldCheck: createHostComponent('ShieldCheck'),
   User: createHostComponent('User'),
   Users: createHostComponent('Users'),
 }));
@@ -188,11 +167,6 @@ vi.mock('@/components/profile/avatar-section', () => ({
 vi.mock('@/components/profile/personal-data-sheet', () => ({
   PersonalDataSheet: (props: Record<string, unknown>) =>
     React.createElement('PersonalDataSheet', props),
-}));
-
-vi.mock('@/components/profile/change-password-sheet', () => ({
-  ChangePasswordSheet: (props: Record<string, unknown>) =>
-    React.createElement('ChangePasswordSheet', props),
 }));
 
 vi.mock('@/components/profile/child-selection-sheet', () => ({
@@ -217,21 +191,6 @@ vi.mock('@/components/profile/admin-management-sheet', () => ({
 vi.mock('@/components/profile/remove-admin-sheet', () => ({
   RemoveAdminSheet: (props: Record<string, unknown>) =>
     React.createElement('RemoveAdminSheet', props),
-}));
-
-vi.mock('@/components/profile/email-verification-banner', () => ({
-  EmailVerificationBanner: (props: Record<string, unknown>) =>
-    React.createElement('EmailVerificationBanner', props),
-}));
-
-vi.mock('@/components/profile/google-migration-banner', () => ({
-  GoogleMigrationBanner: (props: Record<string, unknown>) =>
-    React.createElement('GoogleMigrationBanner', props),
-}));
-
-vi.mock('@/components/profile/link-google-sheet', () => ({
-  LinkGoogleSheet: (props: Record<string, unknown>) =>
-    React.createElement('LinkGoogleSheet', props),
 }));
 
 function render(element: React.ReactElement) {
@@ -299,7 +258,6 @@ describe('ProfileScreen (admin)', () => {
     expect(renderer.root.findAllByType('PersonalDataSheet' as never).length).toBe(1);
     expect(renderer.root.findAllByType('ThemeCard' as never).length).toBe(1);
     expect(renderer.root.findAllByType('NotificationCard' as never).length).toBe(1);
-    expect(renderer.root.findAllByType('ChangePasswordSheet' as never).length).toBe(1);
   });
 
   it('renders profile blocks in the requested admin order', () => {
@@ -310,35 +268,24 @@ describe('ProfileScreen (admin)', () => {
       'notificacoes',
       'familia',
       'dados',
-      'seguranca',
       'sobre',
     ]);
   });
 
-  it('opens profile sheets from personal data and security rows', () => {
+  it('opens personal data sheet from menu row', () => {
     const renderer = render(<ProfileScreen />);
     const personalDataSheet = renderer.root.findByType('PersonalDataSheet' as never);
-    const passwordSheet = renderer.root.findByType('ChangePasswordSheet' as never);
 
     expect(personalDataSheet.props.visible).toBe(false);
-    expect(passwordSheet.props.visible).toBe(false);
 
     const personalDataRow = renderer.root
       .findAllByType('Pressable' as never)
       .find((node) => node.props.accessibilityLabel === 'Alterar dados pessoais')!;
-    const passwordRow = renderer.root
-      .findAllByType('Pressable' as never)
-      .find((node) => node.props.accessibilityLabel === 'Alterar senha')!;
 
     act(() => {
       personalDataRow.props.onPress();
     });
     expect(renderer.root.findByType('PersonalDataSheet' as never).props.visible).toBe(true);
-
-    act(() => {
-      passwordRow.props.onPress();
-    });
-    expect(renderer.root.findByType('ChangePasswordSheet' as never).props.visible).toBe(true);
   });
 
   it('renders logout button', () => {

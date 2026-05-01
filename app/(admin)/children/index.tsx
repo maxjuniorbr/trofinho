@@ -10,7 +10,7 @@ import { ListScreenSkeleton } from '@/components/ui/skeleton';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { Avatar } from '@/components/ui/avatar';
 import { ChildViewSheet } from '@/components/children/child-view-sheet';
-import { ChildNewSheet } from '@/components/children/child-new-sheet';
+import { ChildAddSheet } from '@/components/children/child-add-sheet';
 import { ChildInviteSheet, type ChildInvite } from '@/components/children/child-invite-sheet';
 import {
   useChildrenList,
@@ -44,7 +44,7 @@ export default function AdminChildrenScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [viewChildId, setViewChildId] = useState<string | null>(null);
-  const [newSheetVisible, setNewSheetVisible] = useState(false);
+  const [addSheetVisible, setAddSheetVisible] = useState(false);
   const [inviteSheetVisible, setInviteSheetVisible] = useState(false);
   const [currentInvite, setCurrentInvite] = useState<ChildInvite | null>(null);
   const [generatingInviteFor, setGeneratingInviteFor] = useState<string | null>(null);
@@ -81,7 +81,7 @@ export default function AdminChildrenScreen() {
 
         // The `convites_filho` table may not be in the generated DB types yet,
         // so we cast through `any` to insert via the Supabase client.
-         
+
         const { data, error: insertError } = await (supabase as any)
           .from('convites_filho')
           .insert({
@@ -97,7 +97,7 @@ export default function AdminChildrenScreen() {
           // Retry once with a new code in case of unique constraint violation
           if (insertError.message?.includes('unique') || insertError.code === '23505') {
             const retryCode = generateInviteCode();
-             
+
             const { data: retryData, error: retryError } = await (supabase as any)
               .from('convites_filho')
               .insert({
@@ -253,7 +253,7 @@ export default function AdminChildrenScreen() {
         rightAction={
           <HeaderIconButton
             icon={Plus}
-            onPress={() => setNewSheetVisible(true)}
+            onPress={() => setAddSheetVisible(true)}
             accessibilityLabel="Cadastrar filho"
           />
         }
@@ -261,8 +261,16 @@ export default function AdminChildrenScreen() {
 
       {renderContent()}
 
+      <ChildAddSheet
+        visible={addSheetVisible}
+        familiaId={profile?.familia_id}
+        onClose={() => setAddSheetVisible(false)}
+        onChildAdded={(childName) => {
+          setAddSheetVisible(false);
+          refetchAll().then(() => handleGenerateInvite(childName));
+        }}
+      />
       <ChildViewSheet childId={viewChildId} onClose={() => setViewChildId(null)} />
-      <ChildNewSheet visible={newSheetVisible} onClose={() => setNewSheetVisible(false)} />
       <ChildInviteSheet
         visible={inviteSheetVisible}
         onClose={() => {

@@ -86,6 +86,7 @@ vi.mock('lucide-react-native', () => ({
   Plus: createHostComponent('Plus'),
   Star: createHostComponent('Star'),
   Ticket: createHostComponent('Ticket'),
+  UserPlus: createHostComponent('UserPlus'),
 }));
 
 vi.mock('@/hooks/queries', () => ({
@@ -143,8 +144,8 @@ vi.mock('@/components/children/child-view-sheet', () => ({
   ChildViewSheet: (props: Record<string, unknown>) => React.createElement('ChildViewSheet', props),
 }));
 
-vi.mock('@/components/children/child-new-sheet', () => ({
-  ChildNewSheet: (props: Record<string, unknown>) => React.createElement('ChildNewSheet', props),
+vi.mock('@/components/children/child-add-sheet', () => ({
+  ChildAddSheet: (props: Record<string, unknown>) => React.createElement('ChildAddSheet', props),
 }));
 
 vi.mock('@/components/children/child-invite-sheet', () => ({
@@ -239,20 +240,6 @@ describe('AdminChildrenScreen', () => {
     });
     const viewSheet = renderer.root.findByType('ChildViewSheet' as never);
     expect(viewSheet.props.childId).toBe('c1');
-  });
-
-  it('opens new child sheet via header button', () => {
-    const renderer = render(<AdminChildrenScreen />);
-    const addBtn = renderer.root.findAll(
-      (node) =>
-        (node.type as string) === 'HeaderIconButton' &&
-        node.props.accessibilityLabel === 'Cadastrar filho',
-    )[0];
-    act(() => {
-      addBtn.props.onPress();
-    });
-    const newSheet = renderer.root.findByType('ChildNewSheet' as never);
-    expect(newSheet.props.visible).toBe(true);
   });
 
   it('shows deactivated badge for inactive children', () => {

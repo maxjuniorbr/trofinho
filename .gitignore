@@ -22,7 +22,6 @@ npm-debug.*
 
 # Firebase / Google credentials
 google-services.json
-GoogleService-Info.plist
 *-firebase-adminsdk-*.json
 
 # Certificates

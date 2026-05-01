@@ -1,21 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import fc from 'fast-check';
 
 import {
-  confirmPasswordReset,
   createFamily,
   deleteAccount,
   getCurrentAuthUser,
   getProfile,
   refreshAuthSession,
-  requestPasswordReset,
-  resendConfirmationEmail,
-  signIn,
   signOut,
-  signUp,
   updateUserAvatar,
   updateUserName,
-  updateUserPassword,
 } from './auth';
 
 const resizeImageMock = vi.hoisted(() => vi.fn((uri: string) => Promise.resolve(uri)));
@@ -113,9 +106,6 @@ function createUpdateQuery(result: QueryResult) {
     update: vi.fn().mockReturnThis(),
   };
 }
-
-const mockPassword = ['secret', '123'].join('-');
-const invalidPassword = ['wrong', 'pass'].join('-');
 
 describe('auth', () => {
   const fetchMock = vi.fn();
@@ -229,68 +219,6 @@ describe('auth', () => {
       expect(result).not.toBeNull();
       expect(result!.emailConfirmedAt).toBeNull();
     });
-  });
-
-  it('signs in and returns the profile with avatar metadata', async () => {
-    supabaseMock.auth.signInWithPassword.mockResolvedValue({ error: null });
-    supabaseMock.rpc.mockReturnValue(
-      supabaseMock.rpc._createResult({
-        data: {
-          id: 'user-1',
-          familia_id: 'family-1',
-          papel: 'admin',
-          nome: 'Max',
-          avatarUrl: 'https://avatar',
-        },
-        error: null,
-      }),
-    );
-
-    const result = await signIn('max@example.com', mockPassword);
-
-    expect(supabaseMock.auth.signInWithPassword).toHaveBeenCalledWith({
-      email: 'max@example.com',
-      password: mockPassword,
-    });
-    expect(result).toEqual({
-      profile: {
-        id: 'user-1',
-        familia_id: 'family-1',
-        papel: 'admin',
-        nome: 'Max',
-        avatarUrl: 'https://signed-url',
-      },
-      error: null,
-    });
-  });
-
-  it('localizes authentication errors during sign in and sign up', async () => {
-    supabaseMock.auth.signInWithPassword.mockResolvedValue({
-      error: { message: 'Invalid login credentials' },
-    });
-    supabaseMock.auth.signUp.mockResolvedValue({
-      error: { message: 'User already registered' },
-    });
-
-    await expect(signIn('max@example.com', invalidPassword)).resolves.toEqual({
-      profile: null,
-      error: 'E-mail ou senha incorretos.',
-    });
-
-    await expect(signUp('max@example.com', mockPassword)).resolves.toEqual({
-      error:
-        'Não foi possível concluir o cadastro. Verifique o e-mail e a senha e tente novamente.',
-    });
-  });
-
-  it('signs up and signs out successfully', async () => {
-    supabaseMock.auth.signUp.mockResolvedValue({ error: null });
-    supabaseMock.auth.signOut.mockResolvedValue({});
-
-    await expect(signUp('max@example.com', mockPassword)).resolves.toEqual({ error: null });
-    await expect(signOut()).resolves.toBeUndefined();
-
-    expect(supabaseMock.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
   });
 
   it('deletes push tokens for current device before signing out', async () => {
@@ -430,23 +358,6 @@ describe('auth', () => {
     expect(updateSuccessQuery.update).toHaveBeenCalledWith({ nome: 'Novo Nome' });
   });
 
-  it('updates the password and localizes the provider error', async () => {
-    supabaseMock.auth.getUser.mockResolvedValue({
-      data: { user: { id: 'u1', email: 'admin@test.com' } },
-      error: null,
-    });
-    supabaseMock.auth.signInWithPassword.mockResolvedValue({ error: null });
-    supabaseMock.auth.updateUser
-      .mockResolvedValueOnce({ error: { message: 'Password should be at least 6 characters' } })
-      .mockResolvedValueOnce({ error: null });
-
-    await expect(updateUserPassword('currentPass', '123')).resolves.toEqual({
-      error: 'A senha deve ter ao menos 6 caracteres.',
-    });
-
-    await expect(updateUserPassword('currentPass', '123456')).resolves.toEqual({ error: null });
-  });
-
   it('uploads an avatar from the local file system and updates the user metadata', async () => {
     fileArrayBufferMock.mockResolvedValue(new ArrayBuffer(4));
     supabaseMock.auth.getUser.mockResolvedValue({
@@ -584,241 +495,6 @@ describe('auth', () => {
 
       expect(result.error).toBe('Algo deu errado. Tente novamente.');
       expect(supabaseMock.auth.signOut).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('signUp edge cases', () => {
-    it('surfaces weak password errors with actionable message', async () => {
-      supabaseMock.auth.signUp.mockResolvedValue({
-        error: { message: 'Password should be at least 6 characters' },
-      });
-
-      const result = await signUp('test@example.com', '123');
-
-      expect(result.error).toBe('A senha deve ter ao menos 6 caracteres.');
-    });
-
-    it('returns generic message for "User already registered" to prevent enumeration', async () => {
-      supabaseMock.auth.signUp.mockResolvedValue({
-        error: { message: 'User already registered' },
-      });
-
-      const result = await signUp('existing@example.com', 'password123');
-
-      expect(result.error).toBe(
-        'Não foi possível concluir o cadastro. Verifique o e-mail e a senha e tente novamente.',
-      );
-      // Must NOT contain "already registered" or similar enumeration hints
-      expect(result.error).not.toContain('already');
-      expect(result.error).not.toContain('cadastrado');
-    });
-  });
-
-  describe('Feature: ux-polish-fase4b, Property 1: Re-authentication gate', () => {
-    /**
-     * **Validates: Requirements 1.2, 1.3, 1.4**
-     *
-     * For any (currentPassword, newPassword), if signInWithPassword fails
-     * then updateUser is never called and error contains "Senha atual incorreta."
-     */
-    it('never calls updateUser and returns "Senha atual incorreta." when signInWithPassword fails', async () => {
-      await fc.assert(
-        fc.asyncProperty(fc.string(), fc.string(), async (currentPassword, newPassword) => {
-          supabaseMock.auth.getUser.mockReset();
-          supabaseMock.auth.signInWithPassword.mockReset();
-          supabaseMock.auth.updateUser.mockReset();
-
-          supabaseMock.auth.getUser.mockResolvedValue({
-            data: { user: { id: 'u1', email: 'admin@test.com' } },
-            error: null,
-          });
-
-          supabaseMock.auth.signInWithPassword.mockResolvedValue({
-            error: { message: 'Invalid login credentials' },
-          });
-
-          const result = await updateUserPassword(currentPassword, newPassword);
-
-          expect(supabaseMock.auth.signInWithPassword).toHaveBeenCalledWith({
-            email: 'admin@test.com',
-            password: currentPassword,
-          });
-          expect(supabaseMock.auth.updateUser).not.toHaveBeenCalled();
-          expect(result.error).not.toBeNull();
-          expect(result.error).toBe('Senha atual incorreta.');
-        }),
-        { numRuns: 100 },
-      );
-    });
-  });
-
-  describe('Feature: ux-polish-fase4b, Property 2: Password fields cleared on success', () => {
-    /**
-     * **Validates: Requirements 1.5**
-     *
-     * For any successful password change, the function returns { error: null },
-     * confirming the operation succeeded and the UI layer can safely clear all fields.
-     */
-    it('returns { error: null } for any valid password pair when all auth steps succeed', async () => {
-      await fc.assert(
-        fc.asyncProperty(
-          fc.string({ minLength: 1 }),
-          fc.string({ minLength: 6 }),
-          async (currentPassword, newPassword) => {
-            supabaseMock.auth.getUser.mockReset();
-            supabaseMock.auth.signInWithPassword.mockReset();
-            supabaseMock.auth.updateUser.mockReset();
-
-            supabaseMock.auth.getUser.mockResolvedValue({
-              data: { user: { id: 'u1', email: 'admin@test.com' } },
-              error: null,
-            });
-
-            supabaseMock.auth.signInWithPassword.mockResolvedValue({
-              error: null,
-            });
-
-            supabaseMock.auth.updateUser.mockResolvedValue({
-              error: null,
-            });
-
-            const result = await updateUserPassword(currentPassword, newPassword);
-
-            expect(supabaseMock.auth.signInWithPassword).toHaveBeenCalledWith({
-              email: 'admin@test.com',
-              password: currentPassword,
-            });
-            expect(supabaseMock.auth.updateUser).toHaveBeenCalledWith({
-              password: newPassword,
-            });
-            expect(result).toEqual({ error: null });
-          },
-        ),
-        { numRuns: 100 },
-      );
-    });
-  });
-
-  describe('Feature: email-verification-nonblocking, Property 2: Resend function never leaks email existence', () => {
-    /**
-     * **Validates: Requirements 4.1, 4.3, 4.4**
-     *
-     * For any random error message returned by supabase.auth.resend(),
-     * only messages containing "Email rate limit exceeded" should surface
-     * a non-null error. All other error messages must return { error: null },
-     * preventing email existence leakage.
-     */
-    it('only surfaces rate-limit errors; all other errors return { error: null }', async () => {
-      await fc.assert(
-        fc.asyncProperty(fc.string(), async (errorMessage) => {
-          supabaseMock.auth.resend.mockReset();
-          supabaseMock.auth.resend.mockResolvedValue({
-            error: { message: errorMessage },
-          });
-
-          const result = await resendConfirmationEmail('test@example.com');
-
-          if (errorMessage.includes('Email rate limit exceeded')) {
-            expect(result.error).not.toBeNull();
-          } else {
-            expect(result).toEqual({ error: null });
-          }
-        }),
-        { numRuns: 100 },
-      );
-    });
-  });
-
-  describe('requestPasswordReset', () => {
-    it('returns localized rate-limit message when Supabase returns rate-limit error', async () => {
-      supabaseMock.auth.resetPasswordForEmail.mockResolvedValue({
-        error: { message: 'Email rate limit exceeded' },
-      });
-
-      const result = await requestPasswordReset('user@example.com');
-
-      expect(result).toEqual({
-        error: 'Muitas tentativas. Aguarde um momento e tente novamente.',
-      });
-    });
-
-    it('returns { error: null } on network error to prevent enumeration', async () => {
-      supabaseMock.auth.resetPasswordForEmail.mockResolvedValue({
-        error: { message: 'Network error' },
-      });
-
-      const result = await requestPasswordReset('user@example.com');
-
-      expect(result).toEqual({ error: null });
-    });
-  });
-
-  describe('resendConfirmationEmail', () => {
-    it('calls supabase.auth.resend with correct params and returns { error: null } on success', async () => {
-      supabaseMock.auth.resend.mockResolvedValue({ error: null });
-
-      const result = await resendConfirmationEmail('Admin@Example.com');
-
-      expect(supabaseMock.auth.resend).toHaveBeenCalledWith({
-        type: 'signup',
-        email: 'admin@example.com',
-        options: {
-          emailRedirectTo: 'https://trofinho.com.br/confirm-email',
-        },
-      });
-      expect(result).toEqual({ error: null });
-    });
-
-    it('returns localized rate-limit message when Supabase returns rate-limit error', async () => {
-      supabaseMock.auth.resend.mockResolvedValue({
-        error: { message: 'Email rate limit exceeded' },
-      });
-
-      const result = await resendConfirmationEmail('user@example.com');
-
-      expect(result).toEqual({
-        error: 'Muitas tentativas. Aguarde um momento e tente novamente.',
-      });
-    });
-
-    it('returns { error: null } on non-rate-limit errors to prevent enumeration', async () => {
-      supabaseMock.auth.resend.mockResolvedValue({
-        error: { message: 'User not found' },
-      });
-
-      const result = await resendConfirmationEmail('unknown@example.com');
-
-      expect(result).toEqual({ error: null });
-    });
-  });
-
-  describe('confirmPasswordReset', () => {
-    it('returns localized error when session tokens are invalid', async () => {
-      supabaseMock.auth.setSession.mockResolvedValue({
-        error: { message: 'Token has expired or is invalid' },
-      });
-
-      const result = await confirmPasswordReset('bad-access', 'bad-refresh', 'newPassword123');
-
-      expect(result).toEqual({
-        error: 'Link expirado ou inválido. Solicite um novo link de redefinição.',
-      });
-      expect(supabaseMock.auth.updateUser).not.toHaveBeenCalled();
-    });
-
-    it('returns localized error when new password is same as old password', async () => {
-      supabaseMock.auth.setSession.mockResolvedValue({ error: null });
-      supabaseMock.auth.updateUser.mockResolvedValue({
-        error: { message: 'New password should be different from the old password' },
-      });
-      supabaseMock.auth.signOut.mockResolvedValue({ error: null });
-
-      const result = await confirmPasswordReset('valid-access', 'valid-refresh', 'sameOldPassword');
-
-      expect(result).toEqual({
-        error: 'A nova senha deve ser diferente da anterior.',
-      });
-      expect(supabaseMock.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
     });
   });
 });

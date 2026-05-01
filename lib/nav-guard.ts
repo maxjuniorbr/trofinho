@@ -3,7 +3,7 @@ import type { UserProfile } from './auth';
 export type NavTarget = '/(auth)/login' | '/(auth)/onboarding' | '/(admin)/' | '/(child)/';
 
 /** Auth sub-routes that bypass the normal redirect logic. */
-const AUTH_PASSTHROUGH_ROUTES = new Set(['onboarding', 'register', 'join-family', 'join-child', 'reset-password']);
+const AUTH_PASSTHROUGH_ROUTES = new Set(['onboarding', 'join-family', 'join-child']);
 
 function getRoleHome(profile: UserProfile): NavTarget {
   return profile.papel === 'admin' ? '/(admin)/' : '/(child)/';
@@ -43,15 +43,14 @@ export function resolveNavDecision(
 
   const roleHome = getRoleHome(profile);
 
-  // No family yet — only allow passthrough auth routes (onboarding, register,
-  // join-family, reset-password). Everything else redirects to onboarding.
+  // No family yet — only allow passthrough auth routes (onboarding,
+  // join-family, join-child). Everything else redirects to onboarding.
   if (!profile.familia_id) {
     return AUTH_PASSTHROUGH_ROUTES.has(seg1 ?? '') ? null : '/(auth)/onboarding';
   }
 
   if (inAuth) {
-    // Allow reset-password even for authenticated users (deep link while logged in)
-    return seg1 === 'reset-password' ? null : roleHome;
+    return roleHome;
   }
 
   if (isInCorrectRouteGroup(segments[0], profile.papel, isImpersonating)) return null;

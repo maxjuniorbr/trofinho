@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker, {
     type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
@@ -42,13 +42,10 @@ export function DateOfBirthStep({
     const maxDate = useMemo(() => getMaxDate(), []);
 
     // On Android the picker is shown as a modal dialog; we toggle visibility.
-    const [showPicker, setShowPicker] = useState(Platform.OS === 'ios');
+    const [showPicker, setShowPicker] = useState(false);
 
     const handleChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
-        // On Android, dismiss the picker after selection or cancel.
-        if (Platform.OS === 'android') {
-            setShowPicker(false);
-        }
+        setShowPicker(false);
         if (selectedDate) {
             onChange(selectedDate);
         }
@@ -83,43 +80,41 @@ export function DateOfBirthStep({
                 <InlineMessage message={validationMessage} variant="info" />
             ) : null}
 
-            {/* On Android, show a pressable field that opens the native dialog */}
-            {Platform.OS === 'android' ? (
-                <Pressable
-                    onPress={() => setShowPicker(true)}
-                    accessibilityRole="button"
-                    accessibilityLabel="Selecionar data de nascimento"
-                    style={({ pressed }) => [
-                        styles.dateField,
-                        { opacity: pressed ? 0.8 : 1 },
+            {/* Pressable field that opens the native date dialog */}
+            <Pressable
+                onPress={() => setShowPicker(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Selecionar data de nascimento"
+                style={({ pressed }) => [
+                    styles.dateField,
+                    { opacity: pressed ? 0.8 : 1 },
+                ]}
+            >
+                <Calendar
+                    size={18}
+                    color={colors.text.secondary}
+                    strokeWidth={2}
+                />
+                <Text
+                    style={[
+                        styles.dateFieldText,
+                        {
+                            color: formattedDate
+                                ? colors.text.primary
+                                : colors.text.muted,
+                        },
                     ]}
                 >
-                    <Calendar
-                        size={18}
-                        color={colors.text.secondary}
-                        strokeWidth={2}
-                    />
-                    <Text
-                        style={[
-                            styles.dateFieldText,
-                            {
-                                color: formattedDate
-                                    ? colors.text.primary
-                                    : colors.text.muted,
-                            },
-                        ]}
-                    >
-                        {formattedDate ?? 'Selecionar data'}
-                    </Text>
-                </Pressable>
-            ) : null}
+                    {formattedDate ?? 'Selecionar data'}
+                </Text>
+            </Pressable>
 
             {showPicker ? (
                 <View style={styles.pickerWrapper}>
                     <DateTimePicker
                         value={value ?? maxDate}
                         mode="date"
-                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                        display="default"
                         minimumDate={MIN_DATE}
                         maximumDate={maxDate}
                         onChange={handleChange}

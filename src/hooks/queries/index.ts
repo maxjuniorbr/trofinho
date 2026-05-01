@@ -68,7 +68,6 @@ export {
   useCurrentAuthUser,
   useNotificationPrefs,
   useUpdateUserName,
-  useUpdateUserPassword,
   useUpdateUserAvatar,
   useDeleteAccount,
 } from './use-profile';

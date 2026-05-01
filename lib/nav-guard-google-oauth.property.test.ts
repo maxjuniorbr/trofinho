@@ -18,10 +18,8 @@ import type { UserProfile } from './auth';
 /** The passthrough routes that bypass the orphan → onboarding redirect. */
 const AUTH_PASSTHROUGH_ROUTES = [
   'onboarding',
-  'register',
   'join-family',
   'join-child',
-  'reset-password',
 ] as const;
 
 /** Non-passthrough route segments that should trigger the onboarding redirect. */

@@ -3,13 +3,10 @@ import { describe, expect, it } from 'vitest';
 import {
   isValidDateOfBirth,
   localizeOAuthError,
-  shouldShowChangePassword,
-  shouldShowGoogleMigrationBanner,
   validateChildInviteCode,
 } from './google-auth-utils';
 
 import type {
-  Identity,
   InviteRecord,
   SupabaseAuthError,
 } from './google-auth-utils';
@@ -135,56 +132,6 @@ describe('localizeOAuthError', () => {
     expect(localizeOAuthError(err)).toBe(
       'Erro na autenticação. Tente novamente.',
     );
-  });
-});
-
-// ---------------------------------------------------------------------------
-// shouldShowGoogleMigrationBanner
-// ---------------------------------------------------------------------------
-
-describe('shouldShowGoogleMigrationBanner', () => {
-  it('returns true when no identities exist', () => {
-    expect(shouldShowGoogleMigrationBanner([])).toBe(true);
-  });
-
-  it('returns true when only email identity exists', () => {
-    const ids: Identity[] = [{ provider: 'email' }];
-    expect(shouldShowGoogleMigrationBanner(ids)).toBe(true);
-  });
-
-  it('returns false when google identity exists', () => {
-    const ids: Identity[] = [{ provider: 'google' }];
-    expect(shouldShowGoogleMigrationBanner(ids)).toBe(false);
-  });
-
-  it('returns false when both email and google identities exist', () => {
-    const ids: Identity[] = [{ provider: 'email' }, { provider: 'google' }];
-    expect(shouldShowGoogleMigrationBanner(ids)).toBe(false);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// shouldShowChangePassword
-// ---------------------------------------------------------------------------
-
-describe('shouldShowChangePassword', () => {
-  it('returns false when no identities exist', () => {
-    expect(shouldShowChangePassword([])).toBe(false);
-  });
-
-  it('returns true when email identity exists', () => {
-    const ids: Identity[] = [{ provider: 'email' }];
-    expect(shouldShowChangePassword(ids)).toBe(true);
-  });
-
-  it('returns false when only google identity exists', () => {
-    const ids: Identity[] = [{ provider: 'google' }];
-    expect(shouldShowChangePassword(ids)).toBe(false);
-  });
-
-  it('returns true when both email and google identities exist', () => {
-    const ids: Identity[] = [{ provider: 'email' }, { provider: 'google' }];
-    expect(shouldShowChangePassword(ids)).toBe(true);
   });
 });
 

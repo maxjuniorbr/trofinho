@@ -21,7 +21,7 @@ vi.mock('react-native', () => ({
   },
   KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
   Modal: createHostComponent('Modal'),
-  Platform: { OS: 'ios' },
+  Platform: { OS: 'android' },
   Pressable: createHostComponent('Pressable'),
   ScrollView: createHostComponent('ScrollView'),
   StyleSheet: { create: <T,>(styles: T) => styles },

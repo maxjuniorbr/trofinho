@@ -1,14 +1,23 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ArrowRight } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
-import { opacityDisabled, radii, spacing, typography } from '@/constants/theme';
+import { opacityDisabled, radii, shadows, spacing, typography } from '@/constants/theme';
 import * as Haptics from 'expo-haptics';
 import Svg, { Path } from 'react-native-svg';
+
+type GoogleSignInButtonVariant = 'default' | 'hero';
 
 type GoogleSignInButtonProps = Readonly<{
     onPress: () => void;
     loading: boolean;
     disabled?: boolean;
     label?: string;
+    /**
+     * - `default`: themed surface bg with border (settings, re-auth flows).
+     * - `hero`: white bg, dark text, brand shadow, trailing arrow — used
+     *   inside the login PathCard to match the creative-studio design.
+     */
+    variant?: GoogleSignInButtonVariant;
 }>;
 
 /**
@@ -39,17 +48,24 @@ function GoogleLogo({ size = 20 }: Readonly<{ size?: number }>) {
 }
 
 /**
- * Styled "Entrar com Google" button following Google branding guidelines.
- * Uses a white/surface background with the multi-color Google "G" logo.
+ * Styled "Entrar com Google" / "Continuar com Google" button following
+ * Google branding guidelines. Supports two visual variants:
+ *
+ * - `default` — themed surface bg with border (settings, re-auth flows).
+ * - `hero` — white bg, dark text, brand shadow, trailing arrow. Used inside
+ *   the login PathCard to match the creative-studio design.
  */
 export function GoogleSignInButton({
     onPress,
     loading,
     disabled = false,
-    label = 'Entrar com Google',
+    label,
+    variant = 'default',
 }: GoogleSignInButtonProps) {
     const { colors } = useTheme();
     const isDisabled = disabled || loading;
+    const isHero = variant === 'hero';
+    const resolvedLabel = label ?? (isHero ? 'Continuar com Google' : 'Entrar com Google');
 
     const handlePress = () => {
         if (!isDisabled) {
@@ -63,7 +79,7 @@ export function GoogleSignInButton({
             onPress={handlePress}
             disabled={isDisabled}
             accessibilityRole="button"
-            accessibilityLabel={label}
+            accessibilityLabel={resolvedLabel}
             accessibilityState={{ disabled: isDisabled, busy: loading }}
             style={({ pressed }) => {
                 let opacity = 1;
@@ -71,33 +87,44 @@ export function GoogleSignInButton({
                 else if (pressed) opacity = 0.8;
 
                 return [
-                    styles.button,
-                    {
-                        backgroundColor: colors.bg.surface,
-                        borderColor: colors.border.default,
-                        opacity,
-                    },
+                    isHero ? heroStyles.button : defaultStyles.button,
+                    isHero
+                        ? undefined
+                        : {
+                            backgroundColor: colors.bg.surface,
+                            borderColor: colors.border.default,
+                        },
+                    { opacity },
                 ];
             }}
         >
-            <View style={styles.content}>
+            <View style={isHero ? heroStyles.content : defaultStyles.content}>
                 {loading ? (
-                    <ActivityIndicator size="small" color={colors.text.primary} />
+                    <ActivityIndicator
+                        size="small"
+                        color={isHero ? '#0F172A' : colors.text.primary}
+                    />
                 ) : (
                     <GoogleLogo size={20} />
                 )}
                 <Text
-                    style={[styles.label, { color: colors.text.primary }]}
+                    style={[
+                        isHero ? heroStyles.label : defaultStyles.label,
+                        isHero ? undefined : { color: colors.text.primary },
+                    ]}
                     numberOfLines={1}
                 >
-                    {label}
+                    {resolvedLabel}
                 </Text>
+                {isHero && !loading ? (
+                    <ArrowRight size={16} color="#0F172A" strokeWidth={2.5} />
+                ) : null}
             </View>
         </Pressable>
     );
 }
 
-const styles = StyleSheet.create({
+const defaultStyles = StyleSheet.create({
     button: {
         borderWidth: 1,
         borderRadius: radii.inner,
@@ -118,5 +145,32 @@ const styles = StyleSheet.create({
         fontFamily: typography.family.bold,
         fontSize: typography.size.md,
         lineHeight: typography.lineHeight.md,
+    },
+});
+
+const heroStyles = StyleSheet.create({
+    button: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: radii.inner,
+        borderCurve: 'continuous',
+        minHeight: 52,
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...shadows.goldButton,
+    },
+    content: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: spacing['3'],
+        paddingHorizontal: spacing['6'],
+        paddingVertical: spacing['3'],
+    },
+    label: {
+        flex: 1,
+        fontFamily: typography.family.extrabold,
+        fontSize: 15,
+        lineHeight: 20,
+        color: '#0F172A',
     },
 });
