@@ -182,18 +182,7 @@ function isPermissionGranted(status: NotificationPermissionsStatus): boolean {
 
 function hasGrantedNotificationPermission(
   status: NotificationPermissionsStatus,
-  Notifications: NotificationsModule,
 ): boolean {
-  if (Platform.OS === 'ios') {
-    const iosStatus = status.ios?.status;
-
-    return (
-      iosStatus === Notifications.IosAuthorizationStatus.AUTHORIZED ||
-      iosStatus === Notifications.IosAuthorizationStatus.PROVISIONAL ||
-      iosStatus === Notifications.IosAuthorizationStatus.EPHEMERAL
-    );
-  }
-
   return isPermissionGranted(status) || getPermissionStatus(status) === 'granted';
 }
 
@@ -278,17 +267,11 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
   let permissions = await Notifications.getPermissionsAsync();
 
-  if (!hasGrantedNotificationPermission(permissions, Notifications)) {
-    permissions = await Notifications.requestPermissionsAsync({
-      ios: {
-        allowAlert: true,
-        allowBadge: true,
-        allowSound: true,
-      },
-    });
+  if (!hasGrantedNotificationPermission(permissions)) {
+    permissions = await Notifications.requestPermissionsAsync();
   }
 
-  if (!hasGrantedNotificationPermission(permissions, Notifications)) {
+  if (!hasGrantedNotificationPermission(permissions)) {
     Sentry.addBreadcrumb({
       category: 'push-registration',
       message: 'Skipped: notification permission denied',
@@ -325,20 +308,14 @@ const DEVICE_ID_STORAGE_KEY = 'device_id';
  * Returns a stable device identifier that survives app reinstalls.
  *
  * - Android: `Application.getAndroidId()` — hardware-bound, stable per device+app signing key.
- * - iOS: `Application.getIosIdForVendorAsync()` — stable while any app from the same vendor is installed.
  * - Fallback: persist a random UUID in SecureStore (dev builds, simulators).
  */
 async function getOrCreateDeviceId(): Promise<string> {
   try {
-    if (Platform.OS === 'android') {
-      const androidId = Application.getAndroidId();
-      if (androidId) return androidId;
-    } else if (Platform.OS === 'ios') {
-      const iosId = await Application.getIosIdForVendorAsync();
-      if (iosId) return iosId;
-    }
+    const androidId = Application.getAndroidId();
+    if (androidId) return androidId;
   } catch {
-    // Native API unavailable (e.g. Expo Go) — fall through to storage-based ID
+    // Native API unavailable — fall through to storage-based ID
   }
 
   const existing = await deviceStorage.getItem(DEVICE_ID_STORAGE_KEY);
@@ -440,11 +417,6 @@ export async function isNotificationPermissionDenied(): Promise<boolean> {
     }
 
     const permissions = await Notifications.getPermissionsAsync();
-
-    if (Platform.OS === 'ios') {
-      return permissions.ios?.status === Notifications.IosAuthorizationStatus.DENIED;
-    }
-
     return getPermissionStatus(permissions) === 'denied';
   } catch {
     return false;
