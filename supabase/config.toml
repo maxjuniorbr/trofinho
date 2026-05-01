@@ -370,6 +370,11 @@ verify_jwt = true
 [functions.register-child]
 verify_jwt = false
 
+# vincular-filho handles its own JWT verification via the admin client
+# (auth.getUser(token)). Same ES256 gateway issue as register-child.
+[functions.vincular-filho]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
