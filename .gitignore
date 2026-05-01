@@ -19,6 +19,7 @@ npm-debug.*
 
 # Environment variables
 .env.*
+!.env.example
 
 # Firebase / Google credentials
 google-services.json
@@ -45,6 +46,7 @@ Thumbs.db
 .github/instructions/
 .github/prompts/
 .kiro/
+.codex
 
 # Expo MCP (local dev)
 .local-expo-mcp/
