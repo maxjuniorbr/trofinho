@@ -260,7 +260,7 @@ const segmentsArb: fc.Arbitrary<string[]> = fc.oneof(
     fc.constant(['(child)'] as string[]),
     appSubRouteArb.map((sub) => ['(child)', sub]),
   ),
-);
+).map((arr) => [...arr]);
 
 const passthroughSet = new Set<string>(AUTH_PASSTHROUGH_ROUTES);
 
