@@ -4,6 +4,7 @@ import type { UserProfile } from './auth';
 
 type AuthStateHandlerOptions = Readonly<{
   getProfile: () => Promise<UserProfile | null>;
+  validateSession: () => Promise<boolean>;
   onProfileChange: (profile: UserProfile | null) => void;
   onReadyChange: (ready: boolean) => void;
   onSignOut?: () => void;
@@ -16,6 +17,7 @@ type AuthStateHandler = Readonly<{
 
 export function createAuthStateHandler({
   getProfile,
+  validateSession,
   onProfileChange,
   onReadyChange,
   onSignOut,
@@ -78,12 +80,29 @@ export function createAuthStateHandler({
       timeoutId = null;
 
       getProfile()
-        .then((profile) => {
+        .then(async (profile) => {
           // Orphan user: valid auth session but no `usuarios` row (e.g. user
           // signed up then abandoned onboarding). Produce a minimal profile
           // with empty familia_id so the nav guard redirects to onboarding
           // instead of login, giving the user a chance to complete setup.
           if (!profile && session?.user?.id) {
+            // Validate the session against the server before treating as orphan.
+            // If the auth.users record was deleted (e.g. admin removed the user),
+            // the local JWT is stale — sign out instead of creating an orphan profile.
+            const sessionValid = await validateSession();
+            if (!sessionValid) {
+              Sentry.addBreadcrumb({
+                category: 'auth',
+                message: 'orphan_session_invalid',
+                level: 'warning',
+              });
+              if (!active || currentRequestId !== requestId) return;
+              onSignOut?.();
+              onProfileChange(null);
+              onReadyChange(true);
+              return;
+            }
+
             Sentry.addBreadcrumb({
               category: 'auth',
               message: 'orphan_user_detected',

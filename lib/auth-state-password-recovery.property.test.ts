@@ -57,6 +57,7 @@ describe('Feature: forgot-password, Property 5: PASSWORD_RECOVERY event suppress
 
         const handler = createAuthStateHandler({
           getProfile,
+          validateSession: vi.fn().mockResolvedValue(true),
           onProfileChange,
           onReadyChange,
           onSignOut,

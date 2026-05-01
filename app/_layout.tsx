@@ -88,6 +88,10 @@ function RootLayout() {
 
     const authStateHandler = createAuthStateHandler({
       getProfile,
+      validateSession: async () => {
+        const { error } = await supabase.auth.getUser();
+        return !error;
+      },
       onProfileChange: handleProfileChange,
       onReadyChange: setReady,
       onSignOut: () => queryClient.clear(),

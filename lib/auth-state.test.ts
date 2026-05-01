@@ -11,6 +11,7 @@ vi.mock('@sentry/react-native', () => ({
 
 describe('createAuthStateHandler', () => {
   const getProfile = vi.fn<() => Promise<UserProfile | null>>();
+  const validateSession = vi.fn<() => Promise<boolean>>();
   const onProfileChange = vi.fn<(profile: UserProfile | null) => void>();
   const onReadyChange = vi.fn<(ready: boolean) => void>();
   const onSignOut = vi.fn();
@@ -18,6 +19,7 @@ describe('createAuthStateHandler', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     getProfile.mockReset();
+    validateSession.mockReset().mockResolvedValue(true);
     onProfileChange.mockReset();
     onReadyChange.mockReset();
     onSignOut.mockReset();
@@ -35,6 +37,7 @@ describe('createAuthStateHandler', () => {
 
     const handler = createAuthStateHandler({
       getProfile,
+      validateSession,
       onProfileChange,
       onReadyChange,
     });
@@ -68,6 +71,7 @@ describe('createAuthStateHandler', () => {
 
     const handler = createAuthStateHandler({
       getProfile,
+      validateSession,
       onProfileChange,
       onReadyChange,
     });
@@ -89,6 +93,7 @@ describe('createAuthStateHandler', () => {
 
     const handler = createAuthStateHandler({
       getProfile,
+      validateSession,
       onProfileChange,
       onReadyChange,
     });
@@ -110,6 +115,7 @@ describe('createAuthStateHandler', () => {
 
     const handler = createAuthStateHandler({
       getProfile,
+      validateSession,
       onProfileChange,
       onReadyChange,
     });
@@ -126,6 +132,7 @@ describe('createAuthStateHandler', () => {
   it('handles SIGNED_OUT after dispose without calling callbacks', () => {
     const handler = createAuthStateHandler({
       getProfile,
+      validateSession,
       onProfileChange,
       onReadyChange,
     });
@@ -155,6 +162,7 @@ describe('createAuthStateHandler', () => {
 
     const handler = createAuthStateHandler({
       getProfile,
+      validateSession,
       onProfileChange,
       onReadyChange,
     });
@@ -189,6 +197,7 @@ describe('createAuthStateHandler', () => {
 
     const handler = createAuthStateHandler({
       getProfile,
+      validateSession,
       onProfileChange: trackingOnProfileChange,
       onReadyChange,
       onSignOut: trackingOnSignOut,
@@ -211,6 +220,7 @@ describe('createAuthStateHandler', () => {
 
     const handler = createAuthStateHandler({
       getProfile,
+      validateSession,
       onProfileChange,
       onReadyChange,
       onSignOut,
@@ -242,6 +252,7 @@ describe('createAuthStateHandler', () => {
 
     const handler = createAuthStateHandler({
       getProfile,
+      validateSession,
       onProfileChange,
       onReadyChange,
       onSignOut,
@@ -264,6 +275,7 @@ describe('createAuthStateHandler', () => {
   it('emits signed_out breadcrumb on SIGNED_OUT', () => {
     const handler = createAuthStateHandler({
       getProfile,
+      validateSession,
       onProfileChange,
       onReadyChange,
     });
@@ -287,6 +299,7 @@ describe('createAuthStateHandler', () => {
 
     const handler = createAuthStateHandler({
       getProfile,
+      validateSession,
       onProfileChange,
       onReadyChange,
     });
@@ -314,6 +327,7 @@ describe('createAuthStateHandler', () => {
 
     const handler = createAuthStateHandler({
       getProfile,
+      validateSession,
       onProfileChange,
       onReadyChange,
       onSignOut,
@@ -342,6 +356,7 @@ describe('createAuthStateHandler', () => {
 
     const handler = createAuthStateHandler({
       getProfile,
+      validateSession,
       onProfileChange,
       onReadyChange,
     });
@@ -369,6 +384,7 @@ describe('createAuthStateHandler', () => {
 
     const handler = createAuthStateHandler({
       getProfile,
+      validateSession,
       onProfileChange,
       onReadyChange,
       onSignOut,
@@ -390,6 +406,7 @@ describe('createAuthStateHandler', () => {
   it('emits password_recovery_event_suppressed breadcrumb on PASSWORD_RECOVERY', () => {
     const handler = createAuthStateHandler({
       getProfile,
+      validateSession,
       onProfileChange,
       onReadyChange,
     });
@@ -416,6 +433,7 @@ describe('createAuthStateHandler', () => {
 
     const handler = createAuthStateHandler({
       getProfile,
+      validateSession,
       onProfileChange,
       onReadyChange,
     });
@@ -450,6 +468,7 @@ describe('createAuthStateHandler', () => {
 
     const handler = createAuthStateHandler({
       getProfile,
+      validateSession,
       onProfileChange,
       onReadyChange,
     });
@@ -481,6 +500,7 @@ describe('createAuthStateHandler', () => {
 
     const handler = createAuthStateHandler({
       getProfile,
+      validateSession,
       onProfileChange,
       onReadyChange,
     });
@@ -501,6 +521,34 @@ describe('createAuthStateHandler', () => {
       nome: '',
       avatarUrl: null,
       pendingChildInvite: 'ABC123',
+    });
+  });
+
+  it('signs out orphan when validateSession returns false (deleted user)', async () => {
+    getProfile.mockResolvedValue(null);
+    validateSession.mockResolvedValue(false);
+
+    const handler = createAuthStateHandler({
+      getProfile,
+      validateSession,
+      onProfileChange,
+      onReadyChange,
+      onSignOut,
+    });
+
+    handler.handleAuthStateChange('SIGNED_IN', {
+      access_token: 'token',
+      user: { id: 'deleted-user-1' },
+    } as never);
+    await vi.runAllTimersAsync();
+
+    expect(onSignOut).toHaveBeenCalledTimes(1);
+    expect(onProfileChange).toHaveBeenCalledWith(null);
+    expect(onReadyChange).toHaveBeenCalledWith(true);
+    expect(Sentry.addBreadcrumb).toHaveBeenCalledWith({
+      category: 'auth',
+      message: 'orphan_session_invalid',
+      level: 'warning',
     });
   });
 });
