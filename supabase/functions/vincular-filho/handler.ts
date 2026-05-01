@@ -16,7 +16,7 @@ export type VincularFilhoSuccessResponse = {
 
 export type VincularFilhoErrorResponse = {
   success: false;
-  error: 'INVALID_CODE' | 'EXPIRED_CODE' | 'ALREADY_LINKED';
+  error: 'INVALID_CODE' | 'EXPIRED_CODE' | 'ALREADY_LINKED' | 'FAMILY_FULL';
 };
 
 export type VincularFilhoResponse = VincularFilhoSuccessResponse | VincularFilhoErrorResponse;
@@ -142,6 +142,15 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
   const filhoResult = await findUnlinkedFilho(adminClient, familiaId, nomeFilho);
   if ('errorResponse' in filhoResult) {
     return filhoResult.errorResponse;
+  }
+
+  // Check family child limit
+  const childCount = await countActiveChildren(adminClient, familiaId);
+  if (childCount >= 10) {
+    return jsonResponse(
+      { success: false, error: 'FAMILY_FULL' } satisfies VincularFilhoErrorResponse,
+      400,
+    );
   }
 
   // Perform the linking: update filhos, create usuarios, update invite, save metadata
@@ -276,6 +285,21 @@ async function findUnlinkedFilho(
   return { filhoId: filhoRecord.id as string };
 }
 
+const MAX_CHILDREN_PER_FAMILY = 10;
+
+async function countActiveChildren(
+  client: SupabaseClientLike,
+  familiaId: string,
+): Promise<number> {
+  const { data, error } = await client
+    .from('filhos')
+    .select('id')
+    .eq('familia_id', familiaId);
+
+  if (error || !data) return 0;
+  return (data as unknown[]).length;
+}
+
 async function performLinking(
   client: SupabaseClientLike,
   childUserId: string,
@@ -335,9 +359,14 @@ async function performLinking(
     return jsonResponse({ error: 'Internal error' }, 500);
   }
 
-  // Step 4: save date_of_birth in user_metadata
+  // Step 4: save date_of_birth + LGPD consent in user_metadata and clear pending invite marker
   const { error: metadataError } = await client.auth.admin.updateUserById(childUserId, {
-    user_metadata: { date_of_birth: dateOfBirth },
+    user_metadata: {
+      date_of_birth: dateOfBirth,
+      lgpd_consent_at: new Date().toISOString(),
+      lgpd_consent_version: '1.0',
+      pending_child_invite: null,
+    },
   });
 
   if (metadataError) {

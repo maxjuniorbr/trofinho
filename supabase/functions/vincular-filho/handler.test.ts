@@ -363,6 +363,32 @@ describe('vincular-filho handler', () => {
       expect(json.error).toBe('ALREADY_LINKED');
     });
 
+    it('returns FAMILY_FULL when family has 10 or more children', async () => {
+      const behavior = defaultFromBehavior();
+      // Return 10 children for the filhos select query used by countActiveChildren
+      const tenChildren = Array.from({ length: 10 }, (_, i) => ({ id: `filho-${i}` }));
+      const originalFilhosBehavior = behavior['filhos'];
+      let filhosCallCount = 0;
+      behavior['filhos'] = (ctx) => {
+        filhosCallCount++;
+        // First call is findUnlinkedFilho (uses .maybeSingle), second is countActiveChildren (uses .select)
+        if (filhosCallCount === 1) {
+          return originalFilhosBehavior!(ctx);
+        }
+        return { data: tenChildren, error: null };
+      };
+
+      const mock = createMockSupabase({ fromBehavior: behavior });
+      const res = await handleRequest(
+        makeRequest({ invite_code: 'ABC123', date_of_birth: '2010-05-15' }),
+        createDeps(mock),
+      );
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as { success: boolean; error: string };
+      expect(json.success).toBe(false);
+      expect(json.error).toBe('FAMILY_FULL');
+    });
+
     it('links child successfully (200 + familia_nome + papel)', async () => {
       const mock = createMockSupabase({ fromBehavior: defaultFromBehavior() });
       const deps = createDeps(mock);
@@ -380,9 +406,14 @@ describe('vincular-filho handler', () => {
       expect(json.familia_nome).toBe('Família Silva');
       expect(json.papel).toBe('filho');
 
-      // Verify updateUserById was called with date_of_birth metadata
+      // Verify updateUserById was called with date_of_birth + LGPD metadata
       expect(mock.auth.admin.updateUserById).toHaveBeenCalledWith('child-user-1', {
-        user_metadata: { date_of_birth: '2010-05-15' },
+        user_metadata: {
+          date_of_birth: '2010-05-15',
+          lgpd_consent_at: expect.any(String),
+          lgpd_consent_version: '1.0',
+          pending_child_invite: null,
+        },
       });
 
       // Admin client uses service-role key
