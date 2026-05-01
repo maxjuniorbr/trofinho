@@ -23,6 +23,8 @@ import { PersonalDataSheet } from '@/components/profile/personal-data-sheet';
 import { ChangePasswordSheet } from '@/components/profile/change-password-sheet';
 import { ChildSelectionSheet } from '@/components/profile/child-selection-sheet';
 import { EmailVerificationBanner } from '@/components/profile/email-verification-banner';
+import { GoogleMigrationBanner } from '@/components/profile/google-migration-banner';
+import { LinkGoogleSheet } from '@/components/profile/link-google-sheet';
 import { ThemeCard } from '@/components/profile/theme-card';
 import { NotificationCard } from '@/components/profile/notification-card';
 import { AdminManagementSheet } from '@/components/profile/admin-management-sheet';
@@ -32,6 +34,12 @@ import { radii, spacing, typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/constants/theme';
 import { useImpersonation } from '@/context/impersonation-context';
 import { signOut } from '@lib/auth';
+import { supabase } from '@lib/supabase';
+import {
+  shouldShowGoogleMigrationBanner,
+  shouldShowChangePassword,
+  type Identity,
+} from '@lib/google-auth-utils';
 import { setNotificationPrefs, type NotificationPrefs } from '@lib/notifications';
 import type { FamilyAdmin } from '@lib/admin-invite';
 import {
@@ -104,6 +112,8 @@ export default function ProfileScreen() {
   const [showPersonalData, setShowPersonalData] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showChildSelection, setShowChildSelection] = useState(false);
+  const [showLinkGoogleSheet, setShowLinkGoogleSheet] = useState(false);
+  const [userIdentities, setUserIdentities] = useState<Identity[]>([]);
 
   const [showAdminManagement, setShowAdminManagement] = useState(false);
   const [showRemoveAdminSheet, setShowRemoveAdminSheet] = useState(false);
@@ -116,6 +126,25 @@ export default function ProfileScreen() {
     [allChildren],
   );
   const { startImpersonation } = useImpersonation();
+
+  // Fetch user identities to determine Google migration UI visibility
+  const fetchIdentities = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.auth.getUser();
+      if (!error && data.user) {
+        const identities: Identity[] = (data.user.identities ?? []).map((i) => ({
+          provider: i.provider,
+        }));
+        setUserIdentities(identities);
+      }
+    } catch (e) {
+      Sentry.captureException(e, { tags: { stage: 'fetchIdentities' } });
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchIdentities();
+  }, [fetchIdentities]);
 
   const effectivePrefs = notificationPreferences ?? notificationPrefsQuery.data ?? null;
   const effectiveAvatarUri = localAvatarUri ?? avatarUri;
@@ -233,6 +262,12 @@ export default function ProfileScreen() {
               />
             ) : null}
 
+            {shouldShowGoogleMigrationBanner(userIdentities) ? (
+              <GoogleMigrationBanner
+                onLinkGoogle={() => setShowLinkGoogleSheet(true)}
+              />
+            ) : null}
+
             {/* Aparência */}
             <ThemeCard />
 
@@ -278,15 +313,17 @@ export default function ProfileScreen() {
             </SectionCard>
 
             {/* Segurança */}
-            <SectionCard title="Segurança" colors={colors} styles={styles}>
-              <MenuRow
-                icon={Lock}
-                label="Alterar senha"
-                onPress={() => setShowChangePassword(true)}
-                colors={colors}
-                styles={styles}
-              />
-            </SectionCard>
+            {shouldShowChangePassword(userIdentities) ? (
+              <SectionCard title="Segurança" colors={colors} styles={styles}>
+                <MenuRow
+                  icon={Lock}
+                  label="Alterar senha"
+                  onPress={() => setShowChangePassword(true)}
+                  colors={colors}
+                  styles={styles}
+                />
+              </SectionCard>
+            ) : null}
 
             {/* Sobre */}
             <SectionCard title="Sobre" colors={colors} styles={styles}>
@@ -334,6 +371,14 @@ export default function ProfileScreen() {
       <ChangePasswordSheet
         visible={showChangePassword}
         onClose={() => setShowChangePassword(false)}
+      />
+
+      <LinkGoogleSheet
+        visible={showLinkGoogleSheet}
+        onClose={() => setShowLinkGoogleSheet(false)}
+        onLinked={() => {
+          fetchIdentities();
+        }}
       />
 
       <ChildSelectionSheet
