@@ -35,11 +35,13 @@ CREATE POLICY "admin_familia_convites_filho"
     )
   );
 
--- Any authenticated user can read invites (needed to validate a code)
+-- Any user (including unauthenticated/anon) can read invites by code.
+-- This is needed because the child validates the invite code BEFORE
+-- authenticating with Google. The code itself acts as the access token.
 CREATE POLICY "validar_convite_filho"
   ON public.convites_filho
   FOR SELECT
-  USING (auth.uid() IS NOT NULL);
+  USING (true);
 
 -- 4. Grants (same pattern as other tables)
 GRANT ALL ON TABLE public.convites_filho TO anon, authenticated, service_role;
