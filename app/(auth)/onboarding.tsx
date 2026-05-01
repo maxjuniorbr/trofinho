@@ -1,7 +1,7 @@
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
-import { ArrowRight, ShieldCheck } from 'lucide-react-native';
+import { ArrowRight, ChevronLeft, ShieldCheck } from 'lucide-react-native';
 import {
   createFamily,
   getCurrentAuthUser,
@@ -12,7 +12,7 @@ import {
 import { supabase } from '@lib/supabase';
 import { radii, spacing, typography } from '@/constants/theme';
 import { useTheme } from '@/context/theme-context';
-import { ScreenHeader } from '@/components/ui/screen-header';
+import { HeaderIconButton } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -137,14 +137,26 @@ export default function OnboardingScreen() {
   const handleBack = step === 1 ? handleLeave : () => setStep(1);
 
   return (
-    <SafeScreenFrame bottomInset>
+    <SafeScreenFrame topInset bottomInset>
       {initialLoading ? null : (
-        <ScreenHeader
-          title={headerTitle}
-          onBack={handleBack}
-          backLabel={step === 1 ? 'Login' : 'Nascimento'}
-          showBorder
-        />
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: colors.bg.surface,
+              borderBottomColor: colors.border.subtle,
+            },
+          ]}
+        >
+          <HeaderIconButton
+            icon={ChevronLeft}
+            onPress={handleBack}
+            accessibilityLabel={step === 1 ? 'Voltar para login' : 'Voltar para nascimento'}
+          />
+          <Text style={[styles.headerTitle, { color: colors.text.primary }]} numberOfLines={1}>
+            {headerTitle}
+          </Text>
+        </View>
       )}
 
       <ScrollView
@@ -252,6 +264,19 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['3'],
+    paddingHorizontal: spacing['4'],
+    paddingVertical: spacing['3'],
+    borderBottomWidth: 1,
+  },
+  headerTitle: {
+    fontSize: typography.size.lg,
+    fontFamily: typography.family.bold,
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
     padding: spacing['4'],

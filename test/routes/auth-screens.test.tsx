@@ -269,7 +269,7 @@ describe('auth screens', () => {
     const renderer = await renderAsync(<OnboardingScreen />);
 
     // On step 1 — the back button triggers the sign-out alert.
-    await pressButton(renderer, 'Voltar para Login');
+    await pressButton(renderer, 'Voltar para login');
 
     expect(alertSpy).toHaveBeenCalledTimes(1);
     expect(alertSpy).toHaveBeenCalledWith(
