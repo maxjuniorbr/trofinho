@@ -151,7 +151,7 @@ export const Button = ({
   } else if (LeadingIcon || TrailingIcon) {
     buttonContent = (
       <View style={styles.iconRow}>
-        {LeadingIcon ? <LeadingIcon size={fontSize} color={fgColor} strokeWidth={2.25} /> : null}
+        {LeadingIcon ? <LeadingIcon size={20} color={fgColor} strokeWidth={2.25} /> : null}
         <Text style={[styles.label, { color: fgColor, fontSize, lineHeight, fontFamily, flex: 1 }]}>
           {label}
         </Text>
