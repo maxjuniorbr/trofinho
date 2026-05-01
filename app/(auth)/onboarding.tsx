@@ -58,7 +58,10 @@ export default function OnboardingScreen() {
     getCurrentAuthUser().then((user) => {
       if (mounted) {
         if (user?.email) setUserEmail(user.email);
-        if (user?.dateOfBirth) setStep(2);
+        if (user?.dateOfBirth) {
+          setDateOfBirth(new Date(user.dateOfBirth));
+          setStep(2);
+        }
         setInitialLoading(false);
       }
     });
