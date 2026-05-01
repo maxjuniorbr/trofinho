@@ -182,15 +182,12 @@ export default function OnboardingScreen() {
 
           <Pressable
             style={({ pressed }) => [styles.childLink, { opacity: pressed ? 0.65 : 1 }]}
-            onPress={() => router.replace('/(auth)/join-child')}
+            onPress={handleLeave}
             disabled={dobLoading}
             accessibilityRole="button"
-            accessibilityLabel="Tenho um código de convite"
+            accessibilityLabel="Sair"
           >
-            <Text style={styles.childLinkText}>
-              Sou filho e tenho um{' '}
-              <Text style={styles.childLinkAccent}>código de convite</Text>
-            </Text>
+            <Text style={styles.childLinkText}>Sair</Text>
           </Pressable>
         </View>
       ) : null}
@@ -436,10 +433,6 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
       fontFamily: typography.family.medium,
       fontSize: typography.size.sm,
       color: palette.textOnNavyMuted,
-    },
-    childLinkAccent: {
-      fontFamily: typography.family.bold,
-      color: palette.borderFocus,
     },
   });
 }
