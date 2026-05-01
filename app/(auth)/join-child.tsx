@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useMemo, useCallback } from 'react';
 import { ChevronLeft, Users } from 'lucide-react-native';
-import { signInWithGoogle, refreshAuthSession } from '@lib/auth';
+import { signInWithGoogle, refreshAuthSession, getProfile } from '@lib/auth';
 import { supabase } from '@lib/supabase';
 import { validateChildInviteCode } from '@lib/google-auth-utils';
 import { radii, spacing, typography } from '@/constants/theme';
@@ -128,6 +128,23 @@ export default function JoinChildScreen() {
             return;
         }
 
+        // Check if user already belongs to a family (covers admin accounts and
+        // children already linked to another family).
+        const profile = await getProfile();
+        if (profile?.familia_id) {
+            setGoogleLoading(false);
+            const msg =
+                profile.papel === 'admin'
+                    ? 'Esta conta é de um responsável. Use outra conta Google.'
+                    : 'Esta conta já pertence a uma família. Use outra conta Google.';
+            setGoogleError(msg);
+            return;
+        }
+
+        // Save invite code marker so the nav guard can redirect orphan users
+        // back to join-child instead of admin onboarding if the app is closed.
+        await supabase.auth.updateUser({ data: { pending_child_invite: code } });
+
         setGoogleLoading(false);
         setStep('dob');
     };
@@ -161,18 +178,13 @@ export default function JoinChildScreen() {
                     setDobError('Este convite já foi utilizado.');
                 } else if (edgeError === 'INVALID_CODE' || edgeError === 'EXPIRED_CODE') {
                     setDobError('Código inválido ou expirado. Peça um novo código ao administrador.');
+                } else if (edgeError === 'FAMILY_FULL') {
+                    setDobError('Esta família atingiu o limite de filhos. Fale com o responsável.');
                 } else {
                     setDobError('Erro ao vincular conta. Tente novamente.');
                 }
                 return;
             }
-
-            await supabase.auth.updateUser({
-                data: {
-                    lgpd_consent_at: new Date().toISOString(),
-                    lgpd_consent_version: '1.0',
-                },
-            });
 
             const { error: refreshError } = await refreshAuthSession();
             if (refreshError) {
