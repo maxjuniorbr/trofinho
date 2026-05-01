@@ -13,7 +13,8 @@ export type PushEvent =
   | 'tarefa_concluida'
   | 'resgate_cofrinho_solicitado'
   | 'resgate_cofrinho_confirmado'
-  | 'resgate_cofrinho_cancelado';
+  | 'resgate_cofrinho_cancelado'
+  | 'penalidade_aplicada';
 
 export type EventPayload =
   | { userId: string; taskTitle: string; entityId?: string }
@@ -26,7 +27,8 @@ export type EventPayload =
       assignmentId?: string;
       childUserId?: string;
     }
-  | { filhoIds: string[]; taskTitle: string };
+  | { filhoIds: string[]; taskTitle: string }
+  | { userId: string; amount: string; reason?: string };
 
 export type NotificationPrefs = {
   tarefasPendentes?: boolean;
@@ -39,6 +41,7 @@ export type NotificationPrefs = {
   resgateCofrinhoSolicitado?: boolean;
   resgateCofrinhoConfirmado?: boolean;
   resgateCofrinhoCancelado?: boolean;
+  penalidadeAplicada?: boolean;
 };
 
 export type PushNotificationRequest = {
@@ -146,6 +149,7 @@ export const ADMIN_ONLY_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>([
   'resgate_confirmado',
   'resgate_cofrinho_confirmado',
   'resgate_cofrinho_cancelado',
+  'penalidade_aplicada',
 ]);
 
 export const FILHO_ONLY_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>([
@@ -175,6 +179,7 @@ export const VALID_EVENTS: ReadonlySet<string> = new Set<PushEvent>([
   'resgate_cofrinho_solicitado',
   'resgate_cofrinho_confirmado',
   'resgate_cofrinho_cancelado',
+  'penalidade_aplicada',
 ]);
 
 export function validateRequest(body: unknown):
@@ -344,6 +349,19 @@ export const MESSAGE_TEMPLATES: Record<PushEvent, MessageTemplateConfig> = {
     ],
     route: '/(child)/balance',
   },
+  penalidade_aplicada: {
+    variants: [
+      {
+        title: 'Penalidade aplicada ⚠️',
+        bodyTemplate: 'Você perdeu {amount} moedas. Motivo: {reason}',
+      },
+      {
+        title: 'Atenção ⚠️',
+        bodyTemplate: 'Foram debitadas {amount} moedas do seu saldo.',
+      },
+    ],
+    route: '/(child)/balance',
+  },
 };
 
 // ─── Progress suffix (best-effort) ──────────────────────────────────────────
@@ -493,6 +511,7 @@ const CHILD_TARGETED_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>([
   'resgate_cancelado',
   'resgate_cofrinho_confirmado',
   'resgate_cofrinho_cancelado',
+  'penalidade_aplicada',
 ]);
 
 const ADMIN_TARGETED_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>([
@@ -515,6 +534,7 @@ export const PREFERENCE_KEY_MAP: Record<PushEvent, keyof NotificationPrefs> = {
   resgate_cofrinho_solicitado: 'resgateCofrinhoSolicitado',
   resgate_cofrinho_confirmado: 'resgateCofrinhoConfirmado',
   resgate_cofrinho_cancelado: 'resgateCofrinhoCancelado',
+  penalidade_aplicada: 'penalidadeAplicada',
 };
 
 export function getPreferenceKey(event: PushEvent): keyof NotificationPrefs {

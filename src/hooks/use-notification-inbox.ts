@@ -10,6 +10,21 @@ import {
   usePendingRedemptionCount,
   useChildRedemptions,
 } from '@/hooks/queries/use-redemptions';
+import { useProfile } from '@/hooks/queries/use-profile';
+import { useMyChildId } from '@/hooks/queries/use-children';
+import { useTransactionsByPeriod } from '@/hooks/queries/use-balances';
+
+/** Look-back window for surfacing penalty/appreciation transactions in the inbox. */
+const INBOX_TX_LOOKBACK_DAYS = 30;
+
+function inboxTxRange(): { from: string; to: string } {
+  const now = new Date();
+  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - INBOX_TX_LOOKBACK_DAYS);
+  const fmt = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return { from: fmt(start), to: fmt(tomorrow) };
+}
 
 export function useAdminNotifInbox(): {
   items: Notif[];
@@ -53,6 +68,10 @@ export function useChildNotifInbox(): {
 } {
   const assignmentsQuery = useChildAssignments();
   const redemptionsQuery = useChildRedemptions();
+  const { data: profile } = useProfile();
+  const { data: childId } = useMyChildId(profile?.id);
+  const { from, to } = useMemo(inboxTxRange, []);
+  const transactionsQuery = useTransactionsByPeriod(childId ?? '', from, to);
 
   const assignments = useMemo(
     () => assignmentsQuery.data?.pages.flatMap((p) => p.data) ?? [],
@@ -64,9 +83,11 @@ export function useChildNotifInbox(): {
     [redemptionsQuery.data],
   );
 
+  const transactions = useMemo(() => transactionsQuery.data ?? [], [transactionsQuery.data]);
+
   const items = useMemo(
-    () => deriveChildNotifs({ assignments, redemptions }),
-    [assignments, redemptions],
+    () => deriveChildNotifs({ assignments, redemptions, transactions }),
+    [assignments, redemptions, transactions],
   );
 
   return {
@@ -79,12 +100,23 @@ export function useChildNotifInbox(): {
 export function useChildUnreadNotifCount(): number {
   const assignmentsQuery = useChildAssignments();
   const redemptionsQuery = useChildRedemptions();
+  const { data: profile } = useProfile();
+  const { data: childId } = useMyChildId(profile?.id);
+  const { from, to } = useMemo(inboxTxRange, []);
+  const transactionsQuery = useTransactionsByPeriod(childId ?? '', from, to);
 
   return useMemo(() => {
     if (assignmentsQuery.isLoading || redemptionsQuery.isLoading) return 0;
     const assignments = assignmentsQuery.data?.pages.flatMap((p) => p.data) ?? [];
     const redemptions = redemptionsQuery.data?.pages.flatMap((p) => p.data) ?? [];
-    const items = deriveChildNotifs({ assignments, redemptions });
+    const transactions = transactionsQuery.data ?? [];
+    const items = deriveChildNotifs({ assignments, redemptions, transactions });
     return items.filter((n) => n.group === 'Hoje').length;
-  }, [assignmentsQuery.data, assignmentsQuery.isLoading, redemptionsQuery.data, redemptionsQuery.isLoading]);
+  }, [
+    assignmentsQuery.data,
+    assignmentsQuery.isLoading,
+    redemptionsQuery.data,
+    redemptionsQuery.isLoading,
+    transactionsQuery.data,
+  ]);
 }

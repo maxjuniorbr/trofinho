@@ -7,6 +7,7 @@
 
 import type { ChildAssignment } from './tasks';
 import type { RedemptionWithChildAndPrize, RedemptionWithPrize } from './redemptions';
+import type { Transaction } from './balances';
 import type { NotificationRoute } from './notifications';
 import { toDateString } from './utils';
 
@@ -126,7 +127,40 @@ export function deriveAdminNotifs(input: AdminNotifInput): Notif[] {
 export type ChildNotifInput = {
   assignments: readonly ChildAssignment[];
   redemptions: readonly RedemptionWithPrize[];
+  /** Optional: if provided, penalizacao/valorizacao transactions are surfaced as notifications. */
+  transactions?: readonly Transaction[];
 };
+
+function transactionToNotif(tx: Transaction): Notif | null {
+  if (tx.tipo !== 'penalizacao' && tx.tipo !== 'valorizacao') return null;
+  const refDate = tx.data_referencia ?? tx.created_at;
+  if (tx.tipo === 'penalizacao') {
+    return {
+      id: `penalty-${tx.id}`,
+      audience: 'child',
+      type: 'penalty',
+      title: 'Penalidade aplicada',
+      description: tx.descricao
+        ? `${tx.descricao} (-${Math.abs(tx.valor)} pts)`
+        : `Foram debitadas ${Math.abs(tx.valor)} moedas do seu saldo`,
+      time: relativeTime(refDate),
+      group: dateGroup(refDate),
+      route: '/(child)/balance',
+      _sortDate: refDate,
+    };
+  }
+  return {
+    id: `appreciation-${tx.id}`,
+    audience: 'child',
+    type: 'appreciation',
+    title: 'Cofrinho rendeu! 🐷',
+    description: `Seu cofrinho ganhou +${tx.valor} pts de valorização`,
+    time: relativeTime(refDate),
+    group: dateGroup(refDate),
+    route: '/(child)/balance',
+    _sortDate: refDate,
+  };
+}
 
 export function deriveChildNotifs(input: ChildNotifInput): Notif[] {
   const notifs: Notif[] = [];
@@ -191,6 +225,11 @@ export function deriveChildNotifs(input: ChildNotifInput): Notif[] {
         _sortDate: r.created_at,
       });
     }
+  }
+
+  for (const tx of input.transactions ?? []) {
+    const txNotif = transactionToNotif(tx);
+    if (txNotif) notifs.push(txNotif);
   }
 
   notifs.sort(

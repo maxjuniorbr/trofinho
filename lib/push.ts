@@ -11,7 +11,8 @@ export type PushEvent =
   | 'tarefa_concluida'
   | 'resgate_cofrinho_solicitado'
   | 'resgate_cofrinho_confirmado'
-  | 'resgate_cofrinho_cancelado';
+  | 'resgate_cofrinho_cancelado'
+  | 'penalidade_aplicada';
 
 /** Minimum remaining lifetime (in seconds) before we proactively refresh the token. */
 const TOKEN_REFRESH_BUFFER_S = 30;
@@ -90,7 +91,10 @@ export async function dispatchPushNotification(
       if (error) {
         lastError = error;
 
-        if (attempt < MAX_PUSH_RETRIES && isTransientError(error as { name?: string; context?: { status?: number } })) {
+        if (
+          attempt < MAX_PUSH_RETRIES &&
+          isTransientError(error as { name?: string; context?: { status?: number } })
+        ) {
           Sentry.addBreadcrumb({
             category: 'push',
             message: `Retry ${attempt + 1}/${MAX_PUSH_RETRIES} for '${event}'`,

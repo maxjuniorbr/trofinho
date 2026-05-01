@@ -96,6 +96,12 @@ export default function ChildBalanceAdminScreen() {
           childId: filho_id,
           amount,
           description,
+          opts: profile?.familia_id
+            ? {
+              familiaId: profile.familia_id,
+              childUserId: childDetail?.usuario_id ?? null,
+            }
+            : undefined,
         });
         setModalType(null);
         if (result && result.deducted < amount) {
@@ -112,7 +118,7 @@ export default function ChildBalanceAdminScreen() {
         };
       }
     },
-    [filho_id, penaltyMutation],
+    [filho_id, penaltyMutation, profile?.familia_id, childDetail?.usuario_id],
   );
 
   const handleConfirmWithdrawal = useCallback(async () => {

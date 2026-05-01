@@ -19,6 +19,10 @@ const OPTIONS: readonly NotificationOption[] = [
   { key: 'resgatesSolicitado', label: 'Resgate solicitado', roles: ['admin'] },
   { key: 'resgateConfirmado', label: 'Resgate confirmado', roles: ['filho'] },
   { key: 'resgateCancelado', label: 'Resgate cancelado', roles: ['filho'] },
+  { key: 'resgateCofrinhoSolicitado', label: 'Resgate do cofrinho solicitado', roles: ['admin'] },
+  { key: 'resgateCofrinhoConfirmado', label: 'Resgate do cofrinho confirmado', roles: ['filho'] },
+  { key: 'resgateCofrinhoCancelado', label: 'Resgate do cofrinho cancelado', roles: ['filho'] },
+  { key: 'penalidadeAplicada', label: 'Penalidade aplicada', roles: ['filho'] },
 ];
 
 type NotificationCardProps = Readonly<{

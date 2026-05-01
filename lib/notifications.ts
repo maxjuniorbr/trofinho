@@ -72,6 +72,7 @@ export type NotificationPrefs = {
   resgateCofrinhoSolicitado: boolean;
   resgateCofrinhoConfirmado: boolean;
   resgateCofrinhoCancelado: boolean;
+  penalidadeAplicada: boolean;
 };
 
 type NotificationData = Readonly<{
@@ -89,6 +90,7 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   resgateCofrinhoSolicitado: true,
   resgateCofrinhoConfirmado: true,
   resgateCofrinhoCancelado: true,
+  penalidadeAplicada: true,
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -127,6 +129,8 @@ function normalizeNotificationPrefs(rawPreferences: string | null): Notification
       resgateCofrinhoCancelado:
         asBoolean(parsed.resgateCofrinhoCancelado) ??
         DEFAULT_NOTIFICATION_PREFS.resgateCofrinhoCancelado,
+      penalidadeAplicada:
+        asBoolean(parsed.penalidadeAplicada) ?? DEFAULT_NOTIFICATION_PREFS.penalidadeAplicada,
     };
   } catch {
     return DEFAULT_NOTIFICATION_PREFS;

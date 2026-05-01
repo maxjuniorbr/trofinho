@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react-native';
 import { localizeRpcError } from './api-error';
+import { dispatchPushNotification } from './push';
 import { supabase } from './supabase';
 import { formatDate, formatDateRelative, formatDateShort } from './utils';
 
@@ -256,6 +257,7 @@ export async function applyPenalty(
   childId: string,
   amount: number,
   description: string,
+  opts?: { familiaId: string; childUserId?: string | null },
 ): Promise<{ data: { deducted: number } | null; error: string | null }> {
   const { data, error } = await supabase.rpc('aplicar_penalizacao', {
     p_filho_id: childId,
@@ -263,7 +265,18 @@ export async function applyPenalty(
     p_descricao: description,
   });
   if (error) return { data: null, error: localizeRpcError(error.message) };
-  return { data: { deducted: data ?? amount }, error: null };
+
+  const deducted = data ?? amount;
+
+  if (opts?.childUserId && deducted > 0) {
+    dispatchPushNotification('penalidade_aplicada', opts.familiaId, {
+      userId: opts.childUserId,
+      amount: String(deducted),
+      reason: description,
+    });
+  }
+
+  return { data: { deducted }, error: null };
 }
 
 export const calculateProjection = (cofrinho: number, rate: number): number => {

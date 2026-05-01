@@ -69,8 +69,13 @@ export const useTransactionsByPeriod = (childId: string, from: string, to: strin
 export const useApplyPenalty = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (args: { childId: string; amount: number; description: string }) => {
-      const result = await applyPenalty(args.childId, args.amount, args.description);
+    mutationFn: async (args: {
+      childId: string;
+      amount: number;
+      description: string;
+      opts?: { familiaId: string; childUserId?: string | null };
+    }) => {
+      const result = await applyPenalty(args.childId, args.amount, args.description, args.opts);
       if (result.error) throw new Error(result.error);
       return result.data;
     },
