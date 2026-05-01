@@ -54,19 +54,13 @@ vi.mock('@/components/auth/google-sign-in-button', () => ({
     React.createElement('GoogleSignInButton', props),
 }));
 
-vi.mock('@/components/auth/date-of-birth-step', async () => {
-  const react = await import('react');
-  return {
-    DateOfBirthStep: ({ onChange, onContinue }: { onChange: (d: Date) => void; onContinue: () => void }) => {
-      react.useEffect(() => { onChange(new Date(Date.UTC(2000, 0, 1))); }, []);
-      return React.createElement(
-        Pressable,
-        { accessibilityLabel: 'Continuar', onPress: onContinue },
-        React.createElement(Text, null, 'Continuar'),
-      );
-    },
-  };
-});
+vi.mock('@/components/auth/date-of-birth-field', () => ({
+  DateOfBirthField: ({ onChange }: { onChange: (d: Date) => void }) => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- test mock, onChange is stable
+    React.useEffect(() => { onChange(new Date(Date.UTC(2000, 0, 1))); }, []);
+    return React.createElement(Text, null, 'DateOfBirthField');
+  },
+}));
 
 vi.mock('@react-native-community/datetimepicker', () => ({
   __esModule: true,
@@ -91,37 +85,11 @@ function render(element: React.ReactElement) {
   return renderer;
 }
 
-async function renderAsync(element: React.ReactElement) {
-  let renderer!: ReactTestRenderer;
-
-  await act(async () => {
-    renderer = create(element);
-  });
-
-  return renderer;
-}
-
 function changeInput(renderer: ReactTestRenderer, index: number, value: string) {
   const inputs = renderer.root.findAllByType(TextInput);
 
   act(() => {
     inputs[index]?.props.onChangeText(value);
-  });
-}
-
-function focusInput(renderer: ReactTestRenderer, index: number) {
-  const inputs = renderer.root.findAllByType(TextInput);
-
-  act(() => {
-    inputs[index]?.props.onFocus?.();
-  });
-}
-
-function blurInput(renderer: ReactTestRenderer, index: number) {
-  const inputs = renderer.root.findAllByType(TextInput);
-
-  act(() => {
-    inputs[index]?.props.onBlur?.();
   });
 }
 
@@ -182,40 +150,29 @@ describe('auth screens', () => {
     expect(renderer.root).toBeTruthy();
   });
 
-  it('prefills onboarding with the Google name and shows DOB step first', async () => {
+  it('renders the onboarding form with all fields', () => {
     localSearchParamsState.value = { googleName: 'Max' } as never;
-    const renderer = await renderAsync(<OnboardingScreen />);
+    const renderer = render(<OnboardingScreen />);
 
-    // Step 1 is the DOB step — header shows the title
-    expect(screenText(renderer)).toContain('Data de nascimento');
-  });
+    expect(screenText(renderer)).toContain('Criar conta');
+    expect(screenText(renderer)).toContain('DateOfBirthField');
 
-  it('advances to family step after DOB and validates required data', async () => {
-    localSearchParamsState.value = { googleName: 'Max' } as never;
-    const renderer = await renderAsync(<OnboardingScreen />);
-
-    // Advance past DOB step
-    await pressButton(renderer, 'Continuar');
-
-    // Now on step 2 — admin name should be pre-filled with Google name
+    // Admin name should be pre-filled with Google name
     const inputs = renderer.root.findAllByType(TextInput);
     expect(inputs[1]?.props.value).toBe('Max');
+  });
+
+  it('validates required family name before submitting', async () => {
+    localSearchParamsState.value = { googleName: 'Max' } as never;
+    const renderer = render(<OnboardingScreen />);
 
     await pressButton(renderer, 'Criar família');
     expect(screenText(renderer)).toContain('Informe o nome da família.');
   });
 
-  it('covers onboarding focus, name validation, and button style branches', async () => {
+  it('validates required admin name before submitting', async () => {
     localSearchParamsState.value = { googleName: '' } as never;
-    const renderer = await renderAsync(<OnboardingScreen />);
-
-    // Advance past DOB step
-    await pressButton(renderer, 'Continuar');
-
-    focusInput(renderer, 0);
-    blurInput(renderer, 0);
-    focusInput(renderer, 1);
-    blurInput(renderer, 1);
+    const renderer = render(<OnboardingScreen />);
 
     changeInput(renderer, 0, 'Familia Silva');
     await pressButton(renderer, 'Criar família');
@@ -228,10 +185,7 @@ describe('auth screens', () => {
       .mockResolvedValueOnce({ error: 'Algo deu errado. Tente novamente.' })
       .mockResolvedValueOnce({ error: null });
 
-    const renderer = await renderAsync(<OnboardingScreen />);
-
-    // Advance past DOB step
-    await pressButton(renderer, 'Continuar');
+    const renderer = render(<OnboardingScreen />);
 
     changeInput(renderer, 0, 'Familia Silva');
 
@@ -250,10 +204,7 @@ describe('auth screens', () => {
       error: 'Algo deu errado. Tente novamente.',
     });
 
-    const renderer = await renderAsync(<OnboardingScreen />);
-
-    // Advance past DOB step
-    await pressButton(renderer, 'Continuar');
+    const renderer = render(<OnboardingScreen />);
 
     changeInput(renderer, 0, 'Familia Silva');
 
@@ -263,12 +214,11 @@ describe('auth screens', () => {
     expect(getButton(renderer, 'Criar família').props.accessibilityState).toEqual({ busy: false });
   });
 
-  it('shows confirmation alert and signs out when user presses back on dob step', async () => {
+  it('shows confirmation alert and signs out when user presses back', async () => {
     localSearchParamsState.value = { googleName: 'Max' } as never;
     authMocks.signOut.mockResolvedValue(undefined);
-    const renderer = await renderAsync(<OnboardingScreen />);
+    const renderer = render(<OnboardingScreen />);
 
-    // On step 1 — the back button triggers the sign-out alert.
     await pressButton(renderer, 'Voltar para login');
 
     expect(alertSpy).toHaveBeenCalledTimes(1);
@@ -282,9 +232,9 @@ describe('auth screens', () => {
     );
 
     const buttons = alertSpy.mock.calls[0][2] as { text: string; onPress?: () => void }[];
-    const sairButton = buttons.find((b) => b.text === 'Voltar');
+    const voltarButton = buttons.find((b) => b.text === 'Voltar');
     await act(async () => {
-      await sairButton!.onPress!();
+      await voltarButton!.onPress!();
     });
 
     expect(authMocks.signOut).toHaveBeenCalled();
