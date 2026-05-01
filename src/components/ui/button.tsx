@@ -22,6 +22,7 @@ interface ButtonProps extends Omit<PressableProps, 'style'> {
   loading?: boolean;
   label: string;
   loadingLabel?: string;
+  leadingIcon?: LucideIcon;
   trailingIcon?: LucideIcon;
 }
 
@@ -70,6 +71,7 @@ export const Button = ({
   loading = false,
   label,
   loadingLabel,
+  leadingIcon: LeadingIcon,
   trailingIcon: TrailingIcon,
   disabled,
   onPress,
@@ -146,13 +148,14 @@ export const Button = ({
     );
   } else if (loading) {
     buttonContent = <ActivityIndicator color={fgColor} size="small" />;
-  } else if (TrailingIcon) {
+  } else if (LeadingIcon || TrailingIcon) {
     buttonContent = (
-      <View style={styles.trailingIconRow}>
+      <View style={styles.iconRow}>
+        {LeadingIcon ? <LeadingIcon size={fontSize} color={fgColor} strokeWidth={2.25} /> : null}
         <Text style={[styles.label, { color: fgColor, fontSize, lineHeight, fontFamily, flex: 1 }]}>
           {label}
         </Text>
-        <TrailingIcon size={fontSize} color={fgColor} strokeWidth={2.25} />
+        {TrailingIcon ? <TrailingIcon size={fontSize} color={fgColor} strokeWidth={2.25} /> : null}
       </View>
     );
   } else {
@@ -241,7 +244,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing['2'],
   },
-  trailingIconRow: {
+  iconRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing['3'],

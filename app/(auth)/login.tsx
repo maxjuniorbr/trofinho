@@ -95,6 +95,7 @@ export default function LoginScreen() {
                 onPress={() => router.push('/(auth)/join-child')}
                 disabled={loading}
                 size="md"
+                leadingIcon={KeyRound}
                 trailingIcon={ArrowRight}
                 accessibilityLabel="Usar código de família"
               />
