@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowRight } from 'lucide-react-native';
+import { ArrowRight, KeyRound } from 'lucide-react-native';
 import { gradients, opacityDisabled, radii, shadows, spacing, typography } from '@/constants/theme';
 import * as Haptics from 'expo-haptics';
 
@@ -13,8 +13,7 @@ type FamilyCodeButtonProps = Readonly<{
 
 /**
  * Gold-gradient CTA button for the "Usar código de família" login path.
- * Matches the creative-studio design: gradient-brand background, dark text,
- * trailing arrow, and brand shadow.
+ * Layout mirrors GoogleSignInButton hero: [icon] label → [arrow].
  */
 export function FamilyCodeButton({
     onPress,
@@ -54,7 +53,9 @@ export function FamilyCodeButton({
                 <View style={styles.content}>
                     {loading ? (
                         <ActivityIndicator size="small" color="#030711" />
-                    ) : null}
+                    ) : (
+                        <KeyRound size={20} color="#030711" strokeWidth={2} />
+                    )}
                     <Text style={styles.label} numberOfLines={1}>
                         {label}
                     </Text>
@@ -75,7 +76,7 @@ const styles = StyleSheet.create({
         ...shadows.goldButton,
     },
     gradient: {
-        minHeight: 52,
+        minHeight: 48,
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: radii.inner,
