@@ -148,8 +148,8 @@ export const Button = ({
     buttonContent = <ActivityIndicator color={fgColor} size="small" />;
   } else if (TrailingIcon) {
     buttonContent = (
-      <View style={styles.loadingRow}>
-        <Text style={[styles.label, { color: fgColor, fontSize, lineHeight, fontFamily }]}>
+      <View style={styles.trailingIconRow}>
+        <Text style={[styles.label, { color: fgColor, fontSize, lineHeight, fontFamily, flex: 1 }]}>
           {label}
         </Text>
         <TrailingIcon size={fontSize} color={fgColor} strokeWidth={2.25} />
@@ -240,5 +240,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing['2'],
+  },
+  trailingIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['3'],
+    width: '100%',
   },
 });
