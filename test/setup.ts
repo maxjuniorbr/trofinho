@@ -344,6 +344,23 @@ vi.mock('@react-native-community/netinfo', () => ({
   },
 }));
 
+vi.mock('@react-native-google-signin/google-signin', () => ({
+  GoogleSignin: {
+    configure: vi.fn(),
+    hasPlayServices: vi.fn().mockResolvedValue(true),
+    signIn: vi.fn().mockResolvedValue({ type: 'cancelled' }),
+    revokeAccess: vi.fn().mockResolvedValue(null),
+    signOut: vi.fn().mockResolvedValue(null),
+  },
+  statusCodes: {
+    SIGN_IN_CANCELLED: 'SIGN_IN_CANCELLED',
+    IN_PROGRESS: 'IN_PROGRESS',
+    PLAY_SERVICES_NOT_AVAILABLE: 'PLAY_SERVICES_NOT_AVAILABLE',
+  },
+  isErrorWithCode: vi.fn((error: unknown) => error != null && typeof error === 'object' && 'code' in error),
+  isSuccessResponse: vi.fn((response: unknown) => response != null && typeof response === 'object' && 'data' in (response as Record<string, unknown>)),
+}));
+
 afterEach(() => {
   vi.restoreAllMocks();
   __TEST_THEME_OVERRIDE__.colors = lightColors;

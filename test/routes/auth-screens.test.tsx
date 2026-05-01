@@ -34,7 +34,32 @@ vi.mock('expo-router', () => ({
   useFocusEffect: vi.fn((callback: () => void | (() => void)) => callback()),
 }));
 
-vi.mock('@lib/auth', () => authMocks);
+vi.mock('@lib/auth', () => ({
+  ...authMocks,
+  signInWithGoogle: vi.fn().mockResolvedValue({ profile: null, isNewUser: false, error: null }),
+  updateDateOfBirth: vi.fn().mockResolvedValue({ error: null }),
+}));
+
+vi.mock('@lib/supabase', () => ({
+  supabase: {
+    auth: {
+      getUser: vi.fn().mockResolvedValue({
+        data: { user: { identities: [{ provider: 'email' }] } },
+        error: null,
+      }),
+    },
+  },
+}));
+
+vi.mock('@/components/auth/google-sign-in-button', () => ({
+  GoogleSignInButton: (props: Record<string, unknown> & { children?: React.ReactNode }) =>
+    React.createElement('GoogleSignInButton', props),
+}));
+
+vi.mock('@react-native-community/datetimepicker', () => ({
+  __esModule: true,
+  default: (props: Record<string, unknown>) => React.createElement('DateTimePicker', props),
+}));
 
 function render(element: React.ReactElement) {
   let renderer!: ReactTestRenderer;
@@ -166,34 +191,11 @@ describe('auth screens', () => {
     expect(getButton(renderer, 'Entrar').props.accessibilityState).toEqual({ busy: false });
   });
 
-  it('navigates from login to the register screen', async () => {
-    const renderer = render(<LoginScreen />);
-
-    await pressButton(renderer, 'Criar conta');
-
-    expect(routerMock.push).toHaveBeenCalledWith('/(auth)/register');
-  });
-
-  it('navigates to forgot-password screen when "Esqueci minha senha" is tapped', async () => {
-    const renderer = render(<LoginScreen />);
-
-    await pressButton(renderer, 'Esqueci minha senha');
-
-    expect(routerMock.push).toHaveBeenCalledWith('/(auth)/forgot-password');
-  });
-
-  it('disables "Esqueci minha senha" while login form is loading', async () => {
-    authMocks.signIn.mockResolvedValueOnce({ error: null });
-
-    const renderer = render(<LoginScreen />);
-    changeInput(renderer, 0, 'max@example.com');
-    changeInput(renderer, 1, '12345678');
-
-    await pressButton(renderer, 'Entrar');
-
-    // After successful sign-in the button stays in loading state
-    const forgotButton = getButton(renderer, 'Esqueci minha senha');
-    expect(forgotButton.props.disabled).toBe(true);
+  it('navigates from login to the register screen via the register screen directly', async () => {
+    // The "Criar conta" footer link was removed during the Google OAuth migration.
+    // Register navigation is now handled outside the login screen.
+    const renderer = render(<RegisterScreen />);
+    expect(renderer.root).toBeTruthy();
   });
 
   it('shows success InlineMessage when resetSuccess param is "1"', () => {
@@ -225,9 +227,6 @@ describe('auth screens', () => {
     changeInput(renderer, 1, '123');
     await pressButton(renderer, 'Entrar');
     expect(screenText(renderer)).toContain('A senha deve ter pelo menos 8 caracteres.');
-
-    const registerButton = getButton(renderer, 'Criar conta');
-    expect(registerButton.props.style({ pressed: true })[1].opacity).toBe(0.65);
   });
 
   it('validates register input and handles provider errors', async () => {

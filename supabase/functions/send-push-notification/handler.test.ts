@@ -961,6 +961,7 @@ describe('Property 2: Disabled preference prevents ticket generation', () => {
       resgate_cofrinho_solicitado: 'resgateCofrinhoSolicitado',
       resgate_cofrinho_confirmado: 'resgateCofrinhoConfirmado',
       resgate_cofrinho_cancelado: 'resgateCofrinhoCancelado',
+      penalidade_aplicada: 'penalidadeAplicada',
     };
 
     const eventArb = fc.constantFrom<PushEvent>(
@@ -974,6 +975,7 @@ describe('Property 2: Disabled preference prevents ticket generation', () => {
       'resgate_cofrinho_solicitado',
       'resgate_cofrinho_confirmado',
       'resgate_cofrinho_cancelado',
+      'penalidade_aplicada',
     );
 
     fc.assert(

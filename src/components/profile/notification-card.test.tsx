@@ -17,6 +17,7 @@ const ALL_FALSE_PREFS: NotificationPrefs = {
     resgateCofrinhoSolicitado: false,
     resgateCofrinhoConfirmado: false,
     resgateCofrinhoCancelado: false,
+    penalidadeAplicada: false,
 };
 
 function render(overrides: Partial<React.ComponentProps<typeof NotificationCard>> = {}) {

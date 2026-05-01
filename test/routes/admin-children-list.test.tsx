@@ -85,17 +85,31 @@ vi.mock('lucide-react-native', () => ({
   Eye: createHostComponent('Eye'),
   Plus: createHostComponent('Plus'),
   Star: createHostComponent('Star'),
+  Ticket: createHostComponent('Ticket'),
 }));
 
 vi.mock('@/hooks/queries', () => ({
   useChildrenList: () => childrenMock,
   useAdminBalances: () => balancesMock,
+  useProfile: () => ({ data: { id: 'admin-1', familia_id: 'fam-1' } }),
   combineQueryStates: (...queries: Record<string, unknown>[]) => ({
     isLoading: queries.some((q) => q.isLoading),
     isFetching: false,
     error: queries.find((q) => q.error)?.error ?? null,
     refetchAll: vi.fn(),
   }),
+}));
+
+vi.mock('@lib/supabase', () => ({
+  supabase: {
+    from: () => ({
+      insert: () => ({
+        select: () => ({
+          single: () => Promise.resolve({ data: { codigo: 'ABC123', expira_em: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() }, error: null }),
+        }),
+      }),
+    }),
+  },
 }));
 
 vi.mock('@/components/ui/screen-header', () => ({
@@ -131,6 +145,10 @@ vi.mock('@/components/children/child-view-sheet', () => ({
 
 vi.mock('@/components/children/child-new-sheet', () => ({
   ChildNewSheet: (props: Record<string, unknown>) => React.createElement('ChildNewSheet', props),
+}));
+
+vi.mock('@/components/children/child-invite-sheet', () => ({
+  ChildInviteSheet: (props: Record<string, unknown>) => React.createElement('ChildInviteSheet', props),
 }));
 
 function render(element: React.ReactElement) {

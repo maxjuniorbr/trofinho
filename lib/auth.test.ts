@@ -534,6 +534,10 @@ describe('auth', () => {
 
   describe('deleteAccount', () => {
     it('calls excluir_minha_conta RPC and signs out on success', async () => {
+      supabaseMock.auth.getUser.mockResolvedValue({
+        data: { user: { identities: [{ provider: 'email' }] } },
+        error: null,
+      });
       supabaseMock.rpc.mockReturnValue(
         supabaseMock.rpc._createResult({ data: null, error: null }),
       );
@@ -546,7 +550,29 @@ describe('auth', () => {
       expect(result).toEqual({ error: null });
     });
 
+    it('revokes Google access before deleting when user has Google identity', async () => {
+      const { GoogleSignin } = await import('@react-native-google-signin/google-signin');
+      supabaseMock.auth.getUser.mockResolvedValue({
+        data: { user: { identities: [{ provider: 'google' }] } },
+        error: null,
+      });
+      supabaseMock.rpc.mockReturnValue(
+        supabaseMock.rpc._createResult({ data: null, error: null }),
+      );
+      supabaseMock.auth.signOut.mockResolvedValue({});
+
+      const result = await deleteAccount();
+
+      expect(GoogleSignin.revokeAccess).toHaveBeenCalled();
+      expect(supabaseMock.rpc).toHaveBeenCalledWith('excluir_minha_conta');
+      expect(result).toEqual({ error: null });
+    });
+
     it('returns localized error when RPC fails and does not sign out', async () => {
+      supabaseMock.auth.getUser.mockResolvedValue({
+        data: { user: { identities: [] } },
+        error: null,
+      });
       supabaseMock.rpc.mockReturnValue(
         supabaseMock.rpc._createResult({
           data: null,

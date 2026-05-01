@@ -95,6 +95,25 @@ vi.mock('expo-router', () => ({
 
 vi.mock('@lib/auth', () => ({
   signOut: signOutMock,
+  signInWithGoogle: vi.fn().mockResolvedValue({ profile: null, isNewUser: false, error: null }),
+  hasGoogleIdentity: vi.fn().mockResolvedValue(false),
+  linkGoogleIdentity: vi.fn().mockResolvedValue({ error: null }),
+}));
+
+vi.mock('@lib/google-auth-utils', () => ({
+  shouldShowGoogleMigrationBanner: vi.fn().mockReturnValue(false),
+  shouldShowChangePassword: vi.fn().mockReturnValue(true),
+}));
+
+vi.mock('@lib/supabase', () => ({
+  supabase: {
+    auth: {
+      getUser: vi.fn().mockResolvedValue({
+        data: { user: { identities: [{ provider: 'email' }] } },
+        error: null,
+      }),
+    },
+  },
 }));
 
 vi.mock('@lib/notifications', () => ({
@@ -157,6 +176,7 @@ vi.mock('lucide-react-native', () => ({
   Eye: createHostComponent('Eye'),
   Info: createHostComponent('Info'),
   Lock: createHostComponent('Lock'),
+  ShieldCheck: createHostComponent('ShieldCheck'),
   User: createHostComponent('User'),
   Users: createHostComponent('Users'),
 }));
@@ -197,6 +217,21 @@ vi.mock('@/components/profile/admin-management-sheet', () => ({
 vi.mock('@/components/profile/remove-admin-sheet', () => ({
   RemoveAdminSheet: (props: Record<string, unknown>) =>
     React.createElement('RemoveAdminSheet', props),
+}));
+
+vi.mock('@/components/profile/email-verification-banner', () => ({
+  EmailVerificationBanner: (props: Record<string, unknown>) =>
+    React.createElement('EmailVerificationBanner', props),
+}));
+
+vi.mock('@/components/profile/google-migration-banner', () => ({
+  GoogleMigrationBanner: (props: Record<string, unknown>) =>
+    React.createElement('GoogleMigrationBanner', props),
+}));
+
+vi.mock('@/components/profile/link-google-sheet', () => ({
+  LinkGoogleSheet: (props: Record<string, unknown>) =>
+    React.createElement('LinkGoogleSheet', props),
 }));
 
 function render(element: React.ReactElement) {

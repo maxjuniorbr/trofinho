@@ -9,6 +9,9 @@ const mockUseChildAssignments = vi.hoisted(() => vi.fn());
 const mockUseAdminRedemptions = vi.hoisted(() => vi.fn());
 const mockUsePendingRedemptionCount = vi.hoisted(() => vi.fn());
 const mockUseChildRedemptions = vi.hoisted(() => vi.fn());
+const mockUseProfile = vi.hoisted(() => vi.fn());
+const mockUseMyChildId = vi.hoisted(() => vi.fn());
+const mockUseTransactionsByPeriod = vi.hoisted(() => vi.fn());
 
 vi.mock('react', async () => {
   const actual = await vi.importActual<typeof import('react')>('react');
@@ -35,7 +38,22 @@ vi.mock('@/hooks/queries/use-redemptions', () => ({
   useChildRedemptions: mockUseChildRedemptions,
 }));
 
-function makeInfiniteQueryResult(data: unknown[] | undefined, opts?: { isLoading?: boolean; isError?: boolean }) {
+vi.mock('@/hooks/queries/use-profile', () => ({
+  useProfile: mockUseProfile,
+}));
+
+vi.mock('@/hooks/queries/use-children', () => ({
+  useMyChildId: mockUseMyChildId,
+}));
+
+vi.mock('@/hooks/queries/use-balances', () => ({
+  useTransactionsByPeriod: mockUseTransactionsByPeriod,
+}));
+
+function makeInfiniteQueryResult(
+  data: unknown[] | undefined,
+  opts?: { isLoading?: boolean; isError?: boolean },
+) {
   return {
     data: data ? { pages: [{ data }] } : undefined,
     isLoading: opts?.isLoading ?? false,
@@ -60,6 +78,9 @@ beforeEach(() => {
   mockUseAdminRedemptions.mockReset().mockReturnValue(makeInfiniteQueryResult([]));
   mockUsePendingRedemptionCount.mockReset().mockReturnValue(makeQueryResult(0));
   mockUseChildRedemptions.mockReset().mockReturnValue(makeInfiniteQueryResult([]));
+  mockUseProfile.mockReset().mockReturnValue(makeQueryResult({ id: 'user-1' }));
+  mockUseMyChildId.mockReset().mockReturnValue(makeQueryResult('child-1'));
+  mockUseTransactionsByPeriod.mockReset().mockReturnValue(makeQueryResult([]));
 });
 
 const loadHooks = () => import('../use-notification-inbox');
@@ -97,7 +118,9 @@ describe('useAdminNotifInbox', () => {
   });
 
   it('returns isLoading true when redemptions are loading', async () => {
-    mockUseAdminRedemptions.mockReturnValue(makeInfiniteQueryResult(undefined, { isLoading: true }));
+    mockUseAdminRedemptions.mockReturnValue(
+      makeInfiniteQueryResult(undefined, { isLoading: true }),
+    );
 
     const { useAdminNotifInbox } = await loadHooks();
     const result = useAdminNotifInbox();
@@ -172,11 +195,14 @@ describe('useChildNotifInbox', () => {
     expect(mockDeriveChildNotifs).toHaveBeenCalledWith({
       assignments,
       redemptions,
+      transactions: [],
     });
   });
 
   it('returns isLoading true when assignments are loading', async () => {
-    mockUseChildAssignments.mockReturnValue(makeInfiniteQueryResult(undefined, { isLoading: true }));
+    mockUseChildAssignments.mockReturnValue(
+      makeInfiniteQueryResult(undefined, { isLoading: true }),
+    );
 
     const { useChildNotifInbox } = await loadHooks();
     const result = useChildNotifInbox();
@@ -198,7 +224,11 @@ describe('useChildNotifInbox', () => {
     const { useChildNotifInbox } = await loadHooks();
     const result = useChildNotifInbox();
     expect(result.items).toEqual([]);
-    expect(mockDeriveChildNotifs).toHaveBeenCalledWith({ assignments: [], redemptions: [] });
+    expect(mockDeriveChildNotifs).toHaveBeenCalledWith({
+      assignments: [],
+      redemptions: [],
+      transactions: [],
+    });
   });
 });
 
@@ -217,7 +247,9 @@ describe('useChildUnreadNotifCount', () => {
   });
 
   it('returns 0 when loading', async () => {
-    mockUseChildAssignments.mockReturnValue(makeInfiniteQueryResult(undefined, { isLoading: true }));
+    mockUseChildAssignments.mockReturnValue(
+      makeInfiniteQueryResult(undefined, { isLoading: true }),
+    );
 
     const { useChildUnreadNotifCount } = await loadHooks();
     const count = useChildUnreadNotifCount();

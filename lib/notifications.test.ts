@@ -168,6 +168,7 @@ describe('notifications', () => {
         resgateCofrinhoSolicitado: true,
         resgateCofrinhoConfirmado: true,
         resgateCofrinhoCancelado: true,
+        penalidadeAplicada: true,
       };
       getUserMock.mockResolvedValue({ data: { user: { id: 'user-1' } } });
       selectMock.mockResolvedValue({ data: { notif_prefs: serverPrefs }, error: null });
@@ -190,6 +191,7 @@ describe('notifications', () => {
         resgateCofrinhoSolicitado: true,
         resgateCofrinhoConfirmado: true,
         resgateCofrinhoCancelado: true,
+        penalidadeAplicada: true,
       };
       getUserMock.mockRejectedValue(new Error('network'));
       deviceStorageGetMock.mockResolvedValue(JSON.stringify(stored));
@@ -236,6 +238,7 @@ describe('notifications', () => {
         resgateCofrinhoSolicitado: true,
         resgateCofrinhoConfirmado: true,
         resgateCofrinhoCancelado: true,
+        penalidadeAplicada: true,
       };
       getUserMock.mockResolvedValue({ data: { user: { id: 'user-1' } } });
       updateMock.mockResolvedValue({ data: null, error: null });
@@ -362,6 +365,7 @@ describe('Property 3: Preference round trip (server-first)', () => {
     resgateCofrinhoSolicitado: fc.boolean(),
     resgateCofrinhoConfirmado: fc.boolean(),
     resgateCofrinhoCancelado: fc.boolean(),
+    penalidadeAplicada: fc.boolean(),
   });
 
   const fakeUserId = 'user-abc-123';
@@ -767,15 +771,11 @@ describe('registerNotificationCategories', () => {
 
     expect(setNotificationCategoryAsyncMock).toHaveBeenCalledWith(
       'TASK_REVIEW',
-      expect.arrayContaining([
-        expect.objectContaining({ identifier: 'APPROVE_TASK' }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ identifier: 'APPROVE_TASK' })]),
     );
     expect(setNotificationCategoryAsyncMock).toHaveBeenCalledWith(
       'REDEMPTION_REVIEW',
-      expect.arrayContaining([
-        expect.objectContaining({ identifier: 'CONFIRM_REDEMPTION' }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ identifier: 'CONFIRM_REDEMPTION' })]),
     );
   });
 });
