@@ -89,16 +89,19 @@ export async function getCurrentAuthUser(): Promise<{
   avatarUrl: string | null;
   emailConfirmedAt: string | null;
   dateOfBirth: string | null;
+  fullName: string | null;
 } | null> {
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) return null;
   const rawAvatarUrl = (data.user.user_metadata?.avatar_url as string | undefined) ?? null;
   const rawDateOfBirth = (data.user.user_metadata?.date_of_birth as string | undefined) ?? null;
+  const rawFullName = (data.user.user_metadata?.full_name as string | undefined) ?? null;
   return {
     email: data.user.email ?? '',
     avatarUrl: await resolveStorageUrl('avatars', rawAvatarUrl),
     emailConfirmedAt: data.user.email_confirmed_at ?? null,
     dateOfBirth: rawDateOfBirth || null,
+    fullName: rawFullName || null,
   };
 }
 

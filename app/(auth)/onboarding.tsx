@@ -1,9 +1,10 @@
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowRight, ChevronLeft } from 'lucide-react-native';
 import {
   createFamily,
+  getCurrentAuthUser,
   refreshAuthSession,
   signOut,
   updateDateOfBirth,
@@ -33,6 +34,19 @@ export default function OnboardingScreen() {
 
   const shouldShowError = Boolean(error);
   const submitLabel = loading ? 'Criando família…' : 'Criar família';
+
+  // When googleName param is missing (e.g. orphan user resuming session),
+  // fetch the name from user_metadata so the field is pre-filled.
+  useEffect(() => {
+    if (adminName) return;
+    let mounted = true;
+    getCurrentAuthUser().then((user) => {
+      if (mounted && user?.fullName) {
+        setAdminName(user.fullName);
+      }
+    });
+    return () => { mounted = false; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- run once on mount
 
   const handleSubmit = async () => {
     // Validate date of birth
