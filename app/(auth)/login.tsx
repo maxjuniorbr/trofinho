@@ -1,16 +1,16 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useState, useMemo, useCallback } from 'react';
-import { ShieldCheck, KeyRound } from 'lucide-react-native';
+import { ShieldCheck, KeyRound, ArrowRight } from 'lucide-react-native';
 import { signInWithGoogle } from '@lib/auth';
 import { spacing, typography } from '@/constants/theme';
 import { AuthHeroScreen } from '@/components/auth/auth-hero-screen';
 import { BrandLogo } from '@/components/auth/brand-logo';
 import { GoogleSignInButton } from '@/components/auth/google-sign-in-button';
-import { FamilyCodeButton } from '@/components/auth/family-code-button';
 import { PathCard } from '@/components/auth/path-card';
 import { useHeroPalette } from '@/components/auth/use-hero-palette';
 import { InlineMessage } from '@/components/ui/inline-message';
+import { Button } from '@/components/ui/button';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -90,9 +90,13 @@ export default function LoginScreen() {
           description="Recebeu um código de acesso? Use-o para entrar."
           cta={
             <View style={styles.ctaWrapper}>
-              <FamilyCodeButton
+              <Button
+                label="Usar código de família"
                 onPress={() => router.push('/(auth)/join-child')}
                 disabled={loading}
+                size="lg"
+                trailingIcon={ArrowRight}
+                accessibilityLabel="Usar código de família"
               />
             </View>
           }
