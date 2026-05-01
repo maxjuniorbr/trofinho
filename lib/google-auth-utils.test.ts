@@ -33,27 +33,27 @@ describe('isValidDateOfBirth', () => {
     expect(isValidDateOfBirth(date)).toBe(false);
   });
 
-  it('rejects a date less than 13 years ago', () => {
+  it('rejects a date less than 8 years ago', () => {
     const now = new Date();
     const tooYoung = new Date(
-      Date.UTC(now.getUTCFullYear() - 12, now.getUTCMonth(), now.getUTCDate()),
+      Date.UTC(now.getUTCFullYear() - 7, now.getUTCMonth(), now.getUTCDate()),
     );
     expect(isValidDateOfBirth(tooYoung)).toBe(false);
   });
 
-  it('accepts exactly 13 years ago today', () => {
+  it('accepts exactly 8 years ago today', () => {
     const now = new Date();
-    const exactly13 = new Date(
-      Date.UTC(now.getUTCFullYear() - 13, now.getUTCMonth(), now.getUTCDate()),
+    const exactly8 = new Date(
+      Date.UTC(now.getUTCFullYear() - 8, now.getUTCMonth(), now.getUTCDate()),
     );
-    expect(isValidDateOfBirth(exactly13)).toBe(true);
+    expect(isValidDateOfBirth(exactly8)).toBe(true);
   });
 
-  it('rejects a date exactly 1 day before turning 13 (12 years + 364 days old)', () => {
+  it('rejects a date exactly 1 day before turning 8 (7 years + 364 days old)', () => {
     const now = new Date();
-    // Born 1 day after the 13-year cutoff → still 12 years old
+    // Born 1 day after the 8-year cutoff → still 7 years old
     const oneDayShort = new Date(
-      Date.UTC(now.getUTCFullYear() - 13, now.getUTCMonth(), now.getUTCDate() + 1),
+      Date.UTC(now.getUTCFullYear() - 8, now.getUTCMonth(), now.getUTCDate() + 1),
     );
     expect(isValidDateOfBirth(oneDayShort)).toBe(false);
   });

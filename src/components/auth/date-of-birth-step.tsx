@@ -12,10 +12,10 @@ import { radii, spacing, typography } from '@/constants/theme';
 /** Earliest selectable date: 1 Jan 1900. */
 const MIN_DATE = new Date(1900, 0, 1);
 
-/** Returns today minus 13 years (latest selectable date). */
+/** Returns today minus 8 years (latest selectable date). */
 function getMaxDate(): Date {
     const now = new Date();
-    return new Date(now.getFullYear() - 13, now.getMonth(), now.getDate());
+    return new Date(now.getFullYear() - 8, now.getMonth(), now.getDate());
 }
 
 type DateOfBirthStepProps = Readonly<{

@@ -16,17 +16,17 @@ import type { GoogleAuthResult } from './google-auth';
  *
  * Para qualquer data gerada aleatoriamente, a função `isValidDateOfBirth(date)`
  * SHALL retornar `true` se e somente se a data estiver entre 01/01/1900 e a data
- * atual menos 13 anos (inclusive). Datas fora desse intervalo, datas nulas e datas
+ * atual menos 8 anos (inclusive). Datas fora desse intervalo, datas nulas e datas
  * futuras devem ser rejeitadas.
  *
  * **Validates: Requirements 3.2, 3.4**
  */
 
-/** Computes the upper bound (today - 13 years) using UTC, matching the implementation. */
+/** Computes the upper bound (today - 8 years) using UTC, matching the implementation. */
 function getMaxDateOfBirth(): Date {
   const now = new Date();
   return new Date(
-    Date.UTC(now.getUTCFullYear() - 13, now.getUTCMonth(), now.getUTCDate()),
+    Date.UTC(now.getUTCFullYear() - 8, now.getUTCMonth(), now.getUTCDate()),
   );
 }
 
@@ -45,7 +45,7 @@ describe('Feature: google-oauth-migration, Property 1: Validação de data de na
     vi.useRealTimers();
   });
 
-  it('accepts any date within the valid range [1900-01-01, today - 13 years]', () => {
+  it('accepts any date within the valid range [1900-01-01, today - 8 years]', () => {
     const maxDate = getMaxDateOfBirth();
 
     fc.assert(
@@ -73,7 +73,7 @@ describe('Feature: google-oauth-migration, Property 1: Validação de data de na
     );
   });
 
-  it('rejects any date after today - 13 years', () => {
+  it('rejects any date after today - 8 years', () => {
     const maxDate = getMaxDateOfBirth();
     const dayAfterMax = new Date(maxDate.getTime() + 24 * 60 * 60 * 1000);
     const futureLimit = new Date(Date.UTC(2100, 0, 1));
@@ -89,7 +89,7 @@ describe('Feature: google-oauth-migration, Property 1: Validação de data de na
     );
   });
 
-  it('for ANY date, isValidDateOfBirth returns true IFF date >= 1900-01-01 AND date <= today - 13 years', () => {
+  it('for ANY date, isValidDateOfBirth returns true IFF date >= 1900-01-01 AND date <= today - 8 years', () => {
     const maxDate = getMaxDateOfBirth();
 
     fc.assert(

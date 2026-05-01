@@ -254,15 +254,12 @@ describe('auth screens', () => {
     expect(getButton(renderer, 'Criar família').props.accessibilityState).toEqual({ busy: false });
   });
 
-  it('shows confirmation alert and signs out when register user confirms exit', async () => {
+  it('shows confirmation alert and signs out when user presses back on dob step', async () => {
     localSearchParamsState.value = { googleName: 'Max' } as never;
     authMocks.signOut.mockResolvedValue(undefined);
     const renderer = await renderAsync(<OnboardingScreen />);
 
-    // Advance past DOB step
-    await pressButton(renderer, 'Continuar');
-
-    // The footer link triggers the alert.
+    // On step 1 — the back button triggers the sign-out alert.
     await pressButton(renderer, 'Usar outra conta');
 
     expect(alertSpy).toHaveBeenCalledTimes(1);
@@ -286,7 +283,7 @@ describe('auth screens', () => {
     expect(routerMock.replace).toHaveBeenCalledWith('/(auth)/login');
   });
 
-  it('signs out when orphan user confirms exit via footer link (no params.name)', async () => {
+  it('signs out when orphan user confirms exit via back button on dob step', async () => {
     localSearchParamsState.value = {};
     authMocks.signOut.mockResolvedValue(undefined);
     authMocks.getCurrentAuthUser.mockResolvedValue({
@@ -296,9 +293,7 @@ describe('auth screens', () => {
 
     const renderer = await renderAsync(<OnboardingScreen />);
 
-    // Advance past DOB step
-    await pressButton(renderer, 'Continuar');
-
+    // On step 1 — the back button triggers the sign-out alert.
     await pressButton(renderer, 'Usar outra conta');
 
     expect(alertSpy).toHaveBeenCalledTimes(1);

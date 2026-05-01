@@ -27,7 +27,7 @@ export type SupabaseAuthError = {
 
 /**
  * Returns `true` when `date` falls between 1 Jan 1900 (inclusive) and
- * today minus 13 years (inclusive). Uses UTC to avoid timezone issues.
+ * today minus 8 years (inclusive). Uses UTC to avoid timezone issues.
  */
 export function isValidDateOfBirth(date: Date): boolean {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
@@ -38,7 +38,7 @@ export function isValidDateOfBirth(date: Date): boolean {
 
   const now = new Date();
   const maxDate = new Date(
-    Date.UTC(now.getUTCFullYear() - 13, now.getUTCMonth(), now.getUTCDate()),
+    Date.UTC(now.getUTCFullYear() - 8, now.getUTCMonth(), now.getUTCDate()),
   );
 
   const utcDate = new Date(

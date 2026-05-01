@@ -1,4 +1,4 @@
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, useMemo, useEffect } from 'react';
 import { ArrowRight, Check, Home, ShieldCheck, User } from 'lucide-react-native';
@@ -159,8 +159,15 @@ export default function OnboardingScreen() {
 
   const currentIndicatorStep: 1 | 2 = step;
 
+  const handleBack = step === 1 ? handleLeave : () => setStep(1);
+  const backLabel = step === 1 ? 'Usar outra conta' : 'Voltar';
+
   return (
-    <AuthHeroScreen topBarCenter={<BrandLogo size="sm" withText />}>
+    <AuthHeroScreen
+      topBarCenter={<BrandLogo size="sm" withText />}
+      onBack={initialLoading ? undefined : handleBack}
+      backAccessibilityLabel={backLabel}
+    >
       <StepIndicator currentStep={currentIndicatorStep} labels={stepLabels} />
 
       {initialLoading ? (
@@ -182,16 +189,6 @@ export default function OnboardingScreen() {
             error={dobError}
             loading={dobLoading}
           />
-
-          <Pressable
-            style={({ pressed }) => [styles.childLink, { opacity: pressed ? 0.65 : 1 }]}
-            onPress={handleLeave}
-            disabled={dobLoading}
-            accessibilityRole="button"
-            accessibilityLabel="Usar outra conta"
-          >
-            <Text style={styles.childLinkText}>Usar outra conta</Text>
-          </Pressable>
         </View>
       ) : null}
 
@@ -285,44 +282,6 @@ export default function OnboardingScreen() {
                 />
               </FormFooter>
             </View>
-
-            <Pressable
-              style={({ pressed }) => [styles.inviteLink, { opacity: pressed ? 0.65 : 1 }]}
-              onPress={() => router.push('/(auth)/join-family')}
-              disabled={loading}
-              accessibilityRole="link"
-              accessibilityLabel="Tenho um convite"
-            >
-              <Text style={styles.inviteLinkText}>Tenho um convite</Text>
-            </Pressable>
-
-            <View style={styles.footerPush}>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.secondaryButton,
-                  { opacity: pressed ? 0.65 : 1 },
-                ]}
-                onPress={() => setStep(1)}
-                disabled={loading}
-                accessibilityRole="button"
-                accessibilityLabel="Voltar"
-              >
-                <Text style={styles.secondaryButtonText}>Voltar</Text>
-              </Pressable>
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.secondaryButton,
-                  { opacity: pressed ? 0.65 : 1 },
-                ]}
-                onPress={handleLeave}
-                disabled={loading}
-                accessibilityRole="button"
-                accessibilityLabel="Usar outra conta"
-              >
-                <Text style={styles.secondaryButtonText}>Usar outra conta</Text>
-              </Pressable>
-            </View>
           </View>
         </>
       ) : null}
@@ -353,13 +312,6 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
       letterSpacing: 1.4,
       textTransform: 'uppercase',
       color: palette.checkOnText,
-    },
-    kickerPlain: {
-      fontFamily: typography.family.bold,
-      fontSize: typography.size.xxs,
-      letterSpacing: 1.4,
-      textTransform: 'uppercase',
-      color: palette.borderFocus,
     },
     title: {
       marginTop: spacing['2'],
@@ -416,39 +368,6 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
     },
     formActions: {
       marginTop: spacing['4'],
-    },
-    inviteLink: {
-      marginTop: spacing['4'],
-      paddingVertical: spacing['2'],
-      alignItems: 'center',
-    },
-    inviteLinkText: {
-      fontFamily: typography.family.semibold,
-      fontSize: typography.size.sm,
-      color: palette.borderFocus,
-      textDecorationLine: 'underline',
-    },
-    footerPush: {
-      marginTop: 'auto',
-    },
-    secondaryButton: {
-      paddingVertical: spacing['3'],
-      alignItems: 'center',
-    },
-    secondaryButtonText: {
-      fontFamily: typography.family.medium,
-      fontSize: typography.size.sm,
-      color: palette.textOnNavyMuted,
-    },
-    childLink: {
-      marginTop: spacing['5'],
-      paddingVertical: spacing['3'],
-      alignItems: 'center',
-    },
-    childLinkText: {
-      fontFamily: typography.family.medium,
-      fontSize: typography.size.sm,
-      color: palette.textOnNavyMuted,
     },
   });
 }

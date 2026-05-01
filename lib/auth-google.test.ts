@@ -241,10 +241,10 @@ describe('updateDateOfBirth', () => {
     });
   });
 
-  it('returns validation error for a date that is too recent (under 13)', async () => {
+  it('returns validation error for a date that is too recent (under 8)', async () => {
     const now = new Date();
     const tooYoung = new Date(
-      Date.UTC(now.getUTCFullYear() - 10, now.getUTCMonth(), now.getUTCDate()),
+      Date.UTC(now.getUTCFullYear() - 5, now.getUTCMonth(), now.getUTCDate()),
     );
     const isoDate = tooYoung.toISOString().split('T')[0];
 
