@@ -153,7 +153,7 @@ const heroStyles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         borderRadius: radii.inner,
         borderCurve: 'continuous',
-        minHeight: 52,
+        minHeight: 48,
         alignItems: 'center',
         justifyContent: 'center',
         ...shadows.goldButton,
