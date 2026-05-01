@@ -263,21 +263,21 @@ describe('auth screens', () => {
     await pressButton(renderer, 'Continuar');
 
     // The footer link triggers the alert.
-    await pressButton(renderer, 'Criar família depois');
+    await pressButton(renderer, 'Usar outra conta');
 
     expect(alertSpy).toHaveBeenCalledTimes(1);
     expect(alertSpy).toHaveBeenCalledWith(
-      'Sair da criação da família?',
+      'Voltar para o início?',
       expect.any(String),
       expect.arrayContaining([
-        expect.objectContaining({ text: 'Continuar criando', style: 'cancel' }),
-        expect.objectContaining({ text: 'Sair', style: 'destructive' }),
+        expect.objectContaining({ text: 'Ficar', style: 'cancel' }),
+        expect.objectContaining({ text: 'Voltar', style: 'destructive' }),
       ]),
     );
 
     // Confirm exit via the alert's destructive button.
     const buttons = alertSpy.mock.calls[0][2] as { text: string; onPress?: () => void }[];
-    const sairButton = buttons.find((b) => b.text === 'Sair');
+    const sairButton = buttons.find((b) => b.text === 'Voltar');
     await act(async () => {
       await sairButton!.onPress!();
     });
@@ -299,20 +299,20 @@ describe('auth screens', () => {
     // Advance past DOB step
     await pressButton(renderer, 'Continuar');
 
-    await pressButton(renderer, 'Criar família depois');
+    await pressButton(renderer, 'Usar outra conta');
 
     expect(alertSpy).toHaveBeenCalledTimes(1);
     expect(alertSpy).toHaveBeenCalledWith(
-      'Sair da criação da família?',
+      'Voltar para o início?',
       expect.any(String),
       expect.arrayContaining([
-        expect.objectContaining({ text: 'Continuar criando', style: 'cancel' }),
-        expect.objectContaining({ text: 'Sair', style: 'destructive' }),
+        expect.objectContaining({ text: 'Ficar', style: 'cancel' }),
+        expect.objectContaining({ text: 'Voltar', style: 'destructive' }),
       ]),
     );
 
     const buttons = alertSpy.mock.calls[0][2] as { text: string; onPress?: () => void }[];
-    const sairButton = buttons.find((b) => b.text === 'Sair');
+    const sairButton = buttons.find((b) => b.text === 'Voltar');
     await act(async () => {
       await sairButton!.onPress!();
     });

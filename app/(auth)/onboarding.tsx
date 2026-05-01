@@ -142,17 +142,14 @@ export default function OnboardingScreen() {
   };
 
   const handleLeave = () => {
-    const title = step === 1 ? 'Sair do cadastro?' : 'Sair da criação da família?';
-    const message =
-      step === 1
-        ? 'Você pode voltar e continuar quando quiser.'
-        : 'Você pode entrar novamente e criar a família quando quiser.';
-    const cancelLabel = step === 1 ? 'Continuar' : 'Continuar criando';
-
-    Alert.alert(title, message, [
-      { text: cancelLabel, style: 'cancel' },
-      { text: 'Sair', style: 'destructive', onPress: confirmAndLeave },
-    ]);
+    Alert.alert(
+      'Voltar para o início?',
+      'Sua conta será desconectada. Você pode entrar novamente quando quiser.',
+      [
+        { text: 'Ficar', style: 'cancel' },
+        { text: 'Voltar', style: 'destructive', onPress: confirmAndLeave },
+      ],
+    );
   };
 
   const stepLabels: readonly string[] = ['Nascimento', 'Família'];
@@ -188,9 +185,9 @@ export default function OnboardingScreen() {
             onPress={handleLeave}
             disabled={dobLoading}
             accessibilityRole="button"
-            accessibilityLabel="Sair"
+            accessibilityLabel="Usar outra conta"
           >
-            <Text style={styles.childLinkText}>Sair</Text>
+            <Text style={styles.childLinkText}>Usar outra conta</Text>
           </Pressable>
         </View>
       ) : null}
@@ -302,12 +299,25 @@ export default function OnboardingScreen() {
                   styles.secondaryButton,
                   { opacity: pressed ? 0.65 : 1 },
                 ]}
+                onPress={() => setStep(1)}
+                disabled={loading}
+                accessibilityRole="button"
+                accessibilityLabel="Voltar"
+              >
+                <Text style={styles.secondaryButtonText}>Voltar</Text>
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.secondaryButton,
+                  { opacity: pressed ? 0.65 : 1 },
+                ]}
                 onPress={handleLeave}
                 disabled={loading}
                 accessibilityRole="button"
-                accessibilityLabel="Criar família depois"
+                accessibilityLabel="Usar outra conta"
               >
-                <Text style={styles.secondaryButtonText}>Criar família depois</Text>
+                <Text style={styles.secondaryButtonText}>Usar outra conta</Text>
               </Pressable>
             </View>
           </View>
