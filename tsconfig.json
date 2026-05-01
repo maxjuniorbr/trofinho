@@ -21,6 +21,7 @@
     "coverage",
     "dist",
     "node_modules",
-    "supabase/functions/**/index.ts"
+    "supabase/functions/**/index.ts",
+    "google-cloud-sdk"
   ]
 }
