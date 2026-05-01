@@ -8,6 +8,7 @@ import OnboardingScreen from '../../app/(auth)/onboarding';
 
 const routerMock = vi.hoisted(() => ({
   back: vi.fn(),
+  canGoBack: vi.fn().mockReturnValue(true),
   push: vi.fn(),
   replace: vi.fn(),
 }));
@@ -70,6 +71,14 @@ vi.mock('@/components/auth/date-of-birth-step', async () => {
 vi.mock('@react-native-community/datetimepicker', () => ({
   __esModule: true,
   default: (props: Record<string, unknown>) => React.createElement('DateTimePicker', props),
+}));
+
+vi.mock('@/context/impersonation-context', () => ({
+  useImpersonation: () => ({ impersonating: null, startImpersonation: vi.fn(), stopImpersonation: vi.fn() }),
+}));
+
+vi.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
 function render(element: React.ReactElement) {
@@ -177,8 +186,8 @@ describe('auth screens', () => {
     localSearchParamsState.value = { googleName: 'Max' } as never;
     const renderer = await renderAsync(<OnboardingScreen />);
 
-    // Step 1 is the DOB step — family form is not visible yet
-    expect(screenText(renderer)).toContain('Nascimento');
+    // Step 1 is the DOB step — header shows the title
+    expect(screenText(renderer)).toContain('Data de nascimento');
   });
 
   it('advances to family step after DOB and validates required data', async () => {
@@ -260,41 +269,7 @@ describe('auth screens', () => {
     const renderer = await renderAsync(<OnboardingScreen />);
 
     // On step 1 — the back button triggers the sign-out alert.
-    await pressButton(renderer, 'Usar outra conta');
-
-    expect(alertSpy).toHaveBeenCalledTimes(1);
-    expect(alertSpy).toHaveBeenCalledWith(
-      'Voltar para o início?',
-      expect.any(String),
-      expect.arrayContaining([
-        expect.objectContaining({ text: 'Ficar', style: 'cancel' }),
-        expect.objectContaining({ text: 'Voltar', style: 'destructive' }),
-      ]),
-    );
-
-    // Confirm exit via the alert's destructive button.
-    const buttons = alertSpy.mock.calls[0][2] as { text: string; onPress?: () => void }[];
-    const sairButton = buttons.find((b) => b.text === 'Voltar');
-    await act(async () => {
-      await sairButton!.onPress!();
-    });
-
-    expect(authMocks.signOut).toHaveBeenCalled();
-    expect(routerMock.replace).toHaveBeenCalledWith('/(auth)/login');
-  });
-
-  it('signs out when orphan user confirms exit via back button on dob step', async () => {
-    localSearchParamsState.value = {};
-    authMocks.signOut.mockResolvedValue(undefined);
-    authMocks.getCurrentAuthUser.mockResolvedValue({
-      email: 'orphan@example.com',
-      avatarUrl: null,
-    });
-
-    const renderer = await renderAsync(<OnboardingScreen />);
-
-    // On step 1 — the back button triggers the sign-out alert.
-    await pressButton(renderer, 'Usar outra conta');
+    await pressButton(renderer, 'Voltar para Login');
 
     expect(alertSpy).toHaveBeenCalledTimes(1);
     expect(alertSpy).toHaveBeenCalledWith(
