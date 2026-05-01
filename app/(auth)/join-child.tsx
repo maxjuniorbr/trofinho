@@ -4,7 +4,6 @@ import { useState, useMemo, useCallback } from 'react';
 import { ChevronLeft, Users } from 'lucide-react-native';
 import { signInWithGoogle, refreshAuthSession, getProfile } from '@lib/auth';
 import { supabase } from '@lib/supabase';
-import { validateChildInviteCode } from '@lib/google-auth-utils';
 import { radii, spacing, typography } from '@/constants/theme';
 import { useTheme } from '@/context/theme-context';
 import { HeaderIconButton } from '@/components/ui/screen-header';
@@ -26,16 +25,6 @@ type InvitePreview = {
     nome_filho: string;
     familyName: string;
     adminName: string;
-};
-
-type ConviteFilhoRow = {
-    id: string;
-    familia_id: string;
-    nome_filho: string;
-    aceito_por: string | null;
-    expira_em: string;
-    familias: { nome: string } | null;
-    usuarios: { nome: string } | null;
 };
 
 export default function JoinChildScreen() {
@@ -78,23 +67,30 @@ export default function JoinChildScreen() {
         setIsValidating(true);
 
         try {
-            const { data: invite } = (await (supabase as any)
-                .from('convites_filho')
-                .select(
-                    'id, familia_id, nome_filho, aceito_por, expira_em, familias(nome), usuarios!criado_por(nome)',
-                )
-                .eq('codigo', code.toUpperCase())
-                .maybeSingle()) as { data: ConviteFilhoRow | null };
+            // Use `as any` because the RPC is not in the generated DB types yet.
+            const { data, error } = await (supabase as any).rpc('validar_convite_filho', {
+                p_codigo: code.toUpperCase(),
+            }) as { data: Record<string, unknown> | null; error: unknown };
 
-            const inviteRecord = invite
-                ? { aceito_por: invite.aceito_por, expira_em: invite.expira_em }
-                : null;
+            if (error) {
+                setCodeError('Erro ao verificar código. Tente novamente.');
+                setIsValidating(false);
+                return;
+            }
 
-            const result = validateChildInviteCode(code, inviteRecord, new Date());
+            const result = data as {
+                valid: boolean;
+                error?: string;
+                id?: string;
+                familia_id?: string;
+                nome_filho?: string;
+                familyName?: string;
+                adminName?: string;
+            } | null;
 
-            if (!result.valid) {
+            if (!result || !result.valid) {
                 setCodeError(
-                    result.error === 'ALREADY_LINKED'
+                    result?.error === 'ALREADY_LINKED'
                         ? 'Este convite já foi utilizado.'
                         : 'Código inválido ou expirado. Peça um novo código ao administrador.',
                 );
@@ -103,11 +99,11 @@ export default function JoinChildScreen() {
             }
 
             setPreview({
-                id: invite!.id,
-                familia_id: invite!.familia_id,
-                nome_filho: invite!.nome_filho,
-                familyName: invite!.familias?.nome ?? 'Família',
-                adminName: invite!.usuarios?.nome ?? 'Administrador',
+                id: result.id!,
+                familia_id: result.familia_id!,
+                nome_filho: result.nome_filho!,
+                familyName: result.familyName ?? 'Família',
+                adminName: result.adminName ?? 'Administrador',
             });
         } catch {
             setCodeError('Erro ao verificar código. Tente novamente.');
