@@ -1,9 +1,9 @@
-import { StyleSheet, Text, View, RefreshControl } from 'react-native';
+import { Alert, StyleSheet, Text, View, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Eye, Plus, Star } from 'lucide-react-native';
+import { Eye, Plus, Star, Ticket } from 'lucide-react-native';
 import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ListScreenSkeleton } from '@/components/ui/skeleton';
@@ -11,10 +11,32 @@ import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { Avatar } from '@/components/ui/avatar';
 import { ChildViewSheet } from '@/components/children/child-view-sheet';
 import { ChildNewSheet } from '@/components/children/child-new-sheet';
-import { useChildrenList, useAdminBalances, combineQueryStates } from '@/hooks/queries';
+import { ChildInviteSheet, type ChildInvite } from '@/components/children/child-invite-sheet';
+import {
+  useChildrenList,
+  useAdminBalances,
+  useProfile,
+  combineQueryStates,
+} from '@/hooks/queries';
 import type { BalanceWithChild } from '@lib/balances';
+import { supabase } from '@lib/supabase';
 import { useTheme } from '@/context/theme-context';
 import { opacityDisabled, radii, shadows, spacing, typography } from '@/constants/theme';
+
+// ── Helpers ──────────────────────────────────────────────
+
+const INVITE_CODE_LENGTH = 6;
+const INVITE_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I to avoid confusion
+
+function generateInviteCode(): string {
+  let code = '';
+  for (let i = 0; i < INVITE_CODE_LENGTH; i++) {
+    code += INVITE_CODE_CHARS[Math.floor(Math.random() * INVITE_CODE_CHARS.length)];
+  }
+  return code;
+}
+
+// ── Screen ───────────────────────────────────────────────
 
 export default function AdminChildrenScreen() {
   const router = useRouter();
@@ -23,7 +45,11 @@ export default function AdminChildrenScreen() {
 
   const [viewChildId, setViewChildId] = useState<string | null>(null);
   const [newSheetVisible, setNewSheetVisible] = useState(false);
+  const [inviteSheetVisible, setInviteSheetVisible] = useState(false);
+  const [currentInvite, setCurrentInvite] = useState<ChildInvite | null>(null);
+  const [generatingInviteFor, setGeneratingInviteFor] = useState<string | null>(null);
 
+  const { data: profile } = useProfile();
   const childrenQuery = useChildrenList();
   const balancesQuery = useAdminBalances();
   const { isLoading, isFetching, error, refetchAll } = combineQueryStates(
@@ -40,6 +66,79 @@ export default function AdminChildrenScreen() {
   const handleRefresh = useCallback(async () => {
     await refetchAll();
   }, [refetchAll]);
+
+  const handleGenerateInvite = useCallback(
+    async (childName: string) => {
+      if (!profile) {
+        Alert.alert('Erro', 'Perfil não carregado. Tente novamente.');
+        return;
+      }
+
+      setGeneratingInviteFor(childName);
+
+      try {
+        const codigo = generateInviteCode();
+
+        // The `convites_filho` table may not be in the generated DB types yet,
+        // so we cast through `any` to insert via the Supabase client.
+         
+        const { data, error: insertError } = await (supabase as any)
+          .from('convites_filho')
+          .insert({
+            familia_id: profile.familia_id,
+            codigo,
+            criado_por: profile.id,
+            nome_filho: childName,
+          })
+          .select('codigo, expira_em')
+          .single();
+
+        if (insertError) {
+          // Retry once with a new code in case of unique constraint violation
+          if (insertError.message?.includes('unique') || insertError.code === '23505') {
+            const retryCode = generateInviteCode();
+             
+            const { data: retryData, error: retryError } = await (supabase as any)
+              .from('convites_filho')
+              .insert({
+                familia_id: profile.familia_id,
+                codigo: retryCode,
+                criado_por: profile.id,
+                nome_filho: childName,
+              })
+              .select('codigo, expira_em')
+              .single();
+
+            if (retryError) {
+              Alert.alert('Erro', 'Não foi possível gerar o convite. Tente novamente.');
+              return;
+            }
+
+            setCurrentInvite({
+              codigo: retryData.codigo,
+              nome_filho: childName,
+              expira_em: retryData.expira_em,
+            });
+            setInviteSheetVisible(true);
+            return;
+          }
+
+          Alert.alert('Erro', 'Não foi possível gerar o convite. Tente novamente.');
+          return;
+        }
+
+        setCurrentInvite({
+          codigo: data.codigo,
+          nome_filho: childName,
+          expira_em: data.expira_em,
+        });
+        setInviteSheetVisible(true);
+      } finally {
+        setGeneratingInviteFor(null);
+      }
+    },
+    [profile],
+  );
 
   const renderContent = () => {
     if (isLoading) {
@@ -73,8 +172,15 @@ export default function AdminChildrenScreen() {
         renderItem={({ item }) => {
           const balance = balancesMap.get(item.id);
           const totalPts = balance ? balance.saldo_livre + balance.cofrinho : 0;
+          const isGenerating = generatingInviteFor === item.nome;
           return (
-            <View style={[styles.card, shadows.card, { opacity: item.ativo === false ? opacityDisabled.heavy : 1 }]}>
+            <View
+              style={[
+                styles.card,
+                shadows.card,
+                { opacity: item.ativo === false ? opacityDisabled.heavy : 1 },
+              ]}
+            >
               <View style={styles.cardRow}>
                 <Avatar name={item.nome} size={56} imageUri={item.avatar_url} />
 
@@ -87,7 +193,9 @@ export default function AdminChildrenScreen() {
                     style={[
                       styles.cardStatus,
                       {
-                        color: item.usuario_id ? colors.semantic.success : colors.semantic.warning,
+                        color: item.usuario_id
+                          ? colors.semantic.success
+                          : colors.semantic.warning,
                       },
                     ]}
                   >
@@ -105,11 +213,22 @@ export default function AdminChildrenScreen() {
                   ) : null}
                 </View>
 
-                <HeaderIconButton
-                  icon={Eye}
-                  onPress={() => setViewChildId(item.id)}
-                  accessibilityLabel={`Ver detalhes de ${item.nome}`}
-                />
+                <View style={styles.actionButtons}>
+                  {!item.usuario_id && item.ativo !== false && (
+                    <HeaderIconButton
+                      icon={Ticket}
+                      onPress={() => {
+                        if (!isGenerating) handleGenerateInvite(item.nome);
+                      }}
+                      accessibilityLabel={`Gerar convite para ${item.nome}`}
+                    />
+                  )}
+                  <HeaderIconButton
+                    icon={Eye}
+                    onPress={() => setViewChildId(item.id)}
+                    accessibilityLabel={`Ver detalhes de ${item.nome}`}
+                  />
+                </View>
               </View>
             </View>
           );
@@ -144,6 +263,14 @@ export default function AdminChildrenScreen() {
 
       <ChildViewSheet childId={viewChildId} onClose={() => setViewChildId(null)} />
       <ChildNewSheet visible={newSheetVisible} onClose={() => setNewSheetVisible(false)} />
+      <ChildInviteSheet
+        visible={inviteSheetVisible}
+        onClose={() => {
+          setInviteSheetVisible(false);
+          setCurrentInvite(null);
+        }}
+        invite={currentInvite}
+      />
     </SafeScreenFrame>
   );
 }
@@ -191,6 +318,11 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
     ptsBreakdown: {
       fontSize: typography.size.xxs,
       color: colors.text.secondary,
+    },
+    actionButtons: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1'],
     },
   });
 }
