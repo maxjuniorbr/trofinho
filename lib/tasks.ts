@@ -937,7 +937,7 @@ async function resolveEvidenceUrl(evidence: string | null): Promise<string | nul
  * Rejects paths with directory traversal (`..`), leading slashes, or
  * unexpected depth to prevent malformed URLs from reaching `createSignedUrl`.
  */
-const EVIDENCE_PATH_PATTERN = /^[^/][^?#]*\/[^/][^?#]*\/[^/][^?#]+$/;
+const EVIDENCE_PATH_PATTERN = /^[^/?#]+\/[^/?#]+\/[^/?#]+$/;
 
 function isValidEvidencePath(path: string): boolean {
   return EVIDENCE_PATH_PATTERN.test(path) && !path.includes('..');

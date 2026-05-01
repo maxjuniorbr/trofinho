@@ -1096,6 +1096,19 @@ describe('tasks', () => {
       expect(storageBucketMock.createSignedUrl).not.toHaveBeenCalled();
     });
 
+    it('rejects raw paths with more than three segments — skips signing', async () => {
+      supabaseMock.from.mockReturnValueOnce(
+        createSingleQuery({
+          data: { id: 'a-1', evidencia_url: 'family/child/nested/file.jpg' },
+          error: null,
+        }),
+      );
+
+      const result = await getChildAssignment('a-1');
+      expect(result.data?.evidencia_url).toBe('family/child/nested/file.jpg');
+      expect(storageBucketMock.createSignedUrl).not.toHaveBeenCalled();
+    });
+
     it('rejects URLs where the extracted path contains traversal — preserves original', async () => {
       const maliciousUrl =
         'https://example.com/storage/v1/object/public/evidencias/../../secret/file.jpg';
