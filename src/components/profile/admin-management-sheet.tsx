@@ -16,6 +16,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/constants/theme';
+import { externalBrandColors, staticTextColors } from '@/constants/colors';
 import type { AdminInvite, FamilyAdmin } from '../../../lib/admin-invite';
 
 const MAX_ADMINS = 2;
@@ -389,13 +390,13 @@ function makeStyles(colors: ThemeColors) {
             height: 48,
             borderRadius: radii.xl,
             borderCurve: 'continuous',
-            backgroundColor: '#25D366',
+            backgroundColor: externalBrandColors.whatsapp,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',
             gap: spacing['2'],
         },
-        whatsappBtnText: { fontFamily: typography.family.extrabold, fontSize: typography.size.sm, color: '#FFFFFF' },
+        whatsappBtnText: { fontFamily: typography.family.extrabold, fontSize: typography.size.sm, color: staticTextColors.inverse },
 
         // Cancel button
         cancelBtn: {

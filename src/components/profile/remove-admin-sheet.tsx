@@ -3,6 +3,7 @@ import { AlertTriangle } from 'lucide-react-native';
 import { BottomSheetModal } from '@/components/ui/bottom-sheet';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography, withAlpha } from '@/constants/theme';
+import { staticTextColors } from '@/constants/colors';
 
 // ── Props ────────────────────────────────────────────────
 
@@ -65,7 +66,7 @@ export function RemoveAdminSheet({
                         accessibilityLabel={`Remover ${adminName} como administrador`}
                     >
                         {isRemoving ? (
-                            <ActivityIndicator size="small" color="#fff" />
+                            <ActivityIndicator size="small" color={staticTextColors.inverse} />
                         ) : (
                             <Text style={styles.confirmBtnText}>Remover</Text>
                         )}
@@ -136,7 +137,7 @@ const styles = StyleSheet.create({
         minHeight: 48,
     },
     confirmBtnText: {
-        color: '#fff',
+        color: staticTextColors.inverse,
         fontFamily: typography.family.bold,
         fontSize: typography.size.md,
     },

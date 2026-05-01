@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { spacing, radii } from '@/constants/theme';
+import { staticTextColors } from '@/constants/colors';
 
 type FullscreenImageViewerProps = Readonly<{
   visible: boolean;
@@ -28,7 +29,7 @@ export function FullscreenImageViewer({ visible, imageUrl, onClose }: Fullscreen
           accessibilityRole="button"
           accessibilityLabel="Fechar imagem"
         >
-          <X size={24} color="#FFFFFF" strokeWidth={2} />
+          <X size={24} color={staticTextColors.inverse} strokeWidth={2} />
         </Pressable>
         <Image source={imageUrl} style={styles.image} contentFit="contain" transition={200} />
       </View>

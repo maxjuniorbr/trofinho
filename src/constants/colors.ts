@@ -20,6 +20,14 @@ const sharedTextColors = {
  */
 export const staticTextColors = sharedTextColors;
 
+/**
+ * Brand colors of third-party services (e.g. WhatsApp share button).
+ * These are vendor-defined and must match the official brand spec.
+ */
+export const externalBrandColors = {
+  whatsapp: '#25D366',
+} as const;
+
 const sharedOverlayColors = {
   scrim: 'rgba(0, 0, 0, 0.45)',
   scrimSoft: 'rgba(0, 0, 0, 0.4)',
