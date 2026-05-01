@@ -216,6 +216,9 @@ export default function JoinChildScreen() {
         );
     }, [preview, step, colors]);
 
+    const stepLabels = ['Código', 'Google', 'Nascimento'] as const;
+    const stepIndex = step === 'code' ? 0 : step === 'google' ? 1 : 2;
+
     return (
         <SafeScreenFrame topInset bottomInset>
             <View
@@ -245,6 +248,39 @@ export default function JoinChildScreen() {
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
             >
+                {/* Step progress */}
+                <View style={styles.stepRow}>
+                    {stepLabels.map((label, i) => (
+                        <View key={label} style={styles.stepItem}>
+                            <View
+                                style={[
+                                    styles.stepBar,
+                                    {
+                                        backgroundColor:
+                                            i <= stepIndex
+                                                ? colors.brand.vivid
+                                                : colors.bg.muted,
+                                    },
+                                ]}
+                            />
+                            <Text
+                                style={[
+                                    styles.stepLabel,
+                                    {
+                                        color:
+                                            i <= stepIndex
+                                                ? colors.text.primary
+                                                : colors.text.muted,
+                                    },
+                                ]}
+                                allowFontScaling={false}
+                            >
+                                {label}
+                            </Text>
+                        </View>
+                    ))}
+                </View>
+
                 {/* Step 1: Code */}
                 {step === 'code' ? (
                     <>
@@ -375,6 +411,25 @@ const styles = StyleSheet.create({
     scrollContent: {
         flexGrow: 1,
         padding: spacing['4'],
+    },
+    stepRow: {
+        flexDirection: 'row',
+        gap: spacing['2'],
+        marginBottom: spacing['6'],
+    },
+    stepItem: {
+        flex: 1,
+        gap: spacing['1'],
+    },
+    stepBar: {
+        height: 4,
+        borderRadius: radii.full,
+    },
+    stepLabel: {
+        fontFamily: typography.family.bold,
+        fontSize: typography.size.xxs,
+        letterSpacing: 0.8,
+        textAlign: 'center',
     },
     subtitle: {
         fontFamily: typography.family.medium,
