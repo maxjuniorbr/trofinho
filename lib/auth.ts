@@ -2,6 +2,8 @@ import * as Sentry from '@sentry/react-native';
 
 import { localizeRpcError, localizeSupabaseError } from './api-error';
 import { deviceStorage } from './device-storage';
+import { getGoogleIdToken, revokeGoogleAccess } from './google-auth';
+import { isValidDateOfBirth, localizeOAuthError } from './google-auth-utils';
 import { resolveStorageUrl, uploadImageToBucket } from './storage';
 import { supabase } from './supabase';
 
@@ -32,6 +34,73 @@ export async function signIn(
 
   const profile = await getProfile();
   return { profile, error: null };
+}
+
+export async function signInWithGoogle(): Promise<{
+  profile: UserProfile | null;
+  isNewUser: boolean;
+  googleName: string | null;
+  error: string | null;
+}> {
+  Sentry.addBreadcrumb({
+    category: 'auth',
+    message: 'google_sign_in_started',
+    level: 'info',
+  });
+
+  const googleResult = await getGoogleIdToken();
+
+  if (googleResult.type === 'cancelled') {
+    Sentry.addBreadcrumb({
+      category: 'auth',
+      message: 'google_sign_in_cancelled',
+      level: 'info',
+    });
+    return { profile: null, isNewUser: false, googleName: null, error: null };
+  }
+
+  if (googleResult.type === 'error') {
+    Sentry.addBreadcrumb({
+      category: 'auth',
+      message: 'google_sign_in_error',
+      level: 'warning',
+    });
+    const localizedMessage = localizeOAuthError(googleResult);
+    return { profile: null, isNewUser: false, googleName: null, error: localizedMessage ?? 'Erro na autenticação. Tente novamente.' };
+  }
+
+  const { idToken, user } = googleResult;
+
+  const { error: signInError } = await supabase.auth.signInWithIdToken({
+    provider: 'google',
+    token: idToken,
+  });
+
+  if (signInError) {
+    Sentry.addBreadcrumb({
+      category: 'auth',
+      message: 'google_sign_in_supabase_error',
+      level: 'error',
+    });
+    const localizedMessage = localizeOAuthError({ message: signInError.message, status: signInError.status });
+    return { profile: null, isNewUser: false, googleName: user.name || null, error: localizedMessage };
+  }
+
+  const profile = await getProfile();
+  const isNewUser = profile === null;
+
+  Sentry.addBreadcrumb({
+    category: 'auth',
+    message: isNewUser ? 'google_sign_in_new_user' : 'google_sign_in_existing_user',
+    level: 'info',
+  });
+
+  return {
+    profile,
+    isNewUser,
+    googleName: user.name || null,
+    error: null,
+  };
 }
 
 export async function signUp(email: string, password: string): Promise<{ error: string | null }> {
@@ -210,6 +279,12 @@ export async function updateUserPassword(
 }
 
 export async function deleteAccount(): Promise<{ error: string | null }> {
+  // Best-effort: revoke Google OAuth token before deleting the account (LGPD compliance).
+  const hasGoogle = await hasGoogleIdentity();
+  if (hasGoogle) {
+    await revokeGoogleAccess();
+  }
+
   const { error } = await supabase.rpc('excluir_minha_conta');
 
   if (error) {
@@ -362,4 +437,91 @@ export async function updateUserAvatar(
   const signedUrl = await resolveStorageUrl(AVATAR_BUCKET, uploadResult.path);
 
   return { url: signedUrl, error: null };
+}
+
+export async function linkGoogleIdentity(): Promise<{ error: string | null }> {
+  Sentry.addBreadcrumb({
+    category: 'auth',
+    message: 'link_google_identity_started',
+    level: 'info',
+  });
+
+  const googleResult = await getGoogleIdToken();
+
+  if (googleResult.type === 'cancelled') {
+    return { error: null };
+  }
+
+  if (googleResult.type === 'error') {
+    Sentry.addBreadcrumb({
+      category: 'auth',
+      message: 'link_google_identity_google_error',
+      level: 'warning',
+    });
+    const localizedMessage = localizeOAuthError(googleResult);
+    return { error: localizedMessage ?? 'Erro na autenticação. Tente novamente.' };
+  }
+
+  const { idToken } = googleResult;
+
+  const { error: linkError } = await supabase.auth.signInWithIdToken({
+    provider: 'google',
+    token: idToken,
+  });
+
+  if (linkError) {
+    Sentry.addBreadcrumb({
+      category: 'auth',
+      message: 'link_google_identity_supabase_error',
+      level: 'error',
+    });
+
+    const msg = (linkError.message ?? '').toLowerCase();
+    if (msg.includes('provider') && msg.includes('already')) {
+      return {
+        error:
+          'Esta conta já está vinculada a outro método de login. Faça login com e-mail/senha e vincule sua conta Google nas configurações.',
+      };
+    }
+
+    const localizedMessage = localizeOAuthError({ message: linkError.message, status: linkError.status });
+    return { error: localizedMessage };
+  }
+
+  Sentry.addBreadcrumb({
+    category: 'auth',
+    message: 'link_google_identity_success',
+    level: 'info',
+  });
+
+  return { error: null };
+}
+
+export async function hasGoogleIdentity(): Promise<boolean> {
+  const { data, error } = await supabase.auth.getUser();
+
+  if (error || !data.user) {
+    return false;
+  }
+
+  const identities = data.user.identities ?? [];
+  return identities.some((identity) => identity.provider === 'google');
+}
+
+export async function updateDateOfBirth(dateOfBirth: string): Promise<{ error: string | null }> {
+  const parsed = new Date(dateOfBirth);
+
+  if (!isValidDateOfBirth(parsed)) {
+    return { error: 'Data de nascimento inválida.' };
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    data: { date_of_birth: dateOfBirth },
+  });
+
+  if (error) {
+    return { error: localizeSupabaseError(error.message) };
+  }
+
+  return { error: null };
 }

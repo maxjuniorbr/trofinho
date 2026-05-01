@@ -3,7 +3,7 @@ import type { UserProfile } from './auth';
 export type NavTarget = '/(auth)/login' | '/(auth)/onboarding' | '/(admin)/' | '/(child)/';
 
 /** Auth sub-routes that bypass the normal redirect logic. */
-const AUTH_PASSTHROUGH_ROUTES = new Set(['onboarding', 'register', 'join-family', 'reset-password']);
+const AUTH_PASSTHROUGH_ROUTES = new Set(['onboarding', 'register', 'join-family', 'join-child', 'reset-password']);
 
 function getRoleHome(profile: UserProfile): NavTarget {
   return profile.papel === 'admin' ? '/(admin)/' : '/(child)/';

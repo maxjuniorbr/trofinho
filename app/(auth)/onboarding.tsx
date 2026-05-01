@@ -2,12 +2,20 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, useMemo, useEffect } from 'react';
 import { ArrowRight, Check, Home, ShieldCheck, User } from 'lucide-react-native';
-import { createFamily, getCurrentAuthUser, refreshAuthSession, signOut } from '@lib/auth';
+import {
+  createFamily,
+  getCurrentAuthUser,
+  refreshAuthSession,
+  signOut,
+  updateDateOfBirth,
+} from '@lib/auth';
+import { supabase } from '@lib/supabase';
 import { withAlpha } from '@/constants/colors';
 import { radii, spacing, typography } from '@/constants/theme';
 import { AuthHeroScreen } from '@/components/auth/auth-hero-screen';
 import { AuthDarkField } from '@/components/auth/auth-dark-field';
 import { BrandLogo } from '@/components/auth/brand-logo';
+import { DateOfBirthStep } from '@/components/auth/date-of-birth-step';
 import { StepIndicator } from '@/components/auth/step-indicator';
 import { useHeroPalette } from '@/components/auth/use-hero-palette';
 import { Button } from '@/components/ui/button';
@@ -16,23 +24,37 @@ import { FormFooter } from '@/components/ui/form-footer';
 type OnboardingField = 'familyName' | 'adminName';
 
 export default function OnboardingScreen() {
-  const params = useLocalSearchParams<{ name?: string; email?: string }>();
+  const params = useLocalSearchParams<{ name?: string; email?: string; googleName?: string }>();
   const router = useRouter();
   const { palette } = useHeroPalette();
   const styles = useMemo(() => makeStyles(palette), [palette]);
 
+  // Determine the origin of the user:
+  // - isFromRegister: arrived from the email/password register flow (params.name is set)
+  // - isFromGoogle: arrived from Google sign-in (params.googleName is set)
+  const isFromRegister = Boolean(params.name);
+  const isFromGoogle = Boolean(params.googleName);
+
+  // Google users must complete the date-of-birth step first (step 1),
+  // then proceed to family creation (step 2).
+  // Users from email/password register skip the DOB step entirely.
+  const [step, setStep] = useState<1 | 2>(isFromGoogle ? 1 : 2);
+
   const [familyName, setFamilyName] = useState('');
-  const [adminName, setAdminName] = useState(params.name ?? '');
+  // Pre-fill "Seu nome" with Google name when available, falling back to register name.
+  const [adminName, setAdminName] = useState(params.googleName ?? params.name ?? '');
   const [userEmail, setUserEmail] = useState(params.email ?? '');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<OnboardingField | null>(null);
+
+  // Date of birth state for the DOB step.
+  const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
+  const [dobError, setDobError] = useState<string | null>(null);
+  const [dobLoading, setDobLoading] = useState(false);
+
   const shouldShowError = Boolean(error);
   const submitLabel = loading ? 'Criando família…' : 'Criar família';
-
-  // When arriving from register, params.name is always set (required field).
-  // Absence means the nav guard redirected an orphan user after login.
-  const isFromRegister = Boolean(params.name);
 
   // Orphan user arriving via login: fetch email from auth so the banner still
   // shows the saved-account reassurance even without register params.
@@ -51,6 +73,47 @@ export default function OnboardingScreen() {
     if (!familyName.trim()) return 'Informe o nome da família.';
     if (!adminName.trim()) return 'Informe seu nome.';
     return null;
+  };
+
+  /**
+   * Handles the "Continuar" press on the DateOfBirthStep.
+   * Saves the date of birth and LGPD consent, then advances to the family step.
+   */
+  const handleDateOfBirthContinue = async () => {
+    if (!dateOfBirth) {
+      setDobError('Informe sua data de nascimento para continuar.');
+      return;
+    }
+
+    setDobError(null);
+    setDobLoading(true);
+
+    // Save date of birth in user_metadata.
+    const isoDate = dateOfBirth.toISOString().split('T')[0]; // YYYY-MM-DD
+    const { error: dobSaveError } = await updateDateOfBirth(isoDate);
+
+    if (dobSaveError) {
+      setDobLoading(false);
+      setDobError(dobSaveError);
+      return;
+    }
+
+    // Store LGPD consent with timestamp in user_metadata.
+    const { error: lgpdError } = await supabase.auth.updateUser({
+      data: {
+        lgpd_consent_at: new Date().toISOString(),
+        lgpd_consent_version: '1.0',
+      },
+    });
+
+    if (lgpdError) {
+      setDobLoading(false);
+      setDobError('Erro ao salvar consentimento. Tente novamente.');
+      return;
+    }
+
+    setDobLoading(false);
+    setStep(2);
   };
 
   const handleCreateFamily = async () => {
@@ -97,144 +160,190 @@ export default function OnboardingScreen() {
     ]);
   };
 
+  // --- Step indicator labels ---
+  // Google users see: Nascimento (step 1) → Família (step 2)
+  // Register users see: Conta (done) → Família (step 2) — same as before
+  const stepLabels: readonly string[] = isFromGoogle
+    ? ['Nascimento', 'Família']
+    : ['Conta', 'Família'];
+
+  const currentIndicatorStep: 1 | 2 = isFromGoogle ? step : 2;
+
   return (
     <AuthHeroScreen topBarCenter={<BrandLogo size="sm" withText />}>
-      {isFromRegister ? <StepIndicator currentStep={2} labels={['Conta', 'Família']} /> : null}
+      {isFromRegister || isFromGoogle ? (
+        <StepIndicator currentStep={currentIndicatorStep} labels={stepLabels} />
+      ) : null}
 
-      <View style={styles.header}>
-        {isFromRegister ? (
-          <View style={styles.kickerChip} accessibilityRole="text">
-            <Check size={12} color={palette.checkOnText} strokeWidth={3} />
-            <Text style={styles.kickerChipText} allowFontScaling={false}>
-              Conta criada
-            </Text>
-          </View>
-        ) : (
-          <Text style={styles.kickerPlain} allowFontScaling={false}>
-            Configurar família
-          </Text>
-        )}
-
-        <Text style={styles.title} allowFontScaling={false}>
-          {isFromRegister ? 'Agora, sua família' : 'Criar sua família'}
-        </Text>
-        <Text style={styles.subtitle}>
-          {isFromRegister
-            ? 'Você será o administrador. Vamos configurar a base — você poderá convidar os filhos depois.'
-            : 'Você será o administrador e poderá convidar os filhos depois.'}
-        </Text>
-      </View>
-
-      {isFromRegister && params.email ? (
-        <View
-          style={styles.banner}
-          accessibilityRole="text"
-          accessibilityLabel="Sua conta está salva"
-        >
-          <View style={styles.bannerIconBox}>
-            <ShieldCheck size={20} color={palette.checkOnText} strokeWidth={2.5} />
-          </View>
-          <View style={styles.bannerContent}>
-            <Text style={styles.bannerLabel} allowFontScaling={false}>
-              Sua conta está salva
-            </Text>
-            <Text style={styles.bannerEmail} numberOfLines={1}>
-              {params.email}
-            </Text>
-          </View>
+      {/* Step 1: Date of birth collection (Google users only) */}
+      {step === 1 && isFromGoogle ? (
+        <View style={styles.header}>
+          <DateOfBirthStep
+            value={dateOfBirth}
+            onChange={(date) => {
+              setDateOfBirth(date);
+              setDobError(null);
+            }}
+            onContinue={handleDateOfBirthContinue}
+            error={dobError}
+            loading={dobLoading}
+          />
         </View>
       ) : null}
 
-      {!isFromRegister && userEmail ? (
-        <View style={styles.banner} accessibilityRole="text" accessibilityLabel="Conta vinculada">
-          <View style={styles.bannerIconBox}>
-            <ShieldCheck size={20} color={palette.checkOnText} strokeWidth={2.5} />
-          </View>
-          <View style={styles.bannerContent}>
-            <Text style={styles.bannerLabel} allowFontScaling={false}>
-              Conta vinculada
+      {/* Step 2: Family creation */}
+      {step === 2 ? (
+        <>
+          <View style={styles.header}>
+            {isFromRegister ? (
+              <View style={styles.kickerChip} accessibilityRole="text">
+                <Check size={12} color={palette.checkOnText} strokeWidth={3} />
+                <Text style={styles.kickerChipText} allowFontScaling={false}>
+                  Conta criada
+                </Text>
+              </View>
+            ) : isFromGoogle ? (
+              <View style={styles.kickerChip} accessibilityRole="text">
+                <Check size={12} color={palette.checkOnText} strokeWidth={3} />
+                <Text style={styles.kickerChipText} allowFontScaling={false}>
+                  Dados salvos
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.kickerPlain} allowFontScaling={false}>
+                Configurar família
+              </Text>
+            )}
+
+            <Text style={styles.title} allowFontScaling={false}>
+              {isFromRegister || isFromGoogle ? 'Agora, sua família' : 'Criar sua família'}
             </Text>
-            <Text style={styles.bannerEmail} numberOfLines={1}>
-              {userEmail}
+            <Text style={styles.subtitle}>
+              {isFromRegister || isFromGoogle
+                ? 'Você será o administrador. Vamos configurar a base — você poderá convidar os filhos depois.'
+                : 'Você será o administrador e poderá convidar os filhos depois.'}
             </Text>
           </View>
-        </View>
-      ) : null}
 
-      <View style={styles.form}>
-        <AuthDarkField
-          label="Nome da família"
-          focused={focusedField === 'familyName'}
-          placeholder="Ex: Família Silva"
-          value={familyName}
-          onChangeText={(value) => {
-            setFamilyName(value);
-            setError('');
-          }}
-          onFocus={() => setFocusedField('familyName')}
-          onBlur={() => setFocusedField(null)}
-          autoCapitalize="words"
-          maxLength={60}
-          editable={!loading}
-          accessibilityLabel="Campo de nome da família"
-          leftIcon={Home}
-        />
+          {isFromRegister && params.email ? (
+            <View
+              style={styles.banner}
+              accessibilityRole="text"
+              accessibilityLabel="Sua conta está salva"
+            >
+              <View style={styles.bannerIconBox}>
+                <ShieldCheck size={20} color={palette.checkOnText} strokeWidth={2.5} />
+              </View>
+              <View style={styles.bannerContent}>
+                <Text style={styles.bannerLabel} allowFontScaling={false}>
+                  Sua conta está salva
+                </Text>
+                <Text style={styles.bannerEmail} numberOfLines={1}>
+                  {params.email}
+                </Text>
+              </View>
+            </View>
+          ) : null}
 
-        <AuthDarkField
-          label="Seu nome"
-          focused={focusedField === 'adminName'}
-          placeholder="Como quer ser chamado"
-          value={adminName}
-          onChangeText={(value) => {
-            setAdminName(value);
-            setError('');
-          }}
-          onFocus={() => setFocusedField('adminName')}
-          onBlur={() => setFocusedField(null)}
-          autoCapitalize="words"
-          maxLength={60}
-          editable={isFromRegister ? false : !loading}
-          accessibilityLabel="Campo de nome do administrador"
-          leftIcon={User}
-        />
+          {!isFromRegister && userEmail ? (
+            <View
+              style={styles.banner}
+              accessibilityRole="text"
+              accessibilityLabel="Conta vinculada"
+            >
+              <View style={styles.bannerIconBox}>
+                <ShieldCheck size={20} color={palette.checkOnText} strokeWidth={2.5} />
+              </View>
+              <View style={styles.bannerContent}>
+                <Text style={styles.bannerLabel} allowFontScaling={false}>
+                  Conta vinculada
+                </Text>
+                <Text style={styles.bannerEmail} numberOfLines={1}>
+                  {userEmail}
+                </Text>
+              </View>
+            </View>
+          ) : null}
 
-        <View style={styles.formActions}>
-          <FormFooter message={shouldShowError ? error : null} includeSafeBottom={false}>
-            <Button
-              label="Criar família"
-              loadingLabel="Criando família…"
-              loading={loading}
-              onPress={handleCreateFamily}
-              size="lg"
-              trailingIcon={ArrowRight}
-              accessibilityLabel={submitLabel}
-              accessibilityState={{ busy: loading }}
+          <View style={styles.form}>
+            <AuthDarkField
+              label="Nome da família"
+              focused={focusedField === 'familyName'}
+              placeholder="Ex: Família Silva"
+              value={familyName}
+              onChangeText={(value) => {
+                setFamilyName(value);
+                setError('');
+              }}
+              onFocus={() => setFocusedField('familyName')}
+              onBlur={() => setFocusedField(null)}
+              autoCapitalize="words"
+              maxLength={60}
+              editable={!loading}
+              accessibilityLabel="Campo de nome da família"
+              leftIcon={Home}
             />
-          </FormFooter>
-        </View>
 
-        <Pressable
-          style={({ pressed }) => [styles.inviteLink, { opacity: pressed ? 0.65 : 1 }]}
-          onPress={() => router.push('/(auth)/join-family')}
-          disabled={loading}
-          accessibilityRole="link"
-          accessibilityLabel="Tenho um convite"
-        >
-          <Text style={styles.inviteLinkText}>Tenho um convite</Text>
-        </Pressable>
+            <AuthDarkField
+              label="Seu nome"
+              focused={focusedField === 'adminName'}
+              placeholder="Como quer ser chamado"
+              value={adminName}
+              onChangeText={(value) => {
+                setAdminName(value);
+                setError('');
+              }}
+              onFocus={() => setFocusedField('adminName')}
+              onBlur={() => setFocusedField(null)}
+              autoCapitalize="words"
+              maxLength={60}
+              editable={isFromRegister ? false : !loading}
+              accessibilityLabel="Campo de nome do administrador"
+              leftIcon={User}
+            />
 
-        <View style={styles.footerPush}>
-          <Pressable
-            style={({ pressed }) => [styles.secondaryButton, { opacity: pressed ? 0.65 : 1 }]}
-            onPress={handleLeave}
-            disabled={loading}
-            accessibilityRole="button"
-            accessibilityLabel="Criar família depois"
-          >
-            <Text style={styles.secondaryButtonText}>Criar família depois</Text>
-          </Pressable>
-        </View>
-      </View>
+            <View style={styles.formActions}>
+              <FormFooter message={shouldShowError ? error : null} includeSafeBottom={false}>
+                <Button
+                  label="Criar família"
+                  loadingLabel="Criando família…"
+                  loading={loading}
+                  onPress={handleCreateFamily}
+                  size="lg"
+                  trailingIcon={ArrowRight}
+                  accessibilityLabel={submitLabel}
+                  accessibilityState={{ busy: loading }}
+                />
+              </FormFooter>
+            </View>
+
+            <Pressable
+              style={({ pressed }) => [styles.inviteLink, { opacity: pressed ? 0.65 : 1 }]}
+              onPress={() => router.push('/(auth)/join-family')}
+              disabled={loading}
+              accessibilityRole="link"
+              accessibilityLabel="Tenho um convite"
+            >
+              <Text style={styles.inviteLinkText}>Tenho um convite</Text>
+            </Pressable>
+
+            <View style={styles.footerPush}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.secondaryButton,
+                  { opacity: pressed ? 0.65 : 1 },
+                ]}
+                onPress={handleLeave}
+                disabled={loading}
+                accessibilityRole="button"
+                accessibilityLabel="Criar família depois"
+              >
+                <Text style={styles.secondaryButtonText}>Criar família depois</Text>
+              </Pressable>
+            </View>
+          </View>
+        </>
+      ) : null}
     </AuthHeroScreen>
   );
 }

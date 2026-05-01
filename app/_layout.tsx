@@ -23,6 +23,7 @@ import {
   registerNotificationCategories,
 } from '@lib/notifications';
 import { handleNotificationAction } from '@lib/notification-actions';
+import { configureGoogleSignIn } from '@lib/google-auth';
 import { ThemeProvider, useTheme } from '@/context/theme-context';
 import { QueryProvider, queryClient } from '@/context/query-client';
 import { ImpersonationProvider, useImpersonation } from '@/context/impersonation-context';
@@ -52,6 +53,7 @@ Sentry.init({
 });
 
 SplashScreen.preventAutoHideAsync();
+configureGoogleSignIn();
 
 function RootLayout() {
   const ref = useNavigationContainerRef();

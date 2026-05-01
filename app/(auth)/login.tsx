@@ -1,13 +1,14 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useState, useMemo, useCallback } from 'react';
 import { Mail, Lock, ArrowRight } from 'lucide-react-native';
-import { signIn } from '@lib/auth';
+import { signIn, signInWithGoogle } from '@lib/auth';
 import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
 import { spacing, typography } from '@/constants/theme';
 import { AuthHeroScreen } from '@/components/auth/auth-hero-screen';
 import { AuthDarkField, DarkPasswordToggle } from '@/components/auth/auth-dark-field';
 import { BrandLogo } from '@/components/auth/brand-logo';
+import { GoogleSignInButton } from '@/components/auth/google-sign-in-button';
 import { useHeroPalette } from '@/components/auth/use-hero-palette';
 import { Button } from '@/components/ui/button';
 import { FormFooter } from '@/components/ui/form-footer';
@@ -25,9 +26,11 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<LoginField | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const shouldShowError = Boolean(error);
+  const anyLoading = loading || googleLoading;
 
   useFocusEffect(
     useCallback(() => {
@@ -36,6 +39,36 @@ export default function LoginScreen() {
       };
     }, [])
   );
+
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setGoogleLoading(true);
+
+    const { profile, isNewUser, googleName, error: googleError } = await signInWithGoogle();
+
+    if (googleError) {
+      setGoogleLoading(false);
+      setError(googleError);
+      return;
+    }
+
+    // User cancelled the Google sign-in flow — do nothing.
+    if (!profile && !isNewUser) {
+      setGoogleLoading(false);
+      return;
+    }
+
+    // New user without a profile → redirect to onboarding with Google name.
+    if (isNewUser) {
+      router.replace({
+        pathname: '/(auth)/onboarding',
+        params: googleName ? { googleName } : undefined,
+      });
+    }
+
+    // Existing user — the auth state change in root layout handles navigation.
+    // Keep the button in loading state until the redirect happens.
+  };
 
   const validate = (): string | null => {
     const emailValue = email.trim();
@@ -81,6 +114,18 @@ export default function LoginScreen() {
       </View>
 
       <View style={styles.form}>
+        <GoogleSignInButton
+          onPress={handleGoogleSignIn}
+          loading={googleLoading}
+          disabled={anyLoading}
+        />
+
+        <View style={styles.separator}>
+          <View style={styles.separatorLine} />
+          <Text style={styles.separatorText}>ou</Text>
+          <View style={styles.separatorLine} />
+        </View>
+
         <AuthDarkField
           label="E-mail"
           focused={focusedField === 'email'}
@@ -98,7 +143,7 @@ export default function LoginScreen() {
           autoComplete="email"
           textContentType="emailAddress"
           maxLength={MAX_EMAIL_LENGTH}
-          editable={!loading}
+          editable={!anyLoading}
           accessibilityLabel="Campo de e-mail"
           leftIcon={Mail}
         />
@@ -118,7 +163,7 @@ export default function LoginScreen() {
           autoComplete="current-password"
           textContentType="password"
           maxLength={128}
-          editable={!loading}
+          editable={!anyLoading}
           accessibilityLabel="Campo de senha"
           leftIcon={Lock}
           rightAction={
@@ -128,16 +173,6 @@ export default function LoginScreen() {
             />
           }
         />
-
-        <Pressable
-          onPress={() => router.push('/(auth)/forgot-password')}
-          disabled={loading}
-          accessibilityRole="button"
-          accessibilityLabel="Esqueci minha senha"
-          style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
-        >
-          <Text style={styles.forgotText}>Esqueci minha senha</Text>
-        </Pressable>
 
         {resetSuccess === '1' ? (
           <View style={styles.successMessage}>
@@ -156,24 +191,11 @@ export default function LoginScreen() {
             onPress={handleSignIn}
             size="lg"
             trailingIcon={ArrowRight}
+            disabled={googleLoading}
             accessibilityLabel={loading ? 'Entrando' : 'Entrar'}
             accessibilityState={{ busy: loading }}
           />
         </FormFooter>
-
-        <View style={styles.footerPush}>
-          <Pressable
-            style={({ pressed }) => [styles.secondaryButton, { opacity: pressed ? 0.65 : 1 }]}
-            onPress={() => router.push('/(auth)/register')}
-            disabled={loading}
-            accessibilityRole="button"
-            accessibilityLabel="Criar conta"
-          >
-            <Text style={styles.secondaryButtonText}>
-              Novo por aqui? <Text style={styles.secondaryButtonAccent}>Criar conta</Text>
-            </Text>
-          </Pressable>
-        </View>
       </View>
     </AuthHeroScreen>
   );
@@ -204,33 +226,25 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
       marginTop: spacing['6'],
       flex: 1,
     },
-    forgotText: {
-      fontFamily: typography.family.semibold,
-      fontSize: typography.size.xs,
+    separator: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginVertical: spacing['5'],
+    },
+    separatorLine: {
+      flex: 1,
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: palette.borderSoft,
+    },
+    separatorText: {
+      fontFamily: typography.family.medium,
+      fontSize: typography.size.sm,
       color: palette.textOnNavyMuted,
-      textAlign: 'center',
-      marginTop: spacing['4'],
-      marginBottom: spacing['3'],
+      marginHorizontal: spacing['4'],
     },
     successMessage: {
       marginTop: spacing['2'],
       marginBottom: spacing['2'],
-    },
-    footerPush: {
-      marginTop: 'auto',
-    },
-    secondaryButton: {
-      paddingVertical: spacing['3'],
-      alignItems: 'center',
-    },
-    secondaryButtonText: {
-      fontFamily: typography.family.medium,
-      fontSize: typography.size.sm,
-      color: palette.textOnNavyMuted,
-    },
-    secondaryButtonAccent: {
-      fontFamily: typography.family.bold,
-      color: palette.borderFocus,
     },
   });
 }
