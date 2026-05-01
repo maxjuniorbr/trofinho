@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useMemo, useCallback } from 'react';
-import { ArrowRight, ChevronLeft, Users } from 'lucide-react-native';
+import { ChevronLeft, Users } from 'lucide-react-native';
 import { signInWithGoogle, refreshAuthSession } from '@lib/auth';
 import { supabase } from '@lib/supabase';
 import { validateChildInviteCode } from '@lib/google-auth-utils';
@@ -287,7 +287,6 @@ export default function JoinChildScreen() {
                                     label="Continuar"
                                     onPress={() => setStep('google')}
                                     size="lg"
-                                    trailingIcon={ArrowRight}
                                     accessibilityLabel="Continuar"
                                 />
                             ) : null}
@@ -348,7 +347,6 @@ export default function JoinChildScreen() {
                                 loading={dobLoading}
                                 onPress={handleDobSubmit}
                                 size="lg"
-                                trailingIcon={ArrowRight}
                                 accessibilityLabel={dobLoading ? 'Vinculando…' : 'Entrar na família'}
                                 accessibilityState={{ busy: dobLoading }}
                             />

@@ -1,7 +1,7 @@
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
-import { ArrowRight, ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import {
   createFamily,
   getCurrentAuthUser,
@@ -196,7 +196,6 @@ export default function OnboardingScreen() {
             loading={loading}
             onPress={handleSubmit}
             size="lg"
-            trailingIcon={ArrowRight}
             accessibilityLabel={submitLabel}
             accessibilityState={{ busy: loading }}
           />
