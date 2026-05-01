@@ -138,10 +138,11 @@ function RootNavigator({
   const [pushToken, setPushToken] = useState<string | null>(null);
   const lastSavedPushTokenKeyRef = useRef<string | null>(null);
 
-  // Register for push notifications only after the user is authenticated.
-  // This avoids requesting notification permission on the login screen.
+  // Register for push notifications only after the user has completed
+  // onboarding (has a familia_id). This avoids showing the OS permission
+  // prompt during the onboarding flow (DOB / family creation screens).
   useEffect(() => {
-    if (!profile?.id) return;
+    if (!profile?.id || !profile.familia_id) return;
 
     let mounted = true;
 
@@ -170,10 +171,10 @@ function RootNavigator({
     return () => {
       mounted = false;
     };
-  }, [profile?.id]);
+  }, [profile?.id, profile?.familia_id]);
 
   useEffect(() => {
-    if (!profile?.id || !pushToken) return;
+    if (!profile?.id || !profile.familia_id || !pushToken) return;
 
     const currentPushToken = pushToken;
     const saveKey = `${profile.id}:${currentPushToken}`;
@@ -200,7 +201,7 @@ function RootNavigator({
     return () => {
       mounted = false;
     };
-  }, [profile?.id, pushToken]);
+  }, [profile?.id, profile?.familia_id, pushToken]);
 
   useEffect(() => {
     const target = resolveNavDecision(ready, profile, segments as string[], impersonating !== null);
