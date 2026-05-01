@@ -142,14 +142,17 @@ export default function OnboardingScreen() {
   };
 
   const handleLeave = () => {
-    Alert.alert(
-      'Sair da criação da família?',
-      'Você pode entrar novamente e criar a família quando quiser.',
-      [
-        { text: 'Continuar criando', style: 'cancel' },
-        { text: 'Sair', style: 'destructive', onPress: confirmAndLeave },
-      ],
-    );
+    const title = step === 1 ? 'Sair do cadastro?' : 'Sair da criação da família?';
+    const message =
+      step === 1
+        ? 'Você pode voltar e continuar quando quiser.'
+        : 'Você pode entrar novamente e criar a família quando quiser.';
+    const cancelLabel = step === 1 ? 'Continuar' : 'Continuar criando';
+
+    Alert.alert(title, message, [
+      { text: cancelLabel, style: 'cancel' },
+      { text: 'Sair', style: 'destructive', onPress: confirmAndLeave },
+    ]);
   };
 
   const stepLabels: readonly string[] = ['Nascimento', 'Família'];
