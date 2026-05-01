@@ -466,12 +466,41 @@ describe('createAuthStateHandler', () => {
       papel: 'admin',
       nome: '',
       avatarUrl: null,
+      pendingChildInvite: null,
     });
     expect(onReadyChange).toHaveBeenCalledWith(true);
     expect(Sentry.addBreadcrumb).toHaveBeenCalledWith({
       category: 'auth',
       message: 'orphan_user_detected',
       level: 'warning',
+    });
+  });
+
+  it('includes pendingChildInvite in orphan profile when user_metadata has pending_child_invite', async () => {
+    getProfile.mockResolvedValue(null);
+
+    const handler = createAuthStateHandler({
+      getProfile,
+      onProfileChange,
+      onReadyChange,
+    });
+
+    handler.handleAuthStateChange('SIGNED_IN', {
+      access_token: 'token',
+      user: {
+        id: 'orphan-child-1',
+        user_metadata: { pending_child_invite: 'ABC123' },
+      },
+    } as never);
+    await vi.runAllTimersAsync();
+
+    expect(onProfileChange).toHaveBeenCalledWith({
+      id: 'orphan-child-1',
+      familia_id: '',
+      papel: 'admin',
+      nome: '',
+      avatarUrl: null,
+      pendingChildInvite: 'ABC123',
     });
   });
 });

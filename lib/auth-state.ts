@@ -89,6 +89,10 @@ export function createAuthStateHandler({
               message: 'orphan_user_detected',
               level: 'warning',
             });
+
+            const pendingChildInvite =
+              (session.user.user_metadata?.pending_child_invite as string | undefined) || null;
+
             applyResolvedProfile(
               {
                 id: session.user.id,
@@ -96,6 +100,7 @@ export function createAuthStateHandler({
                 papel: 'admin',
                 nome: '',
                 avatarUrl: null,
+                pendingChildInvite,
               },
               currentRequestId,
             );

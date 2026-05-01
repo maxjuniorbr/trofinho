@@ -15,6 +15,7 @@ export type UserProfile = {
   papel: 'admin' | 'filho';
   nome: string;
   avatarUrl?: string | null;
+  pendingChildInvite?: string | null;
 };
 
 export async function signInWithGoogle(): Promise<{

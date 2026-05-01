@@ -26,6 +26,15 @@ const noFamily: UserProfile = {
   avatarUrl: null,
 };
 
+const orphanChild: UserProfile = {
+  id: 'u4',
+  familia_id: '',
+  papel: 'admin',
+  nome: '',
+  avatarUrl: null,
+  pendingChildInvite: 'ABC123',
+};
+
 describe('resolveNavDecision', () => {
   describe('when not ready', () => {
     it('returns null regardless of profile or segments', () => {
@@ -80,6 +89,16 @@ describe('resolveNavDecision', () => {
 
     it('returns null when on join-child screen (child invite flow)', () => {
       expect(resolveNavDecision(true, noFamily, ['(auth)', 'join-child'])).toBeNull();
+    });
+
+    it('redirects orphan with pendingChildInvite to join-child instead of onboarding', () => {
+      expect(resolveNavDecision(true, orphanChild, ['(auth)', 'login'])).toBe('/(auth)/join-child');
+      expect(resolveNavDecision(true, orphanChild, ['(admin)'])).toBe('/(auth)/join-child');
+      expect(resolveNavDecision(true, orphanChild, [])).toBe('/(auth)/join-child');
+    });
+
+    it('returns null when orphan with pendingChildInvite is already on join-child', () => {
+      expect(resolveNavDecision(true, orphanChild, ['(auth)', 'join-child'])).toBeNull();
     });
   });
 

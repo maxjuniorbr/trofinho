@@ -1,6 +1,6 @@
 import type { UserProfile } from './auth';
 
-export type NavTarget = '/(auth)/login' | '/(auth)/onboarding' | '/(admin)/' | '/(child)/';
+export type NavTarget = '/(auth)/login' | '/(auth)/onboarding' | '/(auth)/join-child' | '/(admin)/' | '/(child)/';
 
 /** Auth sub-routes that bypass the normal redirect logic. */
 const AUTH_PASSTHROUGH_ROUTES = new Set(['onboarding', 'join-family', 'join-child']);
@@ -45,8 +45,11 @@ export function resolveNavDecision(
 
   // No family yet — only allow passthrough auth routes (onboarding,
   // join-family, join-child). Everything else redirects to onboarding.
+  // Exception: orphan users with a pending child invite go to join-child.
   if (!profile.familia_id) {
-    return AUTH_PASSTHROUGH_ROUTES.has(seg1 ?? '') ? null : '/(auth)/onboarding';
+    if (AUTH_PASSTHROUGH_ROUTES.has(seg1 ?? '')) return null;
+    if (profile.pendingChildInvite) return '/(auth)/join-child';
+    return '/(auth)/onboarding';
   }
 
   if (inAuth) {
