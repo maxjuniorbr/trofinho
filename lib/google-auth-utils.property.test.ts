@@ -110,6 +110,55 @@ describe('Feature: google-oauth-migration, Property 1: Validação de data de na
 });
 
 /**
+ * Feature: admin-onboarding-journey, Property 3: Round-trip de serialização da data de nascimento
+ *
+ * Para qualquer data de nascimento válida (aceita por `isValidDateOfBirth`),
+ * serializar para formato ISO `YYYY-MM-DD` via `toISOString().split('T')[0]`
+ * e deserializar com `new Date(isoString)` SHALL produzir uma data equivalente
+ * à original (mesmo ano, mês e dia em UTC).
+ *
+ * **Validates: Requirements 21.1**
+ */
+
+describe('Feature: admin-onboarding-journey, Property 3: Round-trip de serialização da data de nascimento', () => {
+  const FROZEN_NOW = new Date('2026-04-30T12:00:00Z');
+
+  beforeEach(() => {
+    vi.useFakeTimers({ now: FROZEN_NOW });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('serializing a valid date to YYYY-MM-DD and deserializing preserves UTC year, month and day', () => {
+    const maxDate = getMaxDateOfBirth();
+
+    fc.assert(
+      fc.property(
+        fc.date({ min: MIN_DATE, max: maxDate, noInvalidDate: true }),
+        (date) => {
+          // Pre-condition: date must be accepted by isValidDateOfBirth
+          fc.pre(isValidDateOfBirth(date));
+
+          // Serialize to YYYY-MM-DD
+          const isoString = date.toISOString().split('T')[0];
+
+          // Deserialize back
+          const restored = new Date(isoString);
+
+          // Verify UTC year, month and day are preserved
+          expect(restored.getUTCFullYear()).toBe(date.getUTCFullYear());
+          expect(restored.getUTCMonth()).toBe(date.getUTCMonth());
+          expect(restored.getUTCDate()).toBe(date.getUTCDate());
+        },
+      ),
+      { numRuns: 100 },
+    );
+  });
+});
+
+/**
  * Feature: google-oauth-migration, Property 4: Validação de código de convite de filho
  *
  * Para qualquer código de convite, a função `validateChildInviteCode(code, invite, now)`

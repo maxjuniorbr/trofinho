@@ -154,6 +154,7 @@ describe('auth', () => {
         email: 'max@test.com',
         avatarUrl: 'https://signed-url',
         emailConfirmedAt: '2024-01-15T10:30:00Z',
+        dateOfBirth: null,
       });
     });
 
@@ -182,7 +183,7 @@ describe('auth', () => {
       });
 
       const result = await getCurrentAuthUser();
-      expect(result).toEqual({ email: '', avatarUrl: null, emailConfirmedAt: null });
+      expect(result).toEqual({ email: '', avatarUrl: null, emailConfirmedAt: null, dateOfBirth: null });
     });
 
     it('returns emailConfirmedAt when email_confirmed_at is present on the user object', async () => {

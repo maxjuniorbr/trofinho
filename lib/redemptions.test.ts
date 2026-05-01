@@ -153,6 +153,19 @@ describe('cancelRedemption', () => {
     expect(dispatchPushNotificationMock).not.toHaveBeenCalled();
   });
 
+  it('skips push notification when userId is null', async () => {
+    supabaseMock.rpc.mockResolvedValueOnce({ error: null });
+
+    const result = await cancelRedemption('r-1', {
+      familiaId: 'fam-1',
+      userId: null,
+      prizeName: 'Bicicleta',
+    });
+
+    expect(result.error).toBeNull();
+    expect(dispatchPushNotificationMock).not.toHaveBeenCalled();
+  });
+
   it('returns error on rpc failure', async () => {
     supabaseMock.rpc.mockResolvedValueOnce({ error: { message: 'Resgate não encontrado' } });
 

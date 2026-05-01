@@ -1,4 +1,4 @@
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, useMemo, useEffect } from 'react';
 import { ArrowRight, Check, Home, ShieldCheck, User } from 'lucide-react-native';
@@ -20,6 +20,7 @@ import { StepIndicator } from '@/components/auth/step-indicator';
 import { useHeroPalette } from '@/components/auth/use-hero-palette';
 import { Button } from '@/components/ui/button';
 import { FormFooter } from '@/components/ui/form-footer';
+import { validateFamilyCreation } from '@lib/onboarding-validation';
 
 type OnboardingField = 'familyName' | 'adminName';
 
@@ -32,6 +33,7 @@ export default function OnboardingScreen() {
   // All users arrive from Google sign-in and must complete the date-of-birth
   // step first (step 1), then proceed to family creation (step 2).
   const [step, setStep] = useState<1 | 2>(1);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const [familyName, setFamilyName] = useState('');
   const [adminName, setAdminName] = useState(params.googleName ?? '');
@@ -49,21 +51,21 @@ export default function OnboardingScreen() {
   const submitLabel = loading ? 'Criando família…' : 'Criar família';
 
   // Fetch email from auth for the account reassurance banner.
+  // Also check if the user already completed step 1 (date of birth) in a
+  // previous session — if so, skip directly to step 2 (family creation).
   useEffect(() => {
     let mounted = true;
     getCurrentAuthUser().then((user) => {
-      if (mounted && user?.email) setUserEmail(user.email);
+      if (mounted) {
+        if (user?.email) setUserEmail(user.email);
+        if (user?.dateOfBirth) setStep(2);
+        setInitialLoading(false);
+      }
     });
     return () => {
       mounted = false;
     };
   }, []);
-
-  const validate = (): string | null => {
-    if (!familyName.trim()) return 'Informe o nome da família.';
-    if (!adminName.trim()) return 'Informe seu nome.';
-    return null;
-  };
 
   /**
    * Handles the "Continuar" press on the DateOfBirthStep.
@@ -107,7 +109,7 @@ export default function OnboardingScreen() {
   };
 
   const handleCreateFamily = async () => {
-    const validationError = validate();
+    const validationError = validateFamilyCreation({ familyName, adminName });
     if (validationError) {
       setError(validationError);
       return;
@@ -158,8 +160,14 @@ export default function OnboardingScreen() {
     <AuthHeroScreen topBarCenter={<BrandLogo size="sm" withText />}>
       <StepIndicator currentStep={currentIndicatorStep} labels={stepLabels} />
 
+      {initialLoading ? (
+        <View style={styles.header}>
+          <ActivityIndicator size="large" color={palette.borderFocus} />
+        </View>
+      ) : null}
+
       {/* Step 1: Date of birth collection */}
-      {step === 1 ? (
+      {!initialLoading && step === 1 ? (
         <View style={styles.header}>
           <DateOfBirthStep
             value={dateOfBirth}
@@ -188,7 +196,7 @@ export default function OnboardingScreen() {
       ) : null}
 
       {/* Step 2: Family creation */}
-      {step === 2 ? (
+      {!initialLoading && step === 2 ? (
         <>
           <View style={styles.header}>
             <View style={styles.kickerChip} accessibilityRole="text">

@@ -49,6 +49,15 @@ describe('isValidDateOfBirth', () => {
     expect(isValidDateOfBirth(exactly13)).toBe(true);
   });
 
+  it('rejects a date exactly 1 day before turning 13 (12 years + 364 days old)', () => {
+    const now = new Date();
+    // Born 1 day after the 13-year cutoff → still 12 years old
+    const oneDayShort = new Date(
+      Date.UTC(now.getUTCFullYear() - 13, now.getUTCMonth(), now.getUTCDate() + 1),
+    );
+    expect(isValidDateOfBirth(oneDayShort)).toBe(false);
+  });
+
   it('rejects an invalid Date object', () => {
     expect(isValidDateOfBirth(new Date('invalid'))).toBe(false);
   });
@@ -115,6 +124,13 @@ describe('localizeOAuthError', () => {
 
   it('maps network error', () => {
     const err: SupabaseAuthError = { message: 'Network request failed' };
+    expect(localizeOAuthError(err)).toBe(
+      'Não foi possível conectar ao Google. Verifique sua conexão e tente novamente.',
+    );
+  });
+
+  it('maps timeout error to network message', () => {
+    const err: SupabaseAuthError = { message: 'Request timeout' };
     expect(localizeOAuthError(err)).toBe(
       'Não foi possível conectar ao Google. Verifique sua conexão e tente novamente.',
     );

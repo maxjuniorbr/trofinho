@@ -56,6 +56,11 @@ describe('resolveNavDecision', () => {
     it('returns null when signed out on onboarding (screen handles own exit)', () => {
       expect(resolveNavDecision(true, null, ['(auth)', 'onboarding'])).toBeNull();
     });
+
+    it('returns null when signed out on any auth sub-route', () => {
+      expect(resolveNavDecision(true, null, ['(auth)', 'join-family'])).toBeNull();
+      expect(resolveNavDecision(true, null, ['(auth)', 'join-child'])).toBeNull();
+    });
   });
 
   describe('when profile has no familia_id (onboarding)', () => {
@@ -72,11 +77,16 @@ describe('resolveNavDecision', () => {
     it('returns null when on join-family screen (accepting invite code)', () => {
       expect(resolveNavDecision(true, noFamily, ['(auth)', 'join-family'])).toBeNull();
     });
+
+    it('returns null when on join-child screen (child invite flow)', () => {
+      expect(resolveNavDecision(true, noFamily, ['(auth)', 'join-child'])).toBeNull();
+    });
   });
 
   describe('when authenticated admin user', () => {
     it('redirects to admin home when in auth group', () => {
       expect(resolveNavDecision(true, admin, ['(auth)', 'login'])).toBe('/(admin)/');
+      expect(resolveNavDecision(true, admin, ['(auth)', 'onboarding'])).toBe('/(admin)/');
     });
 
     it('returns null when already in admin group', () => {
@@ -119,6 +129,7 @@ describe('resolveNavDecision', () => {
   describe('when authenticated filho user', () => {
     it('redirects to child home when in auth group', () => {
       expect(resolveNavDecision(true, filho, ['(auth)', 'login'])).toBe('/(child)/');
+      expect(resolveNavDecision(true, filho, ['(auth)', 'onboarding'])).toBe('/(child)/');
     });
 
     it('returns null when already in child group', () => {
@@ -132,6 +143,7 @@ describe('resolveNavDecision', () => {
 
     it('redirects to child home when on blank index route', () => {
       expect(resolveNavDecision(true, filho, [])).toBe('/(child)/');
+      expect(resolveNavDecision(true, filho, ['index'])).toBe('/(child)/');
     });
   });
 });

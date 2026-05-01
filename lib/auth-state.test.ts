@@ -359,6 +359,92 @@ describe('createAuthStateHandler', () => {
     });
   });
 
+  it('suppresses PASSWORD_RECOVERY event without triggering profile load', async () => {
+    getProfile.mockResolvedValue({
+      id: 'user-1',
+      familia_id: 'family-1',
+      papel: 'admin',
+      nome: 'Max',
+    });
+
+    const handler = createAuthStateHandler({
+      getProfile,
+      onProfileChange,
+      onReadyChange,
+      onSignOut,
+    });
+
+    handler.handleAuthStateChange('PASSWORD_RECOVERY', {
+      access_token: 'token',
+      user: { id: 'user-1' },
+    } as never);
+
+    await vi.runAllTimersAsync();
+
+    expect(getProfile).not.toHaveBeenCalled();
+    expect(onProfileChange).not.toHaveBeenCalled();
+    expect(onReadyChange).not.toHaveBeenCalled();
+    expect(onSignOut).not.toHaveBeenCalled();
+  });
+
+  it('emits password_recovery_event_suppressed breadcrumb on PASSWORD_RECOVERY', () => {
+    const handler = createAuthStateHandler({
+      getProfile,
+      onProfileChange,
+      onReadyChange,
+    });
+
+    handler.handleAuthStateChange('PASSWORD_RECOVERY', {
+      access_token: 'token',
+      user: { id: 'user-1' },
+    } as never);
+
+    expect(Sentry.addBreadcrumb).toHaveBeenCalledWith({
+      category: 'auth',
+      message: 'password_recovery_event_suppressed',
+      level: 'info',
+    });
+  });
+
+  it('resumes normal handling after PASSWORD_RECOVERY is suppressed', async () => {
+    getProfile.mockResolvedValue({
+      id: 'user-1',
+      familia_id: 'family-1',
+      papel: 'admin',
+      nome: 'Max',
+    });
+
+    const handler = createAuthStateHandler({
+      getProfile,
+      onProfileChange,
+      onReadyChange,
+    });
+
+    // PASSWORD_RECOVERY is suppressed
+    handler.handleAuthStateChange('PASSWORD_RECOVERY', {
+      access_token: 'token',
+      user: { id: 'user-1' },
+    } as never);
+    await vi.runAllTimersAsync();
+
+    expect(getProfile).not.toHaveBeenCalled();
+
+    // Subsequent SIGNED_IN event should work normally
+    handler.handleAuthStateChange('SIGNED_IN', {
+      access_token: 'token',
+      user: { id: 'user-1' },
+    } as never);
+    await vi.runAllTimersAsync();
+
+    expect(getProfile).toHaveBeenCalledTimes(1);
+    expect(onProfileChange).toHaveBeenCalledWith({
+      id: 'user-1',
+      familia_id: 'family-1',
+      papel: 'admin',
+      nome: 'Max',
+    });
+  });
+
   it('produces orphan profile when getProfile returns null but session has user', async () => {
     getProfile.mockResolvedValue(null);
 

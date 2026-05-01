@@ -82,6 +82,16 @@ function render(element: React.ReactElement) {
   return renderer;
 }
 
+async function renderAsync(element: React.ReactElement) {
+  let renderer!: ReactTestRenderer;
+
+  await act(async () => {
+    renderer = create(element);
+  });
+
+  return renderer;
+}
+
 function changeInput(renderer: ReactTestRenderer, index: number, value: string) {
   const inputs = renderer.root.findAllByType(TextInput);
 
@@ -165,7 +175,7 @@ describe('auth screens', () => {
 
   it('prefills onboarding with the Google name and shows DOB step first', async () => {
     localSearchParamsState.value = { googleName: 'Max' } as never;
-    const renderer = render(<OnboardingScreen />);
+    const renderer = await renderAsync(<OnboardingScreen />);
 
     // Step 1 is the DOB step — family form is not visible yet
     expect(screenText(renderer)).toContain('Nascimento');
@@ -173,7 +183,7 @@ describe('auth screens', () => {
 
   it('advances to family step after DOB and validates required data', async () => {
     localSearchParamsState.value = { googleName: 'Max' } as never;
-    const renderer = render(<OnboardingScreen />);
+    const renderer = await renderAsync(<OnboardingScreen />);
 
     // Advance past DOB step
     await pressButton(renderer, 'Continuar');
@@ -188,7 +198,7 @@ describe('auth screens', () => {
 
   it('covers onboarding focus, name validation, and button style branches', async () => {
     localSearchParamsState.value = { googleName: '' } as never;
-    const renderer = render(<OnboardingScreen />);
+    const renderer = await renderAsync(<OnboardingScreen />);
 
     // Advance past DOB step
     await pressButton(renderer, 'Continuar');
@@ -209,7 +219,7 @@ describe('auth screens', () => {
       .mockResolvedValueOnce({ error: 'Algo deu errado. Tente novamente.' })
       .mockResolvedValueOnce({ error: null });
 
-    const renderer = render(<OnboardingScreen />);
+    const renderer = await renderAsync(<OnboardingScreen />);
 
     // Advance past DOB step
     await pressButton(renderer, 'Continuar');
@@ -231,7 +241,7 @@ describe('auth screens', () => {
       error: 'Algo deu errado. Tente novamente.',
     });
 
-    const renderer = render(<OnboardingScreen />);
+    const renderer = await renderAsync(<OnboardingScreen />);
 
     // Advance past DOB step
     await pressButton(renderer, 'Continuar');
@@ -247,7 +257,7 @@ describe('auth screens', () => {
   it('shows confirmation alert and signs out when register user confirms exit', async () => {
     localSearchParamsState.value = { googleName: 'Max' } as never;
     authMocks.signOut.mockResolvedValue(undefined);
-    const renderer = render(<OnboardingScreen />);
+    const renderer = await renderAsync(<OnboardingScreen />);
 
     // Advance past DOB step
     await pressButton(renderer, 'Continuar');
@@ -284,7 +294,7 @@ describe('auth screens', () => {
       avatarUrl: null,
     });
 
-    const renderer = render(<OnboardingScreen />);
+    const renderer = await renderAsync(<OnboardingScreen />);
 
     // Advance past DOB step
     await pressButton(renderer, 'Continuar');
