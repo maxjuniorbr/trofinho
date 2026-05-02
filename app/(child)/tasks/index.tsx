@@ -27,6 +27,8 @@ import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { ListFooter } from '@/components/ui/list-footer';
 import { ListScreenSkeleton } from '@/components/ui/skeleton';
 import { SegmentedBar, type SegmentOption } from '@/components/ui/segmented-bar';
+import { InlineMessage } from '@/components/ui/inline-message';
+import { useTransientMessage } from '@/hooks/use-transient-message';
 
 type Filter = 'pendente' | 'aguardando_validacao' | 'historico';
 
@@ -121,9 +123,10 @@ type TaskCardProps = Readonly<{
   styles: ReturnType<typeof makeStyles>;
   router: ReturnType<typeof useRouter>;
   isReadOnly: boolean;
+  onUnavailablePress: () => void;
 }>;
 
-function TaskCard({ item, filter, colors, styles, router, isReadOnly }: TaskCardProps) {
+function TaskCard({ item, filter, colors, styles, router, isReadOnly, onUnavailablePress }: TaskCardProps) {
   const isInactive = item.tarefas.ativo === false;
   const isUnavailable = isInactive && item.status === 'pendente';
   const icon = getStatusIcon(item, colors);
@@ -136,7 +139,7 @@ function TaskCard({ item, filter, colors, styles, router, isReadOnly }: TaskCard
 
   const handlePress = () => {
     if (isUnavailable) {
-      Alert.alert('Tarefa desativada', 'Esta tarefa foi desativada pelo responsável e não pode mais ser concluída.');
+      onUnavailablePress();
       return;
     }
     router.push(`/(child)/tasks/${item.id}` as never);
@@ -252,6 +255,14 @@ export default function ChildTasksScreen() {
   const assignments = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
   const [filter, setFilter] = useState<Filter>('pendente');
   const [refreshing, setRefreshing] = useState(false);
+  const [unavailableMessage, setUnavailableMessage] = useState<string | null>(null);
+  const visibleUnavailableMessage = useTransientMessage(unavailableMessage, { resetKey: filter });
+
+  const handleUnavailablePress = useCallback(() => {
+    setUnavailableMessage(
+      'Esta tarefa foi desativada pelo responsável e não pode mais ser concluída.',
+    );
+  }, []);
 
   const handleFooterNavigate = useCallback(
     (rota: string) => {
@@ -310,7 +321,7 @@ export default function ChildTasksScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
         ListHeaderComponent={<View style={{ height: spacing['4'] }} />}
         renderItem={({ item }) => (
-          <TaskCard item={item} filter={filter} colors={colors} styles={styles} router={router} isReadOnly={isReadOnly} />
+          <TaskCard item={item} filter={filter} colors={colors} styles={styles} router={router} isReadOnly={isReadOnly} onUnavailablePress={handleUnavailablePress} />
         )}
         onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
         onEndReachedThreshold={0.3}
@@ -324,6 +335,11 @@ export default function ChildTasksScreen() {
       <StatusBar style={colors.statusBar} />
       <ScreenHeader title="Tarefas" role="filho" />
       <SegmentedBar options={filtersWithCount} value={filter} onChange={setFilter} role="filho" />
+      {visibleUnavailableMessage ? (
+        <View style={{ paddingHorizontal: spacing['4'], paddingTop: spacing['2'] }}>
+          <InlineMessage variant="info" message={visibleUnavailableMessage} />
+        </View>
+      ) : null}
       {renderContent()}
       <HomeFooterBar items={footerItems} activeRoute="/(child)/tasks" onNavigate={handleFooterNavigate} />
     </SafeScreenFrame>

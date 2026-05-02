@@ -1,4 +1,4 @@
-import { Alert, StyleSheet, Text, View, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { getRandomBytes } from 'expo-crypto';
@@ -24,6 +24,8 @@ import type { Child } from '@lib/children';
 import { supabase } from '@lib/supabase';
 import { useTheme } from '@/context/theme-context';
 import { opacityDisabled, radii, shadows, spacing, typography } from '@/constants/theme';
+import { InlineMessage } from '@/components/ui/inline-message';
+import { useTransientMessage } from '@/hooks/use-transient-message';
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -59,6 +61,8 @@ export default function AdminChildrenScreen() {
   const [inviteSheetVisible, setInviteSheetVisible] = useState(false);
   const [currentInvite, setCurrentInvite] = useState<ChildInvite | null>(null);
   const [generatingInviteFor, setGeneratingInviteFor] = useState<string | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const visibleInviteError = useTransientMessage(inviteError);
 
   const { data: profile } = useProfile();
   const childrenQuery = useChildrenList();
@@ -81,7 +85,7 @@ export default function AdminChildrenScreen() {
   const handleGenerateInvite = useCallback(
     async (child: Child) => {
       if (!profile) {
-        Alert.alert('Erro', 'Perfil não carregado. Tente novamente.');
+        setInviteError('Perfil não carregado. Tente novamente.');
         return;
       }
 
@@ -120,7 +124,7 @@ export default function AdminChildrenScreen() {
           }
         }
 
-        Alert.alert('Erro', 'Não foi possível gerar o convite. Tente novamente.');
+        setInviteError('Não foi possível gerar o convite. Tente novamente.');
       } finally {
         setGeneratingInviteFor(null);
       }
@@ -246,6 +250,12 @@ export default function AdminChildrenScreen() {
           />
         }
       />
+
+      {visibleInviteError ? (
+        <View style={{ paddingHorizontal: spacing['4'], paddingTop: spacing['2'] }}>
+          <InlineMessage variant="error" message={visibleInviteError} />
+        </View>
+      ) : null}
 
       {renderContent()}
 
