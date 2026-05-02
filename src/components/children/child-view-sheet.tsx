@@ -1,5 +1,6 @@
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useCallback, useState } from 'react';
+import { Mail, User } from 'lucide-react-native';
 import { BottomSheetModal } from '@/components/ui/bottom-sheet';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -135,6 +136,7 @@ export function ChildViewSheet({ childId, onClose }: ChildViewSheetProps) {
             label="Nome"
             value={child.nome}
             editable={false}
+            leadingIcon={User}
             accessibilityLabel="Nome do filho"
           />
 
@@ -142,6 +144,7 @@ export function ChildViewSheet({ childId, onClose }: ChildViewSheetProps) {
             label="E-mail"
             value={child.email ?? 'Sem conta vinculada'}
             editable={false}
+            leadingIcon={Mail}
             accessibilityLabel="E-mail do filho"
           />
 

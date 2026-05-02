@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, User } from 'lucide-react-native';
+import { Check, Mail, User } from 'lucide-react-native';
 import { BottomSheetModal } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -142,6 +142,7 @@ export function PersonalDataSheet({
             autoCapitalize="words"
             autoCorrect={false}
             maxLength={60}
+            leadingIcon={User}
             accessibilityLabel="Nome completo"
             noMarginBottom
           />
@@ -150,6 +151,7 @@ export function PersonalDataSheet({
             label="E-mail"
             value={email}
             editable={false}
+            leadingIcon={Mail}
             accessibilityLabel="E-mail (não editável)"
             noMarginBottom
           />

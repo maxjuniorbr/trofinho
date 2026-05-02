@@ -1,6 +1,6 @@
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Archive, ArchiveRestore } from 'lucide-react-native';
+import { Archive, ArchiveRestore, Gift, Package, Zap } from 'lucide-react-native';
 import { BottomSheetModal } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/button';
 import { InlineMessage } from '@/components/ui/inline-message';
@@ -263,6 +263,7 @@ export function PrizeFormSheet({ visible, mode, prize, onClose, onSuccess }: Pri
                     placeholder="Ex: Sorvete, Filme no cinema…"
                     autoFocus={!isEdit}
                     maxLength={100}
+                    leadingIcon={Gift}
                     accessibilityLabel="Nome do prêmio"
                     noMarginBottom
                 />
@@ -287,6 +288,7 @@ export function PrizeFormSheet({ visible, mode, prize, onClose, onSuccess }: Pri
                     placeholder="Ex: 50"
                     keyboardType="number-pad"
                     maxLength={7}
+                    leadingIcon={Zap}
                     accessibilityLabel="Custo em pontos do prêmio"
                     noMarginBottom
                 />
@@ -298,46 +300,47 @@ export function PrizeFormSheet({ visible, mode, prize, onClose, onSuccess }: Pri
                     placeholder="Ex: 99"
                     keyboardType="number-pad"
                     maxLength={5}
+                    leadingIcon={Package}
                     accessibilityLabel="Estoque do prêmio"
                     noMarginBottom
                 />
 
-                {isEdit ? (
-                    isArchived ? (
-                        <Pressable
-                            style={({ pressed }) => [
-                                styles.archiveBtn,
-                                { borderColor: colors.accent.admin },
-                                pressed && { opacity: opacityPressed.control },
-                            ]}
-                            onPress={handleUnarchive}
-                            disabled={reactivateMutation.isPending}
-                            accessibilityRole="button"
-                            accessibilityLabel="Desarquivar prêmio"
-                        >
-                            <ArchiveRestore size={16} color={colors.accent.admin} strokeWidth={2} />
-                            <Text style={[styles.archiveBtnText, { color: colors.accent.admin }]}>
-                                Desarquivar prêmio
-                            </Text>
-                        </Pressable>
-                    ) : (
-                        <Pressable
-                            style={({ pressed }) => [
-                                styles.archiveBtn,
-                                { borderColor: colors.semantic.error },
-                                pressed && { opacity: opacityPressed.control },
-                            ]}
-                            onPress={handleArchive}
-                            disabled={deactivateMutation.isPending}
-                            accessibilityRole="button"
-                            accessibilityLabel="Arquivar prêmio"
-                        >
-                            <Archive size={16} color={colors.semantic.error} strokeWidth={2} />
-                            <Text style={[styles.archiveBtnText, { color: colors.semantic.error }]}>
-                                Arquivar prêmio
-                            </Text>
-                        </Pressable>
-                    )
+                {isEdit && isArchived ? (
+                    <Pressable
+                        style={({ pressed }) => [
+                            styles.archiveBtn,
+                            { borderColor: colors.accent.admin },
+                            pressed && { opacity: opacityPressed.control },
+                        ]}
+                        onPress={handleUnarchive}
+                        disabled={reactivateMutation.isPending}
+                        accessibilityRole="button"
+                        accessibilityLabel="Desarquivar prêmio"
+                    >
+                        <ArchiveRestore size={16} color={colors.accent.admin} strokeWidth={2} />
+                        <Text style={[styles.archiveBtnText, { color: colors.accent.admin }]}>
+                            Desarquivar prêmio
+                        </Text>
+                    </Pressable>
+                ) : null}
+
+                {isEdit && !isArchived ? (
+                    <Pressable
+                        style={({ pressed }) => [
+                            styles.archiveBtn,
+                            { borderColor: colors.semantic.error },
+                            pressed && { opacity: opacityPressed.control },
+                        ]}
+                        onPress={handleArchive}
+                        disabled={deactivateMutation.isPending}
+                        accessibilityRole="button"
+                        accessibilityLabel="Arquivar prêmio"
+                    >
+                        <Archive size={16} color={colors.semantic.error} strokeWidth={2} />
+                        <Text style={[styles.archiveBtnText, { color: colors.semantic.error }]}>
+                            Arquivar prêmio
+                        </Text>
+                    </Pressable>
                 ) : null}
 
                 <Button

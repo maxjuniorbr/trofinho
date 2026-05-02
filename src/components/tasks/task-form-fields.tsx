@@ -1,5 +1,6 @@
 import { useMemo, type Ref } from 'react';
 import { StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { FileText, Zap } from 'lucide-react-native';
 import { Input } from '@/components/ui/input';
 import { WeekdaySelector } from '@/components/tasks/weekday-selector';
 import { useTheme } from '@/context/theme-context';
@@ -53,6 +54,7 @@ export function TaskFormFields({
         placeholder="Ex: Lavar a louça"
         maxLength={100}
         autoFocus={autoFocusTitle}
+        leadingIcon={FileText}
         accessibilityLabel="Título da tarefa"
       />
 
@@ -78,6 +80,7 @@ export function TaskFormFields({
         keyboardType="number-pad"
         maxLength={4}
         editable={pointsEditable}
+        leadingIcon={Zap}
         style={pointsEditable ? undefined : styles.disabledInput}
         accessibilityLabel="Quantidade de pontos da tarefa"
       />
