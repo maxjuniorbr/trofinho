@@ -94,7 +94,7 @@ export const Button = ({
       case 'ghost':
         return 'transparent';
       case 'danger':
-        return colors.semantic.errorBg;
+        return colors.semantic.error;
       case 'outline':
         return 'transparent';
     }
@@ -109,7 +109,7 @@ export const Button = ({
       case 'ghost':
         return colors.text.secondary;
       case 'danger':
-        return colors.semantic.error;
+        return colors.text.inverse;
       case 'outline':
         return colors.brand.vivid;
     }

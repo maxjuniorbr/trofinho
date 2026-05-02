@@ -20,6 +20,13 @@ export const shadows = {
     shadowRadius: 0,
     elevation: 4,
   },
+  goldButtonGlow: {
+    shadowColor: '#FAC114',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+  },
   none: {
     shadowColor: 'transparent',
     shadowOffset: { width: 0, height: 0 },
@@ -84,6 +91,7 @@ export const heroPalette = {
   textOnLight: '#030711',
   checkOn: '#20C55D',
   checkOnText: '#7EF1A8',
+  labelGold: 'rgba(250, 193, 20, 0.7)',
   glowGold: 'rgba(250, 193, 20, 0.12)',
   glowGoldSoft: 'rgba(250, 193, 20, 0.06)',
 } as const;
@@ -108,6 +116,7 @@ export const heroPaletteLight: Record<keyof typeof heroPalette, string> = {
   textOnLight: '#030711',
   checkOn: '#20C55D',
   checkOnText: '#1A6636',
+  labelGold: 'rgba(197, 123, 13, 0.7)',
   glowGold: 'rgba(250, 193, 20, 0.20)',
   glowGoldSoft: 'rgba(250, 193, 20, 0.10)',
 };

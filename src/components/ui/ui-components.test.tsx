@@ -134,7 +134,7 @@ describe('ui components', () => {
     const dangerStyle = flattenStyle(
       dangerRenderer.root.findByType(Pressable).props.style({ pressed: false }),
     );
-    expect(dangerStyle.backgroundColor).toBe(lightColors.semantic.errorBg);
+    expect(dangerStyle.backgroundColor).toBe(lightColors.semantic.error);
 
     const ghostRenderer = render(<Button label="Cancelar" variant="ghost" />);
     const ghostText = ghostRenderer.root.findByType(Text);
