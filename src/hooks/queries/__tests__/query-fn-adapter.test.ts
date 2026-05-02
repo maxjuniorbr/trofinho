@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import * as fc from 'fast-check';
 import { queryFnAdapter, nullableQueryFnAdapter, mutationFnAdapter } from '../query-fn-adapter';
 
@@ -86,5 +86,22 @@ describe('mutationFnAdapter', () => {
       }),
       { numRuns: 100 },
     );
+  });
+
+  it('rejects when a mutation never settles', async () => {
+    vi.useFakeTimers();
+    try {
+      const adapter = mutationFnAdapter(
+        () => new Promise<{ error: string | null }>(() => undefined),
+      );
+      const result = adapter();
+      const assertion = expect(result).rejects.toThrow('Tempo limite excedido. Tente novamente.');
+
+      await vi.advanceTimersByTimeAsync(15_000);
+
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

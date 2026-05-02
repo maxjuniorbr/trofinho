@@ -45,7 +45,10 @@ function belongsToFilter(assignment: ChildAssignment, filter: Filter): boolean {
     return status === 'aprovada';
   }
   if (filter === 'pendente') {
-    return status === 'pendente' || (status === 'rejeitada' && getAssignmentRetryState(assignment).canRetry);
+    return (
+      status === 'pendente' ||
+      (status === 'rejeitada' && getAssignmentRetryState(assignment).canRetry)
+    );
   }
   return status === filter;
 }
@@ -91,8 +94,7 @@ function getStatusIcon(item: ChildAssignment, colors: ThemeColors) {
     return { Icon: CheckCircle2, color: colors.semantic.success, bg: colors.semantic.successBg };
   if (item.status === 'rejeitada')
     return { Icon: XCircle, color: colors.semantic.error, bg: colors.semantic.errorBg };
-  if (isInactive)
-    return { Icon: PauseCircle, color: colors.text.muted, bg: colors.bg.muted };
+  if (isInactive) return { Icon: PauseCircle, color: colors.text.muted, bg: colors.bg.muted };
   return { Icon: Clock, color: colors.semantic.warning, bg: colors.semantic.warningBg };
 }
 
@@ -126,7 +128,15 @@ type TaskCardProps = Readonly<{
   onUnavailablePress: () => void;
 }>;
 
-function TaskCard({ item, filter, colors, styles, router, isReadOnly, onUnavailablePress }: TaskCardProps) {
+function TaskCard({
+  item,
+  filter,
+  colors,
+  styles,
+  router,
+  isReadOnly,
+  onUnavailablePress,
+}: TaskCardProps) {
   const isInactive = item.tarefas.ativo === false;
   const isUnavailable = isInactive && item.status === 'pendente';
   const icon = getStatusIcon(item, colors);
@@ -152,8 +162,10 @@ function TaskCard({ item, filter, colors, styles, router, isReadOnly, onUnavaila
         shadows.card,
         {
           backgroundColor: colors.bg.surface,
-          borderColor: isAwaiting ? withAlpha(colors.semantic.info, 0.4)
-            : isRejected ? withAlpha(colors.semantic.error, 0.4)
+          borderColor: isAwaiting
+            ? withAlpha(colors.semantic.info, 0.4)
+            : isRejected
+              ? withAlpha(colors.semantic.error, 0.4)
               : colors.border.subtle,
           opacity: pressed ? 0.92 : opacity,
         },
@@ -209,7 +221,12 @@ function RejectedActions({
   styles,
   colors,
   disabled,
-}: Readonly<{ item: ChildAssignment; styles: ReturnType<typeof makeStyles>; colors: ThemeColors; disabled?: boolean }>) {
+}: Readonly<{
+  item: ChildAssignment;
+  styles: ReturnType<typeof makeStyles>;
+  colors: ThemeColors;
+  disabled?: boolean;
+}>) {
   const discardMutation = useDiscardRejection();
   const retryState = getAssignmentRetryState(item);
   const plural = retryState.attemptsLeft === 1 ? '' : 's';
@@ -247,11 +264,12 @@ export default function ChildTasksScreen() {
   const { colors } = useTheme();
   const { impersonating } = useImpersonation();
   const isReadOnly = impersonating !== null;
+  const childScopeId = impersonating?.childId;
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const footerItems = useChildFooterItems();
 
   const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useChildAssignments();
+    useChildAssignments(childScopeId);
   const assignments = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
   const [filter, setFilter] = useState<Filter>('pendente');
   const [refreshing, setRefreshing] = useState(false);
@@ -275,9 +293,13 @@ export default function ChildTasksScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    try { await refetch(); }
-    catch (e) { Sentry.captureException(e); }
-    finally { setRefreshing(false); }
+    try {
+      await refetch();
+    } catch (e) {
+      Sentry.captureException(e);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const countByFilter = useMemo(() => {
@@ -296,7 +318,11 @@ export default function ChildTasksScreen() {
   );
 
   const filtered = useMemo(
-    () => sortChildAssignments(assignments.filter((a) => belongsToFilter(a, filter)), filter),
+    () =>
+      sortChildAssignments(
+        assignments.filter((a) => belongsToFilter(a, filter)),
+        filter,
+      ),
     [assignments, filter],
   );
 
@@ -311,19 +337,42 @@ export default function ChildTasksScreen() {
   const renderContent = () => {
     if (loading) return <ListScreenSkeleton />;
     if (shouldShowEmptyState)
-      return <EmptyState error={errorMessage} empty={!errorMessage} emptyMessage={emptyMessage} onRetry={handleRefresh} />;
+      return (
+        <EmptyState
+          error={errorMessage}
+          empty={!errorMessage}
+          emptyMessage={emptyMessage}
+          onRetry={handleRefresh}
+        />
+      );
     return (
       <FlashList
         data={filtered}
         keyExtractor={(item) => item.id}
         maintainVisibleContentPosition={{ disabled: true }}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brand.vivid} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.brand.vivid}
+          />
+        }
         ListHeaderComponent={<View style={{ height: spacing['4'] }} />}
         renderItem={({ item }) => (
-          <TaskCard item={item} filter={filter} colors={colors} styles={styles} router={router} isReadOnly={isReadOnly} onUnavailablePress={handleUnavailablePress} />
+          <TaskCard
+            item={item}
+            filter={filter}
+            colors={colors}
+            styles={styles}
+            router={router}
+            isReadOnly={isReadOnly}
+            onUnavailablePress={handleUnavailablePress}
+          />
         )}
-        onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
+        onEndReached={() => {
+          if (hasNextPage) fetchNextPage();
+        }}
         onEndReachedThreshold={0.3}
         ListFooterComponent={<ListFooter loading={isFetchingNextPage} />}
       />
@@ -341,7 +390,11 @@ export default function ChildTasksScreen() {
         </View>
       ) : null}
       {renderContent()}
-      <HomeFooterBar items={footerItems} activeRoute="/(child)/tasks" onNavigate={handleFooterNavigate} />
+      <HomeFooterBar
+        items={footerItems}
+        activeRoute="/(child)/tasks"
+        onNavigate={handleFooterNavigate}
+      />
     </SafeScreenFrame>
   );
 }

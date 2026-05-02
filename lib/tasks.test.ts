@@ -535,12 +535,7 @@ describe('tasks', () => {
   });
 
   it('allows completion when status is pendente and task is active', () => {
-    expect(
-      getAssignmentCompletionState(
-        { status: 'pendente' },
-        { ativo: true },
-      ),
-    ).toEqual({
+    expect(getAssignmentCompletionState({ status: 'pendente' }, { ativo: true })).toEqual({
       canComplete: true,
       reason: null,
     });
@@ -719,6 +714,15 @@ describe('tasks', () => {
     vi.useRealTimers();
   });
 
+  it('filters child assignments by child id when provided', async () => {
+    const query = createOrderQuery({ data: [], error: null });
+    supabaseMock.from.mockReturnValueOnce(query);
+
+    await listChildAssignments(0, 20, 'child-1');
+
+    expect(query.eq).toHaveBeenCalledWith('filho_id', 'child-1');
+  });
+
   it('uses the local (Brazil) date for competencia when UTC has already crossed midnight', async () => {
     vi.useFakeTimers();
     // 23:30 BRT = next day in UTC. The competencia filter must use the BRT date.
@@ -752,6 +756,19 @@ describe('tasks', () => {
       data: null,
       error: 'Algo deu errado. Tente novamente.',
     });
+  });
+
+  it('filters child assignment detail by child id when provided', async () => {
+    const query = createSingleQuery({
+      data: { id: 'assignment-1', filho_id: 'child-1', evidencia_url: null },
+      error: null,
+    });
+    supabaseMock.from.mockReturnValueOnce(query);
+
+    await getChildAssignment('assignment-1', 'child-1');
+
+    expect(query.eq).toHaveBeenCalledWith('id', 'assignment-1');
+    expect(query.eq).toHaveBeenCalledWith('filho_id', 'child-1');
   });
 
   it('signs a child assignment evidence url and returns null when the signed url fails', async () => {
@@ -1125,8 +1142,7 @@ describe('tasks', () => {
     });
 
     it('rejects URLs where the extracted path is a single segment — preserves original', async () => {
-      const flatUrl =
-        'https://example.com/storage/v1/object/public/evidencias/flat-file.jpg';
+      const flatUrl = 'https://example.com/storage/v1/object/public/evidencias/flat-file.jpg';
       supabaseMock.from.mockReturnValueOnce(
         createSingleQuery({
           data: { id: 'a-1', evidencia_url: flatUrl },
@@ -1424,7 +1440,9 @@ describe('tasks', () => {
         fc.constant('2025-06-15T10:00:00.000Z'),
         fc.constant('2024-01-01T00:00:00.000Z'),
         fc.constant('2030-12-31T23:59:59.000Z'),
-        fc.integer({ min: 1577836800000, max: 1924991999000 }).map((ms) => new Date(ms).toISOString()),
+        fc
+          .integer({ min: 1577836800000, max: 1924991999000 })
+          .map((ms) => new Date(ms).toISOString()),
       );
 
       fc.assert(
@@ -1636,10 +1654,7 @@ describe('tasks', () => {
     });
 
     it('contains singular form for 1 pending assignment', () => {
-      const message = buildTaskDeleteMessage([
-        { status: 'pendente' },
-        { status: 'aprovada' },
-      ]);
+      const message = buildTaskDeleteMessage([{ status: 'pendente' }, { status: 'aprovada' }]);
       expect(message).toContain('Esta ação é permanente e não pode ser desfeita.');
       expect(message).toContain('1 atribuição pendente será cancelada.');
     });

@@ -192,6 +192,15 @@ describe('listChildRedemptions', () => {
     expect(result.hasMore).toBe(false);
     expect(result.error).toBeNull();
   });
+
+  it('filters by child id when provided', async () => {
+    const chain = mockSelectChain([]);
+    supabaseMock.from.mockReturnValue(chain);
+
+    await listChildRedemptions(0, 20, 'child-1');
+
+    expect(chain.eq).toHaveBeenCalledWith('filho_id', 'child-1');
+  });
 });
 
 describe('requestRedemption', () => {

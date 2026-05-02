@@ -96,6 +96,12 @@ describe('use-children additional query hooks', () => {
       useMyChildId('user-123');
       expect(lastQueryOpts().enabled).toBe(true);
     });
+
+    it('useMyChildId includes userId in the query key', async () => {
+      const { useMyChildId } = await loadHooks();
+      useMyChildId('user-123');
+      expect(lastQueryOpts().queryKey).toEqual(queryKeys.children.myId('user-123'));
+    });
   });
 });
 

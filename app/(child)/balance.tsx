@@ -107,7 +107,9 @@ export default function ChildBalanceScreen() {
   const isReadOnly = impersonating !== null;
 
   const { data: profile } = useProfile();
-  const childIdQuery = useMyChildId(profile?.id);
+  const childIdQuery = useMyChildId(
+    !impersonating && profile?.papel === 'filho' ? profile.id : undefined,
+  );
   const ownChildId = childIdQuery.data ?? null;
   const childId = impersonating?.childId ?? ownChildId;
 
@@ -123,7 +125,7 @@ export default function ChildBalanceScreen() {
   const transferMutation = useTransferToPiggyBank();
   const withdrawalMutation = useRequestPiggyBankWithdrawal();
   const cancelWithdrawalMutation = useCancelPiggyBankWithdrawal();
-  const pendingWithdrawalQuery = useChildPendingWithdrawal();
+  const pendingWithdrawalQuery = useChildPendingWithdrawal(childId ?? undefined);
   const pendingWithdrawal = pendingWithdrawalQuery.data ?? null;
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -651,20 +653,14 @@ function BalanceListHeader({
               <Text style={[styles.rulesRateUnit, { color: colors.text.muted }]}>ao mês</Text>
             </View>
             {projection > 0 && piggyBank > 0 ? (
-              <View
-                style={[styles.projectionBox, { backgroundColor: colors.semantic.successBg }]}
-              >
+              <View style={[styles.projectionBox, { backgroundColor: colors.semantic.successBg }]}>
                 <View style={styles.projectionRow}>
                   <TrendingUp size={12} color={colors.semantic.successText} strokeWidth={2} />
-                  <Text
-                    style={[styles.projectionText, { color: colors.semantic.successText }]}
-                  >
+                  <Text style={[styles.projectionText, { color: colors.semantic.successText }]}>
                     Projeção: +{projection} pts no próximo mês
                   </Text>
                 </View>
-                <Text
-                  style={[styles.projectionDetail, { color: colors.semantic.successText }]}
-                >
+                <Text style={[styles.projectionDetail, { color: colors.semantic.successText }]}>
                   Sobre {piggyBank} pts no cofrinho a {appreciationRate}%
                 </Text>
               </View>
@@ -681,17 +677,13 @@ function BalanceListHeader({
 
         <View style={styles.rulesStatsRow}>
           <View style={[styles.rulesStat, { backgroundColor: colors.bg.muted }]}>
-            <Text style={[styles.rulesStatLabel, { color: colors.text.muted }]}>
-              TAXA DE SAQUE
-            </Text>
+            <Text style={[styles.rulesStatLabel, { color: colors.text.muted }]}>TAXA DE SAQUE</Text>
             <Text style={[styles.rulesStatValue, { color: colors.semantic.warning }]}>
               -{withdrawalRate}%
             </Text>
           </View>
           <View style={[styles.rulesStat, { backgroundColor: colors.bg.muted }]}>
-            <Text style={[styles.rulesStatLabel, { color: colors.text.muted }]}>
-              SEM TAXA APÓS
-            </Text>
+            <Text style={[styles.rulesStatLabel, { color: colors.text.muted }]}>SEM TAXA APÓS</Text>
             <Text style={[styles.rulesStatValue, { color: colors.semantic.success }]}>
               {prazoBloqueio} dias
             </Text>
@@ -702,9 +694,7 @@ function BalanceListHeader({
       <View style={styles.historicoHeader}>
         <Text style={styles.secaoTitulo}>Atividades de hoje</Text>
       </View>
-      {hasTransactions ? null : (
-        <Text style={styles.vazio}>Nenhuma movimentação hoje.</Text>
-      )}
+      {hasTransactions ? null : <Text style={styles.vazio}>Nenhuma movimentação hoje.</Text>}
     </>
   );
 }

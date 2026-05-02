@@ -35,10 +35,13 @@ export const useAdminRedemptions = () =>
     staleTime: STALE_TIMES.redemptions,
   });
 
-export const useChildRedemptions = () =>
+export const useChildRedemptions = (childId?: string) =>
   useInfiniteQuery({
-    queryKey: queryKeys.redemptions.child(),
-    queryFn: paginatedQueryFnAdapter(listChildRedemptions, PAGE_SIZES.redemptions),
+    queryKey: queryKeys.redemptions.child(childId),
+    queryFn: paginatedQueryFnAdapter(
+      (page, pageSize) => listChildRedemptions(page, pageSize, childId),
+      PAGE_SIZES.redemptions,
+    ),
     initialPageParam: 0,
     getNextPageParam: (
       lastPage: PaginatedPage<unknown>,

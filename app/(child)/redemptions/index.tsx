@@ -10,6 +10,7 @@ import { useChildFooterItems } from '@/hooks/use-footer-items';
 import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@lib/status';
 import { useChildRedemptions } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
+import { useImpersonation } from '@/context/impersonation-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, shadows, spacing, typography } from '@/constants/theme';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -25,6 +26,7 @@ type TabKey = 'pendentes' | 'concluidos' | 'todos';
 export default function ChildRedemptionsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { impersonating } = useImpersonation();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const footerItems = useChildFooterItems();
 
@@ -37,7 +39,7 @@ export default function ChildRedemptionsScreen() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useChildRedemptions();
+  } = useChildRedemptions(impersonating?.childId);
   const redemptions = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
 
   const [tab, setTab] = useState<TabKey>('pendentes');
@@ -131,7 +133,9 @@ export default function ChildRedemptionsScreen() {
                   <Text style={styles.emojiText}>{prizeEmoji}</Text>
                 </View>
                 <View style={styles.infoCol}>
-                  <Text style={styles.prizeName} numberOfLines={1}>{prizeName}</Text>
+                  <Text style={styles.prizeName} numberOfLines={1}>
+                    {prizeName}
+                  </Text>
                   <Text style={styles.dateText}>{formatDate(new Date(item.created_at))}</Text>
                 </View>
                 <View style={[styles.costBadge, { backgroundColor: colors.accent.filhoBg }]}>

@@ -106,17 +106,20 @@ export const useRenewRecurringTasks = (childId?: string) => {
 
   useEffect(() => {
     if (query.data) {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.childAssignments() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.childAssignments(childId) });
     }
-  }, [query.data, queryClient]);
+  }, [childId, query.data, queryClient]);
 
   return query;
 };
 
-export const useChildAssignments = () =>
+export const useChildAssignments = (childId?: string) =>
   useInfiniteQuery({
-    queryKey: queryKeys.tasks.childAssignments(),
-    queryFn: paginatedQueryFnAdapter(listChildAssignments, PAGE_SIZES.tasks),
+    queryKey: queryKeys.tasks.childAssignments(childId),
+    queryFn: paginatedQueryFnAdapter(
+      (page, pageSize) => listChildAssignments(page, pageSize, childId),
+      PAGE_SIZES.tasks,
+    ),
     initialPageParam: 0,
     getNextPageParam: (
       lastPage: PaginatedPage<unknown>,
@@ -126,10 +129,10 @@ export const useChildAssignments = () =>
     staleTime: STALE_TIMES.tasks,
   });
 
-export const useChildAssignment = (id: string | undefined) =>
+export const useChildAssignment = (id: string | undefined, childId?: string) =>
   useQuery({
-    queryKey: queryKeys.tasks.childAssignment(id!),
-    queryFn: queryFnAdapter(() => getChildAssignment(id!)),
+    queryKey: queryKeys.tasks.childAssignment(id!, childId),
+    queryFn: queryFnAdapter(() => getChildAssignment(id!, childId)),
     staleTime: STALE_TIMES.tasks,
     enabled: !!id,
   });

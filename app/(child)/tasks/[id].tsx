@@ -1,10 +1,31 @@
-import { Alert, ScrollView, StyleSheet, Text, View, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  Pressable,
+  ActivityIndicator,
+  RefreshControl,
+} from 'react-native';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { Camera, Clock, Trophy, Maximize2, Star, Calendar, Send, XCircle, RotateCcw, Trash2, CheckCircle2 } from 'lucide-react-native';
+import {
+  Camera,
+  Clock,
+  Trophy,
+  Maximize2,
+  Star,
+  Calendar,
+  Send,
+  XCircle,
+  RotateCcw,
+  Trash2,
+  CheckCircle2,
+} from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { hapticSuccess } from '@lib/haptics';
 import {
@@ -27,7 +48,14 @@ import {
 import { useTheme } from '@/context/theme-context';
 import { useImpersonation } from '@/context/impersonation-context';
 import type { ThemeColors } from '@/constants/theme';
-import { opacityDisabled, opacityPressed, radii, shadows, spacing, typography } from '@/constants/theme';
+import {
+  opacityDisabled,
+  opacityPressed,
+  radii,
+  shadows,
+  spacing,
+  typography,
+} from '@/constants/theme';
 import { TaskPointsPill } from '@/components/tasks/task-points-pill';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -219,13 +247,21 @@ function StatusActions(props: StatusActionsProps) {
       const requiresEvidence = assignment.exige_evidencia_snapshot;
       return (
         <>
-          {props.completionReason ? <InlineMessage message={props.completionReason} variant="warning" /> : null}
-          {!props.completionReason && props.completionError ? <InlineMessage message={props.completionError} variant="error" /> : null}
+          {props.completionReason ? (
+            <InlineMessage message={props.completionReason} variant="warning" />
+          ) : null}
+          {!props.completionReason && props.completionError ? (
+            <InlineMessage message={props.completionError} variant="error" />
+          ) : null}
           {props.completionReason ? null : (
             <ActionButton
               icon={requiresEvidence ? Camera : Send}
               title={requiresEvidence ? 'Tirar foto e concluir' : 'Concluir tarefa'}
-              description={requiresEvidence ? 'Abrir câmera e enviar comprovação' : 'Marcar como feita e enviar para aprovação'}
+              description={
+                requiresEvidence
+                  ? 'Abrir câmera e enviar comprovação'
+                  : 'Marcar como feita e enviar para aprovação'
+              }
               iconColor={colors.semantic.success}
               borderColor={colors.semantic.success + '66'}
               bgColor={colors.semantic.successBg}
@@ -248,8 +284,12 @@ function StatusActions(props: StatusActionsProps) {
               <Text style={styles.awaitingText}>Aguardando validação do responsável</Text>
             </View>
           </View>
-          {props.cancelReason ? <InlineMessage message={props.cancelReason} variant="warning" /> : null}
-          {!props.cancelReason && props.cancelError ? <InlineMessage message={props.cancelError} variant="error" /> : null}
+          {props.cancelReason ? (
+            <InlineMessage message={props.cancelReason} variant="warning" />
+          ) : null}
+          {!props.cancelReason && props.cancelError ? (
+            <InlineMessage message={props.cancelError} variant="error" />
+          ) : null}
           {props.cancelReason ? null : (
             <ActionButton
               icon={XCircle}
@@ -272,9 +312,15 @@ function StatusActions(props: StatusActionsProps) {
       const retryLabel = `Refazer e reenviar (${props.attemptsLeft} restante${props.attemptsLeft === 1 ? '' : 's'})`;
       return (
         <>
-          {props.retryReason ? <InlineMessage message={props.retryReason} variant="warning" /> : null}
-          {!props.retryReason && props.completionError ? <InlineMessage message={props.completionError} variant="error" /> : null}
-          {props.discardError ? <InlineMessage message={props.discardError} variant="error" /> : null}
+          {props.retryReason ? (
+            <InlineMessage message={props.retryReason} variant="warning" />
+          ) : null}
+          {!props.retryReason && props.completionError ? (
+            <InlineMessage message={props.completionError} variant="error" />
+          ) : null}
+          {props.discardError ? (
+            <InlineMessage message={props.discardError} variant="error" />
+          ) : null}
           {props.canRetry ? (
             <ActionButton
               icon={RotateCcw}
@@ -366,14 +412,19 @@ export default function ChildTaskDetailScreen() {
   const isReadOnly = impersonating !== null;
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const { data: assignment, isLoading, error, refetch } = useChildAssignment(id);
+  const {
+    data: assignment,
+    isLoading,
+    error,
+    refetch,
+  } = useChildAssignment(id, impersonating?.childId);
   const { data: profile } = useProfile();
   const completeMutation = useCompleteAssignment();
   const cancelMutation = useCancelAssignmentSubmission();
   const discardMutation = useDiscardRejection();
 
   // Stats: all assignments for this task (used for approval count / points earned)
-  const allAssignmentsQuery = useChildAssignments();
+  const allAssignmentsQuery = useChildAssignments(impersonating?.childId);
   const taskAssignments = useMemo(() => {
     if (!assignment) return [];
     const all = allAssignmentsQuery.data?.pages.flatMap((p) => p.data) ?? [];
@@ -384,7 +435,10 @@ export default function ChildTaskDetailScreen() {
     [taskAssignments],
   );
   const totalPointsEarned = useMemo(
-    () => taskAssignments.filter((a) => a.status === 'aprovada').reduce((sum, a) => sum + getAssignmentPoints(a), 0),
+    () =>
+      taskAssignments
+        .filter((a) => a.status === 'aprovada')
+        .reduce((sum, a) => sum + getAssignmentPoints(a), 0),
     [taskAssignments],
   );
 
@@ -653,12 +707,7 @@ function AssignmentDetailContent({
     <>
       <SafeScreenFrame bottomInset>
         <StatusBar style={colors.statusBar} />
-        <ScreenHeader
-          title="Detalhe"
-          onBack={onBack}
-          backLabel="Tarefas"
-          role="filho"
-        />
+        <ScreenHeader title="Detalhe" onBack={onBack} backLabel="Tarefas" role="filho" />
 
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -728,13 +777,27 @@ function AssignmentDetailContent({
           {/* ─── Quick stats (same as admin) ─── */}
           {approvedCount > 0 ? (
             <View style={styles.statsGrid}>
-              <View style={[styles.statCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
+              <View
+                style={[
+                  styles.statCard,
+                  { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+                ]}
+              >
                 <Text style={[styles.statLabel, { color: colors.text.muted }]}>Aprovações</Text>
-                <Text style={[styles.statValue, { color: colors.semantic.success }]}>{approvedCount}</Text>
+                <Text style={[styles.statValue, { color: colors.semantic.success }]}>
+                  {approvedCount}
+                </Text>
               </View>
-              <View style={[styles.statCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
+              <View
+                style={[
+                  styles.statCard,
+                  { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+                ]}
+              >
                 <Text style={[styles.statLabel, { color: colors.text.muted }]}>Pontos ganhos</Text>
-                <Text style={[styles.statValue, { color: colors.text.primary }]}>{totalPointsEarned}</Text>
+                <Text style={[styles.statValue, { color: colors.text.primary }]}>
+                  {totalPointsEarned}
+                </Text>
               </View>
             </View>
           ) : null}
@@ -791,11 +854,7 @@ function AssignmentDetailContent({
       </SafeScreenFrame>
 
       {fullscreenImageUrl ? (
-        <FullscreenImageViewer
-          visible
-          imageUrl={fullscreenImageUrl}
-          onClose={onCloseFullscreen}
-        />
+        <FullscreenImageViewer visible imageUrl={fullscreenImageUrl} onClose={onCloseFullscreen} />
       ) : null}
     </>
   );

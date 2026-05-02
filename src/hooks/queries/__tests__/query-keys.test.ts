@@ -89,6 +89,46 @@ describe('Property 1: Query key hierarchy enables prefix invalidation', () => {
   }
 });
 
+describe('scoped child query keys', () => {
+  it('separates child-facing caches by child id and self sentinel', () => {
+    expect(queryKeys.tasks.childAssignments()).toEqual(['tasks', 'child-assignments', 'self']);
+    expect(queryKeys.tasks.childAssignments('child-1')).toEqual([
+      'tasks',
+      'child-assignments',
+      'child-1',
+    ]);
+    expect(queryKeys.tasks.childAssignment('assignment-1')).toEqual([
+      'tasks',
+      'child-assignment',
+      'assignment-1',
+      'self',
+    ]);
+    expect(queryKeys.tasks.childAssignment('assignment-1', 'child-1')).toEqual([
+      'tasks',
+      'child-assignment',
+      'assignment-1',
+      'child-1',
+    ]);
+
+    expect(queryKeys.redemptions.child()).toEqual(['redemptions', 'child', 'self']);
+    expect(queryKeys.redemptions.child('child-1')).toEqual(['redemptions', 'child', 'child-1']);
+
+    expect(queryKeys.piggyBankWithdrawals.childPending()).toEqual([
+      'piggy-bank-withdrawals',
+      'child-pending',
+      'self',
+    ]);
+    expect(queryKeys.piggyBankWithdrawals.childPending('child-1')).toEqual([
+      'piggy-bank-withdrawals',
+      'child-pending',
+      'child-1',
+    ]);
+
+    expect(queryKeys.children.myId()).toEqual(['children', 'my-id', 'unknown']);
+    expect(queryKeys.children.myId('user-1')).toEqual(['children', 'my-id', 'user-1']);
+  });
+});
+
 describe('STALE_TIMES', () => {
   it('has expected values per domain', () => {
     expect(STALE_TIMES.tasks).toBe(30_000);

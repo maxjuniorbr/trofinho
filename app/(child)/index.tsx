@@ -29,7 +29,12 @@ import {
   RotateCcw,
 } from 'lucide-react-native';
 import { getGreeting } from '@lib/utils';
-import { getAssignmentPoints, getAssignmentRetryState, formatWeekdays, type ChildAssignment } from '@lib/tasks';
+import {
+  getAssignmentPoints,
+  getAssignmentRetryState,
+  formatWeekdays,
+  type ChildAssignment,
+} from '@lib/tasks';
 import { isNotificationPermissionDenied } from '@lib/notifications';
 import { useChildUnreadNotifCount } from '@/hooks/use-notification-inbox';
 import {
@@ -43,7 +48,15 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/context/theme-context';
 import { useImpersonation } from '@/context/impersonation-context';
-import { opacityDisabled, opacityPressed, radii, shadows, spacing, staticTextColors, typography } from '@/constants/theme';
+import {
+  opacityDisabled,
+  opacityPressed,
+  radii,
+  shadows,
+  spacing,
+  staticTextColors,
+  typography,
+} from '@/constants/theme';
 import { gradients, heroPalette } from '@/constants/shadows';
 import { NotificationPermissionBanner } from '@/components/ui/notification-permission-banner';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
@@ -70,13 +83,16 @@ export default function FilhoHomeScreen() {
 
   const profileQuery = useProfile();
   const profile = profileQuery.data ?? null;
-  const firstName = impersonating ? impersonating.childName.split(' ')[0] : (profile?.nome?.split(' ')[0] ?? 'Campeão');
+  const firstName = impersonating
+    ? impersonating.childName.split(' ')[0]
+    : (profile?.nome?.split(' ')[0] ?? 'Campeão');
   const unreadNotifs = useChildUnreadNotifCount();
   const bellLabel = unreadNotifs > 0 ? `Notificações, ${unreadNotifs} não lidas` : 'Notificações';
 
   const familyQuery = useFamily(profile?.familia_id);
 
-  const assignmentsQuery = useChildAssignments();
+  const childScopeId = impersonating?.childId;
+  const assignmentsQuery = useChildAssignments(childScopeId);
   useRenewRecurringTasks(impersonating?.childId);
   const assignments = useMemo(
     () => assignmentsQuery.data?.pages.flatMap((p) => p.data) ?? [],
@@ -94,7 +110,12 @@ export default function FilhoHomeScreen() {
   );
 
   const pendingTasks = useMemo(
-    () => assignments.filter((a) => a.status === 'pendente' || (a.status === 'rejeitada' && getAssignmentRetryState(a).canRetry)),
+    () =>
+      assignments.filter(
+        (a) =>
+          a.status === 'pendente' ||
+          (a.status === 'rejeitada' && getAssignmentRetryState(a).canRetry),
+      ),
     [assignments],
   );
 
@@ -201,9 +222,7 @@ export default function FilhoHomeScreen() {
 
         <View style={styles.hero}>
           <View style={styles.heroText}>
-            <Text style={[styles.heroSub, { color: colors.text.secondary }]}>
-              {getGreeting()}
-            </Text>
+            <Text style={[styles.heroSub, { color: colors.text.secondary }]}>{getGreeting()}</Text>
             <Text style={[styles.heroTitle, { color: colors.text.primary }]}>
               Olá, {firstName}!
             </Text>
@@ -235,7 +254,9 @@ export default function FilhoHomeScreen() {
           onPress={() => router.push('/(child)/balance')}
           accessibilityRole="button"
           accessibilityLabel={`Saldo total: ${totalBalance} pontos, ver detalhes`}
-          style={({ pressed }) => [pressed && { opacity: opacityPressed.surface, transform: [{ scale: 0.98 }] }]}
+          style={({ pressed }) => [
+            pressed && { opacity: opacityPressed.surface, transform: [{ scale: 0.98 }] },
+          ]}
         >
           <LinearGradient
             colors={gradients.heroNavy.colors}
@@ -277,18 +298,14 @@ export default function FilhoHomeScreen() {
             <View style={styles.summaryBoxRow}>
               <View style={styles.summaryBox}>
                 <Text style={styles.summaryBoxLabel}>LIVRE</Text>
-                <Text style={styles.summaryBoxValue}>
-                  {freeBalance.toLocaleString('pt-BR')}
-                </Text>
+                <Text style={styles.summaryBoxValue}>{freeBalance.toLocaleString('pt-BR')}</Text>
               </View>
               <View style={styles.summaryBox}>
                 <View style={styles.summaryBoxLabelRow}>
                   <PiggyBank size={14} color={heroPalette.textOnNavySubtle} strokeWidth={1.5} />
                   <Text style={styles.summaryBoxLabel}>COFRINHO</Text>
                 </View>
-                <Text style={styles.summaryBoxValue}>
-                  {piggyBank.toLocaleString('pt-BR')}
-                </Text>
+                <Text style={styles.summaryBoxValue}>{piggyBank.toLocaleString('pt-BR')}</Text>
               </View>
             </View>
           </LinearGradient>
@@ -316,9 +333,7 @@ export default function FilhoHomeScreen() {
         </View>
 
         {pendingTasks.length === 0 ? (
-          <Text style={[styles.emptyTasksHint, { color: colors.text.muted }]}>
-            Nada para hoje!
-          </Text>
+          <Text style={[styles.emptyTasksHint, { color: colors.text.muted }]}>Nada para hoje!</Text>
         ) : (
           <View style={styles.taskList}>
             {pendingTasks.map((task) => (
@@ -336,16 +351,28 @@ export default function FilhoHomeScreen() {
 
         {/* Stats */}
         <View style={styles.statsRow}>
-          <View style={[styles.statCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
+          <View
+            style={[
+              styles.statCard,
+              { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+            ]}
+          >
             <View style={[styles.statIconBox, { backgroundColor: colors.semantic.successBg }]}>
               <CheckCircle2 size={16} color={colors.semantic.success} strokeWidth={2.5} />
             </View>
             <View>
-              <Text style={[styles.statValue, { color: colors.text.primary }]}>{completedCount}</Text>
+              <Text style={[styles.statValue, { color: colors.text.primary }]}>
+                {completedCount}
+              </Text>
               <Text style={[styles.statLabel, { color: colors.text.muted }]}>CONCLUÍDAS</Text>
             </View>
           </View>
-          <View style={[styles.statCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
+          <View
+            style={[
+              styles.statCard,
+              { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+            ]}
+          >
             <View style={[styles.statIconBox, { backgroundColor: colors.accent.filhoBg }]}>
               <PiggyBank size={16} color={colors.accent.filho} strokeWidth={2.5} />
             </View>
@@ -385,10 +412,17 @@ function PendingTaskCard({ task, isReadOnly, colors, styles, onPress }: PendingT
       ]}
     >
       <View style={styles.taskCardRow}>
-        <View style={[styles.taskIconCircle, { backgroundColor: isRejected ? colors.semantic.errorBg : colors.bg.muted }]}>
-          {isRejected
-            ? <AlertTriangle size={16} color={colors.semantic.error} strokeWidth={2} />
-            : <Clock size={16} color={colors.text.muted} strokeWidth={2} />}
+        <View
+          style={[
+            styles.taskIconCircle,
+            { backgroundColor: isRejected ? colors.semantic.errorBg : colors.bg.muted },
+          ]}
+        >
+          {isRejected ? (
+            <AlertTriangle size={16} color={colors.semantic.error} strokeWidth={2} />
+          ) : (
+            <Clock size={16} color={colors.text.muted} strokeWidth={2} />
+          )}
         </View>
         <View style={styles.taskCardInfo}>
           <Text style={[styles.taskCardTitle, { color: colors.text.primary }]} numberOfLines={2}>
@@ -406,7 +440,9 @@ function PendingTaskCard({ task, isReadOnly, colors, styles, onPress }: PendingT
             ) : null}
             {isRejected ? (
               <View style={[styles.taskCardBadge, { backgroundColor: colors.semantic.errorBg }]}>
-                <Text style={[styles.taskCardBadgeText, { color: colors.semantic.error }]}>Rejeitada</Text>
+                <Text style={[styles.taskCardBadgeText, { color: colors.semantic.error }]}>
+                  Rejeitada
+                </Text>
               </View>
             ) : null}
           </View>
@@ -423,23 +459,33 @@ function PendingTaskCard({ task, isReadOnly, colors, styles, onPress }: PendingT
         onPress={onPress}
         disabled={isReadOnly}
         accessibilityRole="button"
-        accessibilityLabel={isRejected ? `Refazer tarefa ${task.titulo_snapshot}` : `Concluir tarefa ${task.titulo_snapshot}`}
+        accessibilityLabel={
+          isRejected
+            ? `Refazer tarefa ${task.titulo_snapshot}`
+            : `Concluir tarefa ${task.titulo_snapshot}`
+        }
         accessibilityState={{ disabled: isReadOnly }}
       >
         {isRejected ? (
           <>
             <RotateCcw size={14} color={colors.text.inverse} strokeWidth={2.5} />
-            <Text style={[styles.taskActionText, { color: colors.text.inverse }]}>Refazer e reenviar</Text>
+            <Text style={[styles.taskActionText, { color: colors.text.inverse }]}>
+              Refazer e reenviar
+            </Text>
           </>
         ) : requiresEvidence ? (
           <>
             <Camera size={14} color={colors.text.onBrand} strokeWidth={2.5} />
-            <Text style={[styles.taskActionText, { color: colors.text.onBrand }]}>Enviar com foto</Text>
+            <Text style={[styles.taskActionText, { color: colors.text.onBrand }]}>
+              Enviar com foto
+            </Text>
           </>
         ) : (
           <>
             <Send size={14} color={colors.text.onBrand} strokeWidth={2.5} />
-            <Text style={[styles.taskActionText, { color: colors.text.onBrand }]}>Marcar como feita</Text>
+            <Text style={[styles.taskActionText, { color: colors.text.onBrand }]}>
+              Marcar como feita
+            </Text>
           </>
         )}
       </Pressable>
