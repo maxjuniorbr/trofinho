@@ -16,11 +16,7 @@ import type { UserProfile } from './auth';
  */
 
 /** The passthrough routes that bypass the orphan → onboarding redirect. */
-const AUTH_PASSTHROUGH_ROUTES = [
-  'onboarding',
-  'join-family',
-  'join-child',
-] as const;
+const AUTH_PASSTHROUGH_ROUTES = ['onboarding', 'join-family', 'join-child'] as const;
 
 /** Non-passthrough route segments that should trigger the onboarding redirect. */
 const NON_PASSTHROUGH_SEGMENTS = [
@@ -53,9 +49,9 @@ const orphanProfileArb: fc.Arbitrary<UserProfile> = fc.record({
 const nonPassthroughSegmentArb: fc.Arbitrary<string> = fc.oneof(
   fc.constantFrom(...NON_PASSTHROUGH_SEGMENTS),
   // Also generate random strings that are NOT passthrough routes
-  fc.string({ minLength: 1, maxLength: 30 }).filter(
-    (s) => !(AUTH_PASSTHROUGH_ROUTES as readonly string[]).includes(s) && s.length > 0,
-  ),
+  fc
+    .string({ minLength: 1, maxLength: 30 })
+    .filter((s) => !(AUTH_PASSTHROUGH_ROUTES as readonly string[]).includes(s) && s.length > 0),
 );
 
 /** Arbitrary: random route group. */
@@ -100,33 +96,26 @@ describe('Feature: google-oauth-migration, Property 2: Nav Guard redireciona usu
 
   it('redirects orphan users to onboarding when segments have no second element (root route)', () => {
     fc.assert(
-      fc.property(
-        orphanProfileArb,
-        routeGroupArb,
-        (profile, group) => {
-          const segments = [group];
-          const result = resolveNavDecision(true, profile, segments);
+      fc.property(orphanProfileArb, routeGroupArb, (profile, group) => {
+        const segments = [group];
+        const result = resolveNavDecision(true, profile, segments);
 
-          // seg1 is undefined → AUTH_PASSTHROUGH_ROUTES.has(undefined ?? '') → false
-          // So it should redirect to onboarding
-          expect(result).toBe('/(auth)/onboarding');
-        },
-      ),
+        // seg1 is undefined → AUTH_PASSTHROUGH_ROUTES.has(undefined ?? '') → false
+        // So it should redirect to onboarding
+        expect(result).toBe('/(auth)/onboarding');
+      }),
       { numRuns: 100 },
     );
   });
 
   it('redirects orphan users to onboarding when segments are empty', () => {
     fc.assert(
-      fc.property(
-        orphanProfileArb,
-        (profile) => {
-          const segments: string[] = [];
-          const result = resolveNavDecision(true, profile, segments);
+      fc.property(orphanProfileArb, (profile) => {
+        const segments: string[] = [];
+        const result = resolveNavDecision(true, profile, segments);
 
-          expect(result).toBe('/(auth)/onboarding');
-        },
-      ),
+        expect(result).toBe('/(auth)/onboarding');
+      }),
       { numRuns: 100 },
     );
   });
@@ -140,26 +129,21 @@ describe('Feature: google-oauth-migration, Property 2: Nav Guard redireciona usu
       fc.string({ minLength: 0, maxLength: 30 }),
     );
 
-    const segmentsArb: fc.Arbitrary<string[]> = fc.tuple(
-      routeGroupArb,
-      fc.option(anySegmentArb, { nil: undefined }),
-    ).map(([group, seg1]) => seg1 !== undefined ? [group, seg1] : [group]);
+    const segmentsArb: fc.Arbitrary<string[]> = fc
+      .tuple(routeGroupArb, fc.option(anySegmentArb, { nil: undefined }))
+      .map(([group, seg1]) => (seg1 !== undefined ? [group, seg1] : [group]));
 
     fc.assert(
-      fc.property(
-        orphanProfileArb,
-        segmentsArb,
-        (profile, segments) => {
-          const result = resolveNavDecision(true, profile, segments);
-          const seg1 = segments[1] as string | undefined;
+      fc.property(orphanProfileArb, segmentsArb, (profile, segments) => {
+        const result = resolveNavDecision(true, profile, segments);
+        const seg1 = segments[1] as string | undefined;
 
-          if (passthroughSet.has(seg1 ?? '')) {
-            expect(result).toBeNull();
-          } else {
-            expect(result).toBe('/(auth)/onboarding');
-          }
-        },
-      ),
+        if (passthroughSet.has(seg1 ?? '')) {
+          expect(result).toBeNull();
+        } else {
+          expect(result).toBe('/(auth)/onboarding');
+        }
+      }),
       { numRuns: 100 },
     );
   });
@@ -236,31 +220,42 @@ const authSubRouteArb: fc.Arbitrary<string> = fc.oneof(
 
 /** Non-auth sub-route segments. */
 const appSubRouteArb: fc.Arbitrary<string> = fc.oneof(
-  fc.constantFrom('index', 'tasks', 'balance', 'children', 'prizes', 'notifications', 'historico', 'redemptions'),
+  fc.constantFrom(
+    'index',
+    'tasks',
+    'balance',
+    'children',
+    'prizes',
+    'notifications',
+    'historico',
+    'redemptions',
+  ),
   fc.string({ minLength: 1, maxLength: 20 }),
 );
 
 /** Segments arbitrary covering all route group patterns and empty segments. */
-const segmentsArb: fc.Arbitrary<string[]> = fc.oneof(
-  // Empty segments
-  fc.constant([] as string[]),
-  // Root-level segment (e.g. ['index'])
-  fc.constant(['index'] as string[]),
-  // Auth group with sub-route
-  authSubRouteArb.map((sub) => ['(auth)', sub]),
-  // Auth group alone
-  fc.constant(['(auth)'] as string[]),
-  // Admin group with optional sub-route
-  fc.oneof(
-    fc.constant(['(admin)'] as string[]),
-    appSubRouteArb.map((sub) => ['(admin)', sub]),
-  ),
-  // Child group with optional sub-route
-  fc.oneof(
-    fc.constant(['(child)'] as string[]),
-    appSubRouteArb.map((sub) => ['(child)', sub]),
-  ),
-).map((arr) => [...arr]);
+const segmentsArb: fc.Arbitrary<string[]> = fc
+  .oneof(
+    // Empty segments
+    fc.constant([] as string[]),
+    // Root-level segment (e.g. ['index'])
+    fc.constant(['index'] as string[]),
+    // Auth group with sub-route
+    authSubRouteArb.map((sub) => ['(auth)', sub]),
+    // Auth group alone
+    fc.constant(['(auth)'] as string[]),
+    // Admin group with optional sub-route
+    fc.oneof(
+      fc.constant(['(admin)'] as string[]),
+      appSubRouteArb.map((sub) => ['(admin)', sub]),
+    ),
+    // Child group with optional sub-route
+    fc.oneof(
+      fc.constant(['(child)'] as string[]),
+      appSubRouteArb.map((sub) => ['(child)', sub]),
+    ),
+  )
+  .map((arr) => [...arr]);
 
 const passthroughSet = new Set<string>(AUTH_PASSTHROUGH_ROUTES);
 
@@ -311,10 +306,10 @@ describe('Feature: admin-onboarding-journey, Property 1: Tabela de decisão do G
   it('matches the complete decision table for all random input combinations', () => {
     fc.assert(
       fc.property(
-        fc.boolean(),          // ready
-        profileStateArb,       // profile
-        segmentsArb,           // segments
-        fc.boolean(),          // isImpersonating
+        fc.boolean(), // ready
+        profileStateArb, // profile
+        segmentsArb, // segments
+        fc.boolean(), // isImpersonating
         (ready, profile, segments, isImpersonating) => {
           const actual = resolveNavDecision(ready, profile, segments, isImpersonating);
           const expected = expectedDecision(ready, profile, segments, isImpersonating);
@@ -343,14 +338,10 @@ describe('Feature: admin-onboarding-journey, Property 1: Tabela de decisão do G
 
   it('returns null when profile is undefined (loading), regardless of other inputs', () => {
     fc.assert(
-      fc.property(
-        segmentsArb,
-        fc.boolean(),
-        (segments, isImpersonating) => {
-          const result = resolveNavDecision(true, undefined, segments, isImpersonating);
-          expect(result).toBeNull();
-        },
-      ),
+      fc.property(segmentsArb, fc.boolean(), (segments, isImpersonating) => {
+        const result = resolveNavDecision(true, undefined, segments, isImpersonating);
+        expect(result).toBeNull();
+      }),
       { numRuns: 100 },
     );
   });
@@ -359,13 +350,10 @@ describe('Feature: admin-onboarding-journey, Property 1: Tabela de decisão do G
     const nonAuthSegmentsArb = segmentsArb.filter((s) => s[0] !== '(auth)');
 
     fc.assert(
-      fc.property(
-        nonAuthSegmentsArb,
-        (segments) => {
-          const result = resolveNavDecision(true, null, segments);
-          expect(result).toBe('/(auth)/login');
-        },
-      ),
+      fc.property(nonAuthSegmentsArb, (segments) => {
+        const result = resolveNavDecision(true, null, segments);
+        expect(result).toBe('/(auth)/login');
+      }),
       { numRuns: 100 },
     );
   });
@@ -374,13 +362,10 @@ describe('Feature: admin-onboarding-journey, Property 1: Tabela de decisão do G
     const authSegmentsArb = segmentsArb.filter((s) => s[0] === '(auth)');
 
     fc.assert(
-      fc.property(
-        authSegmentsArb,
-        (segments) => {
-          const result = resolveNavDecision(true, null, segments);
-          expect(result).toBeNull();
-        },
-      ),
+      fc.property(authSegmentsArb, (segments) => {
+        const result = resolveNavDecision(true, null, segments);
+        expect(result).toBeNull();
+      }),
       { numRuns: 100 },
     );
   });
@@ -451,30 +436,22 @@ describe('Feature: admin-onboarding-journey, Property 1: Tabela de decisão do G
 
   it('redirects admin to /(admin)/ when in wrong group (child) without impersonation', () => {
     fc.assert(
-      fc.property(
-        adminWithFamilyArb,
-        appSubRouteArb,
-        (profile, subRoute) => {
-          const segments = ['(child)', subRoute];
-          const result = resolveNavDecision(true, profile, segments, false);
-          expect(result).toBe('/(admin)/');
-        },
-      ),
+      fc.property(adminWithFamilyArb, appSubRouteArb, (profile, subRoute) => {
+        const segments = ['(child)', subRoute];
+        const result = resolveNavDecision(true, profile, segments, false);
+        expect(result).toBe('/(admin)/');
+      }),
       { numRuns: 100 },
     );
   });
 
   it('returns null when admin is in (child) group with impersonation enabled', () => {
     fc.assert(
-      fc.property(
-        adminWithFamilyArb,
-        appSubRouteArb,
-        (profile, subRoute) => {
-          const segments = ['(child)', subRoute];
-          const result = resolveNavDecision(true, profile, segments, true);
-          expect(result).toBeNull();
-        },
-      ),
+      fc.property(adminWithFamilyArb, appSubRouteArb, (profile, subRoute) => {
+        const segments = ['(child)', subRoute];
+        const result = resolveNavDecision(true, profile, segments, true);
+        expect(result).toBeNull();
+      }),
       { numRuns: 100 },
     );
   });
@@ -500,7 +477,8 @@ describe('Feature: admin-onboarding-journey, Property 1: Tabela de decisão do G
     const emptyOrUnknownSegments = fc.oneof(
       fc.constant([] as string[]),
       fc.constant(['index'] as string[]),
-      fc.string({ minLength: 1, maxLength: 20 })
+      fc
+        .string({ minLength: 1, maxLength: 20 })
         .filter((s) => !['(auth)', '(admin)', '(child)'].includes(s))
         .map((s) => [s]),
     );
