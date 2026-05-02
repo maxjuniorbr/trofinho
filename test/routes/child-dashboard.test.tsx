@@ -6,6 +6,7 @@ import FilhoHomeScreen from '../../app/(child)/index';
 
 const routerMock = vi.hoisted(() => ({
   push: vi.fn(),
+  replace: vi.fn(),
 }));
 
 const profileMock = vi.hoisted(() => ({
@@ -332,7 +333,7 @@ describe('FilhoHomeScreen', () => {
     act(() => {
       tarefasButton.props.onPress();
     });
-    expect(routerMock.push).toHaveBeenCalledWith('/(child)/tasks');
+    expect(routerMock.replace).toHaveBeenCalledWith('/(child)/tasks');
   });
 
   it('navigates to balance on summary card press', () => {

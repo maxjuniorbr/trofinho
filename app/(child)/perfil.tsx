@@ -12,7 +12,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ChevronRight, Info, User } from 'lucide-react-native';
+import { ChevronRight, Info, LogOut, User } from 'lucide-react-native';
 import { getAppVersion } from '@lib/app-version';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { HomeFooterBar } from '@/components/ui/home-footer-bar';
@@ -21,6 +21,7 @@ import { LogoutButton } from '@/components/ui/logout-button';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { AvatarSection } from '@/components/profile/avatar-section';
 import { PersonalDataSheet } from '@/components/profile/personal-data-sheet';
+import { ConfirmSheet } from '@/components/ui/confirm-sheet';
 import { ThemeCard } from '@/components/profile/theme-card';
 import { NotificationCard } from '@/components/profile/notification-card';
 import { Button } from '@/components/ui/button';
@@ -75,6 +76,7 @@ export default function ChildProfileScreen() {
   );
   const [savingNotificationPreferences, setSavingNotificationPreferences] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [showSignOutSheet, setShowSignOutSheet] = useState(false);
   const [showPersonalData, setShowPersonalData] = useState(false);
   const deleteAccountMutation = useDeleteAccount();
 
@@ -105,6 +107,11 @@ export default function ChildProfileScreen() {
       Sentry.captureException(e);
       setLoggingOut(false);
     }
+  };
+
+  const handleSignOutConfirm = async () => {
+    setShowSignOutSheet(false);
+    await handleSignOut();
   };
 
   const handleNotificationPreferencesChange = async (next: NotificationPrefs) => {
@@ -202,7 +209,7 @@ export default function ChildProfileScreen() {
                 </View>
               </SectionCard>
 
-              <LogoutButton onPress={handleSignOut} loading={loggingOut} disabled={isReadOnly} />
+              <LogoutButton onPress={() => setShowSignOutSheet(true)} loading={loggingOut} disabled={isReadOnly} />
 
               <Button
                 variant="danger"
@@ -229,6 +236,21 @@ export default function ChildProfileScreen() {
         profile={profile}
         email={email}
         onNameUpdated={(name) => setLocalName(name)}
+      />
+
+      <ConfirmSheet
+        visible={showSignOutSheet}
+        onClose={() => setShowSignOutSheet(false)}
+        icon={LogOut}
+        iconVariant="warning"
+        title="Sair da conta?"
+        description="Você precisará entrar novamente com o código da família."
+        confirmLabel="Sair"
+        loadingLabel="Saindo…"
+        confirmVariant="danger"
+        cancelLabel="Cancelar"
+        onConfirm={handleSignOutConfirm}
+        loading={loggingOut}
       />
     </>
   );

@@ -447,9 +447,9 @@ export default function JoinChildScreen() {
                 onClose={() => setShowLeaveSheet(false)}
                 icon={LogOut}
                 iconVariant="warning"
-                title="Cancelar e sair?"
-                description="Sua conta Google será desvinculada e você precisará entrar novamente para continuar."
-                confirmLabel="Cancelar e sair"
+                title="Sair desta etapa?"
+                description="Sua conta Google será desconectada. Você pode entrar novamente quando quiser."
+                confirmLabel="Sair e desconectar"
                 confirmVariant="danger"
                 cancelLabel="Continuar"
                 onConfirm={handleCancelAndSignOutConfirm}

@@ -141,7 +141,7 @@ export default function FilhoHomeScreen() {
 
   const handleNavigate = useCallback(
     (rota: string) => {
-      if (rota !== 'index') router.push(rota as never);
+      if (rota !== 'index') router.replace(rota as never);
     },
     [router],
   );

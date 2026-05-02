@@ -98,6 +98,7 @@ vi.mock('lucide-react-native', () => ({
   Gift: createHostComponent('Gift'),
   House: createHostComponent('House'),
   Info: createHostComponent('Info'),
+  LogOut: createHostComponent('LogOut'),
   ShoppingBag: createHostComponent('ShoppingBag'),
   User: createHostComponent('User'),
 }));
@@ -133,6 +134,10 @@ vi.mock('@/components/profile/avatar-section', () => ({
 vi.mock('@/components/profile/personal-data-sheet', () => ({
   PersonalDataSheet: (props: Record<string, unknown>) =>
     React.createElement('PersonalDataSheet', props),
+}));
+
+vi.mock('@/components/ui/confirm-sheet', () => ({
+  ConfirmSheet: (props: Record<string, unknown>) => React.createElement('ConfirmSheet', props),
 }));
 
 vi.mock('@/components/profile/theme-card', () => ({
@@ -260,8 +265,13 @@ describe('ChildProfileScreen', () => {
   it('calls signOut when logout button is pressed', async () => {
     const renderer = render(<ChildProfileScreen />);
     const logoutBtn = renderer.root.findByType('LogoutButton' as never);
+    act(() => {
+      logoutBtn.props.onPress();
+    });
+    const confirmSheet = renderer.root.findByType('ConfirmSheet' as never);
+    expect(confirmSheet.props.visible).toBe(true);
     await act(async () => {
-      await logoutBtn.props.onPress();
+      await confirmSheet.props.onConfirm();
     });
     expect(signOutMock).toHaveBeenCalled();
   });

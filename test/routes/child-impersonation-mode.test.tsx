@@ -267,6 +267,7 @@ vi.mock('lucide-react-native', () => ({
     UserCircle: (props: Record<string, unknown>) => React.createElement('UserCircle', props),
     ChevronRight: createHostComponent('ChevronRight'),
     Info: createHostComponent('Info'),
+    LogOut: createHostComponent('LogOut'),
     User: createHostComponent('User'),
     Star: (props: Record<string, unknown>) => React.createElement('Star', props),
 }));
@@ -393,6 +394,10 @@ vi.mock('@/components/profile/avatar-section', () => ({
 vi.mock('@/components/profile/personal-data-sheet', () => ({
     PersonalDataSheet: (props: Record<string, unknown>) =>
         React.createElement('PersonalDataSheet', props),
+}));
+
+vi.mock('@/components/ui/confirm-sheet', () => ({
+    ConfirmSheet: (props: Record<string, unknown>) => React.createElement('ConfirmSheet', props),
 }));
 
 vi.mock('@/components/profile/theme-card', () => ({

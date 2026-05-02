@@ -33,7 +33,7 @@ type Filter = 'pendente' | 'aguardando_validacao' | 'historico';
 const FILTERS: SegmentOption<Filter>[] = [
   { key: 'pendente', label: 'Para fazer' },
   { key: 'aguardando_validacao', label: 'Enviadas' },
-  { key: 'historico', label: 'Finalizadas' },
+  { key: 'historico', label: 'Concluídas' },
 ];
 
 function belongsToFilter(assignment: ChildAssignment, filter: Filter): boolean {
