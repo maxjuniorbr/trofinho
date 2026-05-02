@@ -223,6 +223,10 @@ describe('vincular-filho handler', () => {
         'date_of_birth must be a valid ISO 8601 date (YYYY-MM-DD)',
       ],
       [
+        { invite_code: 'ABC123', date_of_birth: '2010-02-30' },
+        'date_of_birth must be a valid ISO 8601 date (YYYY-MM-DD)',
+      ],
+      [
         { invite_code: 'ABC123', date_of_birth: '2025-01-01' },
         'date_of_birth must be at least 8 years ago',
       ],
@@ -540,6 +544,30 @@ describe('vincular-filho handler', () => {
         createDeps(mock),
       );
       expect(res.status).toBe(500);
+    });
+
+    it('returns JSON 500 when an unexpected dependency error is thrown', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      try {
+        const deps: HandlerDeps = {
+          getServiceRoleKey: () => 'service-role-key',
+          getSupabaseUrl: () => {
+            throw new Error('missing supabase url');
+          },
+          createSupabaseClient: vi.fn(),
+        };
+
+        const res = await handleRequest(
+          makeRequest({ invite_code: 'ABC123', date_of_birth: '2010-05-15' }),
+          deps,
+        );
+
+        expect(res.status).toBe(500);
+        await expect(res.json()).resolves.toEqual({ error: 'Internal error' });
+        expect(consoleSpy).toHaveBeenCalled();
+      } finally {
+        consoleSpy.mockRestore();
+      }
     });
 
     it('returns 500 when updateUserById fails', async () => {

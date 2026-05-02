@@ -50,6 +50,25 @@ export interface SupabaseClientLike {
 const INVITE_CODE_REGEX = /^[A-Za-z0-9]{6}$/;
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
+function parseIsoDate(date: string): Date | null {
+  if (!ISO_DATE_REGEX.test(date)) {
+    return null;
+  }
+
+  const [year, month, day] = date.split('-').map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return parsed;
+}
+
 export function validateRequest(
   body: unknown,
 ): { valid: true; data: VincularFilhoRequest } | { valid: false; error: string } {
@@ -63,13 +82,13 @@ export function validateRequest(
     return { valid: false, error: 'invite_code must be a 6-character alphanumeric string' };
   }
 
-  if (typeof date_of_birth !== 'string' || !ISO_DATE_REGEX.test(date_of_birth)) {
+  if (typeof date_of_birth !== 'string') {
     return { valid: false, error: 'date_of_birth must be a valid ISO 8601 date (YYYY-MM-DD)' };
   }
 
-  // Verify the date string is actually a valid date
-  const parsed = new Date(date_of_birth + 'T00:00:00Z');
-  if (Number.isNaN(parsed.getTime())) {
+  // Verify the date string is actually a valid calendar date.
+  const parsed = parseIsoDate(date_of_birth);
+  if (!parsed) {
     return { valid: false, error: 'date_of_birth must be a valid ISO 8601 date (YYYY-MM-DD)' };
   }
 
@@ -100,6 +119,15 @@ export interface HandlerDeps {
 const MAX_BODY_BYTES = 4_096;
 
 export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Response> {
+  try {
+    return await handleRequestUnsafe(req, deps);
+  } catch (error) {
+    logFunctionFailure('vincular-filho unhandled error', error);
+    return jsonResponse({ error: 'Internal error' }, 500);
+  }
+}
+
+async function handleRequestUnsafe(req: Request, deps: HandlerDeps): Promise<Response> {
   if (req.method !== 'POST') {
     return jsonResponse({ error: 'Method not allowed' }, 405);
   }
@@ -446,6 +474,17 @@ function logRollbackFailure(target: string, id: string, error: unknown): void {
       msg: 'vincular-filho rollback failed',
       target,
       id,
+      error: error instanceof Error ? error.message : String(error),
+    }),
+  );
+}
+
+function logFunctionFailure(message: string, error: unknown): void {
+  // eslint-disable-next-line no-console
+  console.error(
+    JSON.stringify({
+      level: 'error',
+      msg: message,
       error: error instanceof Error ? error.message : String(error),
     }),
   );
