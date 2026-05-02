@@ -1,7 +1,6 @@
 import { StyleSheet, Text, View, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
-import { getRandomBytes } from 'expo-crypto';
 import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Eye, Plus, Star, Ticket } from 'lucide-react-native';
@@ -13,41 +12,14 @@ import { Avatar } from '@/components/ui/avatar';
 import { ChildViewSheet } from '@/components/children/child-view-sheet';
 import { ChildAddSheet } from '@/components/children/child-add-sheet';
 import { ChildInviteSheet, type ChildInvite } from '@/components/children/child-invite-sheet';
-import {
-  useChildrenList,
-  useAdminBalances,
-  useProfile,
-  combineQueryStates,
-} from '@/hooks/queries';
+import { useChildrenList, useAdminBalances, useProfile, combineQueryStates } from '@/hooks/queries';
 import type { BalanceWithChild } from '@lib/balances';
 import type { Child } from '@lib/children';
-import { supabase } from '@lib/supabase';
+import { generateChildInvite } from '@lib/child-invite';
 import { useTheme } from '@/context/theme-context';
 import { opacityDisabled, radii, shadows, spacing, typography } from '@/constants/theme';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { useTransientMessage } from '@/hooks/use-transient-message';
-
-// ── Helpers ──────────────────────────────────────────────
-
-const INVITE_CODE_LENGTH = 6;
-const INVITE_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I to avoid confusion
-
-function generateInviteCode(): string {
-  let code = '';
-  const alphabetLength = INVITE_CODE_CHARS.length;
-  const maxUnbiasedByte = Math.floor(256 / alphabetLength) * alphabetLength - 1;
-
-  while (code.length < INVITE_CODE_LENGTH) {
-    const bytes = getRandomBytes(INVITE_CODE_LENGTH * 2);
-    for (const byte of bytes) {
-      if (byte > maxUnbiasedByte) continue;
-      code += INVITE_CODE_CHARS[byte % alphabetLength];
-      if (code.length === INVITE_CODE_LENGTH) break;
-    }
-  }
-
-  return code;
-}
 
 // ── Screen ───────────────────────────────────────────────
 
@@ -92,39 +64,20 @@ export default function AdminChildrenScreen() {
       setGeneratingInviteFor(child.id);
 
       try {
-        for (let attempt = 0; attempt < 5; attempt++) {
-          const codigo = generateInviteCode();
+        const { data, error } = await generateChildInvite({
+          familyId: profile.familia_id,
+          childId: child.id,
+          childName: child.nome,
+          createdBy: profile.id,
+        });
 
-          // The `convites_filho` table may not be in the generated DB types yet,
-          // so we cast through `any` to insert via the Supabase client.
-          const { data, error: insertError } = await (supabase as any)
-            .from('convites_filho')
-            .insert({
-              familia_id: profile.familia_id,
-              filho_id: child.id,
-              codigo,
-              criado_por: profile.id,
-              nome_filho: child.nome,
-            })
-            .select('codigo, expira_em')
-            .single();
-
-          if (!insertError) {
-            setCurrentInvite({
-              codigo: data.codigo,
-              nome_filho: child.nome,
-              expira_em: data.expira_em,
-            });
-            setInviteSheetVisible(true);
-            return;
-          }
-
-          if (!(insertError.message?.includes('unique') || insertError.code === '23505')) {
-            break;
-          }
+        if (data) {
+          setCurrentInvite(data);
+          setInviteSheetVisible(true);
+          return;
         }
 
-        setInviteError('Não foi possível gerar o convite. Tente novamente.');
+        setInviteError(error ?? 'Não foi possível gerar o convite. Tente novamente.');
       } finally {
         setGeneratingInviteFor(null);
       }
@@ -185,9 +138,7 @@ export default function AdminChildrenScreen() {
                     style={[
                       styles.cardStatus,
                       {
-                        color: item.usuario_id
-                          ? colors.semantic.success
-                          : colors.semantic.warning,
+                        color: item.usuario_id ? colors.semantic.success : colors.semantic.warning,
                       },
                     ]}
                   >

@@ -1,8 +1,13 @@
 import * as Sentry from '@sentry/react-native';
+import { getRandomBytes } from 'expo-crypto';
 
+import { localizeRpcError } from './api-error';
 import { supabase } from './supabase';
 
 export const CHILD_INVITE_CODE_LENGTH = 6;
+
+const CHILD_INVITE_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I
+const MAX_INVITE_CODE_ATTEMPTS = 5;
 
 export type ChildInvitePreview = {
   id: string;
@@ -11,6 +16,19 @@ export type ChildInvitePreview = {
   nome_filho: string;
   familyName: string;
   adminName: string;
+};
+
+export type ChildInviteData = {
+  codigo: string;
+  nome_filho: string;
+  expira_em: string;
+};
+
+export type GenerateChildInviteInput = {
+  familyId: string;
+  childId: string;
+  childName: string;
+  createdBy: string;
 };
 
 type ChildInviteRpcResult = {
@@ -41,6 +59,63 @@ export function childInviteErrorMessage(error?: string): string {
     default:
       return 'Código inválido ou expirado. Peça um novo ao responsável.';
   }
+}
+
+export function generateInviteCode(): string {
+  let code = '';
+  const alphabetLength = CHILD_INVITE_CODE_CHARS.length;
+  const maxUnbiasedByte = Math.floor(256 / alphabetLength) * alphabetLength - 1;
+
+  while (code.length < CHILD_INVITE_CODE_LENGTH) {
+    const bytes = getRandomBytes(CHILD_INVITE_CODE_LENGTH * 2);
+    for (const byte of bytes) {
+      if (byte > maxUnbiasedByte) continue;
+      code += CHILD_INVITE_CODE_CHARS[byte % alphabetLength];
+      if (code.length === CHILD_INVITE_CODE_LENGTH) break;
+    }
+  }
+
+  return code;
+}
+
+function isUniqueViolation(error: { code?: string; message?: string }): boolean {
+  return error.code === '23505' || error.message?.toLowerCase().includes('unique') === true;
+}
+
+export async function generateChildInvite(
+  input: GenerateChildInviteInput,
+): Promise<{ data: ChildInviteData | null; error: string | null }> {
+  for (let attempt = 0; attempt < MAX_INVITE_CODE_ATTEMPTS; attempt += 1) {
+    const codigo = generateInviteCode();
+    const { data, error } = await supabase
+      .from('convites_filho')
+      .insert({
+        familia_id: input.familyId,
+        filho_id: input.childId,
+        codigo,
+        criado_por: input.createdBy,
+        nome_filho: input.childName,
+      })
+      .select('codigo, expira_em')
+      .single();
+
+    if (!error) {
+      return {
+        data: {
+          codigo: data.codigo,
+          nome_filho: input.childName,
+          expira_em: data.expira_em,
+        },
+        error: null,
+      };
+    }
+
+    if (!isUniqueViolation(error)) {
+      return { data: null, error: localizeRpcError(error.message) };
+    }
+  }
+
+  return { data: null, error: 'Não foi possível gerar o convite. Tente novamente.' };
 }
 
 export async function validateChildInvite(code: string): Promise<{
