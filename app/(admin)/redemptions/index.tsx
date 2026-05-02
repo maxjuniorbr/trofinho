@@ -4,7 +4,7 @@ import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import { Star, Check, X } from 'lucide-react-native';
+import { Gift, Star, Check, X } from 'lucide-react-native';
 import { HomeFooterBar } from '@/components/ui/home-footer-bar';
 import { useAdminFooterItems } from '@/hooks/use-footer-items';
 import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@lib/status';
@@ -193,7 +193,11 @@ export default function AdminRedemptionsScreen() {
           {/* Top row: emoji + info + cost badge */}
           <View style={styles.topRow}>
             <View style={styles.emojiCircle}>
-              <Text style={styles.emojiText}>{item.premios.emoji || '🎁'}</Text>
+              {item.premios.emoji ? (
+                <Text style={styles.emojiText}>{item.premios.emoji}</Text>
+              ) : (
+                <Gift size={24} color={colors.accent.admin} strokeWidth={2} />
+              )}
             </View>
             <View style={styles.infoCol}>
               <Text style={styles.prizeName} numberOfLines={1}>

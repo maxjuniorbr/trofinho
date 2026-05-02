@@ -7,7 +7,7 @@ import { FlashList } from '@shopify/flash-list';
 import { hapticSuccess } from '@lib/haptics';
 import { localizeRpcError } from '@lib/api-error';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CheckCircle2, Star } from 'lucide-react-native';
+import { CheckCircle2, Gift, Star } from 'lucide-react-native';
 import { HomeFooterBar } from '@/components/ui/home-footer-bar';
 import { useChildFooterItems } from '@/hooks/use-footer-items';
 import type { Prize } from '@lib/prizes';
@@ -309,7 +309,11 @@ function PrizeCard({ item, freeBalance, redeeming, onRedeem, isReadOnly }: Prize
       {/* Top section — grows to fill space */}
       <View style={cardStyles.cardContent}>
         <View style={[cardStyles.prizePlaceholder, { backgroundColor: colors.accent.filhoBg }]}>
-          <Text style={cardStyles.prizeEmoji}>{item.emoji || '🎁'}</Text>
+          {item.emoji ? (
+            <Text style={cardStyles.prizeEmoji}>{item.emoji}</Text>
+          ) : (
+            <Gift size={32} color={colors.accent.filho} strokeWidth={2} />
+          )}
         </View>
         <Text style={[cardStyles.name, { color: colors.text.primary }]} numberOfLines={2}>
           {item.nome}
