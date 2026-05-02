@@ -1,46 +1,54 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useState, useMemo, useCallback } from 'react';
-import { ChevronLeft, Users } from 'lucide-react-native';
-import { signInWithGoogle, refreshAuthSession, getProfile } from '@lib/auth';
+import { BackHandler, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { ChevronLeft, LogOut, Users } from 'lucide-react-native';
+import * as Sentry from '@sentry/react-native';
+import { BrandLogo } from '@/components/auth/brand-logo';
+import { signInWithGoogle, signOut, refreshAuthSession } from '@lib/auth';
+import {
+    CHILD_INVITE_CODE_LENGTH,
+    type ChildInvitePreview,
+    formatChildInviteCode,
+    validateChildInvite,
+} from '@lib/child-invite';
+import { formatLocalIsoDate } from '@lib/google-auth-utils';
 import { supabase } from '@lib/supabase';
 import { radii, spacing, typography } from '@/constants/theme';
 import { useTheme } from '@/context/theme-context';
 import { HeaderIconButton } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { FormFooter } from '@/components/ui/form-footer';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { GoogleSignInButton } from '@/components/auth/google-sign-in-button';
 import { DateOfBirthField } from '@/components/auth/date-of-birth-field';
+import { ConfirmSheet } from '@/components/ui/confirm-sheet';
 
-const CODE_LENGTH = 6;
+type Step = 'google' | 'dob';
 
-type Step = 'code' | 'google' | 'dob';
-
-type InvitePreview = {
-    id: string;
-    familia_id: string;
-    filho_id: string | null;
-    nome_filho: string;
-    familyName: string;
-    adminName: string;
+type JoinChildParams = {
+    code?: string | string[];
 };
+
+function firstParam(value: string | string[] | undefined): string {
+    if (Array.isArray(value)) return value[0] ?? '';
+    return value ?? '';
+}
 
 export default function JoinChildScreen() {
     const router = useRouter();
     const { colors } = useTheme();
+    const params = useLocalSearchParams<JoinChildParams>();
+    const { code: codeParam } = params;
+    const codeParamValue = firstParam(codeParam);
+    const initialCode = useMemo(() => formatChildInviteCode(codeParamValue), [codeParamValue]);
 
-    const [step, setStep] = useState<Step>('code');
+    const [step, setStep] = useState<Step>('google');
+    const [code, setCode] = useState(initialCode);
+    const [preview, setPreview] = useState<ChildInvitePreview | null>(null);
+    const [inviteLoading, setInviteLoading] = useState(false);
+    const [inviteError, setInviteError] = useState('');
 
-    // Code step
-    const [code, setCode] = useState('');
-    const [codeError, setCodeError] = useState('');
-    const [isValidating, setIsValidating] = useState(false);
-    const [preview, setPreview] = useState<InvitePreview | null>(null);
-
-    // Google step
+    // Google sign-in step
     const [googleLoading, setGoogleLoading] = useState(false);
     const [googleError, setGoogleError] = useState('');
 
@@ -48,78 +56,119 @@ export default function JoinChildScreen() {
     const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
     const [dobError, setDobError] = useState<string | null>(null);
     const [dobLoading, setDobLoading] = useState(false);
+    const [showLeaveSheet, setShowLeaveSheet] = useState(false);
 
-    const isCodeComplete = code.length === CODE_LENGTH;
+    useEffect(() => {
+        let mounted = true;
 
-    const handleCodeChange = (value: string) => {
-        const formatted = value
-            .toUpperCase()
-            .replaceAll(/[^A-Z0-9]/g, '')
-            .slice(0, CODE_LENGTH);
-        setCode(formatted);
-        setCodeError('');
-        setPreview(null);
-    };
+        const resolveInvite = async () => {
+            try {
+                setInviteLoading(true);
+                setInviteError('');
+                setCode(initialCode);
+                setPreview(null);
 
-    const handleValidateCode = useCallback(async () => {
-        if (!isCodeComplete) return;
+                let inviteCode = initialCode;
+                let hasPendingAuthenticatedInvite = false;
 
-        setCodeError('');
-        setIsValidating(true);
+                if (!inviteCode) {
+                    const { data } = await supabase.auth.getUser();
+                    const pendingInvite = data.user?.user_metadata?.pending_child_invite;
+                    if (typeof pendingInvite === 'string') {
+                        inviteCode = formatChildInviteCode(pendingInvite);
+                        hasPendingAuthenticatedInvite = inviteCode.length === CHILD_INVITE_CODE_LENGTH;
+                    }
+                }
 
-        try {
-            // Use `as any` because the RPC is not in the generated DB types yet.
-            const { data, error } = await (supabase as any).rpc('validar_convite_filho', {
-                p_codigo: code.toUpperCase(),
-            }) as { data: Record<string, unknown> | null; error: unknown };
+                if (!inviteCode) {
+                    if (!mounted) return;
+                    setPreview(null);
+                    setInviteError('Código de convite ausente. Volte e informe o código novamente.');
+                    setInviteLoading(false);
+                    return;
+                }
 
-            if (error) {
-                setCodeError('Erro ao verificar código. Tente novamente.');
-                setIsValidating(false);
-                return;
+                const result = await validateChildInvite(inviteCode);
+                if (!mounted) return;
+
+                setCode(inviteCode);
+                setPreview(result.preview);
+                setInviteError(result.error ?? '');
+                setInviteLoading(false);
+
+                if (hasPendingAuthenticatedInvite && result.preview) {
+                    setStep('dob');
+                }
+            } catch (error) {
+                Sentry.captureException(error, {
+                    tags: { area: 'join-child', step: 'resolve-invite' },
+                });
+                if (!mounted) return;
+                setPreview(null);
+                setInviteError('Erro ao verificar código. Tente novamente.');
+                setInviteLoading(false);
             }
+        };
 
-            const result = data as {
-                valid: boolean;
-                error?: string;
-                id?: string;
-                familia_id?: string;
-                filho_id?: string | null;
-                nome_filho?: string;
-                familyName?: string;
-                adminName?: string;
-            } | null;
+        void resolveInvite();
 
-            if (!result || !result.valid) {
-                setCodeError(
-                    result?.error === 'ALREADY_LINKED'
-                        ? 'Este convite já foi utilizado.'
-                        : 'Código inválido ou expirado. Peça um novo código ao administrador.',
-                );
-                setIsValidating(false);
-                return;
-            }
+        return () => {
+            mounted = false;
+        };
+    }, [initialCode]);
 
-            setPreview({
-                id: result.id!,
-                familia_id: result.familia_id!,
-                filho_id: result.filho_id ?? null,
-                nome_filho: result.nome_filho!,
-                familyName: result.familyName ?? 'Família',
-                adminName: result.adminName ?? 'Administrador',
-            });
-        } catch {
-            setCodeError('Erro ao verificar código. Tente novamente.');
-        } finally {
-            setIsValidating(false);
+    const handleGoogleStepBack = useCallback(() => {
+        if (googleLoading) return;
+        if (router.canGoBack()) {
+            router.back();
+        } else {
+            router.replace('/(auth)/login');
         }
-    }, [code, isCodeComplete]);
+    }, [googleLoading, router]);
+
+    const handleCancelAndSignOut = useCallback(async () => {
+        // Clear pending invite marker so the nav guard doesn't redirect
+        // back here on the user's next sign-in with this Google account.
+        try {
+            await supabase.auth.updateUser({ data: { pending_child_invite: null } });
+        } catch {
+            // best-effort cleanup; sign-out is still the important outcome
+        }
+        await signOut();
+        router.replace('/(auth)/login');
+    }, [router]);
+
+    const handleCancelAndSignOutConfirm = useCallback(async () => {
+        setShowLeaveSheet(false);
+        await handleCancelAndSignOut();
+    }, [handleCancelAndSignOut]);
+
+    useEffect(() => {
+        const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+            if (step === 'dob') {
+                if (!dobLoading) setShowLeaveSheet(true);
+            } else {
+                handleGoogleStepBack();
+            }
+            return true;
+        });
+        return () => sub.remove();
+    }, [dobLoading, handleGoogleStepBack, step]);
 
     const handleGoogleSignIn = async () => {
+        if (!preview || code.length !== CHILD_INVITE_CODE_LENGTH) {
+            setGoogleError(inviteError || 'Código de convite ausente. Volte e informe o código novamente.');
+            return;
+        }
+
         setGoogleError('');
         setGoogleLoading(true);
 
-        const { error: signInError } = await signInWithGoogle();
+        const {
+            profile,
+            isNewUser,
+            error: signInError,
+        } = await signInWithGoogle();
 
         if (signInError) {
             setGoogleLoading(false);
@@ -127,10 +176,13 @@ export default function JoinChildScreen() {
             return;
         }
 
-        // Check if user already belongs to a family (covers admin accounts and
-        // children already linked to another family).
-        const profile = await getProfile();
+        if (!profile && !isNewUser) {
+            setGoogleLoading(false);
+            return;
+        }
+
         if (profile?.familia_id) {
+            await signOut();
             setGoogleLoading(false);
             const msg =
                 profile.papel === 'admin'
@@ -142,7 +194,23 @@ export default function JoinChildScreen() {
 
         // Save invite code marker so the nav guard can redirect orphan users
         // back to join-child instead of admin onboarding if the app is closed.
-        await supabase.auth.updateUser({ data: { pending_child_invite: code } });
+        try {
+            const { error: updateError } = await supabase.auth.updateUser({
+                data: { pending_child_invite: code },
+            });
+            if (updateError) {
+                setGoogleLoading(false);
+                setGoogleError('Erro ao preparar convite. Tente novamente.');
+                return;
+            }
+        } catch (error) {
+            Sentry.captureException(error, {
+                tags: { area: 'join-child', step: 'persist-pending-invite' },
+            });
+            setGoogleLoading(false);
+            setGoogleError('Erro ao preparar convite. Tente novamente.');
+            return;
+        }
 
         setGoogleLoading(false);
         setStep('dob');
@@ -154,10 +222,15 @@ export default function JoinChildScreen() {
             return;
         }
 
+        if (code.length !== CHILD_INVITE_CODE_LENGTH) {
+            setDobError('Código de convite ausente. Volte e informe o código novamente.');
+            return;
+        }
+
         setDobError(null);
         setDobLoading(true);
 
-        const isoDate = dateOfBirth.toISOString().split('T')[0];
+        const isoDate = formatLocalIsoDate(dateOfBirth);
 
         try {
             const { data, error } = await supabase.functions.invoke('vincular-filho', {
@@ -170,16 +243,22 @@ export default function JoinChildScreen() {
                 return;
             }
 
-            if (data && !data.success) {
+            const response = data as { success?: boolean; error?: string } | null;
+            if (response?.success !== true) {
                 setDobLoading(false);
-                const edgeError = data.error as string | undefined;
+                const edgeError = response?.error;
                 if (edgeError === 'ALREADY_LINKED') {
                     setDobError('Este convite já foi utilizado.');
                 } else if (edgeError === 'INVALID_CODE' || edgeError === 'EXPIRED_CODE') {
-                    setDobError('Código inválido ou expirado. Peça um novo código ao administrador.');
+                    setDobError('Código inválido ou expirado. Peça um novo ao responsável.');
                 } else if (edgeError === 'FAMILY_FULL') {
                     setDobError('Esta família atingiu o limite de filhos. Fale com o responsável.');
                 } else {
+                    Sentry.captureMessage('vincular-filho returned malformed failure response', {
+                        level: 'warning',
+                        tags: { area: 'join-child', step: 'link-child' },
+                        extra: { hasData: Boolean(data), edgeError: edgeError ?? null },
+                    });
                     setDobError('Erro ao vincular conta. Tente novamente.');
                 }
                 return;
@@ -189,46 +268,39 @@ export default function JoinChildScreen() {
             if (refreshError) {
                 setDobLoading(false);
                 setDobError(refreshError);
+                return;
             }
-        } catch {
+        } catch (error) {
+            Sentry.captureException(error, {
+                tags: { area: 'join-child', step: 'link-child' },
+            });
             setDobLoading(false);
             setDobError('Erro ao vincular conta. Tente novamente.');
         }
     };
 
-    const headerTitle = step === 'code' ? 'Código de família' : step === 'google' ? 'Entrar com Google' : 'Finalizar cadastro';
+    const stepIndex = step === 'google' ? 0 : 1;
+    const googleDisabled = googleLoading || inviteLoading || !preview || code.length !== CHILD_INVITE_CODE_LENGTH;
 
-    const handleBack = () => {
-        if (step === 'google') {
-            setStep('code');
-            setGoogleError('');
-        } else if (step === 'code') {
-            router.back();
-        }
-        // DOB step: no back — user is already authenticated
-    };
-
-    const previewCard = useMemo(() => {
+    const previewHero = useMemo<React.ReactNode>(() => {
         if (!preview) return null;
         return (
-            <View style={[styles.previewCard, { backgroundColor: colors.semantic.successBg, borderColor: colors.border.subtle }]}>
-                <View style={[styles.previewIconBox, { backgroundColor: colors.bg.muted }]}>
-                    <Users size={20} color={colors.semantic.success} strokeWidth={2.5} />
+            <View style={styles.previewHero}>
+                <View style={[styles.previewHeroIconBox, { backgroundColor: colors.semantic.successBg }]}>
+                    <Users size={32} color={colors.semantic.success} strokeWidth={2} />
                 </View>
-                <View style={styles.previewContent}>
-                    <Text style={[styles.previewFamily, { color: colors.text.primary }]} numberOfLines={1}>
-                        {preview.familyName}
+                <Text style={[styles.previewHeroName, { color: colors.text.primary }]}>
+                    {preview.familyName}
+                </Text>
+                <Text style={[styles.previewHeroRole, { color: colors.text.secondary }]} numberOfLines={1}>
+                    Você será:{' '}
+                    <Text style={{ fontFamily: typography.family.bold, color: colors.text.primary }}>
+                        {preview.nome_filho}
                     </Text>
-                    <Text style={[styles.previewDetail, { color: colors.text.secondary }]} numberOfLines={1}>
-                        {step === 'code' ? `Administrador: ${preview.adminName}` : `Você será: ${preview.nome_filho}`}
-                    </Text>
-                </View>
+                </Text>
             </View>
         );
-    }, [preview, step, colors]);
-
-    const stepLabels = ['Código', 'Google', 'Nascimento'] as const;
-    const stepIndex = step === 'code' ? 0 : step === 'google' ? 1 : 2;
+    }, [preview, colors]);
 
     return (
         <SafeScreenFrame topInset bottomInset>
@@ -241,16 +313,15 @@ export default function JoinChildScreen() {
                     },
                 ]}
             >
-                {step !== 'dob' ? (
-                    <HeaderIconButton
-                        icon={ChevronLeft}
-                        onPress={handleBack}
-                        accessibilityLabel="Voltar"
-                    />
-                ) : null}
-                <Text style={[styles.headerTitle, { color: colors.text.primary }]} numberOfLines={1}>
-                    {headerTitle}
-                </Text>
+                <HeaderIconButton
+                    icon={ChevronLeft}
+                    onPress={step === 'google' ? handleGoogleStepBack : () => { if (!dobLoading) setShowLeaveSheet(true); }}
+                    accessibilityLabel="Voltar"
+                />
+                <View style={styles.headerCenter}>
+                    <BrandLogo size="sm" withText />
+                </View>
+                <View style={styles.headerPlaceholder} />
             </View>
 
             <ScrollView
@@ -259,108 +330,60 @@ export default function JoinChildScreen() {
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
             >
-                {/* Step progress */}
-                <View style={styles.stepRow}>
-                    {stepLabels.map((label, i) => (
-                        <View key={label} style={styles.stepItem}>
-                            <View
-                                style={[
-                                    styles.stepBar,
-                                    {
-                                        backgroundColor:
-                                            i <= stepIndex
-                                                ? colors.brand.vivid
-                                                : colors.bg.muted,
-                                    },
-                                ]}
-                            />
-                            <Text
-                                style={[
-                                    styles.stepLabel,
-                                    {
-                                        color:
-                                            i <= stepIndex
-                                                ? colors.text.primary
-                                                : colors.text.muted,
-                                    },
-                                ]}
-                                allowFontScaling={false}
-                            >
-                                {label}
-                            </Text>
-                        </View>
+                {/* Step dots */}
+                <View style={styles.dotsRow}>
+                    {[0, 1].map((i) => (
+                        <View
+                            key={i}
+                            style={[
+                                styles.dot,
+                                {
+                                    backgroundColor:
+                                        i <= stepIndex
+                                            ? colors.brand.vivid
+                                            : colors.bg.muted,
+                                    width: i === stepIndex ? 20 : 8,
+                                },
+                            ]}
+                        />
                     ))}
                 </View>
 
-                {/* Step 1: Code */}
-                {step === 'code' ? (
-                    <>
-                        <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-                            Informe o código de 6 caracteres que você recebeu do administrador da família.
-                        </Text>
-
-                        <Input
-                            label="Código do convite"
-                            placeholder="Ex: ABC123"
-                            value={code}
-                            onChangeText={handleCodeChange}
-                            autoCapitalize="characters"
-                            autoCorrect={false}
-                            maxLength={CODE_LENGTH}
-                            editable={!isValidating}
-                            accessibilityLabel="Campo de código do convite"
-                        />
-
-                        {isValidating ? (
-                            <Text style={[styles.validatingText, { color: colors.text.muted }]}>
-                                Verificando código…
-                            </Text>
-                        ) : null}
-
-                        {previewCard}
-
-                        <FormFooter message={codeError || null} includeSafeBottom={false}>
-                            {!preview && isCodeComplete && !isValidating ? (
-                                <Button
-                                    label="Verificar código"
-                                    onPress={handleValidateCode}
-                                    size="lg"
-                                    accessibilityLabel="Verificar código"
-                                />
-                            ) : null}
-
-                            {preview ? (
-                                <Button
-                                    label="Continuar"
-                                    onPress={() => setStep('google')}
-                                    size="lg"
-                                    accessibilityLabel="Continuar"
-                                />
-                            ) : null}
-                        </FormFooter>
-                    </>
-                ) : null}
-
-                {/* Step 2: Google */}
+                {/* Step 1: Google */}
                 {step === 'google' ? (
                     <>
-                        <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-                            Use sua conta Google para criar seu acesso à família{' '}
-                            <Text style={{ fontFamily: typography.family.bold, color: colors.text.primary }}>
-                                {preview?.familyName}
-                            </Text>
-                            .
+                        <Text style={[styles.eyebrow, { color: colors.brand.vivid }]}>Entrar na família</Text>
+                        <Text style={[styles.stepTitle, { color: colors.text.primary }]}>
+                            Conecte sua conta Google
                         </Text>
 
-                        {previewCard}
+                        {previewHero}
+
+                        <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
+                            Use sua conta Google para criar seu acesso a esta família.
+                        </Text>
 
                         <View style={styles.googleWrapper}>
                             <GoogleSignInButton
                                 onPress={handleGoogleSignIn}
                                 loading={googleLoading}
-                                disabled={googleLoading}
+                                disabled={googleDisabled}
+                                variant="hero"
+                                subtitle={preview ? `Vinculado à ${preview.familyName}` : undefined}
                             />
                         </View>
+
+                        {inviteLoading ? (
+                            <Text style={[styles.loadingText, { color: colors.text.muted }]}>
+                                Verificando convite…
+                            </Text>
+                        ) : null}
+
+                        {inviteError ? (
+                            <View style={styles.errorWrapper}>
+                                <InlineMessage message={inviteError} variant="error" />
+                            </View>
+                        ) : null}
 
                         {googleError ? (
                             <View style={styles.errorWrapper}>
@@ -370,11 +393,15 @@ export default function JoinChildScreen() {
                     </>
                 ) : null}
 
-                {/* Step 3: DOB */}
+                {/* Step 2: DOB */}
                 {step === 'dob' ? (
                     <>
+                        <Text style={[styles.eyebrow, { color: colors.brand.vivid }]}>Finalizar cadastro</Text>
+                        <Text style={[styles.stepTitle, { color: colors.text.primary }]}>
+                            Qual é sua data de nascimento?
+                        </Text>
                         <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-                            Informe sua data de nascimento para finalizar o cadastro.
+                            Seus dados são protegidos pela LGPD. Usamos sua data apenas para verificar sua idade e personalizar sua experiência.
                         </Text>
 
                         <DateOfBirthField
@@ -383,24 +410,50 @@ export default function JoinChildScreen() {
                                 setDateOfBirth(date);
                                 setDobError(null);
                             }}
+                            hint="Mínimo 8 anos de idade."
                             error={dobError}
                             disabled={dobLoading}
                         />
 
-                        <FormFooter message={null} includeSafeBottom={false}>
+                        <View style={styles.dobActions}>
                             <Button
                                 label="Entrar na família"
                                 loadingLabel="Vinculando…"
                                 loading={dobLoading}
+                                disabled={!dateOfBirth}
                                 onPress={handleDobSubmit}
                                 size="lg"
                                 accessibilityLabel={dobLoading ? 'Vinculando…' : 'Entrar na família'}
                                 accessibilityState={{ busy: dobLoading }}
                             />
-                        </FormFooter>
+                            <Pressable
+                                onPress={() => setShowLeaveSheet(true)}
+                                disabled={dobLoading}
+                                style={({ pressed }) => [styles.cancelLink, { opacity: pressed ? 0.6 : 1 }]}
+                                accessibilityRole="button"
+                                accessibilityLabel="Cancelar e sair"
+                            >
+                                <Text style={[styles.cancelText, { color: colors.text.muted }]}>
+                                    Cancelar e sair
+                                </Text>
+                            </Pressable>
+                        </View>
                     </>
                 ) : null}
             </ScrollView>
+
+            <ConfirmSheet
+                visible={showLeaveSheet}
+                onClose={() => setShowLeaveSheet(false)}
+                icon={LogOut}
+                iconVariant="warning"
+                title="Cancelar e sair?"
+                description="Sua conta Google será desvinculada e você precisará entrar novamente para continuar."
+                confirmLabel="Cancelar e sair"
+                confirmVariant="danger"
+                cancelLabel="Continuar"
+                onConfirm={handleCancelAndSignOutConfirm}
+            />
         </SafeScreenFrame>
     );
 }
@@ -409,38 +462,46 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: spacing['3'],
         paddingHorizontal: spacing['4'],
         paddingVertical: spacing['3'],
         borderBottomWidth: 1,
     },
-    headerTitle: {
-        fontSize: typography.size.lg,
-        fontFamily: typography.family.bold,
+    headerCenter: {
         flex: 1,
+        alignItems: 'center',
+    },
+    headerPlaceholder: {
+        width: 40,
+        height: 40,
     },
     scrollContent: {
         flexGrow: 1,
         padding: spacing['4'],
     },
-    stepRow: {
+    dotsRow: {
         flexDirection: 'row',
-        gap: spacing['2'],
-        marginBottom: spacing['6'],
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: spacing['1.5'],
+        marginBottom: spacing['8'],
     },
-    stepItem: {
-        flex: 1,
-        gap: spacing['1'],
-    },
-    stepBar: {
-        height: 4,
+    dot: {
+        height: 8,
         borderRadius: radii.full,
     },
-    stepLabel: {
-        fontFamily: typography.family.bold,
+    eyebrow: {
+        fontFamily: typography.family.extrabold,
         fontSize: typography.size.xxs,
-        letterSpacing: 0.8,
-        textAlign: 'center',
+        lineHeight: typography.lineHeight.xxs,
+        textTransform: 'uppercase',
+        letterSpacing: 0,
+        marginBottom: spacing['2'],
+    },
+    stepTitle: {
+        fontFamily: typography.family.black,
+        fontSize: typography.size.xl,
+        lineHeight: typography.lineHeight.xl,
+        marginBottom: spacing['2'],
     },
     subtitle: {
         fontFamily: typography.family.medium,
@@ -448,42 +509,51 @@ const styles = StyleSheet.create({
         lineHeight: typography.lineHeight.sm,
         marginBottom: spacing['6'],
     },
-    validatingText: {
-        fontFamily: typography.family.semibold,
-        fontSize: typography.size.xs,
-        marginBottom: spacing['3'],
-    },
-    previewCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    dobActions: {
         gap: spacing['3'],
-        marginBottom: spacing['5'],
-        paddingHorizontal: spacing['4'],
-        paddingVertical: spacing['3'],
-        borderRadius: radii.lg,
-        borderWidth: 1,
     },
-    previewIconBox: {
-        width: 40,
-        height: 40,
-        borderRadius: radii.md,
+    cancelLink: {
+        alignItems: 'center',
+        paddingVertical: spacing['3'],
+    },
+    cancelText: {
+        fontFamily: typography.family.medium,
+        fontSize: typography.size.sm,
+        lineHeight: typography.lineHeight.sm,
+    },
+    previewHero: {
+        alignItems: 'center',
+        marginBottom: spacing['6'],
+        gap: spacing['2'],
+    },
+    previewHeroIconBox: {
+        width: 72,
+        height: 72,
+        borderRadius: radii.xl,
         alignItems: 'center',
         justifyContent: 'center',
+        marginBottom: spacing['2'],
     },
-    previewContent: {
-        flex: 1,
+    previewHeroName: {
+        fontFamily: typography.family.black,
+        fontSize: typography.size.xl,
+        lineHeight: typography.lineHeight.xl,
+        textAlign: 'center',
     },
-    previewFamily: {
-        fontFamily: typography.family.bold,
-        fontSize: typography.size.sm,
-    },
-    previewDetail: {
-        marginTop: spacing['0.5'],
+    previewHeroRole: {
         fontFamily: typography.family.medium,
-        fontSize: typography.size.xs,
+        fontSize: typography.size.sm,
+        lineHeight: typography.lineHeight.sm,
+        textAlign: 'center',
     },
     googleWrapper: {
         marginBottom: spacing['4'],
+    },
+    loadingText: {
+        fontFamily: typography.family.semibold,
+        fontSize: typography.size.xs,
+        lineHeight: typography.lineHeight.xs,
+        marginBottom: spacing['2'],
     },
     errorWrapper: {
         marginTop: spacing['3'],

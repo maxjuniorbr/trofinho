@@ -93,6 +93,7 @@ vi.mock('lucide-react-native', () => ({
   Star: createIcon('Star'),
   Archive: createIcon('Archive'),
   ArchiveRestore: createIcon('ArchiveRestore'),
+  Package: createIcon('Package'),
   Inbox: createIcon('Inbox'),
   TrendingUp: createIcon('TrendingUp'),
   ArrowDownCircle: createIcon('ArrowDownCircle'),
@@ -119,6 +120,9 @@ vi.mock('lucide-react-native', () => ({
   UserPlus: createIcon('UserPlus'),
   Trash2: createIcon('Trash2'),
   KeyRound: createIcon('KeyRound'),
+  Hash: createIcon('Hash'),
+  FileText: createIcon('FileText'),
+  Zap: createIcon('Zap'),
 }));
 
 vi.mock('expo-linear-gradient', () => ({
@@ -169,6 +173,10 @@ vi.mock('react-native', () => ({
     parallel: vi.fn(() => ({ start: vi.fn() })),
     spring: vi.fn(() => ({ start: vi.fn() })),
     timing: vi.fn(() => ({ start: vi.fn() })),
+  },
+  BackHandler: {
+    addEventListener: vi.fn(() => ({ remove: vi.fn() })),
+    removeEventListener: vi.fn(),
   },
   Image: createHostComponent('Image'),
   Keyboard: {
