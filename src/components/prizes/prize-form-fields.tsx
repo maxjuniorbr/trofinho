@@ -34,7 +34,7 @@ export function PrizeFormFields({
           style={styles.input}
           value={name}
           onChangeText={onNameChange}
-          placeholder="Ex: Sorvete, Filme no cinema…"
+          placeholder="Ex: Passeio no parque, 1h de tela extra..."
           placeholderTextColor={colors.text.muted}
           autoFocus={autoFocusName}
           returnKeyType="next"
@@ -49,7 +49,7 @@ export function PrizeFormFields({
           style={[styles.input, styles.multilineInput]}
           value={description}
           onChangeText={onDescriptionChange}
-          placeholder="Detalhes opcionais…"
+          placeholder="Ex: Escolha o sabor e pode tomar depois do jantar."
           placeholderTextColor={colors.text.muted}
           multiline
           numberOfLines={3}
@@ -65,7 +65,7 @@ export function PrizeFormFields({
           style={styles.input}
           value={cost}
           onChangeText={(v) => onCostChange(v.replaceAll(/\D/g, ''))}
-          placeholder="Ex: 50"
+          placeholder="Ex: 75"
           placeholderTextColor={colors.text.muted}
           keyboardType="number-pad"
           returnKeyType="done"

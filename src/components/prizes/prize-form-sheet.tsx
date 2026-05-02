@@ -260,7 +260,7 @@ export function PrizeFormSheet({ visible, mode, prize, onClose, onSuccess }: Pri
                     label="Nome *"
                     value={name}
                     onChangeText={setName}
-                    placeholder="Ex: Sorvete, Filme no cinema…"
+                    placeholder="Ex: Passeio no parque, 1h de tela extra..."
                     autoFocus={!isEdit}
                     maxLength={100}
                     leadingIcon={Gift}
@@ -272,7 +272,7 @@ export function PrizeFormSheet({ visible, mode, prize, onClose, onSuccess }: Pri
                     label="Descrição"
                     value={description}
                     onChangeText={setDescription}
-                    placeholder="Detalhes opcionais…"
+                    placeholder="Ex: Escolha o sabor e pode tomar depois do jantar."
                     multiline
                     numberOfLines={3}
                     maxLength={500}
@@ -285,7 +285,7 @@ export function PrizeFormSheet({ visible, mode, prize, onClose, onSuccess }: Pri
                     label="Custo em pontos *"
                     value={costStr}
                     onChangeText={(v) => setCostStr(v.replaceAll(/\D/g, ''))}
-                    placeholder="Ex: 50"
+                    placeholder="Ex: 75"
                     keyboardType="number-pad"
                     maxLength={7}
                     leadingIcon={Zap}
