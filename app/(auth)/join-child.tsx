@@ -27,6 +27,7 @@ type Step = 'google' | 'dob';
 
 type JoinChildParams = {
     code?: string | string[];
+    bypass?: string | string[];
 };
 
 function firstParam(value: string | string[] | undefined): string {
@@ -41,6 +42,10 @@ export default function JoinChildScreen() {
     const { code: codeParam } = params;
     const codeParamValue = firstParam(codeParam);
     const initialCode = useMemo(() => formatChildInviteCode(codeParamValue), [codeParamValue]);
+
+    const isDevBypassParam = __DEV__ && firstParam(params.bypass) === '1';
+    const [devBypassPressed, setDevBypassPressed] = useState(false);
+    const devBypassActive = isDevBypassParam || devBypassPressed;
 
     const [step, setStep] = useState<Step>('google');
     const [code, setCode] = useState(initialCode);
@@ -67,6 +72,20 @@ export default function JoinChildScreen() {
                 setInviteError('');
                 setCode(initialCode);
                 setPreview(null);
+
+                if (isDevBypassParam) {
+                    setPreview({
+                        id: 'dev',
+                        familia_id: 'dev',
+                        filho_id: null,
+                        nome_filho: 'Dev',
+                        familyName: 'Família Demo',
+                        adminName: 'Admin Demo',
+                    });
+                    setCode('123456');
+                    setInviteLoading(false);
+                    return;
+                }
 
                 let inviteCode = initialCode;
                 let hasPendingAuthenticatedInvite = false;
@@ -115,7 +134,7 @@ export default function JoinChildScreen() {
         return () => {
             mounted = false;
         };
-    }, [initialCode]);
+    }, [initialCode, isDevBypassParam]);
 
     const handleGoogleStepBack = useCallback(() => {
         if (googleLoading) return;
@@ -127,21 +146,27 @@ export default function JoinChildScreen() {
     }, [googleLoading, router]);
 
     const handleCancelAndSignOut = useCallback(async () => {
-        // Clear pending invite marker so the nav guard doesn't redirect
-        // back here on the user's next sign-in with this Google account.
-        try {
-            await supabase.auth.updateUser({ data: { pending_child_invite: null } });
-        } catch {
-            // best-effort cleanup; sign-out is still the important outcome
+        if (!devBypassActive) {
+            // Clear pending invite marker so the nav guard doesn't redirect
+            // back here on the user's next sign-in with this Google account.
+            try {
+                await supabase.auth.updateUser({ data: { pending_child_invite: null } });
+            } catch {
+                // best-effort cleanup; sign-out is still the important outcome
+            }
+            await signOut();
         }
-        await signOut();
         router.replace('/(auth)/login');
-    }, [router]);
+    }, [router, devBypassActive]);
 
     const handleCancelAndSignOutConfirm = useCallback(async () => {
         setShowLeaveSheet(false);
-        await handleCancelAndSignOut();
-    }, [handleCancelAndSignOut]);
+        if (step === 'dob') {
+            setStep('google');
+        } else {
+            await handleCancelAndSignOut();
+        }
+    }, [step, handleCancelAndSignOut]);
 
     useEffect(() => {
         const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -229,6 +254,12 @@ export default function JoinChildScreen() {
 
         setDobError(null);
         setDobLoading(true);
+
+        if (devBypassActive) {
+            setDobLoading(false);
+            router.replace('/(auth)/login');
+            return;
+        }
 
         const isoDate = formatLocalIsoDate(dateOfBirth);
 
@@ -373,6 +404,17 @@ export default function JoinChildScreen() {
                             />
                         </View>
 
+                        {__DEV__ ? (
+                            <Pressable
+                                onPress={() => { setDevBypassPressed(true); setStep('dob'); }}
+                                style={styles.devBypassButton}
+                                accessibilityRole="button"
+                                accessibilityLabel="[DEV] Pular Google"
+                            >
+                                <Text style={styles.devBypassText}>⚡ [DEV] Pular Google</Text>
+                            </Pressable>
+                        ) : null}
+
                         {inviteLoading ? (
                             <Text style={[styles.loadingText, { color: colors.text.muted }]}>
                                 Verificando convite…
@@ -426,17 +468,6 @@ export default function JoinChildScreen() {
                                 accessibilityLabel={dobLoading ? 'Vinculando…' : 'Entrar na família'}
                                 accessibilityState={{ busy: dobLoading }}
                             />
-                            <Pressable
-                                onPress={() => setShowLeaveSheet(true)}
-                                disabled={dobLoading}
-                                style={({ pressed }) => [styles.cancelLink, { opacity: pressed ? 0.6 : 1 }]}
-                                accessibilityRole="button"
-                                accessibilityLabel="Cancelar e sair"
-                            >
-                                <Text style={[styles.cancelText, { color: colors.text.muted }]}>
-                                    Cancelar e sair
-                                </Text>
-                            </Pressable>
                         </View>
                     </>
                 ) : null}
@@ -512,15 +543,6 @@ const styles = StyleSheet.create({
     dobActions: {
         gap: spacing['3'],
     },
-    cancelLink: {
-        alignItems: 'center',
-        paddingVertical: spacing['3'],
-    },
-    cancelText: {
-        fontFamily: typography.family.medium,
-        fontSize: typography.size.sm,
-        lineHeight: typography.lineHeight.sm,
-    },
     previewHero: {
         alignItems: 'center',
         marginBottom: spacing['6'],
@@ -548,6 +570,22 @@ const styles = StyleSheet.create({
     },
     googleWrapper: {
         marginBottom: spacing['4'],
+    },
+    devBypassButton: {
+        alignSelf: 'center',
+        paddingVertical: spacing['2'],
+        paddingHorizontal: spacing['3'],
+        borderRadius: radii.inner,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 213, 79, 0.35)',
+        backgroundColor: 'rgba(255, 213, 79, 0.08)',
+    },
+    devBypassText: {
+        fontFamily: typography.family.bold,
+        fontSize: typography.size.xs,
+        lineHeight: typography.lineHeight.xs,
+        color: '#FFD54F',
+        letterSpacing: 0,
     },
     loadingText: {
         fontFamily: typography.family.semibold,

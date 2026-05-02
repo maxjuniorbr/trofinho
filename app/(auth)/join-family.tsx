@@ -242,17 +242,6 @@ export default function JoinFamilyScreen() {
                     />
                 ) : null}
 
-                <View style={styles.footerPush}>
-                    <Pressable
-                        style={({ pressed }) => [styles.secondaryButton, { opacity: pressed ? 0.65 : 1 }]}
-                        onPress={handleBack}
-                        disabled={isSubmitBusy}
-                        accessibilityRole="button"
-                        accessibilityLabel="Voltar para criação de família"
-                    >
-                        <Text style={styles.secondaryButtonText}>Criar família em vez disso</Text>
-                    </Pressable>
-                </View>
             </View>
         </AuthHeroScreen>
     );
@@ -288,18 +277,6 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
         form: {
             marginTop: spacing['6'],
             flex: 1,
-        },
-        footerPush: {
-            marginTop: 'auto',
-        },
-        secondaryButton: {
-            paddingVertical: spacing['3'],
-            alignItems: 'center',
-        },
-        secondaryButtonText: {
-            fontFamily: typography.family.medium,
-            fontSize: typography.size.sm,
-            color: palette.textOnNavyMuted,
         },
         validatingText: {
             marginTop: spacing['2'],

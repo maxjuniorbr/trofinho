@@ -194,11 +194,6 @@ describe('JoinFamilyScreen', () => {
         expect(routerMock.back).toHaveBeenCalled();
     });
 
-    it('navigates back when secondary button is pressed', async () => {
-        const renderer = render(<JoinFamilyScreen />);
-        await pressButton(renderer, 'Voltar para criação de família');
-        expect(routerMock.back).toHaveBeenCalled();
-    });
 
     it('auto-uppercases and limits code input to 6 chars', () => {
         const renderer = render(<JoinFamilyScreen />);
