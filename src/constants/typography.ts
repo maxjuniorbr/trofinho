@@ -6,6 +6,11 @@ export const typography = {
     extrabold: 'Nunito_800ExtraBold',
     black: 'Nunito_900Black',
   },
+  // Body/UI scale: xxs..5xl. Use these for all in-app text.
+  // Display scale: hero-only titles (auth landing, onboarding step titles)
+  // that intentionally sit between '2xl' and '3xl'/'4xl' for brand presence.
+  // Vendor exceptions (e.g. Google sign-in button at 15/20) are documented
+  // inline at the call site and intentionally NOT added to the scale.
   size: {
     xxs: 10,
     xs: 12,
@@ -17,6 +22,8 @@ export const typography = {
     '3xl': 30,
     '4xl': 36,
     '5xl': 56,
+    displaySm: 26,
+    display: 32,
   },
   lineHeight: {
     xxs: 14,
@@ -29,6 +36,8 @@ export const typography = {
     '3xl': 36,
     '4xl': 40,
     '5xl': 64,
+    displaySm: 32,
+    display: 38,
   },
   weight: {
     regular: '400' as const,
