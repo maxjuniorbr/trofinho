@@ -949,7 +949,7 @@ function makeStyles(colors: ThemeColors) {
       position: 'absolute',
       bottom: spacing['2'],
       right: spacing['2'],
-      backgroundColor: 'rgba(0,0,0,0.5)',
+      backgroundColor: colors.overlay.scrim,
       borderRadius: radii.sm,
       padding: spacing['1'],
     },

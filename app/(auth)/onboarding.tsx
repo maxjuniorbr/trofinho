@@ -216,7 +216,7 @@ export default function OnboardingScreen() {
                 style={({ pressed }) => [
                   styles.inviteCard,
                   {
-                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    backgroundColor: palette.surfaceField,
                     borderColor: palette.borderSoft,
                     opacity: pressed ? 0.75 : 1,
                   },
@@ -224,7 +224,7 @@ export default function OnboardingScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Já tenho um convite"
               >
-                <View style={[styles.inviteIconBox, { backgroundColor: 'rgba(250,193,20,0.12)' }]}>
+                <View style={[styles.inviteIconBox, { backgroundColor: palette.glowGold }]}>
                   <Users size={18} color={palette.borderFocus} strokeWidth={2} />
                 </View>
                 <View style={styles.inviteTextBlock}>
@@ -344,8 +344,8 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
     },
     stepTitle: {
       fontFamily: typography.family.black,
-      fontSize: 26,
-      lineHeight: 32,
+      fontSize: typography.size.displaySm,
+      lineHeight: typography.lineHeight.displaySm,
       marginBottom: spacing['2'],
     },
     stepSubtitle: {
@@ -373,7 +373,7 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
     inviteIconBox: {
       width: 36,
       height: 36,
-      borderRadius: 10,
+      borderRadius: radii.md,
       alignItems: 'center',
       justifyContent: 'center',
     },

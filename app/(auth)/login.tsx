@@ -1,8 +1,7 @@
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useState, useMemo, useCallback } from 'react';
-import { Hash, ArrowRight, AlertCircle } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Hash, AlertCircle } from 'lucide-react-native';
 import * as Sentry from '@sentry/react-native';
 import { signInWithGoogle } from '@lib/auth';
 import {
@@ -10,10 +9,11 @@ import {
   formatChildInviteCode,
   validateChildInvite,
 } from '@lib/child-invite';
-import { gradients, radii, shadows, spacing, typography } from '@/constants/theme';
+import { radii, spacing, typography } from '@/constants/theme';
 import { AuthHeroScreen } from '@/components/auth/auth-hero-screen';
 import { AuthSeparator } from '@/components/auth/auth-separator';
 import { BrandLogo } from '@/components/auth/brand-logo';
+import { CodeSubmitButton } from '@/components/auth/code-submit-button';
 import { GoogleSignInButton } from '@/components/auth/google-sign-in-button';
 import { useHeroPalette } from '@/components/auth/use-hero-palette';
 import { useTheme } from '@/context/theme-context';
@@ -166,28 +166,12 @@ export default function LoginScreen() {
               accessibilityLabel="Campo de código de família"
               returnKeyType="go"
             />
-            <Pressable
+            <CodeSubmitButton
               onPress={handleFamilyCodeSubmit}
               disabled={isCodeDisabled}
-              style={({ pressed }) => {
-                let opacity = 1;
-                if (isCodeDisabled) opacity = 0.6;
-                else if (pressed) opacity = 0.9;
-                return [styles.codeSubmitButton, { opacity }];
-              }}
-              accessibilityRole="button"
+              busy={codeLoading}
               accessibilityLabel="Entrar com código"
-              accessibilityState={{ busy: codeLoading }}
-            >
-              <LinearGradient
-                colors={gradients.goldHorizontal.colors}
-                start={gradients.goldHorizontal.start}
-                end={gradients.goldHorizontal.end}
-                style={styles.codeSubmitGradient}
-              >
-                <ArrowRight size={18} color="#030711" strokeWidth={2.5} />
-              </LinearGradient>
-            </Pressable>
+            />
           </View>
           {codeError ? (
             <View style={styles.codeErrorRow}>
@@ -215,8 +199,8 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
     title: {
       marginTop: spacing['5'],
       fontFamily: typography.family.black,
-      fontSize: 32,
-      lineHeight: 34,
+      fontSize: typography.size.display,
+      lineHeight: typography.lineHeight.display,
       color: palette.textOnNavy,
       letterSpacing: 0,
     },
@@ -257,17 +241,6 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
       fontFamily: typography.family.bold,
       letterSpacing: 0,
       paddingVertical: spacing['2'],
-    },
-    codeSubmitButton: {
-      borderRadius: radii.md,
-      overflow: 'hidden',
-      ...shadows.goldButtonGlow,
-    },
-    codeSubmitGradient: {
-      height: 50,
-      paddingHorizontal: 18,
-      alignItems: 'center',
-      justifyContent: 'center',
     },
     codeErrorRow: {
       flexDirection: 'row',

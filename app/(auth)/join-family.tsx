@@ -1,14 +1,14 @@
-import { BackHandler, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { BackHandler, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { AlertCircle, ArrowRight, Hash, User, Users } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { AlertCircle, Hash, User, Users } from 'lucide-react-native';
 import { refreshAuthSession } from '@lib/auth';
 import { withAlpha } from '@/constants/colors';
-import { gradients, radii, shadows, spacing, typography } from '@/constants/theme';
+import { radii, spacing, typography } from '@/constants/theme';
 import { AuthHeroScreen } from '@/components/auth/auth-hero-screen';
 import { AuthDarkField } from '@/components/auth/auth-dark-field';
 import { BrandLogo } from '@/components/auth/brand-logo';
+import { CodeSubmitButton } from '@/components/auth/code-submit-button';
 import { useHeroPalette } from '@/components/auth/use-hero-palette';
 import { useTheme } from '@/context/theme-context';
 import {
@@ -172,28 +172,12 @@ export default function JoinFamilyScreen() {
                         accessibilityLabel="Campo de código do convite"
                         returnKeyType="go"
                     />
-                    <Pressable
+                    <CodeSubmitButton
                         onPress={handleSubmit}
                         disabled={isSubmitBusy}
-                        style={({ pressed }) => {
-                            let opacity = 1;
-                            if (isSubmitBusy) opacity = 0.6;
-                            else if (pressed) opacity = 0.9;
-                            return [styles.codeSubmitButton, { opacity }];
-                        }}
-                        accessibilityRole="button"
+                        busy={isSubmitBusy}
                         accessibilityLabel="Ingressar na família"
-                        accessibilityState={{ busy: isSubmitBusy }}
-                    >
-                        <LinearGradient
-                            colors={gradients.goldHorizontal.colors}
-                            start={gradients.goldHorizontal.start}
-                            end={gradients.goldHorizontal.end}
-                            style={styles.codeSubmitGradient}
-                        >
-                            <ArrowRight size={18} color="#030711" strokeWidth={2.5} />
-                        </LinearGradient>
-                    </Pressable>
+                    />
                 </View>
                 {displayError ? (
                     <View style={styles.codeErrorRow}>
@@ -335,17 +319,6 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
             fontFamily: typography.family.bold,
             letterSpacing: 0,
             paddingVertical: spacing['2'],
-        },
-        codeSubmitButton: {
-            borderRadius: radii.md,
-            overflow: 'hidden',
-            ...shadows.goldButtonGlow,
-        },
-        codeSubmitGradient: {
-            height: 50,
-            paddingHorizontal: 18,
-            alignItems: 'center',
-            justifyContent: 'center',
         },
         codeErrorRow: {
             flexDirection: 'row',

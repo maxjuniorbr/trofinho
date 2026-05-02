@@ -5,8 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { TrendingUp, PiggyBank, Wallet, AlertTriangle } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { TrendingUp, AlertTriangle } from 'lucide-react-native';
 import { hapticSuccess } from '@lib/haptics';
 import { localizeRpcError } from '@lib/api-error';
 import {
@@ -29,13 +28,14 @@ import {
 import { useTheme } from '@/context/theme-context';
 import { useImpersonation } from '@/context/impersonation-context';
 import type { ThemeColors } from '@/constants/theme';
-import { radii, spacing, staticTextColors, typography, gradients } from '@/constants/theme';
+import { radii, spacing, typography } from '@/constants/theme';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ListScreenSkeleton } from '@/components/ui/skeleton';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { TransactionIcon } from '@/components/balance/transaction-icon';
+import { BalanceCardsRow } from '@/components/balance/balance-cards-row';
 import { InlineMessage } from '@/components/ui/inline-message';
 import { BottomSheetModal } from '@/components/ui/bottom-sheet';
 import { getSafeBottomPadding } from '@lib/safe-area';
@@ -551,40 +551,7 @@ function BalanceListHeader({
       ) : null}
 
       {/* Two side-by-side balance cards — same pattern as admin */}
-      <View style={styles.balanceCards}>
-        <LinearGradient
-          colors={gradients.gold.colors}
-          start={gradients.gold.start}
-          end={gradients.gold.end}
-          style={styles.balanceCard}
-        >
-          <View style={styles.balanceCardTop}>
-            <Wallet size={14} color="rgba(255,255,255,0.7)" strokeWidth={2} />
-            <Text style={styles.balanceCardLabel}>SALDO LIVRE</Text>
-          </View>
-          <Text style={styles.balanceCardValue}>{freeBalance.toLocaleString('pt-BR')}</Text>
-          <Text style={styles.balanceCardUnit}>pontos</Text>
-        </LinearGradient>
-
-        <View
-          style={[
-            styles.balanceCard,
-            styles.cofrinhoCard,
-            { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
-          ]}
-        >
-          <View style={styles.balanceCardTop}>
-            <PiggyBank size={14} color={colors.text.muted} strokeWidth={2} />
-            <Text style={[styles.balanceCardLabel, { color: colors.text.muted }]}>
-              COFRINHO
-            </Text>
-          </View>
-          <Text style={[styles.balanceCardValue, { color: colors.text.primary }]}>
-            {piggyBank.toLocaleString('pt-BR')}
-          </Text>
-          <Text style={[styles.balanceCardUnit, { color: colors.text.muted }]}>pontos</Text>
-        </View>
-      </View>
+      <BalanceCardsRow freeBalance={freeBalance} piggyBalance={piggyBank} />
 
       {/* Progress bar */}
       {totalPts > 0 ? (
@@ -745,47 +712,6 @@ function BalanceListHeader({
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     list: { padding: spacing['5'], paddingBottom: spacing['12'] },
-
-    // ── Balance cards (same as admin) ──
-    balanceCards: {
-      flexDirection: 'row',
-      gap: spacing['3'],
-      marginBottom: spacing['3'],
-    },
-    balanceCard: {
-      flex: 1,
-      borderRadius: radii.xl,
-      borderCurve: 'continuous',
-      padding: spacing['4'],
-    },
-    cofrinhoCard: {
-      borderWidth: 1,
-    },
-    balanceCardTop: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing['1'],
-      marginBottom: spacing['1'],
-    },
-    balanceCardLabel: {
-      fontSize: typography.size.xxs,
-      fontFamily: typography.family.semibold,
-      letterSpacing: 0.5,
-      textTransform: 'uppercase',
-      color: 'rgba(255,255,255,0.7)',
-    },
-    balanceCardValue: {
-      fontSize: typography.size['3xl'],
-      fontFamily: typography.family.extrabold,
-      fontVariant: ['tabular-nums'],
-      color: staticTextColors.inverse,
-    },
-    balanceCardUnit: {
-      fontSize: typography.size.xxs,
-      fontFamily: typography.family.medium,
-      color: 'rgba(255,255,255,0.6)',
-      marginTop: spacing['0.5'],
-    },
 
     // ── Progress ──
     progressSection: {

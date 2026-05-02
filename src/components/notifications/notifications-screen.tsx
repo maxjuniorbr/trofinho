@@ -11,7 +11,7 @@ import type { LucideIcon } from 'lucide-react-native';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { useTheme } from '@/context/theme-context';
-import { opacityPressed, radii, shadows, spacing, typography } from '@/constants/theme';
+import { opacityPressed, radii, shadows, spacing, staticTextColors, typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/constants/theme';
 import type { Notif, NotifType, NotifGroup } from '@lib/notification-inbox';
 
@@ -118,7 +118,7 @@ export function NotificationsScreen({
                     style={[
                       styles.filterBadge,
                       {
-                        backgroundColor: active ? 'rgba(0,0,0,0.15)' : colors.bg.surface,
+                        backgroundColor: active ? withAlpha(staticTextColors.onBrand, 0.15) : colors.bg.surface,
                       },
                     ]}
                   >
