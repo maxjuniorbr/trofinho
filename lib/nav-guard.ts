@@ -1,6 +1,11 @@
 import type { UserProfile } from './auth';
 
-export type NavTarget = '/(auth)/login' | '/(auth)/onboarding' | '/(auth)/join-child' | '/(admin)/' | '/(child)/';
+export type NavTarget =
+  | '/(auth)/login'
+  | '/(auth)/onboarding'
+  | '/(auth)/join-child'
+  | '/(admin)/'
+  | '/(child)/';
 
 /** Auth sub-routes that bypass the normal redirect logic. */
 const AUTH_PASSTHROUGH_ROUTES = new Set(['onboarding', 'join-family', 'join-child']);

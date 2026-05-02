@@ -9,7 +9,10 @@ const authErrorMatchers = [
   ['User not found', 'Usuário não encontrado.'],
   ['different from the old', 'A nova senha deve ser diferente da anterior.'],
   ['Auth session missing!', 'Sessão expirada. Faça login novamente.'],
-  ['Token has expired or is invalid', 'Link expirado ou inválido. Solicite um novo link de redefinição.'],
+  [
+    'Token has expired or is invalid',
+    'Link expirado ou inválido. Solicite um novo link de redefinição.',
+  ],
   ['otp_expired', 'Link expirado ou inválido. Solicite um novo link de redefinição.'],
 ] as const;
 
@@ -66,11 +69,17 @@ const rpcErrorMatchers = [
   ['resgates pendentes', 'Não é possível alterar o custo com resgates pendentes.'],
   ['Prêmio não encontrado ou não disponível', 'Prêmio não disponível.'],
   ['já pertence a uma família', 'Você já tem uma família cadastrada.'],
-  ['número máximo de administradores', 'Esta família já possui o número máximo de administradores.'],
+  [
+    'número máximo de administradores',
+    'Esta família já possui o número máximo de administradores.',
+  ],
   ['convite pendente para esta família', 'Já existe um convite pendente para esta família.'],
   ['Código inválido ou expirado', 'Código inválido ou expirado. Peça um novo ao administrador.'],
   ['convite expirou', 'Este convite expirou. Peça um novo ao administrador.'],
-  ['Muitas tentativas incorretas', 'Muitas tentativas incorretas. Aguarde alguns minutos e tente novamente.'],
+  [
+    'Muitas tentativas incorretas',
+    'Muitas tentativas incorretas. Aguarde alguns minutos e tente novamente.',
+  ],
   ['remover o único administrador', 'Não é possível remover o único administrador da família.'],
   ['remover a si mesmo', 'Não é possível remover a si mesmo.'],
   ['Sem índice de valorização', 'Valorização não configurada.'],

@@ -1,4 +1,4 @@
-import { BackHandler, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { ChevronLeft, LogOut, Users } from 'lucide-react-native';
