@@ -1,13 +1,5 @@
 import * as Sentry from '@sentry/react-native';
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
@@ -26,6 +18,7 @@ import { NotificationCard } from '@/components/profile/notification-card';
 import { AdminManagementSheet } from '@/components/profile/admin-management-sheet';
 import { RemoveAdminSheet } from '@/components/profile/remove-admin-sheet';
 import { useTheme } from '@/context/theme-context';
+import { useAppAlert } from '@/context/app-alert-context';
 import { radii, spacing, typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/constants/theme';
 import { useImpersonation } from '@/context/impersonation-context';
@@ -50,6 +43,7 @@ import {
 export default function ProfileScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { showAlert } = useAppAlert();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const footerItems = useAdminFooterItems();
 
@@ -108,10 +102,7 @@ export default function ProfileScreen() {
   const deleteAccountMutation = useDeleteAccount();
 
   const { data: allChildren = [] } = useChildrenList();
-  const hasActiveChildren = useMemo(
-    () => allChildren.some((c) => c.ativo === true),
-    [allChildren],
-  );
+  const hasActiveChildren = useMemo(() => allChildren.some((c) => c.ativo === true), [allChildren]);
   const { startImpersonation } = useImpersonation();
 
   const effectivePrefs = notificationPreferences ?? notificationPrefsQuery.data ?? null;
@@ -130,10 +121,11 @@ export default function ProfileScreen() {
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      'Excluir conta',
-      'Todos os dados da família serão apagados permanentemente. Essa ação não pode ser desfeita.',
-      [
+    showAlert({
+      title: 'Excluir conta',
+      message:
+        'Todos os dados da família serão apagados permanentemente. Essa ação não pode ser desfeita.',
+      actions: [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Excluir conta',
@@ -141,7 +133,7 @@ export default function ProfileScreen() {
           onPress: () => deleteAccountMutation.mutate(),
         },
       ],
-    );
+    });
   };
 
   const handleNotificationPreferencesChange = async (next: NotificationPrefs) => {

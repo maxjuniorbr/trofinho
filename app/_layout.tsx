@@ -27,6 +27,7 @@ import { configureGoogleSignIn } from '@lib/google-auth';
 import { ThemeProvider, useTheme } from '@/context/theme-context';
 import { QueryProvider, queryClient } from '@/context/query-client';
 import { ImpersonationProvider, useImpersonation } from '@/context/impersonation-context';
+import { AppAlertProvider } from '@/context/app-alert-context';
 import { OfflineBanner } from '@/components/ui/offline-banner';
 
 const navigationIntegration = Sentry.reactNavigationIntegration({
@@ -116,7 +117,9 @@ function RootLayout() {
     <ImpersonationProvider>
       <QueryProvider>
         <ThemeProvider>
-          <RootNavigator ready={ready} fontsLoaded={fontsLoaded} profile={profile} />
+          <AppAlertProvider>
+            <RootNavigator ready={ready} fontsLoaded={fontsLoaded} profile={profile} />
+          </AppAlertProvider>
         </ThemeProvider>
       </QueryProvider>
     </ImpersonationProvider>

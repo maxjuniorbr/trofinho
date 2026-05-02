@@ -1,4 +1,4 @@
-import { Alert, StyleSheet, Text, View, RefreshControl, Pressable } from 'react-native';
+import { StyleSheet, Text, View, RefreshControl, Pressable } from 'react-native';
 import { localizeRpcError } from '@lib/api-error';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
@@ -26,6 +26,7 @@ import {
 } from '@/hooks/queries';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { useTheme } from '@/context/theme-context';
+import { useAppAlert } from '@/context/app-alert-context';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, spacing, typography } from '@/constants/theme';
 import { HeaderIconButton, ScreenHeader } from '@/components/ui/screen-header';
@@ -55,6 +56,7 @@ export default function ChildBalanceAdminScreen() {
   const { filho_id, nome } = useLocalSearchParams<{ filho_id: string; nome: string }>();
   const router = useRouter();
   const { colors } = useTheme();
+  const { showAlert } = useAppAlert();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const { from: todayFrom, to: todayTo } = useMemo(todayRange, []);
@@ -98,9 +100,9 @@ export default function ChildBalanceAdminScreen() {
           description,
           opts: profile?.familia_id
             ? {
-              familiaId: profile.familia_id,
-              childUserId: childDetail?.usuario_id ?? null,
-            }
+                familiaId: profile.familia_id,
+                childUserId: childDetail?.usuario_id ?? null,
+              }
             : undefined,
         });
         setModalType(null);
@@ -145,10 +147,10 @@ export default function ChildBalanceAdminScreen() {
 
   const handleRejectWithdrawal = useCallback(() => {
     if (!pendingWithdrawal) return;
-    Alert.alert(
-      'Rejeitar resgate',
-      `Deseja rejeitar o resgate de ${pendingWithdrawal.valor_solicitado} pts do cofrinho?`,
-      [
+    showAlert({
+      title: 'Rejeitar resgate',
+      message: `Deseja rejeitar o resgate de ${pendingWithdrawal.valor_solicitado} pts do cofrinho?`,
+      actions: [
         { text: 'Não', style: 'cancel' },
         {
           text: 'Sim, rejeitar',
@@ -173,8 +175,8 @@ export default function ChildBalanceAdminScreen() {
           },
         },
       ],
-    );
-  }, [pendingWithdrawal, cancelWithdrawalMutation, profile]);
+    });
+  }, [pendingWithdrawal, showAlert, cancelWithdrawalMutation, profile]);
 
   const handleSavePiggyConfig = useCallback(
     async ({

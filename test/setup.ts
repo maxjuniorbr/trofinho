@@ -70,6 +70,7 @@ vi.mock('lucide-react-native', () => ({
   Clock: createIcon('Clock'),
   Eye: createIcon('Eye'),
   CheckCircle2: createIcon('CheckCircle2'),
+  CircleCheck: createIcon('CircleCheck'),
   XCircle: createIcon('XCircle'),
   AlertTriangle: createIcon('AlertTriangle'),
   TriangleAlert: createIcon('TriangleAlert'),
@@ -346,6 +347,16 @@ vi.mock('@/context/theme-context', () => ({
   useTheme: () => __TEST_THEME_OVERRIDE__,
 }));
 
+export const __APP_ALERT_MOCK__ = {
+  showAlert: vi.fn(),
+  hideAlert: vi.fn(),
+};
+
+vi.mock('@/context/app-alert-context', () => ({
+  AppAlertProvider: ({ children }: Props) => children,
+  useAppAlert: () => __APP_ALERT_MOCK__,
+}));
+
 vi.mock('@react-native-community/netinfo', () => ({
   default: {
     addEventListener: vi.fn(() => vi.fn()),
@@ -378,6 +389,8 @@ vi.mock('@react-native-google-signin/google-signin', () => ({
 
 afterEach(() => {
   vi.restoreAllMocks();
+  __APP_ALERT_MOCK__.showAlert.mockReset();
+  __APP_ALERT_MOCK__.hideAlert.mockReset();
   __TEST_THEME_OVERRIDE__.colors = lightColors;
   __TEST_THEME_OVERRIDE__.isDark = false;
   __TEST_THEME_OVERRIDE__.scheme = 'light';

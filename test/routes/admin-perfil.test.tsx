@@ -1,6 +1,7 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-compat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { __APP_ALERT_MOCK__ } from '../setup';
 
 import ProfileScreen from '../../app/(admin)/perfil';
 
@@ -319,10 +320,12 @@ describe('ProfileScreen (admin)', () => {
     act(() => {
       deleteBtn.props.onPress();
     });
-    expect(alertMock.alert).toHaveBeenCalledWith(
-      'Excluir conta',
-      expect.any(String),
-      expect.any(Array),
+    expect(__APP_ALERT_MOCK__.showAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Excluir conta',
+        message: expect.any(String),
+        actions: expect.any(Array),
+      }),
     );
   });
 
@@ -335,10 +338,13 @@ describe('ProfileScreen (admin)', () => {
       deleteBtn.props.onPress();
     });
 
-    const buttons = alertMock.alert.mock.calls[0][2] as {
-      text: string;
-      onPress?: () => void;
-    }[];
+    const alertOptions = __APP_ALERT_MOCK__.showAlert.mock.calls[0][0] as {
+      actions: {
+        text: string;
+        onPress?: () => void;
+      }[];
+    };
+    const buttons = alertOptions.actions;
     const destructive = buttons.find((b) => b.text === 'Excluir conta');
     act(() => {
       destructive!.onPress!();
@@ -354,9 +360,7 @@ describe('ProfileScreen (admin)', () => {
   });
 
   it('enables "Ver app como filho" menu item when there are active children', () => {
-    childrenListMock.data = [
-      { id: 'c1', nome: 'Ana', ativo: true, avatar_url: null },
-    ];
+    childrenListMock.data = [{ id: 'c1', nome: 'Ana', ativo: true, avatar_url: null }];
     const renderer = render(<ProfileScreen />);
     const menuRow = renderer.root
       .findAllByType('Pressable' as never)
@@ -384,9 +388,7 @@ describe('ProfileScreen (admin)', () => {
   });
 
   it('opens ChildSelectionSheet when "Ver app como filho" is pressed', () => {
-    childrenListMock.data = [
-      { id: 'c1', nome: 'Ana', ativo: true, avatar_url: null },
-    ];
+    childrenListMock.data = [{ id: 'c1', nome: 'Ana', ativo: true, avatar_url: null }];
     const renderer = render(<ProfileScreen />);
 
     // Initially the sheet should not be visible

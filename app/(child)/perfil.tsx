@@ -1,7 +1,6 @@
 import * as Sentry from '@sentry/react-native';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Pressable,
   ScrollView,
@@ -27,6 +26,7 @@ import { NotificationCard } from '@/components/profile/notification-card';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/context/theme-context';
 import { useImpersonation } from '@/context/impersonation-context';
+import { useAppAlert } from '@/context/app-alert-context';
 import { opacityDisabled, radii, spacing, typography } from '@/constants/theme';
 import type { ThemeColors } from '@/constants/theme';
 import { signOut } from '@lib/auth';
@@ -43,6 +43,7 @@ export default function ChildProfileScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { impersonating } = useImpersonation();
+  const { showAlert } = useAppAlert();
   const isReadOnly = impersonating !== null;
   const sectionStyles = useMemo(() => makeSectionStyles(), []);
   const footerItems = useChildFooterItems();
@@ -82,13 +83,16 @@ export default function ChildProfileScreen() {
 
   const effectivePrefs = notificationPreferences ?? notificationPrefsQuery.data ?? null;
   const effectiveAvatarUri = localAvatarUri ?? avatarUri;
-  const effectiveName = impersonating ? impersonating.childName : (localName ?? profile?.nome ?? 'Campeão');
+  const effectiveName = impersonating
+    ? impersonating.childName
+    : (localName ?? profile?.nome ?? 'Campeão');
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      'Excluir conta',
-      'Todos os seus dados serão apagados permanentemente. Essa ação não pode ser desfeita.',
-      [
+    showAlert({
+      title: 'Excluir conta',
+      message:
+        'Todos os seus dados serão apagados permanentemente. Essa ação não pode ser desfeita.',
+      actions: [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Excluir conta',
@@ -96,7 +100,7 @@ export default function ChildProfileScreen() {
           onPress: () => deleteAccountMutation.mutate(),
         },
       ],
-    );
+    });
   };
 
   const handleSignOut = async () => {
@@ -144,12 +148,14 @@ export default function ChildProfileScreen() {
 
   return (
     <>
-      <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: colors.bg.canvas }}
-      >
+      <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg.canvas }}>
         <SafeScreenFrame bottomInset={false}>
           <StatusBar style={colors.statusBar} />
-          <ScreenHeader title="Meu Perfil" onBack={isReadOnly ? undefined : () => router.back()} role="filho" />
+          <ScreenHeader
+            title="Meu Perfil"
+            onBack={isReadOnly ? undefined : () => router.back()}
+            role="filho"
+          />
 
           {isLoading ? (
             <View style={styles.loadingContent}>
@@ -209,7 +215,11 @@ export default function ChildProfileScreen() {
                 </View>
               </SectionCard>
 
-              <LogoutButton onPress={() => setShowSignOutSheet(true)} loading={loggingOut} disabled={isReadOnly} />
+              <LogoutButton
+                onPress={() => setShowSignOutSheet(true)}
+                loading={loggingOut}
+                disabled={isReadOnly}
+              />
 
               <Button
                 variant="danger"
@@ -288,7 +298,11 @@ type MenuRowProps = Readonly<{
 
 const MenuRow = ({ icon: Icon, label, onPress, colors, styles, disabled }: MenuRowProps) => (
   <Pressable
-    style={({ pressed }) => [styles.menuRow, !disabled && pressed && { backgroundColor: colors.bg.muted }, disabled && { opacity: opacityDisabled.heavy }]}
+    style={({ pressed }) => [
+      styles.menuRow,
+      !disabled && pressed && { backgroundColor: colors.bg.muted },
+      disabled && { opacity: opacityDisabled.heavy },
+    ]}
     onPress={onPress}
     disabled={disabled}
     accessibilityRole="button"

@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react-native';
-import { Alert, StyleSheet, Text, View, Animated, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, Animated, RefreshControl } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
@@ -20,6 +20,7 @@ import {
 } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import { useImpersonation } from '@/context/impersonation-context';
+import { useAppAlert } from '@/context/app-alert-context';
 import type { ThemeColors } from '@/constants/theme';
 import { gradients, radii, shadows, spacing, typography } from '@/constants/theme';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ export default function ChildPrizesScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { impersonating } = useImpersonation();
+  const { showAlert } = useAppAlert();
   const isReadOnly = impersonating !== null;
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const footerItems = useChildFooterItems();
@@ -82,13 +84,17 @@ export default function ChildPrizesScreen() {
   };
 
   const handleRedeem = (prize: Prize) => {
-    Alert.alert('Confirmar resgate', `Trocar ${prize.custo_pontos} pontos por "${prize.nome}"?`, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Resgatar',
-        onPress: () => executeRedeem(prize),
-      },
-    ]);
+    showAlert({
+      title: 'Confirmar resgate',
+      message: `Trocar ${prize.custo_pontos} pontos por "${prize.nome}"?`,
+      actions: [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Resgatar',
+          onPress: () => executeRedeem(prize),
+        },
+      ],
+    });
   };
 
   const executeRedeem = async (prize: Prize) => {
@@ -100,17 +106,19 @@ export default function ChildPrizesScreen() {
         prizeId: prize.id,
         opts: profile?.familia_id
           ? {
-            familiaId: profile.familia_id,
-            childName: profile.nome ?? '',
-            prizeName: prize.nome,
-            childUserId: profile.id,
-          }
+              familiaId: profile.familia_id,
+              childName: profile.nome ?? '',
+              prizeName: prize.nome,
+              childUserId: profile.id,
+            }
           : undefined,
       });
       hapticSuccess();
       setSuccess(`Resgate de "${prize.nome}" solicitado! Aguarde a confirmação.`);
     } catch (e) {
-      setRedemptionError(e instanceof Error ? localizeRpcError(e.message) : 'Não foi possível solicitar o resgate.');
+      setRedemptionError(
+        e instanceof Error ? localizeRpcError(e.message) : 'Não foi possível solicitar o resgate.',
+      );
     } finally {
       setRedeeming(null);
     }
@@ -247,16 +255,12 @@ function PrizeStatusBadge({ outOfStock, hasBalance, deficit, colors }: PrizeStat
     return (
       <View style={cardStyles.statusInner}>
         <CheckCircle2 size={12} color={colors.semantic.success} strokeWidth={2} />
-        <Text style={[cardStyles.statusText, { color: colors.semantic.success }]}>
-          Disponível!
-        </Text>
+        <Text style={[cardStyles.statusText, { color: colors.semantic.success }]}>Disponível!</Text>
       </View>
     );
   }
   return (
-    <Text style={[cardStyles.statusText, { color: colors.text.muted }]}>
-      Faltam {deficit} pts
-    </Text>
+    <Text style={[cardStyles.statusText, { color: colors.text.muted }]}>Faltam {deficit} pts</Text>
   );
 }
 
@@ -345,12 +349,7 @@ function PrizeCard({ item, freeBalance, redeeming, onRedeem, isReadOnly }: Prize
         />
       </View>
 
-      <View
-        style={[
-          cardStyles.statusRow,
-          { backgroundColor: statusBgColor },
-        ]}
-      >
+      <View style={[cardStyles.statusRow, { backgroundColor: statusBgColor }]}>
         <PrizeStatusBadge
           outOfStock={outOfStock}
           hasBalance={hasBalance}

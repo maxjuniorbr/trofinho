@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react-native';
-import { Alert, StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo, useCallback } from 'react';
@@ -19,6 +19,7 @@ import { withAlpha } from '@/constants/colors';
 import { useChildAssignments, useDiscardRejection } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import { useImpersonation } from '@/context/impersonation-context';
+import { useAppAlert } from '@/context/app-alert-context';
 import type { ThemeColors } from '@/constants/theme';
 import { opacityDisabled, radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/ui/screen-header';
@@ -228,6 +229,7 @@ function RejectedActions({
   disabled?: boolean;
 }>) {
   const discardMutation = useDiscardRejection();
+  const { showAlert } = useAppAlert();
   const retryState = getAssignmentRetryState(item);
   const plural = retryState.attemptsLeft === 1 ? '' : 's';
   const hint = retryState.canRetry
@@ -235,10 +237,14 @@ function RejectedActions({
     : 'Sem tentativas restantes';
 
   const handleDiscard = () => {
-    Alert.alert('Descartar feedback?', 'A tarefa volta para "Para fazer".', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Descartar', style: 'destructive', onPress: () => discardMutation.mutate(item.id) },
-    ]);
+    showAlert({
+      title: 'Descartar feedback?',
+      message: 'A tarefa volta para "Para fazer".',
+      actions: [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Descartar', style: 'destructive', onPress: () => discardMutation.mutate(item.id) },
+      ],
+    });
   };
 
   return (

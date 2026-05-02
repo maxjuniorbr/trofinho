@@ -1,5 +1,4 @@
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -47,6 +46,7 @@ import {
 } from '@/hooks/queries';
 import { useTheme } from '@/context/theme-context';
 import { useImpersonation } from '@/context/impersonation-context';
+import { useAppAlert } from '@/context/app-alert-context';
 import type { ThemeColors } from '@/constants/theme';
 import {
   opacityDisabled,
@@ -409,6 +409,7 @@ export default function ChildTaskDetailScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { impersonating } = useImpersonation();
+  const { showAlert } = useAppAlert();
   const isReadOnly = impersonating !== null;
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
@@ -537,10 +538,10 @@ export default function ChildTaskDetailScreen() {
       return;
     }
 
-    Alert.alert(
-      'Cancelar envio?',
-      'A tarefa vai voltar para "Para fazer" e você poderá enviar de novo.',
-      [
+    showAlert({
+      title: 'Cancelar envio?',
+      message: 'A tarefa vai voltar para "Para fazer" e você poderá enviar de novo.',
+      actions: [
         { text: 'Manter', style: 'cancel' },
         {
           text: 'Cancelar envio',
@@ -548,7 +549,7 @@ export default function ChildTaskDetailScreen() {
           onPress: () => executeCancellation(latestAssignment.id),
         },
       ],
-    );
+    });
   };
 
   const executeCancellation = (assignmentId: string) => {

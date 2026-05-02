@@ -1,5 +1,4 @@
 import {
-  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -54,6 +53,7 @@ import {
 } from '@/hooks/queries/use-tasks';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { useTheme } from '@/context/theme-context';
+import { useAppAlert } from '@/context/app-alert-context';
 import type { ThemeColors } from '@/constants/theme';
 import { opacityPressed, radii, shadows, spacing, typography } from '@/constants/theme';
 import { ScreenHeader, HeaderIconButton } from '@/components/ui/screen-header';
@@ -118,7 +118,10 @@ function HistoryRow({ assignment, colors, styles, isLast, onImagePress }: Histor
     <View
       style={[
         styles.historyRow,
-        !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border.subtle },
+        !isLast && {
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          borderBottomColor: colors.border.subtle,
+        },
       ]}
     >
       {hasPhoto ? (
@@ -128,7 +131,11 @@ function HistoryRow({ assignment, colors, styles, isLast, onImagePress }: Histor
           accessibilityRole="button"
           accessibilityLabel="Ver foto"
         >
-          <Image source={assignment.evidencia_url!} style={styles.historyThumb} contentFit="cover" />
+          <Image
+            source={assignment.evidencia_url!}
+            style={styles.historyThumb}
+            contentFit="cover"
+          />
           <View style={[styles.historyThumbBadge, { backgroundColor: tone.background }]}>
             <Icon size={10} color={tone.foreground} strokeWidth={2.5} />
           </View>
@@ -281,28 +288,51 @@ function TaskContent({
       {!isReadonly && pendingValidation.length > 0 ? (
         <View style={styles.reviewSection}>
           {pendingValidation.map((a) => (
-            <View key={a.id} style={[styles.reviewActionCard, { borderColor: colors.border.subtle, backgroundColor: colors.bg.surface }]}>
-              <Text style={[styles.reviewChildName, { color: colors.text.primary }]} numberOfLines={1}>
+            <View
+              key={a.id}
+              style={[
+                styles.reviewActionCard,
+                { borderColor: colors.border.subtle, backgroundColor: colors.bg.surface },
+              ]}
+            >
+              <Text
+                style={[styles.reviewChildName, { color: colors.text.primary }]}
+                numberOfLines={1}
+              >
                 {a.filhos.nome} — aguardando aprovação
               </Text>
               <View style={styles.reviewBtnRow}>
                 <Pressable
                   onPress={() => onReject(a.id)}
-                  style={({ pressed }) => [styles.reviewBtn, styles.reviewBtnReject, { borderColor: colors.semantic.error }, pressed && { opacity: opacityPressed.control }]}
+                  style={({ pressed }) => [
+                    styles.reviewBtn,
+                    styles.reviewBtnReject,
+                    { borderColor: colors.semantic.error },
+                    pressed && { opacity: opacityPressed.control },
+                  ]}
                   accessibilityRole="button"
                   accessibilityLabel={`Rejeitar entrega de ${a.filhos.nome}`}
                 >
                   <X size={16} color={colors.semantic.error} strokeWidth={2.5} />
-                  <Text style={[styles.reviewBtnText, { color: colors.semantic.error }]}>Rejeitar</Text>
+                  <Text style={[styles.reviewBtnText, { color: colors.semantic.error }]}>
+                    Rejeitar
+                  </Text>
                 </Pressable>
                 <Pressable
                   onPress={() => onApprove(a.id)}
-                  style={({ pressed }) => [styles.reviewBtn, styles.reviewBtnApprove, { backgroundColor: colors.semantic.success }, pressed && { opacity: opacityPressed.surface }]}
+                  style={({ pressed }) => [
+                    styles.reviewBtn,
+                    styles.reviewBtnApprove,
+                    { backgroundColor: colors.semantic.success },
+                    pressed && { opacity: opacityPressed.surface },
+                  ]}
                   accessibilityRole="button"
                   accessibilityLabel={`Aprovar entrega de ${a.filhos.nome}`}
                 >
                   <Check size={16} color={colors.text.inverse} strokeWidth={2.5} />
-                  <Text style={[styles.reviewBtnText, { color: colors.text.inverse }]}>Aprovar</Text>
+                  <Text style={[styles.reviewBtnText, { color: colors.text.inverse }]}>
+                    Aprovar
+                  </Text>
                 </Pressable>
               </View>
             </View>
@@ -323,13 +353,23 @@ function TaskContent({
       {/* ─── Quick stats ─── */}
       {hasApproved ? (
         <View style={styles.statsGrid}>
-          <View style={[styles.statCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
+          <View
+            style={[
+              styles.statCard,
+              { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+            ]}
+          >
             <Text style={[styles.statLabel, { color: colors.text.muted }]}>Aprovações</Text>
             <Text style={[styles.statValue, { color: colors.semantic.success }]}>
               {approvedCount}
             </Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle }]}>
+          <View
+            style={[
+              styles.statCard,
+              { backgroundColor: colors.bg.surface, borderColor: colors.border.subtle },
+            ]}
+          >
             <Text style={[styles.statLabel, { color: colors.text.muted }]}>Pontos ganhos</Text>
             <Text style={[styles.statValue, { color: colors.text.primary }]}>
               {totalPointsEarned}
@@ -403,7 +443,14 @@ type TaskMainCardProps = Readonly<{
   onImagePress: (url: string) => void;
 }>;
 
-function TaskMainCard({ task, taskState, proofAssignment, colors, styles, onImagePress }: TaskMainCardProps) {
+function TaskMainCard({
+  task,
+  taskState,
+  proofAssignment,
+  colors,
+  styles,
+  onImagePress,
+}: TaskMainCardProps) {
   const statusForTone = getTaskStatusTone(taskState);
   const tone = getAssignmentStatusTone(statusForTone, colors);
   const label = getTaskStateLabel(taskState);
@@ -473,9 +520,7 @@ function TaskMainCard({ task, taskState, proofAssignment, colors, styles, onImag
       <View style={[styles.descSection, { borderTopColor: colors.border.subtle }]}>
         <Text style={[styles.sectionLabel, { color: colors.text.muted }]}>Descrição</Text>
         {task.descricao ? (
-          <Text style={[styles.descText, { color: colors.text.primary }]}>
-            {task.descricao}
-          </Text>
+          <Text style={[styles.descText, { color: colors.text.primary }]}>{task.descricao}</Text>
         ) : (
           <Text style={[styles.descEmpty, { color: colors.text.muted }]}>Sem descrição</Text>
         )}
@@ -572,6 +617,7 @@ export default function TaskDetailAdminScreen() {
   const isReadonly = readonlyParam === '1';
   const router = useRouter();
   const { colors } = useTheme();
+  const { showAlert } = useAppAlert();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const { data: task, isLoading, error, refetch, isFetching } = useTaskDetail(id);
@@ -604,17 +650,17 @@ export default function TaskDetailAdminScreen() {
 
   const confirmPause = () => {
     if (!task) return;
-    Alert.alert(
-      'Pausar tarefa?',
-      buildTaskDeactivateMessage(task.atribuicoes),
-      [
+    showAlert({
+      title: 'Pausar tarefa?',
+      message: buildTaskDeactivateMessage(task.atribuicoes),
+      actions: [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Pausar',
           onPress: () => deactivateMutation.mutate(task.id, { onSuccess: () => refetch() }),
         },
       ],
-    );
+    });
   };
 
   const confirmReactivate = () => {
@@ -622,40 +668,42 @@ export default function TaskDetailAdminScreen() {
     const state = deriveTaskState(task);
     const isArchived = state === 'arquivada';
     const mutation = isArchived ? unarchiveMutation : reactivateMutation;
-    Alert.alert(
-      'Reativar tarefa?',
-      isArchived ? 'A tarefa volta para a lista ativa.' : 'A tarefa volta a gerar atribuições normalmente.',
-      [
+    showAlert({
+      title: 'Reativar tarefa?',
+      message: isArchived
+        ? 'A tarefa volta para a lista ativa.'
+        : 'A tarefa volta a gerar atribuições normalmente.',
+      actions: [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Reativar',
           onPress: () => mutation.mutate(task.id, { onSuccess: () => refetch() }),
         },
       ],
-    );
+    });
   };
 
   const confirmArchive = () => {
     if (!task) return;
-    Alert.alert(
-      'Arquivar tarefa?',
-      buildTaskArchiveMessage(task.atribuicoes),
-      [
+    showAlert({
+      title: 'Arquivar tarefa?',
+      message: buildTaskArchiveMessage(task.atribuicoes),
+      actions: [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Arquivar',
           onPress: () => archiveMutation.mutate(task.id, { onSuccess: () => refetch() }),
         },
       ],
-    );
+    });
   };
 
   const confirmDelete = () => {
     if (!task) return;
-    Alert.alert(
-      'Excluir tarefa?',
-      buildTaskDeleteMessage(task.atribuicoes),
-      [
+    showAlert({
+      title: 'Excluir tarefa?',
+      message: buildTaskDeleteMessage(task.atribuicoes),
+      actions: [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Excluir',
@@ -663,7 +711,7 @@ export default function TaskDetailAdminScreen() {
           onPress: () => deleteMutation.mutate(task.id, { onSuccess: () => router.back() }),
         },
       ],
-    );
+    });
   };
 
   const handleApprove = (assignmentId: string) => {
@@ -685,26 +733,30 @@ export default function TaskDetailAdminScreen() {
   const handleReject = (assignmentId: string) => {
     if (!task) return;
     const assignment = task.atribuicoes.find((a) => a.id === assignmentId);
-    Alert.alert('Rejeitar entrega?', 'O filho poderá refazer a tarefa.', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Rejeitar',
-        style: 'destructive',
-        onPress: () =>
-          rejectMutation.mutate(
-            {
-              assignmentId,
-              note: 'Rejeitada pelo responsável',
-              opts: {
-                familiaId: task.familia_id,
-                userId: assignment?.filhos.usuario_id,
-                taskTitle: task.titulo,
+    showAlert({
+      title: 'Rejeitar entrega?',
+      message: 'O filho poderá refazer a tarefa.',
+      actions: [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Rejeitar',
+          style: 'destructive',
+          onPress: () =>
+            rejectMutation.mutate(
+              {
+                assignmentId,
+                note: 'Rejeitada pelo responsável',
+                opts: {
+                  familiaId: task.familia_id,
+                  userId: assignment?.filhos.usuario_id,
+                  taskTitle: task.titulo,
+                },
               },
-            },
-            { onSuccess: () => refetch() },
-          ),
-      },
-    ]);
+              { onSuccess: () => refetch() },
+            ),
+        },
+      ],
+    });
   };
 
   /* ─── Loading state ─── */

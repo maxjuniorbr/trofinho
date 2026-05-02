@@ -1,4 +1,4 @@
-import { Alert, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useMemo, useState } from 'react';
@@ -51,8 +51,17 @@ import { localizeRpcError } from '@lib/api-error';
 import { consumeNavigationFeedback, type NavigationFeedback } from '@lib/navigation-feedback';
 import { formatDate } from '@lib/utils';
 import { useTheme } from '@/context/theme-context';
+import { useAppAlert } from '@/context/app-alert-context';
 import type { ThemeColors } from '@/constants/theme';
-import { opacityDisabled, opacityPressed, radii, shadows, spacing, typography, withAlpha } from '@/constants/theme';
+import {
+  opacityDisabled,
+  opacityPressed,
+  radii,
+  shadows,
+  spacing,
+  typography,
+  withAlpha,
+} from '@/constants/theme';
 
 type TabKey = 'ativas' | 'feitas' | 'arquivo';
 
@@ -98,31 +107,31 @@ function TaskCard({
   const Wrapper = onPress ? Pressable : View;
   const wrapperProps = onPress
     ? {
-      style: ({ pressed }: { pressed: boolean }) => [
-        styles.card,
-        shadows.card,
-        {
-          backgroundColor: colors.bg.surface,
-          borderColor: borderColor ?? colors.border.subtle,
-          opacity: pressed ? 0.92 : opacity,
-        },
-      ],
-      onPress,
-      accessibilityRole: 'button' as const,
-      accessibilityLabel,
-    }
+        style: ({ pressed }: { pressed: boolean }) => [
+          styles.card,
+          shadows.card,
+          {
+            backgroundColor: colors.bg.surface,
+            borderColor: borderColor ?? colors.border.subtle,
+            opacity: pressed ? 0.92 : opacity,
+          },
+        ],
+        onPress,
+        accessibilityRole: 'button' as const,
+        accessibilityLabel,
+      }
     : {
-      style: [
-        styles.card,
-        shadows.card,
-        {
-          backgroundColor: colors.bg.surface,
-          borderColor: borderColor ?? colors.border.subtle,
-          opacity,
-        },
-      ],
-      accessibilityLabel,
-    };
+        style: [
+          styles.card,
+          shadows.card,
+          {
+            backgroundColor: colors.bg.surface,
+            borderColor: borderColor ?? colors.border.subtle,
+            opacity,
+          },
+        ],
+        accessibilityLabel,
+      };
 
   // Pressable and View accept different style prop shapes; the union type
   // is not directly spreadable. A targeted cast keeps the component generic
@@ -133,12 +142,23 @@ function TaskCard({
         <View style={[styles.cardIcon, { backgroundColor: icon.bg }]}>
           <icon.Icon size={16} color={icon.color} strokeWidth={2} />
           {showDot ? (
-            <View style={[styles.cardDot, { backgroundColor: colors.semantic.info, borderColor: colors.bg.surface }]} />
+            <View
+              style={[
+                styles.cardDot,
+                { backgroundColor: colors.semantic.info, borderColor: colors.bg.surface },
+              ]}
+            />
           ) : null}
         </View>
         <View style={styles.cardInfo}>
           <Text
-            style={[styles.cardTitle, { color: titleStyle?.color ?? colors.text.primary }, titleStyle?.textDecorationLine ? { textDecorationLine: titleStyle.textDecorationLine } : null]}
+            style={[
+              styles.cardTitle,
+              { color: titleStyle?.color ?? colors.text.primary },
+              titleStyle?.textDecorationLine
+                ? { textDecorationLine: titleStyle.textDecorationLine }
+                : null,
+            ]}
             numberOfLines={2}
           >
             {title}
@@ -152,7 +172,8 @@ function TaskCard({
         <View style={[styles.cardPointsBadge, { backgroundColor: colors.accent.adminBg }]}>
           <Star size={12} color={colors.accent.admin} strokeWidth={2} />
           <Text style={[styles.cardPointsText, { color: colors.accent.admin }]}>
-            {pointsPrefix}{points}
+            {pointsPrefix}
+            {points}
           </Text>
         </View>
       </View>
@@ -188,19 +209,37 @@ type AdminTaskCardProps = Readonly<{
   variant: 'active' | 'archived';
 }>;
 
-const AdminTaskCard = ({ item, colors, styles, onPress, onMenuPress, variant }: AdminTaskCardProps) => {
+const AdminTaskCard = ({
+  item,
+  colors,
+  styles,
+  onPress,
+  onMenuPress,
+  variant,
+}: AdminTaskCardProps) => {
   const aguardando = item.atribuicoes.filter((a) => a.status === 'aguardando_validacao').length;
   const isInactive = item.ativo === false;
   const isArchived = variant === 'archived';
   const isPaused = isInactive && !isArchived;
 
-  const statusIcon = aguardando > 0
-    ? { Icon: Eye, color: colors.semantic.info, bg: colors.semantic.infoBg, label: 'Aguardando você' }
-    : isPaused
-      ? { Icon: PauseCircle, color: colors.text.muted, bg: colors.bg.muted, label: 'Pausada' }
-      : isArchived
-        ? { Icon: Archive, color: colors.text.muted, bg: colors.bg.muted, label: 'Arquivada' }
-        : { Icon: Clock, color: colors.semantic.warning, bg: colors.semantic.warningBg, label: 'Ativa' };
+  const statusIcon =
+    aguardando > 0
+      ? {
+          Icon: Eye,
+          color: colors.semantic.info,
+          bg: colors.semantic.infoBg,
+          label: 'Aguardando você',
+        }
+      : isPaused
+        ? { Icon: PauseCircle, color: colors.text.muted, bg: colors.bg.muted, label: 'Pausada' }
+        : isArchived
+          ? { Icon: Archive, color: colors.text.muted, bg: colors.bg.muted, label: 'Arquivada' }
+          : {
+              Icon: Clock,
+              color: colors.semantic.warning,
+              bg: colors.semantic.warningBg,
+              label: 'Ativa',
+            };
 
   const opacity = isInactive || isArchived ? opacityDisabled.light : 1;
 
@@ -216,7 +255,10 @@ const AdminTaskCard = ({ item, colors, styles, onPress, onMenuPress, variant }: 
       trailingText={formatWeekdays(item.dias_semana)}
       trailingAction={
         <Pressable
-          onPress={(e) => { e.stopPropagation(); onMenuPress(); }}
+          onPress={(e) => {
+            e.stopPropagation();
+            onMenuPress();
+          }}
           style={({ pressed }) => [styles.menuButton, pressed && { opacity: opacityPressed.link }]}
           accessibilityRole="button"
           accessibilityLabel={`Abrir menu da tarefa ${item.titulo}`}
@@ -264,6 +306,7 @@ const ApprovedFeedRow = ({ item, colors, styles, onPress, showDate }: ApprovedFe
 export default function AdminTasksScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { showAlert } = useAppAlert();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const footerItems = useAdminFooterItems();
 
@@ -348,28 +391,32 @@ export default function AdminTasksScreen() {
   const handleArchive = useCallback(
     (item: TaskListItem) => {
       const message = buildTaskArchiveMessage(item.atribuicoes);
-      Alert.alert('Arquivar tarefa?', message, [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Arquivar',
-          style: 'destructive',
-          onPress: () =>
-            archiveMutation.mutate(item.id, {
-              onSuccess: () => showActionFeedback('Tarefa arquivada.'),
-              onError: (err) => showActionFeedback(localizeRpcError(err.message), 'error'),
-            }),
-        },
-      ]);
+      showAlert({
+        title: 'Arquivar tarefa?',
+        message,
+        actions: [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Arquivar',
+            style: 'destructive',
+            onPress: () =>
+              archiveMutation.mutate(item.id, {
+                onSuccess: () => showActionFeedback('Tarefa arquivada.'),
+                onError: (err) => showActionFeedback(localizeRpcError(err.message), 'error'),
+              }),
+          },
+        ],
+      });
     },
-    [archiveMutation, showActionFeedback],
+    [archiveMutation, showAlert, showActionFeedback],
   );
 
   const handleUnarchive = useCallback(
     (item: TaskListItem) => {
-      Alert.alert(
-        'Desarquivar tarefa?',
-        'A tarefa volta para a lista ativa e poderá receber novas atribuições.',
-        [
+      showAlert({
+        title: 'Desarquivar tarefa?',
+        message: 'A tarefa volta para a lista ativa e poderá receber novas atribuições.',
+        actions: [
           { text: 'Cancelar', style: 'cancel' },
           {
             text: 'Desarquivar',
@@ -380,38 +427,42 @@ export default function AdminTasksScreen() {
               }),
           },
         ],
-      );
+      });
     },
-    [unarchiveMutation, showActionFeedback],
+    [unarchiveMutation, showAlert, showActionFeedback],
   );
 
   const handlePause = useCallback(
     (item: TaskListItem) => {
       const message = buildTaskPauseMessage(item.atribuicoes);
-      Alert.alert('Pausar tarefa?', message, [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Pausar',
-          style: 'destructive',
-          onPress: () =>
-            deactivateMutation.mutate(item.id, {
-              onSuccess: (data) => {
-                const count = data?.pendingValidationCount ?? 0;
-                if (count > 0) {
-                  showActionFeedback(
-                    `Tarefa pausada. ${count} atribuições aguardam validação.`,
-                    'warning',
-                  );
-                } else {
-                  showActionFeedback('Tarefa pausada.');
-                }
-              },
-              onError: (err) => showActionFeedback(localizeRpcError(err.message), 'error'),
-            }),
-        },
-      ]);
+      showAlert({
+        title: 'Pausar tarefa?',
+        message,
+        actions: [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Pausar',
+            style: 'destructive',
+            onPress: () =>
+              deactivateMutation.mutate(item.id, {
+                onSuccess: (data) => {
+                  const count = data?.pendingValidationCount ?? 0;
+                  if (count > 0) {
+                    showActionFeedback(
+                      `Tarefa pausada. ${count} atribuições aguardam validação.`,
+                      'warning',
+                    );
+                  } else {
+                    showActionFeedback('Tarefa pausada.');
+                  }
+                },
+                onError: (err) => showActionFeedback(localizeRpcError(err.message), 'error'),
+              }),
+          },
+        ],
+      });
     },
-    [deactivateMutation, showActionFeedback],
+    [deactivateMutation, showAlert, showActionFeedback],
   );
 
   const handleResume = useCallback(
@@ -427,30 +478,34 @@ export default function AdminTasksScreen() {
   const handleDelete = useCallback(
     (item: TaskListItem) => {
       const message = buildTaskDeleteMessage(item.atribuicoes);
-      Alert.alert('Excluir tarefa?', message, [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          style: 'destructive',
-          onPress: () =>
-            deleteMutation.mutate(item.id, {
-              onSuccess: (data) => {
-                const count = data?.pendingValidationCount ?? 0;
-                if (count > 0) {
-                  showActionFeedback(
-                    `Tarefa excluída. ${count} atribuições aguardam validação.`,
-                    'warning',
-                  );
-                } else {
-                  showActionFeedback('Tarefa excluída.');
-                }
-              },
-              onError: (err) => showActionFeedback(localizeRpcError(err.message), 'error'),
-            }),
-        },
-      ]);
+      showAlert({
+        title: 'Excluir tarefa?',
+        message,
+        actions: [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Excluir',
+            style: 'destructive',
+            onPress: () =>
+              deleteMutation.mutate(item.id, {
+                onSuccess: (data) => {
+                  const count = data?.pendingValidationCount ?? 0;
+                  if (count > 0) {
+                    showActionFeedback(
+                      `Tarefa excluída. ${count} atribuições aguardam validação.`,
+                      'warning',
+                    );
+                  } else {
+                    showActionFeedback('Tarefa excluída.');
+                  }
+                },
+                onError: (err) => showActionFeedback(localizeRpcError(err.message), 'error'),
+              }),
+          },
+        ],
+      });
     },
-    [deleteMutation, showActionFeedback],
+    [deleteMutation, showAlert, showActionFeedback],
   );
 
   const tabs: SegmentOption<TabKey>[] = useMemo(
@@ -629,27 +684,31 @@ export default function AdminTasksScreen() {
 
   // Derive action state from either a TaskListItem (ativas/arquivo) or a TaskDetail (feitas menu)
   const menuTaskDetail = menuTaskQuery.data ?? null;
-  const actionSource = actionTask ?? (menuTaskDetail ? {
-    id: menuTaskDetail.id,
-    titulo: menuTaskDetail.titulo,
-    descricao: menuTaskDetail.descricao,
-    pontos: menuTaskDetail.pontos,
-    dias_semana: menuTaskDetail.dias_semana,
-    exige_evidencia: menuTaskDetail.exige_evidencia,
-    created_at: menuTaskDetail.created_at,
-    ativo: menuTaskDetail.ativo,
-    arquivada_em: menuTaskDetail.arquivada_em,
-    excluida_em: menuTaskDetail.excluida_em,
-    atribuicoes: menuTaskDetail.atribuicoes.map((a) => ({ status: a.status })),
-  } satisfies TaskListItem : null);
+  const actionSource =
+    actionTask ??
+    (menuTaskDetail
+      ? ({
+          id: menuTaskDetail.id,
+          titulo: menuTaskDetail.titulo,
+          descricao: menuTaskDetail.descricao,
+          pontos: menuTaskDetail.pontos,
+          dias_semana: menuTaskDetail.dias_semana,
+          exige_evidencia: menuTaskDetail.exige_evidencia,
+          created_at: menuTaskDetail.created_at,
+          ativo: menuTaskDetail.ativo,
+          arquivada_em: menuTaskDetail.arquivada_em,
+          excluida_em: menuTaskDetail.excluida_em,
+          atribuicoes: menuTaskDetail.atribuicoes.map((a) => ({ status: a.status })),
+        } satisfies TaskListItem)
+      : null);
 
   const actionState: TaskActionState | null = actionSource
     ? {
-      isArchived: actionSource.arquivada_em !== null,
-      isInactive: actionSource.ativo === false,
-      canEdit: actionSource.arquivada_em === null && actionSource.ativo !== false,
-      isDeleted: false,
-    }
+        isArchived: actionSource.arquivada_em !== null,
+        isInactive: actionSource.ativo === false,
+        canEdit: actionSource.arquivada_em === null && actionSource.ativo !== false,
+        isDeleted: false,
+      }
     : null;
 
   const actionTitle = actionSource?.titulo ?? '';
@@ -744,7 +803,10 @@ export default function AdminTasksScreen() {
           visible
           taskTitle={actionTitle}
           state={actionState}
-          onClose={() => { setActionTask(null); setMenuTaskId(null); }}
+          onClose={() => {
+            setActionTask(null);
+            setMenuTaskId(null);
+          }}
           onEdit={() => setEditTaskId(actionSource.id)}
           onPause={() => handlePause(actionSource)}
           onResume={() => handleResume(actionSource)}
