@@ -1,16 +1,16 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useState, useMemo } from 'react';
-import { ArrowRight, Hash, User, Users } from 'lucide-react-native';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { AlertCircle, ArrowRight, Hash, User, Users } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { refreshAuthSession } from '@lib/auth';
 import { withAlpha } from '@/constants/colors';
-import { radii, spacing, typography } from '@/constants/theme';
+import { gradients, radii, shadows, spacing, typography } from '@/constants/theme';
 import { AuthHeroScreen } from '@/components/auth/auth-hero-screen';
 import { AuthDarkField } from '@/components/auth/auth-dark-field';
 import { BrandLogo } from '@/components/auth/brand-logo';
 import { useHeroPalette } from '@/components/auth/use-hero-palette';
-import { Button } from '@/components/ui/button';
-import { FormFooter } from '@/components/ui/form-footer';
+import { useTheme } from '@/context/theme-context';
 import {
     useValidateInvite,
     useAcceptInvite,
@@ -18,26 +18,46 @@ import {
 
 const CODE_LENGTH = 6;
 
-type JoinField = 'code' | 'name';
+type JoinField = 'name';
 
 export default function JoinFamilyScreen() {
     const router = useRouter();
     const { palette } = useHeroPalette();
+    const { colors } = useTheme();
     const styles = useMemo(() => makeStyles(palette), [palette]);
 
     const [code, setCode] = useState('');
+    const [submittedCode, setSubmittedCode] = useState('');
     const [name, setName] = useState('');
     const [error, setError] = useState('');
     const [focusedField, setFocusedField] = useState<JoinField | null>(null);
+    const [codeFocused, setCodeFocused] = useState(false);
+
+    const handleBack = useCallback(() => {
+        if (router.canGoBack()) {
+            router.back();
+        } else {
+            router.replace('/(auth)/login');
+        }
+    }, [router]);
+
+    useEffect(() => {
+        const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+            handleBack();
+            return true;
+        });
+        return () => sub.remove();
+    }, [handleBack]);
 
     const isCodeComplete = code.length === CODE_LENGTH;
 
-    // Real-time validation — enabled when code has 6 chars
+    // Validation fires only after the user presses the submit button.
     const {
         data: preview,
         isLoading: isValidating,
         error: validateError,
-    } = useValidateInvite(code);
+        refetch: refetchInvite,
+    } = useValidateInvite(submittedCode);
 
     const acceptInvite = useAcceptInvite();
 
@@ -49,50 +69,68 @@ export default function JoinFamilyScreen() {
         const formatted = value.toUpperCase().replaceAll(/[^A-Z0-9]/g, '').slice(0, CODE_LENGTH);
         setCode(formatted);
         setError('');
+        // Reset validation state so a new button press re-validates the new code.
+        if (submittedCode) setSubmittedCode('');
         acceptInvite.reset();
     };
 
-    const handleAccept = async () => {
-        if (!isCodeComplete || !hasPreview) return;
-
-        if (!name.trim()) {
-            setError('Informe seu nome.');
+    const handleSubmit = async () => {
+        if (!isCodeComplete) {
+            setError('Informe um código de 6 caracteres.');
             return;
         }
 
-        setError('');
+        // Step 1: code not yet validated — trigger validation.
+        if (!hasPreview && !isValidating) {
+            setError('');
+            if (submittedCode === code) {
+                await refetchInvite();
+            } else {
+                setSubmittedCode(code);
+            }
+            return;
+        }
 
-        try {
-            await acceptInvite.mutateAsync({ code, name: name.trim() });
-
-            // Refresh auth session so the root layout detects the new familia_id
-            const { error: refreshError } = await refreshAuthSession();
-            if (refreshError) {
-                setError(refreshError);
+        // Step 2: code validated, accept invite.
+        if (hasPreview) {
+            if (!name.trim()) {
+                setError('Informe seu nome.');
                 return;
             }
-            // Navigation is handled by the root layout auth state handler after
-            // session refresh detects the new familia_id.
-        } catch (err) {
-            const message = err instanceof Error ? err.message : 'Erro ao ingressar na família.';
-            setError(message);
+            setError('');
+            try {
+                await acceptInvite.mutateAsync({ code, name: name.trim() });
+                const { error: refreshError } = await refreshAuthSession();
+                if (refreshError) {
+                    setError(refreshError);
+                    return;
+                }
+                // Navigation is handled by the root layout auth state handler after
+                // session refresh detects the new familia_id.
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Erro ao ingressar na família.';
+                setError(message);
+            }
         }
     };
 
-    // Derive the displayed error: prioritize local error, then validation error
-    const validationMessage =
-        validateError instanceof Error
-            ? validateError.message
-            : 'Código inválido ou expirado.';
+    const validationErrorMessage = validateError instanceof Error
+        ? validateError.message
+        : 'Código inválido ou expirado. Peça um novo ao administrador.';
+    const validationMessage = submittedCode && validateError ? validationErrorMessage : null;
+    const displayError = error || validationMessage;
 
-    const displayError =
-        error || (validateError && isCodeComplete ? validationMessage : null);
+    let codeInputBorderColor = palette.borderSoft;
+    if (displayError) codeInputBorderColor = colors.semantic.error;
+    else if (codeFocused) codeInputBorderColor = palette.borderFocus;
+
+    const isSubmitBusy = isValidating || isAccepting;
 
     return (
         <AuthHeroScreen
             topBarCenter={<BrandLogo size="sm" withText />}
-            onBack={() => router.back()}
-            backAccessibilityLabel="Voltar para onboarding"
+            onBack={handleBack}
+            backAccessibilityLabel="Voltar"
         >
             <View style={styles.header}>
                 <Text style={styles.kicker} allowFontScaling={false}>
@@ -107,23 +145,64 @@ export default function JoinFamilyScreen() {
             </View>
 
             <View style={styles.form}>
-                <AuthDarkField
-                    label="Código do convite"
-                    focused={focusedField === 'code'}
-                    placeholder="Ex: ABC123"
-                    value={code}
-                    onChangeText={handleCodeChange}
-                    onFocus={() => setFocusedField('code')}
-                    onBlur={() => setFocusedField(null)}
-                    autoCapitalize="characters"
-                    autoCorrect={false}
-                    maxLength={CODE_LENGTH}
-                    editable={!isAccepting}
-                    accessibilityLabel="Campo de código do convite"
-                    leftIcon={Hash}
-                />
+                <View
+                    style={[
+                        styles.codeInputRow,
+                        {
+                            backgroundColor: codeFocused ? palette.surfaceFieldFocus : palette.surfaceField,
+                            borderColor: codeInputBorderColor,
+                        },
+                    ]}
+                >
+                    <Hash size={18} color={palette.textOnNavySubtle} strokeWidth={1.75} />
+                    <TextInput
+                        style={[styles.codeInput, { color: palette.textOnNavy }]}
+                        placeholder="ABC123"
+                        placeholderTextColor={palette.textOnNavyFaint}
+                        value={code}
+                        onChangeText={handleCodeChange}
+                        onFocus={() => setCodeFocused(true)}
+                        onBlur={() => setCodeFocused(false)}
+                        onSubmitEditing={handleSubmit}
+                        autoCapitalize="characters"
+                        autoCorrect={false}
+                        maxLength={CODE_LENGTH}
+                        editable={!isSubmitBusy}
+                        selectionColor={palette.borderFocus}
+                        accessibilityLabel="Campo de código do convite"
+                        returnKeyType="go"
+                    />
+                    <Pressable
+                        onPress={handleSubmit}
+                        disabled={isSubmitBusy}
+                        style={({ pressed }) => {
+                            let opacity = 1;
+                            if (isSubmitBusy) opacity = 0.6;
+                            else if (pressed) opacity = 0.9;
+                            return [styles.codeSubmitButton, { opacity }];
+                        }}
+                        accessibilityRole="button"
+                        accessibilityLabel="Ingressar na família"
+                        accessibilityState={{ busy: isSubmitBusy }}
+                    >
+                        <LinearGradient
+                            colors={gradients.goldHorizontal.colors}
+                            start={gradients.goldHorizontal.start}
+                            end={gradients.goldHorizontal.end}
+                            style={styles.codeSubmitGradient}
+                        >
+                            <ArrowRight size={18} color="#030711" strokeWidth={2.5} />
+                        </LinearGradient>
+                    </Pressable>
+                </View>
+                {displayError ? (
+                    <View style={styles.codeErrorRow}>
+                        <AlertCircle size={14} color={colors.semantic.errorText} strokeWidth={2.25} />
+                        <Text style={[styles.codeError, { color: colors.semantic.errorText }]}>{displayError}</Text>
+                    </View>
+                ) : null}
 
-                {isValidating && isCodeComplete ? (
+                {isValidating ? (
                     <Text style={styles.validatingText}>Verificando código…</Text>
                 ) : null}
 
@@ -163,29 +242,11 @@ export default function JoinFamilyScreen() {
                     />
                 ) : null}
 
-                <View style={styles.formActions}>
-                    <FormFooter message={displayError} includeSafeBottom={false}>
-                        {hasPreview ? (
-                            <Button
-                                label="Ingressar na família"
-                                loadingLabel="Ingressando…"
-                                loading={isAccepting}
-                                onPress={handleAccept}
-                                size="lg"
-                                trailingIcon={ArrowRight}
-                                disabled={!name.trim() || isAccepting}
-                                accessibilityLabel={isAccepting ? 'Ingressando na família' : 'Ingressar na família'}
-                                accessibilityState={{ busy: isAccepting }}
-                            />
-                        ) : null}
-                    </FormFooter>
-                </View>
-
                 <View style={styles.footerPush}>
                     <Pressable
                         style={({ pressed }) => [styles.secondaryButton, { opacity: pressed ? 0.65 : 1 }]}
-                        onPress={() => router.back()}
-                        disabled={isAccepting}
+                        onPress={handleBack}
+                        disabled={isSubmitBusy}
                         accessibilityRole="button"
                         accessibilityLabel="Voltar para criação de família"
                     >
@@ -205,7 +266,7 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
         kicker: {
             fontFamily: typography.family.bold,
             fontSize: typography.size.xxs,
-            letterSpacing: 1.4,
+            letterSpacing: 0,
             textTransform: 'uppercase',
             color: palette.borderFocus,
         },
@@ -215,7 +276,7 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
             fontSize: typography.size['3xl'],
             lineHeight: typography.lineHeight['3xl'],
             color: palette.textOnNavy,
-            letterSpacing: -0.4,
+            letterSpacing: 0,
         },
         subtitle: {
             marginTop: spacing['2'],
@@ -227,6 +288,18 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
         form: {
             marginTop: spacing['6'],
             flex: 1,
+        },
+        footerPush: {
+            marginTop: 'auto',
+        },
+        secondaryButton: {
+            paddingVertical: spacing['3'],
+            alignItems: 'center',
+        },
+        secondaryButtonText: {
+            fontFamily: typography.family.medium,
+            fontSize: typography.size.sm,
+            color: palette.textOnNavyMuted,
         },
         validatingText: {
             marginTop: spacing['2'],
@@ -268,20 +341,44 @@ function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
             fontSize: typography.size.xs,
             color: palette.textOnNavy,
         },
-        formActions: {
-            marginTop: spacing['4'],
-        },
-        footerPush: {
-            marginTop: 'auto',
-        },
-        secondaryButton: {
-            paddingVertical: spacing['3'],
+        codeInputRow: {
+            flexDirection: 'row',
             alignItems: 'center',
+            borderWidth: 1,
+            borderRadius: radii.inner,
+            paddingLeft: spacing['4'],
+            paddingRight: spacing['2'],
+            paddingVertical: spacing['2'],
+            minHeight: 52,
+            gap: spacing['3'],
         },
-        secondaryButtonText: {
+        codeInput: {
+            flex: 1,
+            fontSize: typography.size.md,
+            fontFamily: typography.family.bold,
+            letterSpacing: 0,
+            paddingVertical: spacing['2'],
+        },
+        codeSubmitButton: {
+            borderRadius: radii.md,
+            overflow: 'hidden',
+            ...shadows.goldButtonGlow,
+        },
+        codeSubmitGradient: {
+            height: 50,
+            paddingHorizontal: 18,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        codeErrorRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: spacing['1.5'],
+        },
+        codeError: {
             fontFamily: typography.family.medium,
-            fontSize: typography.size.sm,
-            color: palette.textOnNavyMuted,
+            fontSize: typography.size.xs,
+            lineHeight: typography.lineHeight.xs,
         },
     });
 }

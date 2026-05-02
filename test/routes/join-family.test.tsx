@@ -29,6 +29,7 @@ const routerMock = vi.hoisted(() => ({
     back: vi.fn(),
     push: vi.fn(),
     replace: vi.fn(),
+    canGoBack: vi.fn().mockReturnValue(true),
 }));
 
 const validateInviteResult = vi.hoisted(() => ({
@@ -135,15 +136,13 @@ describe('JoinFamilyScreen', () => {
         expect(inputs.length).toBeGreaterThanOrEqual(2);
     });
 
-    it('disables accept button when name is empty', () => {
+    it('shows error when name is empty on submit', async () => {
         validateInviteResult.data = { familia_nome: 'Família Silva', admin_nome: 'João' };
         const renderer = render(<JoinFamilyScreen />);
         changeInput(renderer, 0, 'ABC123');
-        // The accept button should be disabled when name is empty
-        const button = renderer.root
-            .findAllByType(Pressable)
-            .find((node) => node.props.accessibilityLabel === 'Ingressar na família');
-        expect(button?.props.disabled).toBe(true);
+        await pressButton(renderer, 'Ingressar na família');
+        const text = screenText(renderer);
+        expect(text).toContain('Informe seu nome');
     });
 
     it('calls acceptInvite.mutateAsync when form is valid', async () => {
@@ -180,17 +179,18 @@ describe('JoinFamilyScreen', () => {
         expect(text).toContain('Erro ao ingressar na família');
     });
 
-    it('shows validation error when code is invalid', () => {
+    it('shows validation error when code is invalid', async () => {
         validateInviteResult.error = new Error('Código inválido ou expirado');
         const renderer = render(<JoinFamilyScreen />);
         changeInput(renderer, 0, 'XXXXXX');
+        await pressButton(renderer, 'Ingressar na família');
         const text = screenText(renderer);
         expect(text).toContain('Código inválido ou expirado');
     });
 
     it('navigates back when back button is pressed', async () => {
         const renderer = render(<JoinFamilyScreen />);
-        await pressButton(renderer, 'Voltar para onboarding');
+        await pressButton(renderer, 'Voltar');
         expect(routerMock.back).toHaveBeenCalled();
     });
 

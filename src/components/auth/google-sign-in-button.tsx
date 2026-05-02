@@ -12,10 +12,12 @@ type GoogleSignInButtonProps = Readonly<{
     loading: boolean;
     disabled?: boolean;
     label?: string;
+    /** Optional subtitle rendered below the label in `hero` variant. */
+    subtitle?: string;
     /**
      * - `default`: themed surface bg with border (settings, re-auth flows).
      * - `hero`: white bg, dark text, brand shadow, trailing arrow — used
-     *   inside the login PathCard to match the creative-studio design.
+     *   inside the login screen to match the creative-studio design.
      */
     variant?: GoogleSignInButtonVariant;
 }>;
@@ -53,13 +55,14 @@ function GoogleLogo({ size = 20 }: Readonly<{ size?: number }>) {
  *
  * - `default` — themed surface bg with border (settings, re-auth flows).
  * - `hero` — white bg, dark text, brand shadow, trailing arrow. Used inside
- *   the login PathCard to match the creative-studio design.
+ *   the login screen to match the creative-studio design.
  */
 export function GoogleSignInButton({
     onPress,
     loading,
     disabled = false,
     label,
+    subtitle,
     variant = 'default',
 }: GoogleSignInButtonProps) {
     const { colors } = useTheme();
@@ -107,17 +110,25 @@ export function GoogleSignInButton({
                 ) : (
                     <GoogleLogo size={20} />
                 )}
-                <Text
-                    style={[
-                        isHero ? heroStyles.label : defaultStyles.label,
-                        isHero ? undefined : { color: colors.text.primary },
-                    ]}
-                    numberOfLines={1}
-                >
-                    {resolvedLabel}
-                </Text>
+                {isHero ? (
+                    <View style={heroStyles.labelStack}>
+                        <Text style={heroStyles.label} numberOfLines={1}>
+                            {resolvedLabel}
+                        </Text>
+                        {subtitle ? (
+                            <Text style={heroStyles.subtitle} numberOfLines={1}>{subtitle}</Text>
+                        ) : null}
+                    </View>
+                ) : (
+                    <Text
+                        style={[defaultStyles.label, { color: colors.text.primary }]}
+                        numberOfLines={1}
+                    >
+                        {resolvedLabel}
+                    </Text>
+                )}
                 {isHero && !loading ? (
-                    <ArrowRight size={16} color="#0F172A" strokeWidth={2.5} />
+                    <ArrowRight size={16} color="#94A3B8" strokeWidth={2.5} />
                 ) : null}
             </View>
         </Pressable>
@@ -153,7 +164,7 @@ const heroStyles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         borderRadius: radii.inner,
         borderCurve: 'continuous',
-        minHeight: 48,
+        minHeight: 56,
         alignItems: 'center',
         justifyContent: 'center',
         ...shadows.goldButton,
@@ -163,14 +174,23 @@ const heroStyles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: spacing['3'],
-        paddingHorizontal: spacing['6'],
-        paddingVertical: spacing['3'],
+        paddingHorizontal: spacing['5'],
+        paddingVertical: spacing['4'],
+    },
+    labelStack: {
+        flex: 1,
     },
     label: {
-        flex: 1,
         fontFamily: typography.family.extrabold,
         fontSize: 15,
         lineHeight: 20,
         color: '#0F172A',
+    },
+    subtitle: {
+        fontFamily: typography.family.medium,
+        fontSize: typography.size.xs,
+        lineHeight: typography.lineHeight.xs,
+        color: '#64748B',
+        marginTop: 2,
     },
 });
