@@ -51,7 +51,7 @@ export function TaskFormFields({
         value={title}
         onChangeText={onTitleChange}
         noMarginBottom
-        placeholder="Ex: Lavar a louça"
+        placeholder="Ex: Arrumar o quarto"
         maxLength={100}
         autoFocus={autoFocusTitle}
         leadingIcon={FileText}
@@ -63,7 +63,7 @@ export function TaskFormFields({
         value={description}
         onChangeText={onDescriptionChange}
         noMarginBottom
-        placeholder="Detalhes da tarefa..."
+        placeholder="Ex: Guardar os brinquedos e organizar a escrivaninha antes do jantar."
         multiline
         numberOfLines={3}
         maxLength={500}
@@ -76,7 +76,7 @@ export function TaskFormFields({
         value={points}
         onChangeText={(v) => onPointsChange(v.replaceAll(/\D/g, ''))}
         noMarginBottom
-        placeholder="Ex: 10"
+        placeholder="Ex: 20"
         keyboardType="number-pad"
         maxLength={4}
         editable={pointsEditable}
