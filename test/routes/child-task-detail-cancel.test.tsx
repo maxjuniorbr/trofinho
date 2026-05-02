@@ -194,6 +194,7 @@ vi.mock('@/context/theme-context', () => ({
         infoBg: '#E5F2FF',
         infoText: '#0F4D8A',
       },
+      overlay: { scrim: 'rgba(0,0,0,0.45)', scrimSoft: 'rgba(0,0,0,0.4)' },
     },
   }),
 }));

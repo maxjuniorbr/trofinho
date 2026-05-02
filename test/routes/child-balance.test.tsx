@@ -239,6 +239,12 @@ vi.mock('@/constants/colors', () => ({
   darkColors: {
     bg: { surface: '#1D212B', elevated: '#2A303C' },
   },
+  staticTextColors: {
+    inverseStrong: '#fff',
+    inverse: '#fff',
+    inverseFaint: 'rgba(255,255,255,0.5)',
+    onBrand: '#fff',
+  },
 }));
 
 vi.mock('@/components/ui/inline-message', () => ({

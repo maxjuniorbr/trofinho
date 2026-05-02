@@ -76,7 +76,7 @@ describe('AvatarSection', () => {
     expect(textContent(renderer)).toContain('Família Silva');
     expect(textContent(renderer)).toContain('pais@silva.com');
     expect(avatar.props.size).toBe(56);
-    expect(avatar.props.solidColor).toBe('rgba(255, 255, 255, 0.15)');
+    expect(avatar.props.solidColor).toBe(heroPalette.borderSoft);
     expect(avatar.props.imageUri).toBe('https://example.com/avatar.png');
     expect(pressable.props.accessibilityRole).toBe('button');
     expect(pressable.props.accessibilityLabel).toBe('Alterar foto de perfil');
