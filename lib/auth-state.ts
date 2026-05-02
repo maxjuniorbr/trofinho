@@ -127,7 +127,10 @@ export function createAuthStateHandler({
           }
           applyResolvedProfile(profile, currentRequestId);
         })
-        .catch(() => {
+        .catch((error) => {
+          Sentry.captureException(error, {
+            tags: { area: 'auth-state', step: 'get-profile' },
+          });
           Sentry.addBreadcrumb({
             category: 'auth',
             message: 'profile_load_failed',

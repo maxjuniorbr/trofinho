@@ -1,9 +1,9 @@
 import * as Sentry from '@sentry/react-native';
 
-import { localizeRpcError, localizeSupabaseError } from './api-error';
+import { extractErrorMessage, localizeRpcError, localizeSupabaseError } from './api-error';
 import { deviceStorage } from './device-storage';
 import { getGoogleIdToken, revokeGoogleAccess } from './google-auth';
-import { isValidDateOfBirth, localizeOAuthError } from './google-auth-utils';
+import { isValidDateOfBirth, localizeOAuthError, parseIsoDate } from './google-auth-utils';
 import { resolveStorageUrl, uploadImageToBucket } from './storage';
 import { supabase } from './supabase';
 
@@ -53,10 +53,24 @@ export async function signInWithGoogle(): Promise<{
 
   const { idToken, user } = googleResult;
 
-  const { error: signInError } = await supabase.auth.signInWithIdToken({
-    provider: 'google',
-    token: idToken,
-  });
+  let signInError: { message: string; status?: number } | null = null;
+  try {
+    ({ error: signInError } = await supabase.auth.signInWithIdToken({
+      provider: 'google',
+      token: idToken,
+    }));
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: { area: 'auth', step: 'sign-in-with-id-token' },
+    });
+    const message = extractErrorMessage(error, 'Erro na autenticação. Tente novamente.');
+    return {
+      profile: null,
+      isNewUser: false,
+      googleName: user.name || null,
+      error: localizeOAuthError({ message }),
+    };
+  }
 
   if (signInError) {
     Sentry.addBreadcrumb({
@@ -68,7 +82,22 @@ export async function signInWithGoogle(): Promise<{
     return { profile: null, isNewUser: false, googleName: user.name || null, error: localizedMessage };
   }
 
-  const profile = await getProfile();
+  const profileResult = await readProfile();
+  if (profileResult.error) {
+    Sentry.addBreadcrumb({
+      category: 'auth',
+      message: 'google_sign_in_profile_load_error',
+      level: 'error',
+    });
+    return {
+      profile: null,
+      isNewUser: false,
+      googleName: user.name || null,
+      error: profileResult.error,
+    };
+  }
+
+  const profile = profileResult.profile;
   const isNewUser = profile === null;
 
   Sentry.addBreadcrumb({
@@ -139,38 +168,82 @@ export async function signOut(): Promise<void> {
   }
 }
 
-export async function getProfile(): Promise<UserProfile | null> {
+type ProfileLookupResult = {
+  profile: UserProfile | null;
+  error: string | null;
+};
+
+async function readProfile(): Promise<ProfileLookupResult> {
   // RPC obter_meu_perfil returns a single flat object with camelCase avatarUrl,
   // which differs from the usuarios table row shape — cast bridges the gap
-  const { data, error } = await supabase.rpc('obter_meu_perfil');
+  try {
+    const { data, error } = await supabase.rpc('obter_meu_perfil');
 
-  if (error || !data) return null;
+    if (error) {
+      return {
+        profile: null,
+        error: localizeRpcError(error.message, 'Erro ao carregar perfil. Tente novamente.'),
+      };
+    }
 
-  const profile = data as {
-    id: string;
-    familia_id: string;
-    papel: string;
-    nome: string;
-    avatarUrl: string | null;
-  };
+    if (!data) return { profile: null, error: null };
 
-  return {
-    id: profile.id,
-    familia_id: profile.familia_id,
-    papel: profile.papel as 'admin' | 'filho',
-    nome: profile.nome,
-    avatarUrl: await resolveStorageUrl('avatars', profile.avatarUrl),
-  };
+    const profile = data as {
+      id: string;
+      familia_id: string;
+      papel: string;
+      nome: string;
+      avatarUrl: string | null;
+    };
+
+    return {
+      profile: {
+        id: profile.id,
+        familia_id: profile.familia_id,
+        papel: profile.papel as 'admin' | 'filho',
+        nome: profile.nome,
+        avatarUrl: await resolveStorageUrl('avatars', profile.avatarUrl),
+      },
+      error: null,
+    };
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: { area: 'auth', step: 'get-profile' },
+    });
+    const message = extractErrorMessage(error, 'Erro ao carregar perfil. Tente novamente.');
+    return {
+      profile: null,
+      error: localizeRpcError(message, 'Erro ao carregar perfil. Tente novamente.'),
+    };
+  }
+}
+
+export async function getProfile(): Promise<UserProfile | null> {
+  const { profile, error } = await readProfile();
+  if (error) {
+    throw new Error(error);
+  }
+  return profile;
 }
 
 export async function createFamily(
   familyName: string,
   userName: string,
 ): Promise<{ familiaId: string | null; error: string | null }> {
-  const { data, error } = await supabase.rpc('criar_familia', {
-    nome_familia: familyName,
-    nome_usuario: userName,
-  });
+  let data: string | null = null;
+  let error: { message: string } | null = null;
+  try {
+    ({ data, error } = await supabase.rpc('criar_familia', {
+      nome_familia: familyName,
+      nome_usuario: userName,
+    }));
+  } catch (err) {
+    Sentry.captureException(err, {
+      tags: { area: 'auth', step: 'create-family' },
+    });
+    const message = extractErrorMessage(err, 'Erro ao criar família. Tente novamente.');
+    return { familiaId: null, error: localizeRpcError(message) };
+  }
 
   if (error) {
     return { familiaId: null, error: localizeRpcError(error.message) };
@@ -181,7 +254,15 @@ export async function createFamily(
 }
 
 export async function refreshAuthSession(): Promise<{ error: string | null }> {
-  const { error } = await supabase.auth.refreshSession();
+  let error: { message: string } | null = null;
+  try {
+    ({ error } = await supabase.auth.refreshSession());
+  } catch (err) {
+    Sentry.captureException(err, {
+      tags: { area: 'auth', step: 'refresh-session' },
+    });
+    return { error: 'Algo deu errado. Tente novamente.' };
+  }
 
   if (error) {
     Sentry.captureException(error);
@@ -272,16 +353,27 @@ export async function updateUserAvatar(
   return { url: signedUrl, error: null };
 }
 
-export async function updateDateOfBirth(dateOfBirth: string): Promise<{ error: string | null }> {
-  const parsed = new Date(dateOfBirth);
+export async function updateDateOfBirth(
+  dateOfBirth: string,
+  minAge = 8,
+): Promise<{ error: string | null }> {
+  const parsed = parseIsoDate(dateOfBirth);
 
-  if (!isValidDateOfBirth(parsed)) {
+  if (!parsed || !isValidDateOfBirth(parsed, minAge)) {
     return { error: 'Data de nascimento inválida.' };
   }
 
-  const { error } = await supabase.auth.updateUser({
-    data: { date_of_birth: dateOfBirth },
-  });
+  let error: { message: string } | null = null;
+  try {
+    ({ error } = await supabase.auth.updateUser({
+      data: { date_of_birth: dateOfBirth },
+    }));
+  } catch (err) {
+    Sentry.captureException(err, {
+      tags: { area: 'auth', step: 'update-date-of-birth' },
+    });
+    return { error: 'Algo deu errado. Tente novamente.' };
+  }
 
   if (error) {
     return { error: localizeSupabaseError(error.message) };

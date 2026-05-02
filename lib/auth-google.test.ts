@@ -40,6 +40,9 @@ vi.mock('./storage', () => ({
 }));
 
 vi.mock('./api-error', () => ({
+  extractErrorMessage: vi.fn((error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback,
+  ),
   localizeSupabaseError: vi.fn((msg: string) => `localized: ${msg}`),
   localizeRpcError: vi.fn((msg: string) => `rpc-localized: ${msg}`),
 }));
@@ -67,6 +70,7 @@ beforeEach(() => {
   mockUpdateUser.mockReset();
   mockRpc.mockReset();
   vi.mocked(Sentry.addBreadcrumb).mockClear();
+  vi.mocked(Sentry.captureException).mockClear();
 });
 
 // ===========================================================================
@@ -190,6 +194,53 @@ describe('signInWithGoogle', () => {
     expect(result.googleName).toBe('Ana');
   });
 
+  it('returns a localized error when Supabase signInWithIdToken throws', async () => {
+    const error = new Error('Network request failed');
+    mockGetGoogleIdToken.mockResolvedValue({
+      type: 'success',
+      idToken: 'google-id-token',
+      user: { name: 'Ana', email: 'ana@gmail.com' },
+    });
+    mockSignInWithIdToken.mockRejectedValueOnce(error);
+
+    const result = await signInWithGoogle();
+
+    expect(result).toEqual({
+      profile: null,
+      isNewUser: false,
+      googleName: 'Ana',
+      error: 'Não foi possível conectar ao Google. Verifique sua conexão e tente novamente.',
+    });
+    expect(Sentry.captureException).toHaveBeenCalledWith(error, {
+      tags: { area: 'auth', step: 'sign-in-with-id-token' },
+    });
+  });
+
+  it('does not treat profile RPC failures as a new user', async () => {
+    mockGetGoogleIdToken.mockResolvedValue({
+      type: 'success',
+      idToken: 'google-id-token',
+      user: { name: 'Ana', email: 'ana@gmail.com' },
+    });
+    mockSignInWithIdToken.mockResolvedValue({
+      data: { user: { id: 'user-1' }, session: {} },
+      error: null,
+    } as never);
+    mockRpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'profile rpc unavailable' },
+    } as never);
+
+    const result = await signInWithGoogle();
+
+    expect(result).toEqual({
+      profile: null,
+      isNewUser: false,
+      googleName: 'Ana',
+      error: 'rpc-localized: profile rpc unavailable',
+    });
+  });
+
   it('adds Sentry breadcrumbs throughout the flow', async () => {
     mockGetGoogleIdToken.mockResolvedValue({
       type: 'success',
@@ -271,6 +322,26 @@ describe('updateDateOfBirth', () => {
     expect(mockUpdateUser).not.toHaveBeenCalled();
   });
 
+  it('returns validation error for impossible ISO calendar dates', async () => {
+    const result = await updateDateOfBirth('1990-02-30');
+
+    expect(result).toEqual({ error: 'Data de nascimento inválida.' });
+    expect(mockUpdateUser).not.toHaveBeenCalled();
+  });
+
+  it('enforces custom minimum age for admin onboarding', async () => {
+    const now = new Date();
+    const under18 = new Date(
+      Date.UTC(now.getUTCFullYear() - 17, now.getUTCMonth(), now.getUTCDate()),
+    );
+    const isoDate = under18.toISOString().split('T')[0];
+
+    const result = await updateDateOfBirth(isoDate, 18);
+
+    expect(result).toEqual({ error: 'Data de nascimento inválida.' });
+    expect(mockUpdateUser).not.toHaveBeenCalled();
+  });
+
   it('returns localized Supabase error when updateUser fails', async () => {
     mockUpdateUser.mockResolvedValue({
       data: { user: null },
@@ -280,5 +351,17 @@ describe('updateDateOfBirth', () => {
     const result = await updateDateOfBirth('1990-05-15');
 
     expect(result).toEqual({ error: 'localized: Server error' });
+  });
+
+  it('captures unexpected updateUser exceptions', async () => {
+    const error = new Error('network failed');
+    mockUpdateUser.mockRejectedValueOnce(error);
+
+    const result = await updateDateOfBirth('1990-05-15');
+
+    expect(result).toEqual({ error: 'Algo deu errado. Tente novamente.' });
+    expect(Sentry.captureException).toHaveBeenCalledWith(error, {
+      tags: { area: 'auth', step: 'update-date-of-birth' },
+    });
   });
 });

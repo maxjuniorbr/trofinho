@@ -252,14 +252,14 @@ describe('auth', () => {
     expect(supabaseMock.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
   });
 
-  it('returns null profile when the rpc fails or returns no data', async () => {
+  it('throws when the profile rpc fails and returns null when there is no profile', async () => {
     supabaseMock.rpc
       .mockReturnValueOnce(
         supabaseMock.rpc._createResult({ data: null, error: { message: 'rpc error' } }),
       )
       .mockReturnValueOnce(supabaseMock.rpc._createResult({ data: null, error: null }));
 
-    await expect(getProfile()).resolves.toBeNull();
+    await expect(getProfile()).rejects.toThrow('Erro ao carregar perfil. Tente novamente.');
     await expect(getProfile()).resolves.toBeNull();
   });
 
@@ -326,12 +326,25 @@ describe('auth', () => {
     });
   });
 
+  it('returns a localized error when family creation throws', async () => {
+    supabaseMock.rpc.mockRejectedValueOnce(new Error('Network request failed'));
+
+    await expect(createFamily('Silva', 'Max')).resolves.toEqual({
+      familiaId: null,
+      error: 'Sem conexão com a internet. Verifique sua rede e tente novamente.',
+    });
+  });
+
   it('refreshes the current auth session and reports failures', async () => {
     supabaseMock.auth.refreshSession
       .mockResolvedValueOnce({ data: { session: null }, error: null })
-      .mockResolvedValueOnce({ data: { session: null }, error: { message: 'refresh failed' } });
+      .mockResolvedValueOnce({ data: { session: null }, error: { message: 'refresh failed' } })
+      .mockRejectedValueOnce(new Error('network failed'));
 
     await expect(refreshAuthSession()).resolves.toEqual({ error: null });
+    await expect(refreshAuthSession()).resolves.toEqual({
+      error: 'Algo deu errado. Tente novamente.',
+    });
     await expect(refreshAuthSession()).resolves.toEqual({
       error: 'Algo deu errado. Tente novamente.',
     });

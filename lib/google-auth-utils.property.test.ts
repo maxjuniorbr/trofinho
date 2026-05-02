@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 
 import {
+  formatLocalIsoDate,
   isValidDateOfBirth,
+  parseIsoDate,
   validateChildInviteCode,
   type InviteRecord,
   localizeOAuthError,
@@ -113,9 +115,9 @@ describe('Feature: google-oauth-migration, Property 1: Validação de data de na
  * Feature: admin-onboarding-journey, Property 3: Round-trip de serialização da data de nascimento
  *
  * Para qualquer data de nascimento válida (aceita por `isValidDateOfBirth`),
- * serializar para formato ISO `YYYY-MM-DD` via `toISOString().split('T')[0]`
- * e deserializar com `new Date(isoString)` SHALL produzir uma data equivalente
- * à original (mesmo ano, mês e dia em UTC).
+ * serializar para formato ISO `YYYY-MM-DD` via `formatLocalIsoDate`
+ * e deserializar com `parseIsoDate(isoString)` SHALL preservar o mesmo ano,
+ * mês e dia do calendário local escolhido no date picker.
  *
  * **Validates: Requirements 21.1**
  */
@@ -131,7 +133,7 @@ describe('Feature: admin-onboarding-journey, Property 3: Round-trip de serializa
     vi.useRealTimers();
   });
 
-  it('serializing a valid date to YYYY-MM-DD and deserializing preserves UTC year, month and day', () => {
+  it('serializing a valid date to YYYY-MM-DD and deserializing preserves local calendar year, month and day', () => {
     const maxDate = getMaxDateOfBirth();
 
     fc.assert(
@@ -142,15 +144,16 @@ describe('Feature: admin-onboarding-journey, Property 3: Round-trip de serializa
           fc.pre(isValidDateOfBirth(date));
 
           // Serialize to YYYY-MM-DD
-          const isoString = date.toISOString().split('T')[0];
+          const isoString = formatLocalIsoDate(date);
 
           // Deserialize back
-          const restored = new Date(isoString);
+          const restored = parseIsoDate(isoString);
 
-          // Verify UTC year, month and day are preserved
-          expect(restored.getUTCFullYear()).toBe(date.getUTCFullYear());
-          expect(restored.getUTCMonth()).toBe(date.getUTCMonth());
-          expect(restored.getUTCDate()).toBe(date.getUTCDate());
+          expect(restored).not.toBeNull();
+          // Verify local calendar year, month and day are preserved.
+          expect(restored!.getUTCFullYear()).toBe(date.getFullYear());
+          expect(restored!.getUTCMonth()).toBe(date.getMonth());
+          expect(restored!.getUTCDate()).toBe(date.getDate());
         },
       ),
       { numRuns: 100 },

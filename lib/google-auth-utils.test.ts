@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  formatLocalIsoDate,
   isValidDateOfBirth,
   localizeOAuthError,
+  parseIsoDate,
   validateChildInviteCode,
 } from './google-auth-utils';
 
@@ -60,6 +62,37 @@ describe('isValidDateOfBirth', () => {
 
   it('rejects an invalid Date object', () => {
     expect(isValidDateOfBirth(new Date('invalid'))).toBe(false);
+  });
+
+  it('honors a stricter minimum age when provided', () => {
+    const now = new Date();
+    const seventeen = new Date(
+      Date.UTC(now.getUTCFullYear() - 17, now.getUTCMonth(), now.getUTCDate()),
+    );
+
+    expect(isValidDateOfBirth(seventeen)).toBe(true);
+    expect(isValidDateOfBirth(seventeen, 18)).toBe(false);
+  });
+});
+
+describe('parseIsoDate', () => {
+  it('parses strict YYYY-MM-DD calendar dates in UTC', () => {
+    const parsed = parseIsoDate('1990-05-15');
+
+    expect(parsed?.toISOString()).toBe('1990-05-15T00:00:00.000Z');
+  });
+
+  it('rejects non-ISO and impossible calendar dates', () => {
+    expect(parseIsoDate('15/05/1990')).toBeNull();
+    expect(parseIsoDate('1990-02-30')).toBeNull();
+    expect(parseIsoDate('1990-13-01')).toBeNull();
+    expect(parseIsoDate('1990-00-10')).toBeNull();
+  });
+});
+
+describe('formatLocalIsoDate', () => {
+  it('formats local calendar dates without converting to UTC', () => {
+    expect(formatLocalIsoDate(new Date(1990, 0, 5))).toBe('1990-01-05');
   });
 });
 
