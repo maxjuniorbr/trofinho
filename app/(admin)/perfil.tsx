@@ -1,17 +1,9 @@
 import * as Sentry from '@sentry/react-native';
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ChevronRight, Eye, Info, Lock, User, Users } from 'lucide-react-native';
+import { ChevronRight, Eye, Info, User, Users } from 'lucide-react-native';
 import { getAppVersion } from '@lib/app-version';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { HomeFooterBar } from '@/components/ui/home-footer-bar';
@@ -20,26 +12,17 @@ import { LogoutButton } from '@/components/ui/logout-button';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { AvatarSection } from '@/components/profile/avatar-section';
 import { PersonalDataSheet } from '@/components/profile/personal-data-sheet';
-import { ChangePasswordSheet } from '@/components/profile/change-password-sheet';
 import { ChildSelectionSheet } from '@/components/profile/child-selection-sheet';
-import { EmailVerificationBanner } from '@/components/profile/email-verification-banner';
-import { GoogleMigrationBanner } from '@/components/profile/google-migration-banner';
-import { LinkGoogleSheet } from '@/components/profile/link-google-sheet';
 import { ThemeCard } from '@/components/profile/theme-card';
 import { NotificationCard } from '@/components/profile/notification-card';
 import { AdminManagementSheet } from '@/components/profile/admin-management-sheet';
 import { RemoveAdminSheet } from '@/components/profile/remove-admin-sheet';
 import { useTheme } from '@/context/theme-context';
+import { useAppAlert } from '@/context/app-alert-context';
 import { radii, spacing, typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/constants/theme';
 import { useImpersonation } from '@/context/impersonation-context';
 import { signOut } from '@lib/auth';
-import { supabase } from '@lib/supabase';
-import {
-  shouldShowGoogleMigrationBanner,
-  shouldShowChangePassword,
-  type Identity,
-} from '@lib/google-auth-utils';
 import { setNotificationPrefs, type NotificationPrefs } from '@lib/notifications';
 import type { FamilyAdmin } from '@lib/admin-invite';
 import {
@@ -60,6 +43,7 @@ import {
 export default function ProfileScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { showAlert } = useAppAlert();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const footerItems = useAdminFooterItems();
 
@@ -110,10 +94,7 @@ export default function ProfileScreen() {
   const [savingNotificationPreferences, setSavingNotificationPreferences] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [showPersonalData, setShowPersonalData] = useState(false);
-  const [showChangePassword, setShowChangePassword] = useState(false);
   const [showChildSelection, setShowChildSelection] = useState(false);
-  const [showLinkGoogleSheet, setShowLinkGoogleSheet] = useState(false);
-  const [userIdentities, setUserIdentities] = useState<Identity[]>([]);
 
   const [showAdminManagement, setShowAdminManagement] = useState(false);
   const [showRemoveAdminSheet, setShowRemoveAdminSheet] = useState(false);
@@ -121,30 +102,8 @@ export default function ProfileScreen() {
   const deleteAccountMutation = useDeleteAccount();
 
   const { data: allChildren = [] } = useChildrenList();
-  const hasActiveChildren = useMemo(
-    () => allChildren.some((c) => c.ativo === true),
-    [allChildren],
-  );
+  const hasActiveChildren = useMemo(() => allChildren.some((c) => c.ativo === true), [allChildren]);
   const { startImpersonation } = useImpersonation();
-
-  // Fetch user identities to determine Google migration UI visibility
-  const fetchIdentities = useCallback(async () => {
-    try {
-      const { data, error } = await supabase.auth.getUser();
-      if (!error && data.user) {
-        const identities: Identity[] = (data.user.identities ?? []).map((i) => ({
-          provider: i.provider,
-        }));
-        setUserIdentities(identities);
-      }
-    } catch (e) {
-      Sentry.captureException(e, { tags: { stage: 'fetchIdentities' } });
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchIdentities();
-  }, [fetchIdentities]);
 
   const effectivePrefs = notificationPreferences ?? notificationPrefsQuery.data ?? null;
   const effectiveAvatarUri = localAvatarUri ?? avatarUri;
@@ -162,10 +121,11 @@ export default function ProfileScreen() {
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      'Excluir conta',
-      'Todos os dados da família serão apagados permanentemente. Essa ação não pode ser desfeita.',
-      [
+    showAlert({
+      title: 'Excluir conta',
+      message:
+        'Todos os dados da família serão apagados permanentemente. Essa ação não pode ser desfeita.',
+      actions: [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Excluir conta',
@@ -173,7 +133,7 @@ export default function ProfileScreen() {
           onPress: () => deleteAccountMutation.mutate(),
         },
       ],
-    );
+    });
   };
 
   const handleNotificationPreferencesChange = async (next: NotificationPrefs) => {
@@ -255,19 +215,6 @@ export default function ProfileScreen() {
               onAvatarChange={setLocalAvatarUri}
             />
 
-            {authUser?.emailConfirmedAt === null ? (
-              <EmailVerificationBanner
-                email={email}
-                emailConfirmedAt={authUser?.emailConfirmedAt ?? null}
-              />
-            ) : null}
-
-            {shouldShowGoogleMigrationBanner(userIdentities) ? (
-              <GoogleMigrationBanner
-                onLinkGoogle={() => setShowLinkGoogleSheet(true)}
-              />
-            ) : null}
-
             {/* Aparência */}
             <ThemeCard />
 
@@ -312,19 +259,6 @@ export default function ProfileScreen() {
               />
             </SectionCard>
 
-            {/* Segurança */}
-            {shouldShowChangePassword(userIdentities) ? (
-              <SectionCard title="Segurança" colors={colors} styles={styles}>
-                <MenuRow
-                  icon={Lock}
-                  label="Alterar senha"
-                  onPress={() => setShowChangePassword(true)}
-                  colors={colors}
-                  styles={styles}
-                />
-              </SectionCard>
-            ) : null}
-
             {/* Sobre */}
             <SectionCard title="Sobre" colors={colors} styles={styles}>
               <View style={[styles.menuRow, styles.menuRowBorder]}>
@@ -366,19 +300,6 @@ export default function ProfileScreen() {
         profile={profile}
         email={email}
         onNameUpdated={(name) => setLocalName(name)}
-      />
-
-      <ChangePasswordSheet
-        visible={showChangePassword}
-        onClose={() => setShowChangePassword(false)}
-      />
-
-      <LinkGoogleSheet
-        visible={showLinkGoogleSheet}
-        onClose={() => setShowLinkGoogleSheet(false)}
-        onLinked={() => {
-          fetchIdentities();
-        }}
       />
 
       <ChildSelectionSheet
@@ -444,7 +365,7 @@ const SectionCard = ({ title, colors, styles, children }: SectionCardProps) => (
 // ── Reusable menu row ────────────────────────────────────
 
 type MenuRowProps = Readonly<{
-  icon: typeof Lock;
+  icon: typeof User;
   label: string;
   disabled?: boolean;
   disabledHint?: string;

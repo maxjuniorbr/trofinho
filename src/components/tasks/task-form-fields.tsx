@@ -1,5 +1,6 @@
 import { useMemo, type Ref } from 'react';
 import { StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { FileText, Zap } from 'lucide-react-native';
 import { Input } from '@/components/ui/input';
 import { WeekdaySelector } from '@/components/tasks/weekday-selector';
 import { useTheme } from '@/context/theme-context';
@@ -50,9 +51,10 @@ export function TaskFormFields({
         value={title}
         onChangeText={onTitleChange}
         noMarginBottom
-        placeholder="Ex: Lavar a louça"
+        placeholder="Ex: Arrumar o quarto"
         maxLength={100}
         autoFocus={autoFocusTitle}
+        leadingIcon={FileText}
         accessibilityLabel="Título da tarefa"
       />
 
@@ -61,7 +63,7 @@ export function TaskFormFields({
         value={description}
         onChangeText={onDescriptionChange}
         noMarginBottom
-        placeholder="Detalhes da tarefa..."
+        placeholder="Ex: Guardar os brinquedos e organizar a escrivaninha antes do jantar."
         multiline
         numberOfLines={3}
         maxLength={500}
@@ -74,10 +76,11 @@ export function TaskFormFields({
         value={points}
         onChangeText={(v) => onPointsChange(v.replaceAll(/\D/g, ''))}
         noMarginBottom
-        placeholder="Ex: 10"
+        placeholder="Ex: 20"
         keyboardType="number-pad"
         maxLength={4}
         editable={pointsEditable}
+        leadingIcon={Zap}
         style={pointsEditable ? undefined : styles.disabledInput}
         accessibilityLabel="Quantidade de pontos da tarefa"
       />

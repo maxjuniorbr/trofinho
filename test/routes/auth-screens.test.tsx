@@ -3,50 +3,68 @@ import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-co
 import { Alert, Pressable, Text, TextInput } from 'react-native';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import JoinChildScreen from '../../app/(auth)/join-child';
 import LoginScreen from '../../app/(auth)/login';
 import OnboardingScreen from '../../app/(auth)/onboarding';
-import RegisterScreen from '../../app/(auth)/register';
-import ResetPasswordScreen from '../../app/(auth)/reset-password';
+import { supabase } from '@lib/supabase';
 
 const routerMock = vi.hoisted(() => ({
   back: vi.fn(),
+  canGoBack: vi.fn().mockReturnValue(true),
   push: vi.fn(),
   replace: vi.fn(),
 }));
 
 const authMocks = vi.hoisted(() => ({
-  confirmPasswordReset: vi.fn(),
   createFamily: vi.fn(),
   getCurrentAuthUser: vi.fn(),
   refreshAuthSession: vi.fn(),
-  signIn: vi.fn(),
+  signInWithGoogle: vi.fn(),
   signOut: vi.fn(),
-  signUp: vi.fn(),
 }));
 
 const localSearchParamsState = vi.hoisted(() => ({
-  value: {} as { name?: string; email?: string },
+  value: {} as Record<string, string | undefined>,
+}));
+
+const childInviteMocks = vi.hoisted(() => ({
+  validateChildInvite: vi.fn(),
+}));
+
+const dateOfBirthFieldState = vi.hoisted(() => ({
+  onChange: null as ((date: Date) => void) | null,
 }));
 
 vi.mock('expo-router', () => ({
   useLocalSearchParams: () => localSearchParamsState.value,
   useRouter: () => routerMock,
-  useFocusEffect: vi.fn((callback: () => void | (() => void)) => callback()),
+  useFocusEffect: vi.fn(),
 }));
 
 vi.mock('@lib/auth', () => ({
   ...authMocks,
-  signInWithGoogle: vi.fn().mockResolvedValue({ profile: null, isNewUser: false, error: null }),
+  signInWithGoogle: authMocks.signInWithGoogle.mockResolvedValue({ profile: null, isNewUser: false, googleName: null, error: null }),
   updateDateOfBirth: vi.fn().mockResolvedValue({ error: null }),
+}));
+
+vi.mock('@lib/child-invite', () => ({
+  CHILD_INVITE_CODE_LENGTH: 6,
+  formatChildInviteCode: (value: string) =>
+    value.toUpperCase().replaceAll(/[^A-Z0-9]/g, '').slice(0, 6),
+  validateChildInvite: childInviteMocks.validateChildInvite,
 }));
 
 vi.mock('@lib/supabase', () => ({
   supabase: {
     auth: {
       getUser: vi.fn().mockResolvedValue({
-        data: { user: { identities: [{ provider: 'email' }] } },
+        data: { user: { identities: [{ provider: 'google' }] } },
         error: null,
       }),
+      updateUser: vi.fn().mockResolvedValue({ data: { user: {} }, error: null }),
+    },
+    functions: {
+      invoke: vi.fn().mockResolvedValue({ data: { success: true }, error: null }),
     },
   },
 }));
@@ -56,9 +74,34 @@ vi.mock('@/components/auth/google-sign-in-button', () => ({
     React.createElement('GoogleSignInButton', props),
 }));
 
+vi.mock('@/components/ui/bottom-sheet', () => ({
+  BottomSheetModal: (props: Record<string, unknown> & { children?: React.ReactNode }) =>
+    React.createElement('BottomSheetModal', props, props.children),
+}));
+
+vi.mock('@/components/auth/date-of-birth-field', () => ({
+  DateOfBirthField: ({ error, onChange }: { error?: string | null; onChange: (d: Date) => void }) => {
+    dateOfBirthFieldState.onChange = onChange;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- test mock, onChange is stable
+    React.useEffect(() => { onChange(new Date(Date.UTC(2000, 0, 1))); }, []);
+    return React.createElement(Text, null, error ?? 'DateOfBirthField');
+  },
+}));
+
 vi.mock('@react-native-community/datetimepicker', () => ({
   __esModule: true,
   default: (props: Record<string, unknown>) => React.createElement('DateTimePicker', props),
+}));
+
+vi.mock('@/context/impersonation-context', () => ({
+  useImpersonation: () => ({ impersonating: null, startImpersonation: vi.fn(), stopImpersonation: vi.fn() }),
+}));
+
+vi.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+  SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
+  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
+  initialWindowMetrics: { frame: { x: 0, y: 0, width: 0, height: 0 }, insets: { top: 0, left: 0, right: 0, bottom: 0 } },
 }));
 
 function render(element: React.ReactElement) {
@@ -76,22 +119,6 @@ function changeInput(renderer: ReactTestRenderer, index: number, value: string) 
 
   act(() => {
     inputs[index]?.props.onChangeText(value);
-  });
-}
-
-function focusInput(renderer: ReactTestRenderer, index: number) {
-  const inputs = renderer.root.findAllByType(TextInput);
-
-  act(() => {
-    inputs[index]?.props.onFocus?.();
-  });
-}
-
-function blurInput(renderer: ReactTestRenderer, index: number) {
-  const inputs = renderer.root.findAllByType(TextInput);
-
-  act(() => {
-    inputs[index]?.props.onBlur?.();
   });
 }
 
@@ -136,214 +163,99 @@ describe('auth screens', () => {
     routerMock.push.mockReset();
     routerMock.replace.mockReset();
 
-    authMocks.confirmPasswordReset.mockReset();
     authMocks.createFamily.mockReset();
     authMocks.getCurrentAuthUser.mockReset().mockResolvedValue(null);
     authMocks.refreshAuthSession.mockReset().mockResolvedValue({ error: null });
-    authMocks.signIn.mockReset();
+    authMocks.signInWithGoogle.mockReset().mockResolvedValue({ profile: null, isNewUser: false, googleName: null, error: null });
     authMocks.signOut.mockReset();
-    authMocks.signUp.mockReset();
+    dateOfBirthFieldState.onChange = null;
+    vi.mocked(supabase.auth.updateUser).mockClear();
+    vi.mocked(supabase.functions.invoke).mockReset().mockResolvedValue({ data: { success: true }, error: null });
+    childInviteMocks.validateChildInvite.mockReset().mockResolvedValue({
+      preview: {
+        id: 'invite-1',
+        familia_id: 'family-1',
+        filho_id: 'child-1',
+        nome_filho: 'Ana',
+        familyName: 'Família Silva',
+        adminName: 'João',
+      },
+      error: null,
+    });
 
     alertSpy.mockReset();
 
     localSearchParamsState.value = {};
   });
 
-  it('validates login form input before calling sign in', async () => {
+  it('renders the login screen with Google Sign-In', () => {
     const renderer = render(<LoginScreen />);
-
-    await pressButton(renderer, 'Entrar');
-
-    expect(authMocks.signIn).not.toHaveBeenCalled();
-    expect(screenText(renderer)).toContain('Informe seu e-mail.');
-  });
-
-  it('delegates navigation to the auth state handler after successful login', async () => {
-    authMocks.signIn
-      .mockResolvedValueOnce({ error: null })
-      .mockResolvedValueOnce({ error: 'E-mail ou senha incorretos.' });
-
-    const renderer = render(<LoginScreen />);
-    changeInput(renderer, 0, 'max@example.com');
-    changeInput(renderer, 1, '12345678');
-
-    // Successful login no longer calls router.replace — the root layout
-    // auth state handler takes care of navigation. The button stays in
-    // loading state until the redirect lands.
-    await pressButton(renderer, 'Entrar');
-    expect(routerMock.replace).not.toHaveBeenCalled();
-
-    // Verify the button is now in loading state (label changes to "Entrando").
-    expect(getButton(renderer, 'Entrando').props.accessibilityState).toEqual({ busy: true });
-  });
-
-  it('shows inline error when login fails', async () => {
-    authMocks.signIn.mockResolvedValueOnce({ error: 'E-mail ou senha incorretos.' });
-
-    const renderer = render(<LoginScreen />);
-    changeInput(renderer, 0, 'max@example.com');
-    changeInput(renderer, 1, '12345678');
-
-    await pressButton(renderer, 'Entrar');
-    expect(screenText(renderer)).toContain('E-mail ou senha incorretos.');
-
-    // On error, loading resets so the button is pressable again.
-    expect(getButton(renderer, 'Entrar').props.accessibilityState).toEqual({ busy: false });
-  });
-
-  it('navigates from login to the register screen via the register screen directly', async () => {
-    // The "Criar conta" footer link was removed during the Google OAuth migration.
-    // Register navigation is now handled outside the login screen.
-    const renderer = render(<RegisterScreen />);
     expect(renderer.root).toBeTruthy();
   });
 
-  it('shows success InlineMessage when resetSuccess param is "1"', () => {
-    localSearchParamsState.value = { resetSuccess: '1' } as unknown as { name?: string; email?: string };
-
-    const renderer = render(<LoginScreen />);
-
-    expect(screenText(renderer)).toContain(
-      'Senha redefinida com sucesso. Faça login com sua nova senha.',
-    );
-  });
-
-  it('covers the remaining login validation and field focus branches', async () => {
-    const renderer = render(<LoginScreen />);
-
-    focusInput(renderer, 0);
-    blurInput(renderer, 0);
-    focusInput(renderer, 1);
-    blurInput(renderer, 1);
-
-    changeInput(renderer, 0, 'invalido');
-    await pressButton(renderer, 'Entrar');
-    expect(screenText(renderer)).toContain('E-mail inválido.');
-
-    changeInput(renderer, 0, 'max@example.com');
-    await pressButton(renderer, 'Entrar');
-    expect(screenText(renderer)).toContain('Informe sua senha.');
-
-    changeInput(renderer, 1, '123');
-    await pressButton(renderer, 'Entrar');
-    expect(screenText(renderer)).toContain('A senha deve ter pelo menos 8 caracteres.');
-  });
-
-  it('validates register input and handles provider errors', async () => {
-    authMocks.signUp.mockResolvedValueOnce({
-      error: 'Este e-mail já está cadastrado.',
-    });
-
-    const renderer = render(<RegisterScreen />);
-    await pressButton(renderer, 'Continuar');
-    expect(screenText(renderer)).toContain('Informe seu nome.');
-
-    changeInput(renderer, 0, 'Max');
-    changeInput(renderer, 1, 'max@example.com');
-    changeInput(renderer, 2, '12345678');
-
-    await pressButton(renderer, 'Continuar');
-
-    expect(authMocks.signUp).toHaveBeenCalledWith('max@example.com', '12345678');
-    expect(screenText(renderer)).toContain('Este e-mail já está cadastrado.');
-  });
-
-  it('navigates to onboarding after registration', async () => {
-    authMocks.signUp.mockResolvedValue({ error: null });
-
-    const renderer = render(<RegisterScreen />);
-    changeInput(renderer, 0, 'Max');
-    changeInput(renderer, 1, 'max@example.com');
-    changeInput(renderer, 2, '12345678');
-
-    await pressButton(renderer, 'Continuar');
-    expect(routerMock.replace).toHaveBeenCalledWith({
-      pathname: '/(auth)/onboarding',
-      params: { name: 'Max', email: 'max@example.com' },
-    });
-  });
-
-  it('navigates back to login via footer link on register', async () => {
-    const renderer = render(<RegisterScreen />);
-    await pressButton(renderer, 'Entrar');
-    expect(routerMock.back).toHaveBeenCalled();
-  });
-
-  it('covers the remaining register validation and focus branches', async () => {
-    const renderer = render(<RegisterScreen />);
-
-    focusInput(renderer, 0);
-    blurInput(renderer, 0);
-    focusInput(renderer, 1);
-    blurInput(renderer, 1);
-    focusInput(renderer, 2);
-    blurInput(renderer, 2);
-
-    changeInput(renderer, 0, 'Max');
-    changeInput(renderer, 1, 'email-invalido');
-    await pressButton(renderer, 'Continuar');
-    expect(screenText(renderer)).toContain('E-mail inválido.');
-
-    changeInput(renderer, 1, 'max@example.com');
-    await pressButton(renderer, 'Continuar');
-    expect(screenText(renderer)).toContain('Crie uma senha.');
-
-    changeInput(renderer, 2, '123');
-    await pressButton(renderer, 'Continuar');
-    expect(screenText(renderer)).toContain('A senha deve ter pelo menos 8 caracteres.');
-  });
-
-  it('prefills onboarding with the routed name and validates required data', async () => {
-    localSearchParamsState.value = { name: 'Max', email: 'max@example.com' };
+  it('renders the onboarding form with all fields', async () => {
+    localSearchParamsState.value = { googleName: 'Max' } as never;
     const renderer = render(<OnboardingScreen />);
 
-    expect(renderer.root.findAllByType(TextInput)[1]?.props.value).toBe('Max');
+    expect(screenText(renderer)).toContain('Criar conta');
+    expect(screenText(renderer)).toContain('DateOfBirthField');
 
+    // Advance to step 2 (family setup)
+    await pressButton(renderer, 'Continuar');
+
+    // Admin name should be pre-filled with Google name
+    const inputs = renderer.root.findAllByType(TextInput);
+    expect(inputs[1]?.props.value).toBe('Max');
+  });
+
+  it('validates required family name before submitting', async () => {
+    localSearchParamsState.value = { googleName: 'Max' } as never;
+    const renderer = render(<OnboardingScreen />);
+
+    await pressButton(renderer, 'Continuar');
     await pressButton(renderer, 'Criar família');
     expect(screenText(renderer)).toContain('Informe o nome da família.');
   });
 
-  it('covers onboarding focus, name validation, and button style branches', async () => {
-    localSearchParamsState.value = { name: '' };
+  it('validates required admin name before submitting', async () => {
+    localSearchParamsState.value = { googleName: '' } as never;
     const renderer = render(<OnboardingScreen />);
 
-    focusInput(renderer, 0);
-    blurInput(renderer, 0);
-    focusInput(renderer, 1);
-    blurInput(renderer, 1);
-
+    await pressButton(renderer, 'Continuar');
     changeInput(renderer, 0, 'Familia Silva');
     await pressButton(renderer, 'Criar família');
     expect(screenText(renderer)).toContain('Informe seu nome.');
   });
 
   it('creates the family, surfaces errors, and delegates navigation to auth state handler', async () => {
-    localSearchParamsState.value = { name: 'Max', email: 'max@example.com' };
+    localSearchParamsState.value = { googleName: 'Max' } as never;
     authMocks.createFamily
       .mockResolvedValueOnce({ error: 'Algo deu errado. Tente novamente.' })
       .mockResolvedValueOnce({ error: null });
 
     const renderer = render(<OnboardingScreen />);
+
+    await pressButton(renderer, 'Continuar');
     changeInput(renderer, 0, 'Familia Silva');
 
     await pressButton(renderer, 'Criar família');
     expect(screenText(renderer)).toContain('Algo deu errado. Tente novamente.');
 
-    // Successful family creation no longer calls router.replace — the root
-    // layout auth state handler navigates to /(admin)/.
     await pressButton(renderer, 'Criar família');
     expect(authMocks.refreshAuthSession).toHaveBeenCalledTimes(1);
     expect(routerMock.replace).not.toHaveBeenCalled();
   });
 
   it('shows an inline error when session refresh after family creation fails', async () => {
-    localSearchParamsState.value = { name: 'Max', email: 'max@example.com' };
+    localSearchParamsState.value = { googleName: 'Max' } as never;
     authMocks.createFamily.mockResolvedValueOnce({ error: null });
     authMocks.refreshAuthSession.mockResolvedValueOnce({
       error: 'Algo deu errado. Tente novamente.',
     });
 
     const renderer = render(<OnboardingScreen />);
+
+    await pressButton(renderer, 'Continuar');
     changeInput(renderer, 0, 'Familia Silva');
 
     await pressButton(renderer, 'Criar família');
@@ -352,108 +264,80 @@ describe('auth screens', () => {
     expect(getButton(renderer, 'Criar família').props.accessibilityState).toEqual({ busy: false });
   });
 
-  it('shows confirmation alert and signs out when register user confirms exit', async () => {
-    localSearchParamsState.value = { name: 'Max', email: 'max@example.com' };
+  it('shows confirmation sheet and signs out when user confirms leave', async () => {
+    localSearchParamsState.value = { googleName: 'Max' } as never;
     authMocks.signOut.mockResolvedValue(undefined);
     const renderer = render(<OnboardingScreen />);
 
-    // The footer link triggers the alert.
-    await pressButton(renderer, 'Criar família depois');
+    // Back button on step 1 triggers the confirm sheet
+    await pressButton(renderer, 'Voltar');
 
-    expect(alertSpy).toHaveBeenCalledTimes(1);
-    expect(alertSpy).toHaveBeenCalledWith(
-      'Sair da criação da família?',
-      expect.any(String),
-      expect.arrayContaining([
-        expect.objectContaining({ text: 'Continuar criando', style: 'cancel' }),
-        expect.objectContaining({ text: 'Sair', style: 'destructive' }),
-      ]),
-    );
-
-    // Confirm exit via the alert's destructive button.
-    const buttons = alertSpy.mock.calls[0][2] as { text: string; onPress?: () => void }[];
-    const sairButton = buttons.find((b) => b.text === 'Sair');
-    await act(async () => {
-      await sairButton!.onPress!();
-    });
+    // Press confirm in the ConfirmSheet ('Cancelar e sair' button)
+    await pressButton(renderer, 'Cancelar e sair');
 
     expect(authMocks.signOut).toHaveBeenCalled();
     expect(routerMock.replace).toHaveBeenCalledWith('/(auth)/login');
   });
 
-  it('signs out when orphan user confirms exit via footer link (no params.name)', async () => {
-    localSearchParamsState.value = {};
-    authMocks.signOut.mockResolvedValue(undefined);
-    authMocks.getCurrentAuthUser.mockResolvedValue({
-      email: 'orphan@example.com',
-      avatarUrl: null,
+  it('validates child invite route previews before enabling Google sign-in', async () => {
+    localSearchParamsState.value = {
+      code: 'abc123',
+      previewId: 'route-preview',
+      previewFamiliaId: 'fake-family',
+      previewNomeFilho: 'Ana',
+      previewFamilyName: 'Família da URL',
+      previewAdminName: 'Admin da URL',
+    };
+    childInviteMocks.validateChildInvite.mockResolvedValueOnce({
+      preview: null,
+      error: 'Código inválido ou expirado. Peça um novo ao responsável.',
     });
 
-    const renderer = render(<OnboardingScreen />);
+    const renderer = render(<JoinChildScreen />);
 
-    await pressButton(renderer, 'Criar família depois');
-
-    expect(alertSpy).toHaveBeenCalledTimes(1);
-    expect(alertSpy).toHaveBeenCalledWith(
-      'Sair da criação da família?',
-      expect.any(String),
-      expect.arrayContaining([
-        expect.objectContaining({ text: 'Continuar criando', style: 'cancel' }),
-        expect.objectContaining({ text: 'Sair', style: 'destructive' }),
-      ]),
-    );
-
-    const buttons = alertSpy.mock.calls[0][2] as { text: string; onPress?: () => void }[];
-    const sairButton = buttons.find((b) => b.text === 'Sair');
     await act(async () => {
-      await sairButton!.onPress!();
+      await Promise.resolve();
     });
 
-    expect(authMocks.signOut).toHaveBeenCalled();
-    expect(routerMock.replace).toHaveBeenCalledWith('/(auth)/login');
+    expect(childInviteMocks.validateChildInvite).toHaveBeenCalledWith('ABC123');
+    expect(screenText(renderer)).toContain('Código inválido ou expirado');
+    expect(renderer.root.findByType('GoogleSignInButton').props.disabled).toBe(true);
   });
 
-  // ─── Reset Password Screen ───────────────────────────────────────────────────
+  it('does not treat malformed child-link responses as success', async () => {
+    localSearchParamsState.value = { code: 'ABC123' };
+    authMocks.signInWithGoogle.mockResolvedValueOnce({
+      profile: null,
+      isNewUser: true,
+      googleName: 'Ana',
+      error: null,
+    });
+    vi.mocked(supabase.functions.invoke).mockResolvedValueOnce({ data: null, error: null });
 
-  it('shows error message and login button when tokens are missing', () => {
-    localSearchParamsState.value = {} as any;
+    const renderer = render(<JoinChildScreen />);
 
-    const renderer = render(<ResetPasswordScreen />);
+    await act(async () => {
+      await Promise.resolve();
+    });
 
-    expect(screenText(renderer)).toContain(
-      'Link inválido. Solicite um novo link de redefinição.',
-    );
+    await act(async () => {
+      await renderer.root.findByType('GoogleSignInButton').props.onPress();
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    act(() => {
+      dateOfBirthFieldState.onChange?.(new Date(Date.UTC(2000, 0, 1)));
+    });
 
-    expect(screenText(renderer)).toContain('Ir para o login');
-  });
+    expect(getButton(renderer, 'Entrar na família').props.disabled).toBe(false);
+    await pressButton(renderer, 'Entrar na família');
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
 
-  it('shows short password error on reset-password screen', async () => {
-    localSearchParamsState.value = { access_token: 'valid-access', refresh_token: 'valid-refresh' } as any;
-
-    const renderer = render(<ResetPasswordScreen />);
-    changeInput(renderer, 0, '123');
-
-    await pressButton(renderer, 'Redefinir senha');
-
-    expect(screenText(renderer)).toContain('A senha deve ter pelo menos 8 caracteres.');
-    expect(authMocks.confirmPasswordReset).not.toHaveBeenCalled();
-  });
-
-  it('shows success screen with "Ir para o login" button after successful password reset', async () => {
-    localSearchParamsState.value = { access_token: 'valid-access', refresh_token: 'valid-refresh' } as any;
-    authMocks.confirmPasswordReset.mockResolvedValueOnce({ error: null });
-
-    const renderer = render(<ResetPasswordScreen />);
-    changeInput(renderer, 0, 'newPassword123');
-
-    await pressButton(renderer, 'Redefinir senha');
-
-    expect(authMocks.confirmPasswordReset).toHaveBeenCalledWith('valid-access', 'valid-refresh', 'newPassword123');
-    expect(screenText(renderer)).toContain('Tudo certo!');
-    expect(screenText(renderer)).toContain('Senha atualizada');
-
-    await pressButton(renderer, 'Ir para o login');
-
-    expect(routerMock.replace).toHaveBeenCalledWith('/(auth)/login');
+    expect(supabase.functions.invoke).toHaveBeenCalled();
+    expect(authMocks.refreshAuthSession).not.toHaveBeenCalled();
+    expect(screenText(renderer)).toContain('Erro ao vincular conta. Tente novamente.');
   });
 });

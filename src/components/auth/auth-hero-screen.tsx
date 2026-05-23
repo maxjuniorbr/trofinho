@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -77,7 +76,6 @@ export const AuthHeroScreen = ({
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.flex}>
         <LinearGradient
@@ -159,8 +157,7 @@ function makeStyles(
       opacity: 0.55,
     },
     scrollContent: {
-      // No flexGrow — the body's minHeight handles full-screen layout.
-      // This lets the ScrollView scroll naturally when keyboard is open.
+      flexGrow: 1,
       paddingTop: topInset + spacing['4'],
       paddingBottom: Math.max(bottomInset, spacing['8']),
       paddingHorizontal: spacing['6'],

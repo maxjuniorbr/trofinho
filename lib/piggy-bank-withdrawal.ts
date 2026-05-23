@@ -124,14 +124,17 @@ export async function listPendingPiggyBankWithdrawals(): Promise<{
   return { data: data ?? [], error: null };
 }
 
-export async function getChildPendingWithdrawal(): Promise<{
+export async function getChildPendingWithdrawal(childId?: string): Promise<{
   data: PiggyBankWithdrawal | null;
   error: string | null;
 }> {
-  const { data, error } = await supabase
-    .from('resgates_cofrinho')
-    .select('*')
-    .eq('status', 'pendente')
+  let query = supabase.from('resgates_cofrinho').select('*').eq('status', 'pendente');
+
+  if (childId) {
+    query = query.eq('filho_id', childId);
+  }
+
+  const { data, error } = await query
     .order('created_at', { ascending: false })
     .limit(1)
     .overrideTypes<PiggyBankWithdrawal[], { merge: false }>();

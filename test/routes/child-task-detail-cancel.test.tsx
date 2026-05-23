@@ -1,6 +1,7 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-compat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { __APP_ALERT_MOCK__ } from '../setup';
 
 import ChildTaskDetailScreen from '../../app/(child)/tasks/[id]';
 
@@ -194,12 +195,17 @@ vi.mock('@/context/theme-context', () => ({
         infoBg: '#E5F2FF',
         infoText: '#0F4D8A',
       },
+      overlay: { scrim: 'rgba(0,0,0,0.45)', scrimSoft: 'rgba(0,0,0,0.4)' },
     },
   }),
 }));
 
 vi.mock('@/context/impersonation-context', () => ({
-  useImpersonation: () => ({ impersonating: null, startImpersonation: vi.fn(), stopImpersonation: vi.fn() }),
+  useImpersonation: () => ({
+    impersonating: null,
+    startImpersonation: vi.fn(),
+    stopImpersonation: vi.fn(),
+  }),
 }));
 
 vi.mock('@/hooks/queries', () => ({
@@ -275,7 +281,8 @@ function findButtonsByLabel(renderer: ReactTestRenderer, label: string) {
   return renderer.root.findAll((node) => {
     // Match both the old Button component and the new ActionButton (Pressable with accessibilityLabel)
     if ((node.type as string) === 'Button' && node.props.label === label) return true;
-    if ((node.type as string) === 'Pressable' && node.props.accessibilityLabel === label) return true;
+    if ((node.type as string) === 'Pressable' && node.props.accessibilityLabel === label)
+      return true;
     return false;
   });
 }
@@ -328,14 +335,17 @@ describe('ChildTaskDetailScreen — cancel assignment submission', () => {
       await cancelButtons[0].props.onPress();
     });
 
-    expect(alertMock.alert).toHaveBeenCalledTimes(1);
+    expect(__APP_ALERT_MOCK__.showAlert).toHaveBeenCalledTimes(1);
     expect(cancelMutationMock.mutate).not.toHaveBeenCalled();
 
-    const alertButtons = alertMock.alert.mock.calls[0][2] as {
-      text: string;
-      style?: string;
-      onPress?: () => void;
-    }[];
+    const alertOptions = __APP_ALERT_MOCK__.showAlert.mock.calls[0][0] as {
+      actions: {
+        text: string;
+        style?: string;
+        onPress?: () => void;
+      }[];
+    };
+    const alertButtons = alertOptions.actions;
     const destructiveButton = alertButtons.find((button) => button.style === 'destructive');
 
     expect(destructiveButton).toBeDefined();

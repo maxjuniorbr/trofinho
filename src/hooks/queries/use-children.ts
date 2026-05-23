@@ -16,7 +16,7 @@ import { queryKeys, STALE_TIMES } from './query-keys';
  */
 export const useMyChildId = (userId?: string) =>
   useQuery({
-    queryKey: queryKeys.children.myId(),
+    queryKey: queryKeys.children.myId(userId),
     queryFn: async () => {
       const childId = await getMyChildId(userId);
       if (!childId) throw new Error('Perfil de filho não encontrado.');

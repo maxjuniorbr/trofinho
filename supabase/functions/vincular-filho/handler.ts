@@ -16,7 +16,7 @@ export type VincularFilhoSuccessResponse = {
 
 export type VincularFilhoErrorResponse = {
   success: false;
-  error: 'INVALID_CODE' | 'EXPIRED_CODE' | 'ALREADY_LINKED';
+  error: 'INVALID_CODE' | 'EXPIRED_CODE' | 'ALREADY_LINKED' | 'FAMILY_FULL';
 };
 
 export type VincularFilhoResponse = VincularFilhoSuccessResponse | VincularFilhoErrorResponse;
@@ -50,6 +50,25 @@ export interface SupabaseClientLike {
 const INVITE_CODE_REGEX = /^[A-Za-z0-9]{6}$/;
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
+function parseIsoDate(date: string): Date | null {
+  if (!ISO_DATE_REGEX.test(date)) {
+    return null;
+  }
+
+  const [year, month, day] = date.split('-').map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return parsed;
+}
+
 export function validateRequest(
   body: unknown,
 ): { valid: true; data: VincularFilhoRequest } | { valid: false; error: string } {
@@ -63,14 +82,24 @@ export function validateRequest(
     return { valid: false, error: 'invite_code must be a 6-character alphanumeric string' };
   }
 
-  if (typeof date_of_birth !== 'string' || !ISO_DATE_REGEX.test(date_of_birth)) {
+  if (typeof date_of_birth !== 'string') {
     return { valid: false, error: 'date_of_birth must be a valid ISO 8601 date (YYYY-MM-DD)' };
   }
 
-  // Verify the date string is actually a valid date
-  const parsed = new Date(date_of_birth + 'T00:00:00Z');
-  if (Number.isNaN(parsed.getTime())) {
+  // Verify the date string is actually a valid calendar date.
+  const parsed = parseIsoDate(date_of_birth);
+  if (!parsed) {
     return { valid: false, error: 'date_of_birth must be a valid ISO 8601 date (YYYY-MM-DD)' };
+  }
+
+  // Validate age: must be between 1900-01-01 and today minus 8 years
+  const minDate = new Date(Date.UTC(1900, 0, 1));
+  const now = new Date();
+  const maxDate = new Date(Date.UTC(now.getUTCFullYear() - 8, now.getUTCMonth(), now.getUTCDate()));
+  const utcDate = new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate()));
+
+  if (utcDate < minDate || utcDate > maxDate) {
+    return { valid: false, error: 'date_of_birth must be at least 8 years ago' };
   }
 
   return {
@@ -90,6 +119,15 @@ export interface HandlerDeps {
 const MAX_BODY_BYTES = 4_096;
 
 export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Response> {
+  try {
+    return await handleRequestUnsafe(req, deps);
+  } catch (error) {
+    logFunctionFailure('vincular-filho unhandled error', error);
+    return jsonResponse({ error: 'Internal error' }, 500);
+  }
+}
+
+async function handleRequestUnsafe(req: Request, deps: HandlerDeps): Promise<Response> {
   if (req.method !== 'POST') {
     return jsonResponse({ error: 'Method not allowed' }, 405);
   }
@@ -136,10 +174,15 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
     return inviteResult.errorResponse;
   }
 
-  const { invite, familiaId, nomeFilho } = inviteResult;
+  const { invite, familiaId, filhoId: inviteFilhoId, nomeFilho } = inviteResult;
+
+  const existingUserResult = await ensureUserCanJoin(adminClient, childUserId);
+  if ('errorResponse' in existingUserResult) {
+    return existingUserResult.errorResponse;
+  }
 
   // Find the matching filhos record and verify it's not already linked
-  const filhoResult = await findUnlinkedFilho(adminClient, familiaId, nomeFilho);
+  const filhoResult = await findUnlinkedFilho(adminClient, familiaId, nomeFilho, inviteFilhoId);
   if ('errorResponse' in filhoResult) {
     return filhoResult.errorResponse;
   }
@@ -200,12 +243,12 @@ async function lookupAndValidateInvite(
   client: SupabaseClientLike,
   code: string,
 ): Promise<
-  | { invite: Record<string, unknown>; familiaId: string; nomeFilho: string }
+  | { invite: Record<string, unknown>; familiaId: string; filhoId: string | null; nomeFilho: string }
   | { errorResponse: Response }
 > {
   const { data: invite, error } = await client
     .from('convites_filho')
-    .select('id, familia_id, nome_filho, aceito_por, expira_em')
+    .select('id, familia_id, filho_id, nome_filho, aceito_por, expira_em')
     .eq('codigo', code)
     .maybeSingle();
 
@@ -244,21 +287,51 @@ async function lookupAndValidateInvite(
   return {
     invite,
     familiaId: invite.familia_id as string,
+    filhoId: (invite.filho_id as string | null | undefined) ?? null,
     nomeFilho: invite.nome_filho as string,
   };
+}
+
+async function ensureUserCanJoin(
+  client: SupabaseClientLike,
+  userId: string,
+): Promise<{ ok: true } | { errorResponse: Response }> {
+  const { data: existingUser, error } = await client
+    .from('usuarios')
+    .select('id')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (error) {
+    return { errorResponse: jsonResponse({ error: 'Internal error' }, 500) };
+  }
+
+  if (existingUser) {
+    return {
+      errorResponse: jsonResponse(
+        { success: false, error: 'ALREADY_LINKED' } satisfies VincularFilhoErrorResponse,
+        400,
+      ),
+    };
+  }
+
+  return { ok: true };
 }
 
 async function findUnlinkedFilho(
   client: SupabaseClientLike,
   familiaId: string,
   nomeFilho: string,
+  filhoId: string | null,
 ): Promise<{ filhoId: string } | { errorResponse: Response }> {
-  const { data: filhoRecord, error } = await client
+  let query = client
     .from('filhos')
     .select('id, usuario_id')
-    .eq('familia_id', familiaId)
-    .eq('nome', nomeFilho)
-    .maybeSingle();
+    .eq('familia_id', familiaId);
+
+  query = filhoId ? query.eq('id', filhoId) : query.eq('nome', nomeFilho);
+
+  const { data: filhoRecord, error } = await query.maybeSingle();
 
   if (error || !filhoRecord) {
     return { errorResponse: jsonResponse({ error: 'Internal error' }, 500) };
@@ -297,15 +370,23 @@ async function performLinking(
   // change the response — the original failure is still reported as 500.
 
   // Step 1: claim the filho row
-  const { error: updateFilhoError } = await client
+  const { data: claimedFilho, error: updateFilhoError } = await client
     .from('filhos')
     .update({ usuario_id: childUserId })
     .eq('id', filhoId)
+    .is('usuario_id', null)
     .select('id')
-    .single();
+    .maybeSingle();
 
   if (updateFilhoError) {
     return jsonResponse({ error: 'Internal error' }, 500);
+  }
+
+  if (!claimedFilho) {
+    return jsonResponse(
+      { success: false, error: 'ALREADY_LINKED' } satisfies VincularFilhoErrorResponse,
+      400,
+    );
   }
 
   // Step 2: create the usuarios record for the child
@@ -322,12 +403,13 @@ async function performLinking(
   }
 
   // Step 3: mark the invite as accepted
-  const { error: updateInviteError } = await client
+  const { data: acceptedInvite, error: updateInviteError } = await client
     .from('convites_filho')
     .update({ aceito_por: childUserId, aceito_em: new Date().toISOString() })
     .eq('id', inviteId)
+    .is('aceito_por', null)
     .select('id')
-    .single();
+    .maybeSingle();
 
   if (updateInviteError) {
     await rollbackUsuario(client, childUserId);
@@ -335,9 +417,23 @@ async function performLinking(
     return jsonResponse({ error: 'Internal error' }, 500);
   }
 
-  // Step 4: save date_of_birth in user_metadata
+  if (!acceptedInvite) {
+    await rollbackUsuario(client, childUserId);
+    await rollbackFilho(client, filhoId);
+    return jsonResponse(
+      { success: false, error: 'ALREADY_LINKED' } satisfies VincularFilhoErrorResponse,
+      400,
+    );
+  }
+
+  // Step 4: save date_of_birth + LGPD consent in user_metadata and clear pending invite marker
   const { error: metadataError } = await client.auth.admin.updateUserById(childUserId, {
-    user_metadata: { date_of_birth: dateOfBirth },
+    user_metadata: {
+      date_of_birth: dateOfBirth,
+      lgpd_consent_at: new Date().toISOString(),
+      lgpd_consent_version: '1.0',
+      pending_child_invite: null,
+    },
   });
 
   if (metadataError) {
@@ -378,6 +474,17 @@ function logRollbackFailure(target: string, id: string, error: unknown): void {
       msg: 'vincular-filho rollback failed',
       target,
       id,
+      error: error instanceof Error ? error.message : String(error),
+    }),
+  );
+}
+
+function logFunctionFailure(message: string, error: unknown): void {
+  // eslint-disable-next-line no-console
+  console.error(
+    JSON.stringify({
+      level: 'error',
+      msg: message,
       error: error instanceof Error ? error.message : String(error),
     }),
   );

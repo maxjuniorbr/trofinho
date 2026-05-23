@@ -9,8 +9,6 @@ import { getGoogleIdToken } from './google-auth';
 import { supabase } from './supabase';
 import {
   signInWithGoogle,
-  linkGoogleIdentity,
-  hasGoogleIdentity,
   updateDateOfBirth,
 } from './auth';
 
@@ -42,6 +40,9 @@ vi.mock('./storage', () => ({
 }));
 
 vi.mock('./api-error', () => ({
+  extractErrorMessage: vi.fn((error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback,
+  ),
   localizeSupabaseError: vi.fn((msg: string) => `localized: ${msg}`),
   localizeRpcError: vi.fn((msg: string) => `rpc-localized: ${msg}`),
 }));
@@ -60,17 +61,16 @@ vi.mock('./device-storage', () => ({
 
 const mockGetGoogleIdToken = vi.mocked(getGoogleIdToken);
 const mockSignInWithIdToken = vi.mocked(supabase.auth.signInWithIdToken);
-const mockGetUser = vi.mocked(supabase.auth.getUser);
 const mockUpdateUser = vi.mocked(supabase.auth.updateUser);
 const mockRpc = vi.mocked(supabase.rpc);
 
 beforeEach(() => {
   mockGetGoogleIdToken.mockReset();
   mockSignInWithIdToken.mockReset();
-  mockGetUser.mockReset();
   mockUpdateUser.mockReset();
   mockRpc.mockReset();
   vi.mocked(Sentry.addBreadcrumb).mockClear();
+  vi.mocked(Sentry.captureException).mockClear();
 });
 
 // ===========================================================================
@@ -194,6 +194,53 @@ describe('signInWithGoogle', () => {
     expect(result.googleName).toBe('Ana');
   });
 
+  it('returns a localized error when Supabase signInWithIdToken throws', async () => {
+    const error = new Error('Network request failed');
+    mockGetGoogleIdToken.mockResolvedValue({
+      type: 'success',
+      idToken: 'google-id-token',
+      user: { name: 'Ana', email: 'ana@gmail.com' },
+    });
+    mockSignInWithIdToken.mockRejectedValueOnce(error);
+
+    const result = await signInWithGoogle();
+
+    expect(result).toEqual({
+      profile: null,
+      isNewUser: false,
+      googleName: 'Ana',
+      error: 'Não foi possível conectar ao Google. Verifique sua conexão e tente novamente.',
+    });
+    expect(Sentry.captureException).toHaveBeenCalledWith(error, {
+      tags: { area: 'auth', step: 'sign-in-with-id-token' },
+    });
+  });
+
+  it('does not treat profile RPC failures as a new user', async () => {
+    mockGetGoogleIdToken.mockResolvedValue({
+      type: 'success',
+      idToken: 'google-id-token',
+      user: { name: 'Ana', email: 'ana@gmail.com' },
+    });
+    mockSignInWithIdToken.mockResolvedValue({
+      data: { user: { id: 'user-1' }, session: {} },
+      error: null,
+    } as never);
+    mockRpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'profile rpc unavailable' },
+    } as never);
+
+    const result = await signInWithGoogle();
+
+    expect(result).toEqual({
+      profile: null,
+      isNewUser: false,
+      googleName: 'Ana',
+      error: 'rpc-localized: profile rpc unavailable',
+    });
+  });
+
   it('adds Sentry breadcrumbs throughout the flow', async () => {
     mockGetGoogleIdToken.mockResolvedValue({
       type: 'success',
@@ -227,174 +274,6 @@ describe('signInWithGoogle', () => {
 });
 
 // ===========================================================================
-// linkGoogleIdentity
-// ===========================================================================
-
-describe('linkGoogleIdentity', () => {
-  it('returns no error when Google sign-in is cancelled', async () => {
-    mockGetGoogleIdToken.mockResolvedValue({ type: 'cancelled' });
-
-    const result = await linkGoogleIdentity();
-
-    expect(result).toEqual({ error: null });
-  });
-
-  it('returns no error on successful link', async () => {
-    mockGetGoogleIdToken.mockResolvedValue({
-      type: 'success',
-      idToken: 'link-token',
-      user: { name: 'User', email: 'user@gmail.com' },
-    });
-
-    mockSignInWithIdToken.mockResolvedValue({
-      data: { user: { id: 'u1' }, session: {} },
-      error: null,
-    } as never);
-
-    const result = await linkGoogleIdentity();
-
-    expect(result).toEqual({ error: null });
-    expect(mockSignInWithIdToken).toHaveBeenCalledWith({
-      provider: 'google',
-      token: 'link-token',
-    });
-  });
-
-  it('returns provider conflict message when identity is already linked', async () => {
-    mockGetGoogleIdToken.mockResolvedValue({
-      type: 'success',
-      idToken: 'link-token',
-      user: { name: 'User', email: 'user@gmail.com' },
-    });
-
-    mockSignInWithIdToken.mockResolvedValue({
-      data: { user: null, session: null },
-      error: {
-        message: 'Identity provider already linked',
-        status: 422,
-      },
-    } as never);
-
-    const result = await linkGoogleIdentity();
-
-    expect(result.error).toBe(
-      'Esta conta já está vinculada a outro método de login. Faça login com e-mail/senha e vincule sua conta Google nas configurações.',
-    );
-  });
-
-  it('returns localized error when Google SDK fails', async () => {
-    mockGetGoogleIdToken.mockResolvedValue({
-      type: 'error',
-      message: 'O Google Play Services não está disponível. Atualize-o e tente novamente.',
-    });
-
-    const result = await linkGoogleIdentity();
-
-    expect(result.error).toBe(
-      'O Google Play Services não está disponível. Atualize-o e tente novamente.',
-    );
-  });
-
-  it('returns localized error for non-conflict Supabase errors', async () => {
-    mockGetGoogleIdToken.mockResolvedValue({
-      type: 'success',
-      idToken: 'link-token',
-      user: { name: 'User', email: 'user@gmail.com' },
-    });
-
-    mockSignInWithIdToken.mockResolvedValue({
-      data: { user: null, session: null },
-      error: { message: 'Server error 500', status: 500 },
-    } as never);
-
-    const result = await linkGoogleIdentity();
-
-    expect(result.error).toBe(
-      'O serviço do Google está temporariamente indisponível. Tente novamente em alguns minutos.',
-    );
-  });
-});
-
-// ===========================================================================
-// hasGoogleIdentity
-// ===========================================================================
-
-describe('hasGoogleIdentity', () => {
-  it('returns true when user has a google identity', async () => {
-    mockGetUser.mockResolvedValue({
-      data: {
-        user: {
-          id: 'u1',
-          identities: [
-            { provider: 'email', id: 'e1' },
-            { provider: 'google', id: 'g1' },
-          ],
-        },
-      },
-      error: null,
-    } as never);
-
-    const result = await hasGoogleIdentity();
-
-    expect(result).toBe(true);
-  });
-
-  it('returns false when user has no google identity', async () => {
-    mockGetUser.mockResolvedValue({
-      data: {
-        user: {
-          id: 'u1',
-          identities: [{ provider: 'email', id: 'e1' }],
-        },
-      },
-      error: null,
-    } as never);
-
-    const result = await hasGoogleIdentity();
-
-    expect(result).toBe(false);
-  });
-
-  it('returns false when user has empty identities array', async () => {
-    mockGetUser.mockResolvedValue({
-      data: {
-        user: {
-          id: 'u1',
-          identities: [],
-        },
-      },
-      error: null,
-    } as never);
-
-    const result = await hasGoogleIdentity();
-
-    expect(result).toBe(false);
-  });
-
-  it('returns false when getUser returns an error', async () => {
-    mockGetUser.mockResolvedValue({
-      data: { user: null },
-      error: { message: 'Not authenticated' },
-    } as never);
-
-    const result = await hasGoogleIdentity();
-
-    expect(result).toBe(false);
-  });
-
-  it('returns false when user is null', async () => {
-    mockGetUser.mockResolvedValue({
-      data: { user: null },
-      error: null,
-    } as never);
-
-    const result = await hasGoogleIdentity();
-
-    expect(result).toBe(false);
-  });
-});
-
-// ===========================================================================
 // updateDateOfBirth
 // ===========================================================================
 
@@ -413,10 +292,10 @@ describe('updateDateOfBirth', () => {
     });
   });
 
-  it('returns validation error for a date that is too recent (under 13)', async () => {
+  it('returns validation error for a date that is too recent (under 8)', async () => {
     const now = new Date();
     const tooYoung = new Date(
-      Date.UTC(now.getUTCFullYear() - 10, now.getUTCMonth(), now.getUTCDate()),
+      Date.UTC(now.getUTCFullYear() - 5, now.getUTCMonth(), now.getUTCDate()),
     );
     const isoDate = tooYoung.toISOString().split('T')[0];
 
@@ -443,6 +322,26 @@ describe('updateDateOfBirth', () => {
     expect(mockUpdateUser).not.toHaveBeenCalled();
   });
 
+  it('returns validation error for impossible ISO calendar dates', async () => {
+    const result = await updateDateOfBirth('1990-02-30');
+
+    expect(result).toEqual({ error: 'Data de nascimento inválida.' });
+    expect(mockUpdateUser).not.toHaveBeenCalled();
+  });
+
+  it('enforces custom minimum age for admin onboarding', async () => {
+    const now = new Date();
+    const under18 = new Date(
+      Date.UTC(now.getUTCFullYear() - 17, now.getUTCMonth(), now.getUTCDate()),
+    );
+    const isoDate = under18.toISOString().split('T')[0];
+
+    const result = await updateDateOfBirth(isoDate, 18);
+
+    expect(result).toEqual({ error: 'Data de nascimento inválida.' });
+    expect(mockUpdateUser).not.toHaveBeenCalled();
+  });
+
   it('returns localized Supabase error when updateUser fails', async () => {
     mockUpdateUser.mockResolvedValue({
       data: { user: null },
@@ -452,5 +351,17 @@ describe('updateDateOfBirth', () => {
     const result = await updateDateOfBirth('1990-05-15');
 
     expect(result).toEqual({ error: 'localized: Server error' });
+  });
+
+  it('captures unexpected updateUser exceptions', async () => {
+    const error = new Error('network failed');
+    mockUpdateUser.mockRejectedValueOnce(error);
+
+    const result = await updateDateOfBirth('1990-05-15');
+
+    expect(result).toEqual({ error: 'Algo deu errado. Tente novamente.' });
+    expect(Sentry.captureException).toHaveBeenCalledWith(error, {
+      tags: { area: 'auth', step: 'update-date-of-birth' },
+    });
   });
 });

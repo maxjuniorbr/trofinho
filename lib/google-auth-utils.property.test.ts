@@ -1,17 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 
 import {
+  formatLocalIsoDate,
   isValidDateOfBirth,
-  shouldShowGoogleMigrationBanner,
-  shouldShowChangePassword,
+  parseIsoDate,
   validateChildInviteCode,
-  type Identity,
   type InviteRecord,
-
   localizeOAuthError,
-  type SupabaseAuthError} from './google-auth-utils';
-
+  type SupabaseAuthError,
+} from './google-auth-utils';
 
 import type { GoogleAuthResult } from './google-auth';
 
@@ -20,29 +18,41 @@ import type { GoogleAuthResult } from './google-auth';
  *
  * Para qualquer data gerada aleatoriamente, a função `isValidDateOfBirth(date)`
  * SHALL retornar `true` se e somente se a data estiver entre 01/01/1900 e a data
- * atual menos 13 anos (inclusive). Datas fora desse intervalo, datas nulas e datas
+ * atual menos 8 anos (inclusive). Datas fora desse intervalo, datas nulas e datas
  * futuras devem ser rejeitadas.
  *
  * **Validates: Requirements 3.2, 3.4**
  */
 
-/** Computes the upper bound (today - 13 years) using UTC, matching the implementation. */
+/** Computes the upper bound (today - 8 years) using UTC, matching the implementation. */
 function getMaxDateOfBirth(): Date {
   const now = new Date();
   return new Date(
-    Date.UTC(now.getUTCFullYear() - 13, now.getUTCMonth(), now.getUTCDate()),
+    Date.UTC(now.getUTCFullYear() - 8, now.getUTCMonth(), now.getUTCDate()),
   );
 }
 
 const MIN_DATE = new Date(Date.UTC(1900, 0, 1)); // 1 Jan 1900
 
 describe('Feature: google-oauth-migration, Property 1: Validação de data de nascimento', () => {
-  it('accepts any date within the valid range [1900-01-01, today - 13 years]', () => {
+  // Freeze time so `new Date()` inside isValidDateOfBirth matches the test's maxDate.
+  // Without this, the suite can flake when the UTC day rolls over mid-run.
+  const FROZEN_NOW = new Date('2026-04-30T12:00:00Z');
+
+  beforeEach(() => {
+    vi.useFakeTimers({ now: FROZEN_NOW });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('accepts any date within the valid range [1900-01-01, today - 8 years]', () => {
     const maxDate = getMaxDateOfBirth();
 
     fc.assert(
       fc.property(
-        fc.date({ min: MIN_DATE, max: maxDate }),
+        fc.date({ min: MIN_DATE, max: maxDate, noInvalidDate: true }),
         (date) => {
           expect(isValidDateOfBirth(date)).toBe(true);
         },
@@ -56,7 +66,7 @@ describe('Feature: google-oauth-migration, Property 1: Validação de data de na
 
     fc.assert(
       fc.property(
-        fc.date({ min: new Date(Date.UTC(1800, 0, 1)), max: beforeMin }),
+        fc.date({ min: new Date(Date.UTC(1800, 0, 1)), max: beforeMin, noInvalidDate: true }),
         (date) => {
           expect(isValidDateOfBirth(date)).toBe(false);
         },
@@ -65,14 +75,14 @@ describe('Feature: google-oauth-migration, Property 1: Validação de data de na
     );
   });
 
-  it('rejects any date after today - 13 years', () => {
+  it('rejects any date after today - 8 years', () => {
     const maxDate = getMaxDateOfBirth();
     const dayAfterMax = new Date(maxDate.getTime() + 24 * 60 * 60 * 1000);
     const futureLimit = new Date(Date.UTC(2100, 0, 1));
 
     fc.assert(
       fc.property(
-        fc.date({ min: dayAfterMax, max: futureLimit }),
+        fc.date({ min: dayAfterMax, max: futureLimit, noInvalidDate: true }),
         (date) => {
           expect(isValidDateOfBirth(date)).toBe(false);
         },
@@ -81,12 +91,12 @@ describe('Feature: google-oauth-migration, Property 1: Validação de data de na
     );
   });
 
-  it('for ANY date, isValidDateOfBirth returns true IFF date >= 1900-01-01 AND date <= today - 13 years', () => {
+  it('for ANY date, isValidDateOfBirth returns true IFF date >= 1900-01-01 AND date <= today - 8 years', () => {
     const maxDate = getMaxDateOfBirth();
 
     fc.assert(
       fc.property(
-        fc.date({ min: new Date(Date.UTC(1800, 0, 1)), max: new Date(Date.UTC(2100, 0, 1)) }),
+        fc.date({ min: new Date(Date.UTC(1800, 0, 1)), max: new Date(Date.UTC(2100, 0, 1)), noInvalidDate: true }),
         (date) => {
           const utcDate = new Date(
             Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
@@ -102,73 +112,50 @@ describe('Feature: google-oauth-migration, Property 1: Validação de data de na
 });
 
 /**
- * Feature: google-oauth-migration, Property 3: Detecção de estado de identidade Google
+ * Feature: admin-onboarding-journey, Property 3: Round-trip de serialização da data de nascimento
  *
- * Para qualquer configuração de identidades de usuário (lista de providers vinculados),
- * as funções `shouldShowGoogleMigrationBanner(identities)` e
- * `shouldShowChangePassword(identities)` SHALL retornar valores consistentes:
- * o banner de migração deve ser visível se e somente se o usuário NÃO possui
- * identidade Google; a seção de alterar senha deve ser visível se e somente se
- * o usuário possui identidade de e-mail/senha.
+ * Para qualquer data de nascimento válida (aceita por `isValidDateOfBirth`),
+ * serializar para formato ISO `YYYY-MM-DD` via `formatLocalIsoDate`
+ * e deserializar com `parseIsoDate(isoString)` SHALL preservar o mesmo ano,
+ * mês e dia do calendário local escolhido no date picker.
  *
- * **Validates: Requirements 4.4, 4.5, 8.2**
+ * **Validates: Requirements 21.1**
  */
 
-const PROVIDERS = ['google', 'email', 'phone', 'apple', 'github'] as const;
+describe('Feature: admin-onboarding-journey, Property 3: Round-trip de serialização da data de nascimento', () => {
+  const FROZEN_NOW = new Date('2026-04-30T12:00:00Z');
 
-/** Arbitrary that generates a single Identity with a random provider. */
-const identityArb: fc.Arbitrary<Identity> = fc.constantFrom(...PROVIDERS).map(
-  (provider) => ({ provider }),
-);
-
-/** Arbitrary that generates a list of identities (0 to 10 items). */
-const identityListArb: fc.Arbitrary<Identity[]> = fc.array(identityArb, {
-  minLength: 0,
-  maxLength: 10,
-});
-
-describe('Feature: google-oauth-migration, Property 3: Detecção de estado de identidade Google', () => {
-  it('shouldShowGoogleMigrationBanner returns true IFF no identity has provider === "google"', () => {
-    fc.assert(
-      fc.property(identityListArb, (identities) => {
-        const hasGoogle = identities.some((id) => id.provider === 'google');
-        const result = shouldShowGoogleMigrationBanner(identities);
-
-        expect(result).toBe(!hasGoogle);
-      }),
-      { numRuns: 100 },
-    );
+  beforeEach(() => {
+    vi.useFakeTimers({ now: FROZEN_NOW });
   });
 
-  it('shouldShowChangePassword returns true IFF at least one identity has provider === "email"', () => {
-    fc.assert(
-      fc.property(identityListArb, (identities) => {
-        const hasEmail = identities.some((id) => id.provider === 'email');
-        const result = shouldShowChangePassword(identities);
-
-        expect(result).toBe(hasEmail);
-      }),
-      { numRuns: 100 },
-    );
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
-  it('shouldShowGoogleMigrationBanner and shouldShowChangePassword are independent (no mutual exclusion)', () => {
+  it('serializing a valid date to YYYY-MM-DD and deserializing preserves local calendar year, month and day', () => {
+    const maxDate = getMaxDateOfBirth();
+
     fc.assert(
-      fc.property(identityListArb, (identities) => {
-        const banner = shouldShowGoogleMigrationBanner(identities);
-        const changePassword = shouldShowChangePassword(identities);
+      fc.property(
+        fc.date({ min: MIN_DATE, max: maxDate, noInvalidDate: true }),
+        (date) => {
+          // Pre-condition: date must be accepted by isValidDateOfBirth
+          fc.pre(isValidDateOfBirth(date));
 
-        // Both can be true (e.g. email-only user: no google → banner=true, has email → changePassword=true)
-        // Both can be false (e.g. google-only user: has google → banner=false, no email → changePassword=false)
-        // banner=true, changePassword=false (e.g. phone-only user)
-        // banner=false, changePassword=true (e.g. google+email user)
-        // The key property: the two results are determined independently
-        const hasGoogle = identities.some((id) => id.provider === 'google');
-        const hasEmail = identities.some((id) => id.provider === 'email');
+          // Serialize to YYYY-MM-DD
+          const isoString = formatLocalIsoDate(date);
 
-        expect(banner).toBe(!hasGoogle);
-        expect(changePassword).toBe(hasEmail);
-      }),
+          // Deserialize back
+          const restored = parseIsoDate(isoString);
+
+          expect(restored).not.toBeNull();
+          // Verify local calendar year, month and day are preserved.
+          expect(restored!.getUTCFullYear()).toBe(date.getFullYear());
+          expect(restored!.getUTCMonth()).toBe(date.getMonth());
+          expect(restored!.getUTCDate()).toBe(date.getDate());
+        },
+      ),
       { numRuns: 100 },
     );
   });

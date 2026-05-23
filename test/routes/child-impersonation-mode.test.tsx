@@ -197,7 +197,7 @@ vi.mock('react-native', () => ({
     },
     KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
     Modal: createHostComponent('Modal'),
-    Platform: { OS: 'ios', select: (obj: Record<string, unknown>) => obj.ios },
+    Platform: { OS: 'android', select: (obj: Record<string, unknown>) => obj.android },
     Pressable: createHostComponent('Pressable'),
     RefreshControl: createHostComponent('RefreshControl'),
     ScrollView: createHostComponent('ScrollView'),
@@ -267,7 +267,7 @@ vi.mock('lucide-react-native', () => ({
     UserCircle: (props: Record<string, unknown>) => React.createElement('UserCircle', props),
     ChevronRight: createHostComponent('ChevronRight'),
     Info: createHostComponent('Info'),
-    Lock: createHostComponent('Lock'),
+    LogOut: createHostComponent('LogOut'),
     User: createHostComponent('User'),
     Star: (props: Record<string, unknown>) => React.createElement('Star', props),
 }));
@@ -396,9 +396,8 @@ vi.mock('@/components/profile/personal-data-sheet', () => ({
         React.createElement('PersonalDataSheet', props),
 }));
 
-vi.mock('@/components/profile/change-password-sheet', () => ({
-    ChangePasswordSheet: (props: Record<string, unknown>) =>
-        React.createElement('ChangePasswordSheet', props),
+vi.mock('@/components/ui/confirm-sheet', () => ({
+    ConfirmSheet: (props: Record<string, unknown>) => React.createElement('ConfirmSheet', props),
 }));
 
 vi.mock('@/components/profile/theme-card', () => ({
@@ -491,6 +490,12 @@ vi.mock('@/constants/theme', () => ({
 vi.mock('@/constants/colors', () => ({
     darkColors: {
         bg: { surface: '#1D212B', elevated: '#2A303C' },
+    },
+    staticTextColors: {
+        inverseStrong: '#fff',
+        inverse: '#fff',
+        inverseFaint: 'rgba(255,255,255,0.5)',
+        onBrand: '#fff',
     },
 }));
 
@@ -716,12 +721,6 @@ describe('Child screens in impersonation mode', () => {
             expect(text).toContain('Dados pessoais');
         });
 
-        it('shows "Segurança" section when impersonating', () => {
-            const renderer = render(<ChildProfileScreen />);
-            const text = allText(renderer);
-            expect(text).toContain('Segurança');
-        });
-
         it('shows LogoutButton disabled when impersonating', () => {
             const renderer = render(<ChildProfileScreen />);
             const logoutBtns = renderer.root.findAllByType('LogoutButton' as never);
@@ -755,7 +754,6 @@ describe('Child screens in impersonation mode', () => {
             expect(logoutBtns.length).toBe(1);
             const text = allText(renderer);
             expect(text).toContain('Dados pessoais');
-            expect(text).toContain('Segurança');
         });
     });
 });

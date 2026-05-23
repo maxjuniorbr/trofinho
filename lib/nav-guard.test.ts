@@ -26,6 +26,15 @@ const noFamily: UserProfile = {
   avatarUrl: null,
 };
 
+const orphanChild: UserProfile = {
+  id: 'u4',
+  familia_id: '',
+  papel: 'admin',
+  nome: '',
+  avatarUrl: null,
+  pendingChildInvite: 'ABC123',
+};
+
 describe('resolveNavDecision', () => {
   describe('when not ready', () => {
     it('returns null regardless of profile or segments', () => {
@@ -49,13 +58,17 @@ describe('resolveNavDecision', () => {
       expect(resolveNavDecision(true, null, [])).toBe('/(auth)/login');
     });
 
-    it('returns null when already in auth group (login or register)', () => {
+    it('returns null when already in auth group (login)', () => {
       expect(resolveNavDecision(true, null, ['(auth)', 'login'])).toBeNull();
-      expect(resolveNavDecision(true, null, ['(auth)', 'register'])).toBeNull();
     });
 
     it('returns null when signed out on onboarding (screen handles own exit)', () => {
       expect(resolveNavDecision(true, null, ['(auth)', 'onboarding'])).toBeNull();
+    });
+
+    it('returns null when signed out on any auth sub-route', () => {
+      expect(resolveNavDecision(true, null, ['(auth)', 'join-family'])).toBeNull();
+      expect(resolveNavDecision(true, null, ['(auth)', 'join-child'])).toBeNull();
     });
   });
 
@@ -70,18 +83,29 @@ describe('resolveNavDecision', () => {
       expect(resolveNavDecision(true, noFamily, ['(auth)', 'onboarding'])).toBeNull();
     });
 
-    it('returns null when on register screen (mid-flow to onboarding)', () => {
-      expect(resolveNavDecision(true, noFamily, ['(auth)', 'register'])).toBeNull();
-    });
-
     it('returns null when on join-family screen (accepting invite code)', () => {
       expect(resolveNavDecision(true, noFamily, ['(auth)', 'join-family'])).toBeNull();
+    });
+
+    it('returns null when on join-child screen (child invite flow)', () => {
+      expect(resolveNavDecision(true, noFamily, ['(auth)', 'join-child'])).toBeNull();
+    });
+
+    it('redirects orphan with pendingChildInvite to join-child instead of onboarding', () => {
+      expect(resolveNavDecision(true, orphanChild, ['(auth)', 'login'])).toBe('/(auth)/join-child');
+      expect(resolveNavDecision(true, orphanChild, ['(admin)'])).toBe('/(auth)/join-child');
+      expect(resolveNavDecision(true, orphanChild, [])).toBe('/(auth)/join-child');
+    });
+
+    it('returns null when orphan with pendingChildInvite is already on join-child', () => {
+      expect(resolveNavDecision(true, orphanChild, ['(auth)', 'join-child'])).toBeNull();
     });
   });
 
   describe('when authenticated admin user', () => {
     it('redirects to admin home when in auth group', () => {
       expect(resolveNavDecision(true, admin, ['(auth)', 'login'])).toBe('/(admin)/');
+      expect(resolveNavDecision(true, admin, ['(auth)', 'onboarding'])).toBe('/(admin)/');
     });
 
     it('returns null when already in admin group', () => {
@@ -124,6 +148,7 @@ describe('resolveNavDecision', () => {
   describe('when authenticated filho user', () => {
     it('redirects to child home when in auth group', () => {
       expect(resolveNavDecision(true, filho, ['(auth)', 'login'])).toBe('/(child)/');
+      expect(resolveNavDecision(true, filho, ['(auth)', 'onboarding'])).toBe('/(child)/');
     });
 
     it('returns null when already in child group', () => {
@@ -137,6 +162,7 @@ describe('resolveNavDecision', () => {
 
     it('redirects to child home when on blank index route', () => {
       expect(resolveNavDecision(true, filho, [])).toBe('/(child)/');
+      expect(resolveNavDecision(true, filho, ['index'])).toBe('/(child)/');
     });
   });
 });

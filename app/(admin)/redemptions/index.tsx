@@ -1,15 +1,16 @@
-import { Alert, Pressable, StyleSheet, Text, View, RefreshControl } from 'react-native';
+import { Pressable, StyleSheet, Text, View, RefreshControl } from 'react-native';
 import { localizeRpcError } from '@lib/api-error';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import { Star, Check, X } from 'lucide-react-native';
+import { Gift, Star, Check, X } from 'lucide-react-native';
 import { HomeFooterBar } from '@/components/ui/home-footer-bar';
 import { useAdminFooterItems } from '@/hooks/use-footer-items';
 import { getRedemptionStatusColor, getRedemptionStatusLabel } from '@lib/status';
 import type { RedemptionWithChildAndPrize } from '@lib/redemptions';
 import { useTheme } from '@/context/theme-context';
+import { useAppAlert } from '@/context/app-alert-context';
 import type { ThemeColors } from '@/constants/theme';
 import { opacityPressed, radii, shadows, spacing, typography } from '@/constants/theme';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -33,6 +34,7 @@ type TabKey = 'pendentes' | 'concluidos' | 'todos';
 export default function AdminRedemptionsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { showAlert } = useAppAlert();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const footerItems = useAdminFooterItems();
 
@@ -101,86 +103,92 @@ export default function AdminRedemptionsScreen() {
     [router],
   );
 
-  const handleConfirm = useCallback((item: RedemptionWithChildAndPrize) => {
-    if (!profile) return;
-    Alert.alert(
-      'Confirmar entrega',
-      `Confirmar entrega do prêmio "${item.premios.nome}" para ${item.filhos.nome}?`,
-      [
-        { text: 'Voltar', style: 'cancel' },
-        {
-          text: 'Confirmar',
-          onPress: () => {
-            setActionError(null);
-            setActionSuccess(null);
-            setProcessingId(item.id);
-            confirmMutation.mutate(
-              {
-                redemptionId: item.id,
-                opts: {
-                  familiaId: profile.familia_id,
-                  userId: item.filhos.usuario_id,
-                  prizeName: item.premios.nome,
-                },
-              },
-              {
-                onSuccess: () => {
-                  setProcessingId(null);
-                  setActionSuccess('Resgate confirmado com sucesso.');
-                },
-                onError: (err) => {
-                  setProcessingId(null);
-                  setActionError(localizeRpcError(err.message));
-                },
-              },
-            );
-          },
-        },
-      ],
-    );
-  }, [profile, confirmMutation]);
-
-  const handleCancel = useCallback((item: RedemptionWithChildAndPrize) => {
-    if (!profile) return;
-    Alert.alert(
-      'Cancelar resgate?',
-      `Os ${item.pontos_debitados} pts debitados serão estornados.`,
-      [
-        { text: 'Voltar', style: 'cancel' },
-        {
-          text: 'Cancelar resgate',
-          style: 'destructive',
-          onPress: () => {
-            setActionError(null);
-            setActionSuccess(null);
-            setProcessingId(item.id);
-            cancelMutation.mutate(
-              {
-                redemptionId: item.id,
-                opts: item.filhos.usuario_id
-                  ? {
+  const handleConfirm = useCallback(
+    (item: RedemptionWithChildAndPrize) => {
+      if (!profile) return;
+      showAlert({
+        title: 'Confirmar entrega',
+        message: `Confirmar entrega do prêmio "${item.premios.nome}" para ${item.filhos.nome}?`,
+        actions: [
+          { text: 'Voltar', style: 'cancel' },
+          {
+            text: 'Confirmar',
+            onPress: () => {
+              setActionError(null);
+              setActionSuccess(null);
+              setProcessingId(item.id);
+              confirmMutation.mutate(
+                {
+                  redemptionId: item.id,
+                  opts: {
                     familiaId: profile.familia_id,
                     userId: item.filhos.usuario_id,
                     prizeName: item.premios.nome,
-                  }
-                  : undefined,
-              },
-              {
-                onSuccess: () => {
-                  setProcessingId(null);
-                  setActionSuccess('Resgate cancelado. Pontos estornados.');
+                  },
                 },
-                onError: (err) => {
-                  setProcessingId(null);
-                  setActionError(localizeRpcError(err.message));
+                {
+                  onSuccess: () => {
+                    setProcessingId(null);
+                    setActionSuccess('Resgate confirmado com sucesso.');
+                  },
+                  onError: (err) => {
+                    setProcessingId(null);
+                    setActionError(localizeRpcError(err.message));
+                  },
                 },
-              },
-            );
+              );
+            },
           },
-        },
-      ],
-    );
-  }, [profile, cancelMutation]);
+        ],
+      });
+    },
+    [profile, showAlert, confirmMutation],
+  );
+
+  const handleCancel = useCallback(
+    (item: RedemptionWithChildAndPrize) => {
+      if (!profile) return;
+      showAlert({
+        title: 'Cancelar resgate?',
+        message: `Os ${item.pontos_debitados} pts debitados serão estornados.`,
+        actions: [
+          { text: 'Voltar', style: 'cancel' },
+          {
+            text: 'Cancelar resgate',
+            style: 'destructive',
+            onPress: () => {
+              setActionError(null);
+              setActionSuccess(null);
+              setProcessingId(item.id);
+              cancelMutation.mutate(
+                {
+                  redemptionId: item.id,
+                  opts: item.filhos.usuario_id
+                    ? {
+                        familiaId: profile.familia_id,
+                        userId: item.filhos.usuario_id,
+                        prizeName: item.premios.nome,
+                      }
+                    : undefined,
+                },
+                {
+                  onSuccess: () => {
+                    setProcessingId(null);
+                    setActionSuccess('Resgate cancelado. Pontos estornados.');
+                  },
+                  onError: (err) => {
+                    setProcessingId(null);
+                    setActionError(localizeRpcError(err.message));
+                  },
+                },
+              );
+            },
+          },
+        ],
+      });
+    },
+    [profile, showAlert, cancelMutation],
+  );
 
   const renderItem = useCallback(
     ({ item }: { item: RedemptionWithChildAndPrize }) => {
@@ -193,7 +201,11 @@ export default function AdminRedemptionsScreen() {
           {/* Top row: emoji + info + cost badge */}
           <View style={styles.topRow}>
             <View style={styles.emojiCircle}>
-              <Text style={styles.emojiText}>{item.premios.emoji || '🎁'}</Text>
+              {item.premios.emoji ? (
+                <Text style={styles.emojiText}>{item.premios.emoji}</Text>
+              ) : (
+                <Gift size={24} color={colors.accent.admin} strokeWidth={2} />
+              )}
             </View>
             <View style={styles.infoCol}>
               <Text style={styles.prizeName} numberOfLines={1}>

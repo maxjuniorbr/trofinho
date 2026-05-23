@@ -4,6 +4,7 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-compat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
+import { __APP_ALERT_MOCK__ } from '../setup';
 
 import AdminRedemptionsScreen from '../../app/(admin)/redemptions/index';
 
@@ -32,19 +33,19 @@ const confirmMutationMock = vi.hoisted(() => ({
 const redemptionsMock = vi.hoisted(() => ({
   data: undefined as
     | {
-      pages: {
-        data: {
-          id: string;
-          status: string;
-          pontos_debitados: number;
-          created_at: string;
-          filhos: { nome: string; usuario_id: string | null };
-          premios: { nome: string; emoji: string };
+        pages: {
+          data: {
+            id: string;
+            status: string;
+            pontos_debitados: number;
+            created_at: string;
+            filhos: { nome: string; usuario_id: string | null };
+            premios: { nome: string; emoji: string };
+          }[];
+          hasMore: boolean;
         }[];
-        hasMore: boolean;
-      }[];
-      pageParams: number[];
-    }
+        pageParams: number[];
+      }
     | undefined,
   isLoading: false,
   isFetching: false,
@@ -242,7 +243,7 @@ describe('AdminRedemptionsScreen — cancellation dialog property tests', () => 
         fc.integer({ min: 1, max: 99999 }),
         fc.string({ minLength: 1, maxLength: 30 }).filter((s) => s.trim().length > 0),
         async (points, childName) => {
-          alertMock.alert.mockReset();
+          __APP_ALERT_MOCK__.showAlert.mockReset();
 
           redemptionsMock.data = {
             pages: [
@@ -256,16 +257,19 @@ describe('AdminRedemptionsScreen — cancellation dialog property tests', () => 
 
           const renderer = render(<AdminRedemptionsScreen />);
 
-          // Press the "Recusar" (X) button on the card — triggers Alert.alert directly
+          // Press the "Recusar" (X) button on the card — opens the app alert sheet
           const rejectButtons = findRejectButtons(renderer);
           expect(rejectButtons.length).toBeGreaterThan(0);
           act(() => {
             rejectButtons[0].props.onPress();
           });
 
-          // Verify Alert.alert was called with the points in the message
-          expect(alertMock.alert).toHaveBeenCalledTimes(1);
-          const message = alertMock.alert.mock.calls[0][1] as string;
+          // Verify the app alert was called with the points in the message
+          expect(__APP_ALERT_MOCK__.showAlert).toHaveBeenCalledTimes(1);
+          const alertOptions = __APP_ALERT_MOCK__.showAlert.mock.calls[0][0] as {
+            message: string;
+          };
+          const message = alertOptions.message;
           expect(message).toContain(String(points));
         },
       ),
@@ -280,7 +284,7 @@ describe('AdminRedemptionsScreen — cancellation dialog property tests', () => 
         fc.integer({ min: 1, max: 99999 }),
         fc.boolean(),
         async (points, userConfirms) => {
-          alertMock.alert.mockReset();
+          __APP_ALERT_MOCK__.showAlert.mockReset();
           cancelMutationMock.mutate.mockReset();
 
           redemptionsMock.data = {
@@ -295,18 +299,21 @@ describe('AdminRedemptionsScreen — cancellation dialog property tests', () => 
 
           const renderer = render(<AdminRedemptionsScreen />);
 
-          // Press the "Recusar" (X) button — triggers Alert.alert directly
+          // Press the "Recusar" (X) button — opens the app alert sheet
           const rejectButtons = findRejectButtons(renderer);
           act(() => {
             rejectButtons[0].props.onPress();
           });
 
-          expect(alertMock.alert).toHaveBeenCalledTimes(1);
-          const buttons = alertMock.alert.mock.calls[0][2] as {
-            text: string;
-            style?: string;
-            onPress?: () => void;
-          }[];
+          expect(__APP_ALERT_MOCK__.showAlert).toHaveBeenCalledTimes(1);
+          const alertOptions = __APP_ALERT_MOCK__.showAlert.mock.calls[0][0] as {
+            actions: {
+              text: string;
+              style?: string;
+              onPress?: () => void;
+            }[];
+          };
+          const buttons = alertOptions.actions;
 
           if (userConfirms) {
             const destructiveBtn = buttons.find((b) => b.style === 'destructive');

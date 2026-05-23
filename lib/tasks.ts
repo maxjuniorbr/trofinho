@@ -47,7 +47,12 @@ export function deriveTaskState(
   return 'ativa';
 }
 
-export type AssignmentStatus = 'pendente' | 'aguardando_validacao' | 'aprovada' | 'rejeitada' | 'cancelada';
+export type AssignmentStatus =
+  | 'pendente'
+  | 'aguardando_validacao'
+  | 'aprovada'
+  | 'rejeitada'
+  | 'cancelada';
 
 export type Assignment = {
   id: string;
@@ -234,7 +239,9 @@ export async function listAdminTasks(
 
   const { data, error } = await supabase
     .from('tarefas')
-    .select('id, titulo, descricao, pontos, dias_semana, exige_evidencia, created_at, ativo, arquivada_em, excluida_em, atribuicoes(status)')
+    .select(
+      'id, titulo, descricao, pontos, dias_semana, exige_evidencia, created_at, ativo, arquivada_em, excluida_em, atribuicoes(status)',
+    )
     .is('arquivada_em', null)
     .is('excluida_em', null)
     .order('created_at', { ascending: false })
@@ -260,7 +267,9 @@ export async function listArchivedTasks(
 
   const { data, error } = await supabase
     .from('tarefas')
-    .select('id, titulo, descricao, pontos, dias_semana, exige_evidencia, created_at, ativo, arquivada_em, excluida_em, atribuicoes(status)')
+    .select(
+      'id, titulo, descricao, pontos, dias_semana, exige_evidencia, created_at, ativo, arquivada_em, excluida_em, atribuicoes(status)',
+    )
     .not('arquivada_em', 'is', null)
     .is('excluida_em', null)
     .order('arquivada_em', { ascending: false })
@@ -477,6 +486,7 @@ export async function renewRecurringTasks(childId?: string): Promise<void> {
 export async function listChildAssignments(
   page = 0,
   pageSize = 20,
+  childId?: string,
 ): Promise<{
   data: ChildAssignment[];
   hasMore: boolean;
@@ -489,11 +499,17 @@ export async function listChildAssignments(
   const from = page * pageSize;
   const to = from + pageSize;
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('atribuicoes')
     .select('*, tarefas(*)')
     .or(visibleAssignmentsFilter)
-    .neq('status', 'cancelada')
+    .neq('status', 'cancelada');
+
+  if (childId) {
+    query = query.eq('filho_id', childId);
+  }
+
+  const { data, error } = await query
     .order('created_at', { ascending: false })
     .range(from, to)
     .overrideTypes<ChildAssignment[], { merge: false }>();
@@ -506,13 +522,15 @@ export async function listChildAssignments(
 
 export async function getChildAssignment(
   assignmentId: string,
+  childId?: string,
 ): Promise<{ data: ChildAssignment | null; error: string | null }> {
-  const { data, error } = await supabase
-    .from('atribuicoes')
-    .select('*, tarefas(*)')
-    .eq('id', assignmentId)
-    .returns<ChildAssignment>()
-    .single();
+  let query = supabase.from('atribuicoes').select('*, tarefas(*)').eq('id', assignmentId);
+
+  if (childId) {
+    query = query.eq('filho_id', childId);
+  }
+
+  const { data, error } = await query.returns<ChildAssignment>().single();
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
   const assignment = await signEvidence(data);
@@ -691,9 +709,7 @@ export async function deleteTask(taskId: string): Promise<{
   return { data: { pendingValidationCount: data ?? 0 }, error: null };
 }
 
-export function buildTaskDeleteMessage(
-  assignments: { status: AssignmentStatus }[],
-): string {
+export function buildTaskDeleteMessage(assignments: { status: AssignmentStatus }[]): string {
   const pendingCount = assignments.filter((a) => a.status === 'pendente').length;
   const parts: string[] = ['Esta ação é permanente e não pode ser desfeita.'];
   if (pendingCount > 0) {
@@ -716,9 +732,7 @@ export async function reactivateTask(taskId: string): Promise<{
   return { error: null };
 }
 
-export function buildTaskDeactivateMessage(
-  assignments: { status: AssignmentStatus }[],
-): string {
+export function buildTaskDeactivateMessage(assignments: { status: AssignmentStatus }[]): string {
   const parts: string[] = [];
 
   const pendingCount = assignments.filter((a) => a.status === 'pendente').length;
@@ -885,12 +899,10 @@ async function batchSignEvidenceUrls<T extends { evidencia_url: string | null }>
 
   if (validEntries.length === 0) return items;
 
-  const { data, error } = await supabase.storage
-    .from('evidencias')
-    .createSignedUrls(
-      validEntries.map((e) => e.path),
-      EVIDENCE_URL_TTL_SECONDS,
-    );
+  const { data, error } = await supabase.storage.from('evidencias').createSignedUrls(
+    validEntries.map((e) => e.path),
+    EVIDENCE_URL_TTL_SECONDS,
+  );
 
   if (error || !data) return items;
 
@@ -937,7 +949,7 @@ async function resolveEvidenceUrl(evidence: string | null): Promise<string | nul
  * Rejects paths with directory traversal (`..`), leading slashes, or
  * unexpected depth to prevent malformed URLs from reaching `createSignedUrl`.
  */
-const EVIDENCE_PATH_PATTERN = /^[^/][^?#]*\/[^/][^?#]*\/[^/][^?#]+$/;
+const EVIDENCE_PATH_PATTERN = /^[^/?#]+\/[^/?#]+\/[^/?#]+$/;
 
 function isValidEvidencePath(path: string): boolean {
   return EVIDENCE_PATH_PATTERN.test(path) && !path.includes('..');

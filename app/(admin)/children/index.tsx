@@ -1,4 +1,4 @@
-import { Alert, StyleSheet, Text, View, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useMemo, useState } from 'react';
@@ -10,31 +10,16 @@ import { ListScreenSkeleton } from '@/components/ui/skeleton';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { Avatar } from '@/components/ui/avatar';
 import { ChildViewSheet } from '@/components/children/child-view-sheet';
-import { ChildNewSheet } from '@/components/children/child-new-sheet';
+import { ChildAddSheet } from '@/components/children/child-add-sheet';
 import { ChildInviteSheet, type ChildInvite } from '@/components/children/child-invite-sheet';
-import {
-  useChildrenList,
-  useAdminBalances,
-  useProfile,
-  combineQueryStates,
-} from '@/hooks/queries';
+import { useChildrenList, useAdminBalances, useProfile, combineQueryStates } from '@/hooks/queries';
 import type { BalanceWithChild } from '@lib/balances';
-import { supabase } from '@lib/supabase';
+import type { Child } from '@lib/children';
+import { generateChildInvite } from '@lib/child-invite';
 import { useTheme } from '@/context/theme-context';
 import { opacityDisabled, radii, shadows, spacing, typography } from '@/constants/theme';
-
-// ── Helpers ──────────────────────────────────────────────
-
-const INVITE_CODE_LENGTH = 6;
-const INVITE_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I to avoid confusion
-
-function generateInviteCode(): string {
-  let code = '';
-  for (let i = 0; i < INVITE_CODE_LENGTH; i++) {
-    code += INVITE_CODE_CHARS[Math.floor(Math.random() * INVITE_CODE_CHARS.length)];
-  }
-  return code;
-}
+import { InlineMessage } from '@/components/ui/inline-message';
+import { useTransientMessage } from '@/hooks/use-transient-message';
 
 // ── Screen ───────────────────────────────────────────────
 
@@ -44,10 +29,12 @@ export default function AdminChildrenScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [viewChildId, setViewChildId] = useState<string | null>(null);
-  const [newSheetVisible, setNewSheetVisible] = useState(false);
+  const [addSheetVisible, setAddSheetVisible] = useState(false);
   const [inviteSheetVisible, setInviteSheetVisible] = useState(false);
   const [currentInvite, setCurrentInvite] = useState<ChildInvite | null>(null);
   const [generatingInviteFor, setGeneratingInviteFor] = useState<string | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const visibleInviteError = useTransientMessage(inviteError);
 
   const { data: profile } = useProfile();
   const childrenQuery = useChildrenList();
@@ -68,71 +55,29 @@ export default function AdminChildrenScreen() {
   }, [refetchAll]);
 
   const handleGenerateInvite = useCallback(
-    async (childName: string) => {
+    async (child: Child) => {
       if (!profile) {
-        Alert.alert('Erro', 'Perfil não carregado. Tente novamente.');
+        setInviteError('Perfil não carregado. Tente novamente.');
         return;
       }
 
-      setGeneratingInviteFor(childName);
+      setGeneratingInviteFor(child.id);
 
       try {
-        const codigo = generateInviteCode();
+        const { data, error } = await generateChildInvite({
+          familyId: profile.familia_id,
+          childId: child.id,
+          childName: child.nome,
+          createdBy: profile.id,
+        });
 
-        // The `convites_filho` table may not be in the generated DB types yet,
-        // so we cast through `any` to insert via the Supabase client.
-         
-        const { data, error: insertError } = await (supabase as any)
-          .from('convites_filho')
-          .insert({
-            familia_id: profile.familia_id,
-            codigo,
-            criado_por: profile.id,
-            nome_filho: childName,
-          })
-          .select('codigo, expira_em')
-          .single();
-
-        if (insertError) {
-          // Retry once with a new code in case of unique constraint violation
-          if (insertError.message?.includes('unique') || insertError.code === '23505') {
-            const retryCode = generateInviteCode();
-             
-            const { data: retryData, error: retryError } = await (supabase as any)
-              .from('convites_filho')
-              .insert({
-                familia_id: profile.familia_id,
-                codigo: retryCode,
-                criado_por: profile.id,
-                nome_filho: childName,
-              })
-              .select('codigo, expira_em')
-              .single();
-
-            if (retryError) {
-              Alert.alert('Erro', 'Não foi possível gerar o convite. Tente novamente.');
-              return;
-            }
-
-            setCurrentInvite({
-              codigo: retryData.codigo,
-              nome_filho: childName,
-              expira_em: retryData.expira_em,
-            });
-            setInviteSheetVisible(true);
-            return;
-          }
-
-          Alert.alert('Erro', 'Não foi possível gerar o convite. Tente novamente.');
+        if (data) {
+          setCurrentInvite(data);
+          setInviteSheetVisible(true);
           return;
         }
 
-        setCurrentInvite({
-          codigo: data.codigo,
-          nome_filho: childName,
-          expira_em: data.expira_em,
-        });
-        setInviteSheetVisible(true);
+        setInviteError(error ?? 'Não foi possível gerar o convite. Tente novamente.');
       } finally {
         setGeneratingInviteFor(null);
       }
@@ -172,7 +117,7 @@ export default function AdminChildrenScreen() {
         renderItem={({ item }) => {
           const balance = balancesMap.get(item.id);
           const totalPts = balance ? balance.saldo_livre + balance.cofrinho : 0;
-          const isGenerating = generatingInviteFor === item.nome;
+          const isGenerating = generatingInviteFor === item.id;
           return (
             <View
               style={[
@@ -193,9 +138,7 @@ export default function AdminChildrenScreen() {
                     style={[
                       styles.cardStatus,
                       {
-                        color: item.usuario_id
-                          ? colors.semantic.success
-                          : colors.semantic.warning,
+                        color: item.usuario_id ? colors.semantic.success : colors.semantic.warning,
                       },
                     ]}
                   >
@@ -218,7 +161,7 @@ export default function AdminChildrenScreen() {
                     <HeaderIconButton
                       icon={Ticket}
                       onPress={() => {
-                        if (!isGenerating) handleGenerateInvite(item.nome);
+                        if (!isGenerating) handleGenerateInvite(item);
                       }}
                       accessibilityLabel={`Gerar convite para ${item.nome}`}
                     />
@@ -253,16 +196,30 @@ export default function AdminChildrenScreen() {
         rightAction={
           <HeaderIconButton
             icon={Plus}
-            onPress={() => setNewSheetVisible(true)}
+            onPress={() => setAddSheetVisible(true)}
             accessibilityLabel="Cadastrar filho"
           />
         }
       />
 
+      {visibleInviteError ? (
+        <View style={{ paddingHorizontal: spacing['4'], paddingTop: spacing['2'] }}>
+          <InlineMessage variant="error" message={visibleInviteError} />
+        </View>
+      ) : null}
+
       {renderContent()}
 
+      <ChildAddSheet
+        visible={addSheetVisible}
+        familiaId={profile?.familia_id}
+        onClose={() => setAddSheetVisible(false)}
+        onChildAdded={(child) => {
+          setAddSheetVisible(false);
+          refetchAll().then(() => handleGenerateInvite(child));
+        }}
+      />
       <ChildViewSheet childId={viewChildId} onClose={() => setViewChildId(null)} />
-      <ChildNewSheet visible={newSheetVisible} onClose={() => setNewSheetVisible(false)} />
       <ChildInviteSheet
         visible={inviteSheetVisible}
         onClose={() => {

@@ -1,7 +1,8 @@
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState, useMemo, useEffect } from 'react';
-import { ArrowRight, Check, Home, ShieldCheck, User } from 'lucide-react-native';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Home, LogOut, User, Users } from 'lucide-react-native';
+import * as Sentry from '@sentry/react-native';
 import {
   createFamily,
   getCurrentAuthUser,
@@ -9,115 +10,89 @@ import {
   signOut,
   updateDateOfBirth,
 } from '@lib/auth';
+import { formatLocalIsoDate } from '@lib/google-auth-utils';
+import { validateFamilyCreation } from '@lib/onboarding-validation';
 import { supabase } from '@lib/supabase';
-import { withAlpha } from '@/constants/colors';
 import { radii, spacing, typography } from '@/constants/theme';
-import { AuthHeroScreen } from '@/components/auth/auth-hero-screen';
+import { AuthSeparator } from '@/components/auth/auth-separator';
 import { AuthDarkField } from '@/components/auth/auth-dark-field';
+import { AuthHeroScreen } from '@/components/auth/auth-hero-screen';
 import { BrandLogo } from '@/components/auth/brand-logo';
-import { DateOfBirthStep } from '@/components/auth/date-of-birth-step';
-import { StepIndicator } from '@/components/auth/step-indicator';
 import { useHeroPalette } from '@/components/auth/use-hero-palette';
 import { Button } from '@/components/ui/button';
-import { FormFooter } from '@/components/ui/form-footer';
+import { InlineMessage } from '@/components/ui/inline-message';
+import { DateOfBirthField } from '@/components/auth/date-of-birth-field';
+import { ConfirmSheet } from '@/components/ui/confirm-sheet';
 
-type OnboardingField = 'familyName' | 'adminName';
+type Step = 'dob' | 'family';
 
 export default function OnboardingScreen() {
-  const params = useLocalSearchParams<{ name?: string; email?: string; googleName?: string }>();
+  const params = useLocalSearchParams<{ googleName?: string }>();
   const router = useRouter();
+
+  const [familyName, setFamilyName] = useState('');
+  const [adminName, setAdminName] = useState(params.googleName ?? '');
+  const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
+  const [step, setStep] = useState<Step>('dob');
+  const [error, setError] = useState('');
+  const [dobError, setDobError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showLeaveSheet, setShowLeaveSheet] = useState(false);
+
+  type OnboardingField = 'familyName' | 'adminName';
+  const [focusedField, setFocusedField] = useState<OnboardingField | null>(null);
   const { palette } = useHeroPalette();
   const styles = useMemo(() => makeStyles(palette), [palette]);
 
-  // Determine the origin of the user:
-  // - isFromRegister: arrived from the email/password register flow (params.name is set)
-  // - isFromGoogle: arrived from Google sign-in (params.googleName is set)
-  const isFromRegister = Boolean(params.name);
-  const isFromGoogle = Boolean(params.googleName);
-
-  // Google users must complete the date-of-birth step first (step 1),
-  // then proceed to family creation (step 2).
-  // Users from email/password register skip the DOB step entirely.
-  const [step, setStep] = useState<1 | 2>(isFromGoogle ? 1 : 2);
-
-  const [familyName, setFamilyName] = useState('');
-  // Pre-fill "Seu nome" with Google name when available, falling back to register name.
-  const [adminName, setAdminName] = useState(params.googleName ?? params.name ?? '');
-  const [userEmail, setUserEmail] = useState(params.email ?? '');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [focusedField, setFocusedField] = useState<OnboardingField | null>(null);
-
-  // Date of birth state for the DOB step.
-  const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
-  const [dobError, setDobError] = useState<string | null>(null);
-  const [dobLoading, setDobLoading] = useState(false);
-
-  const shouldShowError = Boolean(error);
-  const submitLabel = loading ? 'Criando família…' : 'Criar família';
-
-  // Orphan user arriving via login: fetch email from auth so the banner still
-  // shows the saved-account reassurance even without register params.
+  // When googleName param is missing (e.g. orphan user resuming session),
+  // fetch the name from user_metadata so the field is pre-filled.
   useEffect(() => {
-    if (params.email) return; // already have it from register
+    if (adminName) return;
     let mounted = true;
     getCurrentAuthUser().then((user) => {
-      if (mounted && user?.email) setUserEmail(user.email);
+      if (mounted && user?.fullName) {
+        setAdminName(user.fullName);
+      }
     });
-    return () => {
-      mounted = false;
-    };
-  }, [params.email]);
+    return () => { mounted = false; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- run once on mount
 
-  const validate = (): string | null => {
-    if (!familyName.trim()) return 'Informe o nome da família.';
-    if (!adminName.trim()) return 'Informe seu nome.';
-    return null;
-  };
+  const confirmAndLeave = useCallback(async () => {
+    setShowLeaveSheet(false);
+    await signOut();
+    router.replace('/(auth)/login');
+  }, [router]);
 
-  /**
-   * Handles the "Continuar" press on the DateOfBirthStep.
-   * Saves the date of birth and LGPD consent, then advances to the family step.
-   */
-  const handleDateOfBirthContinue = async () => {
+  const handleBack = useCallback(() => {
+    if (step === 'family') {
+      setStep('dob');
+      return;
+    }
+    setShowLeaveSheet(true);
+  }, [step]);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleBack();
+      return true;
+    });
+    return () => sub.remove();
+  }, [handleBack]);
+
+  const handleDobContinue = () => {
     if (!dateOfBirth) {
-      setDobError('Informe sua data de nascimento para continuar.');
+      setDobError('Informe sua data de nascimento.');
       return;
     }
-
     setDobError(null);
-    setDobLoading(true);
-
-    // Save date of birth in user_metadata.
-    const isoDate = dateOfBirth.toISOString().split('T')[0]; // YYYY-MM-DD
-    const { error: dobSaveError } = await updateDateOfBirth(isoDate);
-
-    if (dobSaveError) {
-      setDobLoading(false);
-      setDobError(dobSaveError);
-      return;
-    }
-
-    // Store LGPD consent with timestamp in user_metadata.
-    const { error: lgpdError } = await supabase.auth.updateUser({
-      data: {
-        lgpd_consent_at: new Date().toISOString(),
-        lgpd_consent_version: '1.0',
-      },
-    });
-
-    if (lgpdError) {
-      setDobLoading(false);
-      setDobError('Erro ao salvar consentimento. Tente novamente.');
-      return;
-    }
-
-    setDobLoading(false);
-    setStep(2);
+    setStep('family');
   };
 
-  const handleCreateFamily = async () => {
-    const validationError = validate();
+  const handleSubmit = async () => {
+    // dateOfBirth is guaranteed non-null after step 1 validated it
+    if (!dateOfBirth) return;
+
+    const validationError = validateFamilyCreation({ familyName, adminName });
     if (validationError) {
       setError(validationError);
       return;
@@ -125,18 +100,48 @@ export default function OnboardingScreen() {
 
     setError('');
     setLoading(true);
-    const { error: createError } = await createFamily(familyName.trim(), adminName.trim());
 
+    // 1. Save date of birth
+    const isoDate = formatLocalIsoDate(dateOfBirth);
+    const { error: dobSaveError } = await updateDateOfBirth(isoDate, 18);
+    if (dobSaveError) {
+      setLoading(false);
+      setDobError(dobSaveError);
+      setStep('dob');
+      return;
+    }
+
+    // 2. Save LGPD consent
+    try {
+      const { error: lgpdError } = await supabase.auth.updateUser({
+        data: {
+          lgpd_consent_at: new Date().toISOString(),
+          lgpd_consent_version: '1.0',
+        },
+      });
+      if (lgpdError) {
+        setLoading(false);
+        setError('Erro ao salvar consentimento. Tente novamente.');
+        return;
+      }
+    } catch (err) {
+      Sentry.captureException(err, {
+        tags: { area: 'onboarding', step: 'lgpd-consent' },
+      });
+      setLoading(false);
+      setError('Erro ao salvar consentimento. Tente novamente.');
+      return;
+    }
+
+    // 3. Create family
+    const { error: createError } = await createFamily(familyName.trim(), adminName.trim());
     if (createError) {
       setLoading(false);
       setError(createError);
       return;
     }
 
-    // createFamily only writes to DB tables — it does not emit an auth event,
-    // so onAuthStateChange will not fire automatically. Force a session refresh
-    // so the root layout auth state handler re-fetches the profile (with the
-    // new familia_id) and navigates to the admin home.
+    // 4. Refresh session so nav guard redirects to admin home
     const { error: refreshError } = await refreshAuthSession();
     if (refreshError) {
       setLoading(false);
@@ -144,319 +149,247 @@ export default function OnboardingScreen() {
     }
   };
 
-  const confirmAndLeave = async () => {
-    await signOut();
-    router.replace('/(auth)/login');
-  };
-
-  const handleLeave = () => {
-    const message = isFromRegister
-      ? `Sua conta já foi criada e está salva. Você pode entrar a qualquer momento com ${userEmail || 'seu e-mail'} e criar a família depois.`
-      : 'Você pode entrar novamente e criar a família quando quiser.';
-
-    Alert.alert('Sair da criação da família?', message, [
-      { text: 'Continuar criando', style: 'cancel' },
-      { text: 'Sair', style: 'destructive', onPress: confirmAndLeave },
-    ]);
-  };
-
-  // --- Step indicator labels ---
-  // Google users see: Nascimento (step 1) → Família (step 2)
-  // Register users see: Conta (done) → Família (step 2) — same as before
-  const stepLabels: readonly string[] = isFromGoogle
-    ? ['Nascimento', 'Família']
-    : ['Conta', 'Família'];
-
-  const currentIndicatorStep: 1 | 2 = isFromGoogle ? step : 2;
+  const stepIndex = step === 'dob' ? 0 : 1;
 
   return (
-    <AuthHeroScreen topBarCenter={<BrandLogo size="sm" withText />}>
-      {isFromRegister || isFromGoogle ? (
-        <StepIndicator currentStep={currentIndicatorStep} labels={stepLabels} />
-      ) : null}
-
-      {/* Step 1: Date of birth collection (Google users only) */}
-      {step === 1 && isFromGoogle ? (
-        <View style={styles.header}>
-          <DateOfBirthStep
-            value={dateOfBirth}
-            onChange={(date) => {
-              setDateOfBirth(date);
-              setDobError(null);
-            }}
-            onContinue={handleDateOfBirthContinue}
-            error={dobError}
-            loading={dobLoading}
-          />
+    <>
+      <AuthHeroScreen
+        topBarCenter={<BrandLogo size="sm" withText />}
+        onBack={handleBack}
+        backAccessibilityLabel="Voltar"
+      >
+        {/* Progress dots */}
+        <View style={styles.dotsRow}>
+          {[0, 1].map((i) => (
+            <View
+              key={i}
+              style={[
+                styles.dot,
+                {
+                  backgroundColor: i <= stepIndex ? palette.borderFocus : palette.textOnNavyFaint,
+                  width: i === stepIndex ? 20 : 8,
+                },
+              ]}
+            />
+          ))}
         </View>
-      ) : null}
 
-      {/* Step 2: Family creation */}
-      {step === 2 ? (
-        <>
-          <View style={styles.header}>
-            {isFromRegister ? (
-              <View style={styles.kickerChip} accessibilityRole="text">
-                <Check size={12} color={palette.checkOnText} strokeWidth={3} />
-                <Text style={styles.kickerChipText} allowFontScaling={false}>
-                  Conta criada
-                </Text>
-              </View>
-            ) : isFromGoogle ? (
-              <View style={styles.kickerChip} accessibilityRole="text">
-                <Check size={12} color={palette.checkOnText} strokeWidth={3} />
-                <Text style={styles.kickerChipText} allowFontScaling={false}>
-                  Dados salvos
-                </Text>
-              </View>
-            ) : (
-              <Text style={styles.kickerPlain} allowFontScaling={false}>
-                Configurar família
-              </Text>
-            )}
-
-            <Text style={styles.title} allowFontScaling={false}>
-              {isFromRegister || isFromGoogle ? 'Agora, sua família' : 'Criar sua família'}
+        {/* Step 1: DOB */}
+        {step === 'dob' ? (
+          <>
+            <Text style={[styles.eyebrow, { color: palette.labelGold }]}>Criar conta</Text>
+            <Text style={[styles.stepTitle, { color: palette.textOnNavy }]}>
+              Qual é sua data de nascimento?
             </Text>
-            <Text style={styles.subtitle}>
-              {isFromRegister || isFromGoogle
-                ? 'Você será o administrador. Vamos configurar a base — você poderá convidar os filhos depois.'
-                : 'Você será o administrador e poderá convidar os filhos depois.'}
+            <Text style={[styles.stepSubtitle, { color: palette.textOnNavySubtle }]}>
+              Usamos essa informação para personalizar sua experiência e garantir sua segurança, conforme a LGPD.
             </Text>
-          </View>
 
-          {isFromRegister && params.email ? (
-            <View
-              style={styles.banner}
-              accessibilityRole="text"
-              accessibilityLabel="Sua conta está salva"
-            >
-              <View style={styles.bannerIconBox}>
-                <ShieldCheck size={20} color={palette.checkOnText} strokeWidth={2.5} />
-              </View>
-              <View style={styles.bannerContent}>
-                <Text style={styles.bannerLabel} allowFontScaling={false}>
-                  Sua conta está salva
-                </Text>
-                <Text style={styles.bannerEmail} numberOfLines={1}>
-                  {params.email}
-                </Text>
-              </View>
-            </View>
-          ) : null}
-
-          {!isFromRegister && userEmail ? (
-            <View
-              style={styles.banner}
-              accessibilityRole="text"
-              accessibilityLabel="Conta vinculada"
-            >
-              <View style={styles.bannerIconBox}>
-                <ShieldCheck size={20} color={palette.checkOnText} strokeWidth={2.5} />
-              </View>
-              <View style={styles.bannerContent}>
-                <Text style={styles.bannerLabel} allowFontScaling={false}>
-                  Conta vinculada
-                </Text>
-                <Text style={styles.bannerEmail} numberOfLines={1}>
-                  {userEmail}
-                </Text>
-              </View>
-            </View>
-          ) : null}
-
-          <View style={styles.form}>
-            <AuthDarkField
-              label="Nome da família"
-              focused={focusedField === 'familyName'}
-              placeholder="Ex: Família Silva"
-              value={familyName}
-              onChangeText={(value) => {
-                setFamilyName(value);
-                setError('');
+            <DateOfBirthField
+              value={dateOfBirth}
+              onChange={(date) => {
+                setDateOfBirth(date);
+                setDobError(null);
               }}
-              onFocus={() => setFocusedField('familyName')}
-              onBlur={() => setFocusedField(null)}
-              autoCapitalize="words"
-              maxLength={60}
-              editable={!loading}
-              accessibilityLabel="Campo de nome da família"
-              leftIcon={Home}
-            />
-
-            <AuthDarkField
-              label="Seu nome"
-              focused={focusedField === 'adminName'}
-              placeholder="Como quer ser chamado"
-              value={adminName}
-              onChangeText={(value) => {
-                setAdminName(value);
-                setError('');
-              }}
-              onFocus={() => setFocusedField('adminName')}
-              onBlur={() => setFocusedField(null)}
-              autoCapitalize="words"
-              maxLength={60}
-              editable={isFromRegister ? false : !loading}
-              accessibilityLabel="Campo de nome do administrador"
-              leftIcon={User}
-            />
-
-            <View style={styles.formActions}>
-              <FormFooter message={shouldShowError ? error : null} includeSafeBottom={false}>
-                <Button
-                  label="Criar família"
-                  loadingLabel="Criando família…"
-                  loading={loading}
-                  onPress={handleCreateFamily}
-                  size="lg"
-                  trailingIcon={ArrowRight}
-                  accessibilityLabel={submitLabel}
-                  accessibilityState={{ busy: loading }}
-                />
-              </FormFooter>
-            </View>
-
-            <Pressable
-              style={({ pressed }) => [styles.inviteLink, { opacity: pressed ? 0.65 : 1 }]}
-              onPress={() => router.push('/(auth)/join-family')}
+              minAge={18}
+              hint="Mínimo 18 anos de idade."
+              error={dobError}
               disabled={loading}
-              accessibilityRole="link"
-              accessibilityLabel="Tenho um convite"
-            >
-              <Text style={styles.inviteLinkText}>Tenho um convite</Text>
-            </Pressable>
+              variant="hero"
+            />
 
-            <View style={styles.footerPush}>
+            <View style={styles.actions}>
+              <Button
+                label="Continuar"
+                onPress={handleDobContinue}
+                disabled={!dateOfBirth}
+                size="lg"
+                accessibilityLabel="Continuar"
+                accessibilityState={{ disabled: !dateOfBirth }}
+              />
+              <AuthSeparator />
               <Pressable
+                onPress={() => {
+                  setDateOfBirth(null);
+                  router.push('/(auth)/join-family');
+                }}
                 style={({ pressed }) => [
-                  styles.secondaryButton,
-                  { opacity: pressed ? 0.65 : 1 },
+                  styles.inviteCard,
+                  {
+                    backgroundColor: palette.surfaceField,
+                    borderColor: palette.borderSoft,
+                    opacity: pressed ? 0.75 : 1,
+                  },
                 ]}
-                onPress={handleLeave}
-                disabled={loading}
                 accessibilityRole="button"
-                accessibilityLabel="Criar família depois"
+                accessibilityLabel="Já tenho um convite"
               >
-                <Text style={styles.secondaryButtonText}>Criar família depois</Text>
+                <View style={[styles.inviteIconBox, { backgroundColor: palette.glowGold }]}>
+                  <Users size={18} color={palette.borderFocus} strokeWidth={2} />
+                </View>
+                <View style={styles.inviteTextBlock}>
+                  <Text style={[styles.inviteTitle, { color: palette.textOnNavy }]}>
+                    Já tenho um convite
+                  </Text>
+                  <Text style={[styles.inviteSubtitle, { color: palette.textOnNavyFaint }]}>
+                    Ingressar em uma família existente
+                  </Text>
+                </View>
               </Pressable>
             </View>
-          </View>
-        </>
-      ) : null}
-    </AuthHeroScreen>
+          </>
+        ) : null}
+
+        {/* Step 2: Family setup */}
+        {step === 'family' ? (
+          <>
+            <Text style={[styles.eyebrow, { color: palette.labelGold }]}>Criar conta</Text>
+            <Text style={[styles.stepTitle, { color: palette.textOnNavy }]}>
+              Crie sua família
+            </Text>
+            <Text style={[styles.stepSubtitle, { color: palette.textOnNavySubtle }]}>
+              Escolha um nome para sua família e como você quer ser chamado.
+            </Text>
+
+            <View style={styles.fields}>
+              <AuthDarkField
+                label="Nome da família"
+                focused={focusedField === 'familyName'}
+                leftIcon={Home}
+                placeholder="Ex: Família Silva"
+                value={familyName}
+                onChangeText={(value) => {
+                  setFamilyName(value);
+                  setError('');
+                }}
+                onFocus={() => setFocusedField('familyName')}
+                onBlur={() => setFocusedField(null)}
+                autoCapitalize="words"
+                maxLength={60}
+                editable={!loading}
+                accessibilityLabel="Campo de nome da família"
+              />
+              <AuthDarkField
+                label="Seu nome"
+                focused={focusedField === 'adminName'}
+                leftIcon={User}
+                placeholder="Como quer ser chamado"
+                value={adminName}
+                onChangeText={(value) => {
+                  setAdminName(value);
+                  setError('');
+                }}
+                onFocus={() => setFocusedField('adminName')}
+                onBlur={() => setFocusedField(null)}
+                autoCapitalize="words"
+                maxLength={60}
+                editable={!loading}
+                accessibilityLabel="Campo de nome do administrador"
+              />
+            </View>
+
+            {error ? <InlineMessage message={error} variant="error" /> : null}
+
+            <View style={styles.actions}>
+              <Button
+                label="Criar família"
+                loadingLabel="Criando família…"
+                loading={loading}
+                onPress={handleSubmit}
+                disabled={loading}
+                size="lg"
+                accessibilityLabel={loading ? 'Criando família…' : 'Criar família'}
+                accessibilityState={{ busy: loading }}
+              />
+            </View>
+          </>
+        ) : null}
+      </AuthHeroScreen>
+      <ConfirmSheet
+        visible={showLeaveSheet}
+        onClose={() => setShowLeaveSheet(false)}
+        icon={LogOut}
+        iconVariant="warning"
+        title="Cancelar criação?"
+        description="Sua conta será desconectada. Você pode entrar novamente quando quiser."
+        confirmLabel="Cancelar e sair"
+        confirmVariant="danger"
+        cancelLabel="Continuar"
+        onConfirm={confirmAndLeave}
+      />
+    </>
   );
 }
 
 function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
   return StyleSheet.create({
-    header: {
-      marginTop: spacing['6'],
-    },
-    kickerChip: {
+    dotsRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      alignSelf: 'flex-start',
+      justifyContent: 'center',
       gap: spacing['1.5'],
-      paddingHorizontal: spacing['3'],
-      paddingVertical: spacing['1'],
+      marginBottom: spacing['5'],
+    },
+    dot: {
+      height: 8,
       borderRadius: radii.full,
-      backgroundColor: withAlpha(palette.checkOn, 0.15),
-      borderWidth: 1,
-      borderColor: withAlpha(palette.checkOn, 0.3),
     },
-    kickerChipText: {
-      fontFamily: typography.family.bold,
+    eyebrow: {
+      fontFamily: typography.family.extrabold,
       fontSize: typography.size.xxs,
-      letterSpacing: 1.4,
+      lineHeight: typography.lineHeight.xxs,
       textTransform: 'uppercase',
-      color: palette.checkOnText,
+      letterSpacing: 0,
+      marginBottom: spacing['2'],
     },
-    kickerPlain: {
-      fontFamily: typography.family.bold,
-      fontSize: typography.size.xxs,
-      letterSpacing: 1.4,
-      textTransform: 'uppercase',
-      color: palette.borderFocus,
-    },
-    title: {
-      marginTop: spacing['2'],
+    stepTitle: {
       fontFamily: typography.family.black,
-      fontSize: typography.size['3xl'],
-      lineHeight: typography.lineHeight['3xl'],
-      color: palette.textOnNavy,
-      letterSpacing: -0.4,
+      fontSize: typography.size.displaySm,
+      lineHeight: typography.lineHeight.displaySm,
+      marginBottom: spacing['2'],
     },
-    subtitle: {
-      marginTop: spacing['2'],
+    stepSubtitle: {
       fontFamily: typography.family.medium,
       fontSize: typography.size.sm,
       lineHeight: typography.lineHeight.sm,
-      color: palette.textOnNavyMuted,
+      marginBottom: spacing['4'],
     },
-    banner: {
+    fields: {
+      gap: spacing['4'],
+    },
+    actions: {
+      marginTop: spacing['4'],
+      gap: spacing['4'],
+    },
+    inviteCard: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing['3'],
-      marginTop: spacing['5'],
-      paddingHorizontal: spacing['4'],
-      paddingVertical: spacing['3'],
-      borderRadius: radii.lg,
-      backgroundColor: withAlpha(palette.checkOn, 0.1),
+      borderRadius: radii.outer,
       borderWidth: 1,
-      borderColor: withAlpha(palette.checkOn, 0.25),
+      paddingHorizontal: spacing['4'],
+      paddingVertical: spacing['4'],
     },
-    bannerIconBox: {
-      width: 40,
-      height: 40,
+    inviteIconBox: {
+      width: 36,
+      height: 36,
       borderRadius: radii.md,
-      backgroundColor: withAlpha(palette.checkOn, 0.2),
       alignItems: 'center',
       justifyContent: 'center',
     },
-    bannerContent: {
+    inviteTextBlock: {
       flex: 1,
+      gap: 2,
     },
-    bannerLabel: {
+    inviteTitle: {
       fontFamily: typography.family.bold,
       fontSize: typography.size.sm,
-      color: palette.checkOnText,
+      lineHeight: typography.lineHeight.sm,
     },
-    bannerEmail: {
-      marginTop: spacing['0.5'],
+    inviteSubtitle: {
       fontFamily: typography.family.medium,
       fontSize: typography.size.xs,
-      color: palette.textOnNavy,
-    },
-    form: {
-      marginTop: spacing['6'],
-      flex: 1,
-    },
-    formActions: {
-      marginTop: spacing['4'],
-    },
-    inviteLink: {
-      marginTop: spacing['4'],
-      paddingVertical: spacing['2'],
-      alignItems: 'center',
-    },
-    inviteLinkText: {
-      fontFamily: typography.family.semibold,
-      fontSize: typography.size.sm,
-      color: palette.borderFocus,
-      textDecorationLine: 'underline',
-    },
-    footerPush: {
-      marginTop: 'auto',
-    },
-    secondaryButton: {
-      paddingVertical: spacing['3'],
-      alignItems: 'center',
-    },
-    secondaryButtonText: {
-      fontFamily: typography.family.medium,
-      fontSize: typography.size.sm,
-      color: palette.textOnNavyMuted,
+      lineHeight: typography.lineHeight.xs,
     },
   });
 }

@@ -25,10 +25,10 @@ export const usePendingPiggyBankWithdrawals = () =>
     staleTime: STALE_TIMES.piggyBankWithdrawals,
   });
 
-export const useChildPendingWithdrawal = () =>
+export const useChildPendingWithdrawal = (childId?: string) =>
   useQuery({
-    queryKey: queryKeys.piggyBankWithdrawals.childPending(),
-    queryFn: nullableQueryFnAdapter(() => getChildPendingWithdrawal()),
+    queryKey: queryKeys.piggyBankWithdrawals.childPending(childId),
+    queryFn: nullableQueryFnAdapter(() => getChildPendingWithdrawal(childId)),
     staleTime: STALE_TIMES.piggyBankWithdrawals,
   });
 

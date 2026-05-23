@@ -513,6 +513,80 @@ describe('edge cases: missing and malformed dates', () => {
 });
 
 
+describe('deriveChildNotifs – transaction notifications', () => {
+  const makeTx = (overrides: Partial<import('./balances').Transaction>): import('./balances').Transaction => ({
+    id: 'tx1',
+    filho_id: 'f1',
+    tipo: 'penalizacao',
+    valor: -20,
+    descricao: 'Não fez a lição',
+    referencia_id: null,
+    data_referencia: minsAgo(15),
+    created_at: minsAgo(15),
+    ...overrides,
+  });
+
+  it('surfaces penalizacao transactions as penalty notifications', () => {
+    const input: ChildNotifInput = {
+      assignments: [],
+      redemptions: [],
+      transactions: [makeTx({})],
+    };
+    const notifs = deriveChildNotifs(input);
+    expect(notifs).toHaveLength(1);
+    expect(notifs[0].type).toBe('penalty');
+    expect(notifs[0].description).toContain('Não fez a lição');
+    expect(notifs[0].description).toContain('20');
+    expect(notifs[0].route).toBe('/(child)/balance');
+  });
+
+  it('uses generic penalty description when descricao is empty', () => {
+    const input: ChildNotifInput = {
+      assignments: [],
+      redemptions: [],
+      transactions: [makeTx({ descricao: '', data_referencia: null })],
+    };
+    const notifs = deriveChildNotifs(input);
+    expect(notifs).toHaveLength(1);
+    expect(notifs[0].description).toContain('debitadas');
+    expect(notifs[0].description).toContain('20');
+  });
+
+  it('surfaces valorizacao transactions as appreciation notifications', () => {
+    const input: ChildNotifInput = {
+      assignments: [],
+      redemptions: [],
+      transactions: [makeTx({ id: 'tx2', tipo: 'valorizacao', valor: 5, descricao: '' })],
+    };
+    const notifs = deriveChildNotifs(input);
+    expect(notifs).toHaveLength(1);
+    expect(notifs[0].type).toBe('appreciation');
+    expect(notifs[0].title).toContain('Cofrinho');
+    expect(notifs[0].description).toContain('5');
+  });
+
+  it('ignores non-penalizacao/valorizacao transaction types', () => {
+    const input: ChildNotifInput = {
+      assignments: [],
+      redemptions: [],
+      transactions: [makeTx({ tipo: 'credito' })],
+    };
+    const notifs = deriveChildNotifs(input);
+    expect(notifs).toHaveLength(0);
+  });
+
+  it('falls back to created_at when data_referencia is null', () => {
+    const input: ChildNotifInput = {
+      assignments: [],
+      redemptions: [],
+      transactions: [makeTx({ tipo: 'valorizacao', valor: 3, data_referencia: null, created_at: daysAgo(2) })],
+    };
+    const notifs = deriveChildNotifs(input);
+    expect(notifs).toHaveLength(1);
+    expect(notifs[0].group).toBe('Anterior');
+  });
+});
+
 // ── Property-Based Tests ─────────────────────────────────
 
 describe('Property tests — cancelled assignment notifications', () => {

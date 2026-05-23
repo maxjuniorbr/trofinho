@@ -27,6 +27,7 @@ import { configureGoogleSignIn } from '@lib/google-auth';
 import { ThemeProvider, useTheme } from '@/context/theme-context';
 import { QueryProvider, queryClient } from '@/context/query-client';
 import { ImpersonationProvider, useImpersonation } from '@/context/impersonation-context';
+import { AppAlertProvider } from '@/context/app-alert-context';
 import { OfflineBanner } from '@/components/ui/offline-banner';
 
 const navigationIntegration = Sentry.reactNavigationIntegration({
@@ -88,6 +89,10 @@ function RootLayout() {
 
     const authStateHandler = createAuthStateHandler({
       getProfile,
+      validateSession: async () => {
+        const { error } = await supabase.auth.getUser();
+        return !error;
+      },
       onProfileChange: handleProfileChange,
       onReadyChange: setReady,
       onSignOut: () => queryClient.clear(),
@@ -112,7 +117,9 @@ function RootLayout() {
     <ImpersonationProvider>
       <QueryProvider>
         <ThemeProvider>
-          <RootNavigator ready={ready} fontsLoaded={fontsLoaded} profile={profile} />
+          <AppAlertProvider>
+            <RootNavigator ready={ready} fontsLoaded={fontsLoaded} profile={profile} />
+          </AppAlertProvider>
         </ThemeProvider>
       </QueryProvider>
     </ImpersonationProvider>
@@ -138,10 +145,11 @@ function RootNavigator({
   const [pushToken, setPushToken] = useState<string | null>(null);
   const lastSavedPushTokenKeyRef = useRef<string | null>(null);
 
-  // Register for push notifications only after the user is authenticated.
-  // This avoids requesting notification permission on the login screen.
+  // Register for push notifications only after the user has completed
+  // onboarding (has a familia_id). This avoids showing the OS permission
+  // prompt during the onboarding flow (DOB / family creation screens).
   useEffect(() => {
-    if (!profile?.id) return;
+    if (!profile?.id || !profile.familia_id) return;
 
     let mounted = true;
 
@@ -170,10 +178,10 @@ function RootNavigator({
     return () => {
       mounted = false;
     };
-  }, [profile?.id]);
+  }, [profile?.id, profile?.familia_id]);
 
   useEffect(() => {
-    if (!profile?.id || !pushToken) return;
+    if (!profile?.id || !profile.familia_id || !pushToken) return;
 
     const currentPushToken = pushToken;
     const saveKey = `${profile.id}:${currentPushToken}`;
@@ -200,7 +208,7 @@ function RootNavigator({
     return () => {
       mounted = false;
     };
-  }, [profile?.id, pushToken]);
+  }, [profile?.id, profile?.familia_id, pushToken]);
 
   useEffect(() => {
     const target = resolveNavDecision(ready, profile, segments as string[], impersonating !== null);

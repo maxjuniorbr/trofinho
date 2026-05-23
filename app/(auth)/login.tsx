@@ -1,201 +1,191 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useState, useMemo, useCallback } from 'react';
-import { Mail, Lock, ArrowRight } from 'lucide-react-native';
-import { signIn, signInWithGoogle } from '@lib/auth';
-import { isValidEmail, MAX_EMAIL_LENGTH } from '@lib/validation';
-import { spacing, typography } from '@/constants/theme';
+import { Hash, AlertCircle } from 'lucide-react-native';
+import * as Sentry from '@sentry/react-native';
+import { signInWithGoogle } from '@lib/auth';
+import {
+  CHILD_INVITE_CODE_LENGTH,
+  formatChildInviteCode,
+  validateChildInvite,
+} from '@lib/child-invite';
+import { radii, spacing, typography } from '@/constants/theme';
 import { AuthHeroScreen } from '@/components/auth/auth-hero-screen';
-import { AuthDarkField, DarkPasswordToggle } from '@/components/auth/auth-dark-field';
+import { AuthSeparator } from '@/components/auth/auth-separator';
 import { BrandLogo } from '@/components/auth/brand-logo';
+import { CodeSubmitButton } from '@/components/auth/code-submit-button';
 import { GoogleSignInButton } from '@/components/auth/google-sign-in-button';
 import { useHeroPalette } from '@/components/auth/use-hero-palette';
-import { Button } from '@/components/ui/button';
-import { FormFooter } from '@/components/ui/form-footer';
+import { useTheme } from '@/context/theme-context';
 import { InlineMessage } from '@/components/ui/inline-message';
-
-type LoginField = 'email' | 'password';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { resetSuccess } = useLocalSearchParams<{ resetSuccess?: string }>();
   const { palette } = useHeroPalette();
+  const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(palette), [palette]);
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [focusedField, setFocusedField] = useState<LoginField | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
-  const shouldShowError = Boolean(error);
-  const anyLoading = loading || googleLoading;
-
+  const [familyCode, setFamilyCode] = useState('');
+  const [codeFocused, setCodeFocused] = useState(false);
+  const [codeError, setCodeError] = useState('');
+  const [codeLoading, setCodeLoading] = useState(false);
   useFocusEffect(
     useCallback(() => {
-      return () => {
-        setError('');
-      };
-    }, [])
+      setFamilyCode('');
+      setCodeError('');
+      return () => { setError(''); };
+    }, []),
   );
 
   const handleGoogleSignIn = async () => {
     setError('');
-    setGoogleLoading(true);
+    setLoading(true);
 
     const { profile, isNewUser, googleName, error: googleError } = await signInWithGoogle();
 
     if (googleError) {
-      setGoogleLoading(false);
+      setLoading(false);
       setError(googleError);
       return;
     }
 
-    // User cancelled the Google sign-in flow — do nothing.
     if (!profile && !isNewUser) {
-      setGoogleLoading(false);
+      setLoading(false);
       return;
     }
 
-    // New user without a profile → redirect to onboarding with Google name.
     if (isNewUser) {
       router.replace({
         pathname: '/(auth)/onboarding',
         params: googleName ? { googleName } : undefined,
       });
     }
-
-    // Existing user — the auth state change in root layout handles navigation.
-    // Keep the button in loading state until the redirect happens.
   };
 
-  const validate = (): string | null => {
-    const emailValue = email.trim();
-    if (!emailValue) return 'Informe seu e-mail.';
-    if (!isValidEmail(emailValue)) return 'E-mail inválido.';
-    if (!password) return 'Informe sua senha.';
-    if (password.length < 8) return 'A senha deve ter pelo menos 8 caracteres.';
-    return null;
+  const handleFamilyCodeChange = (value: string) => {
+    const formatted = formatChildInviteCode(value);
+    setFamilyCode(formatted);
+    if (codeError) setCodeError('');
   };
 
-  const handleSignIn = async () => {
-    const validationError = validate();
-    if (validationError) {
-      setError(validationError);
+  const handleFamilyCodeSubmit = async () => {
+    if (familyCode.length < CHILD_INVITE_CODE_LENGTH) {
+      setCodeError('Informe um código de 6 caracteres.');
       return;
     }
+    setCodeError('');
+    setCodeLoading(true);
 
-    setError('');
-    setLoading(true);
-    const { error: signInError } = await signIn(email.trim(), password);
+    try {
+      const { preview, error } = await validateChildInvite(familyCode);
+      if (error || !preview) {
+        setCodeError(error ?? 'Erro ao verificar código. Tente novamente.');
+        return;
+      }
 
-    if (signInError) {
-      setLoading(false);
-      setPassword('');
-      setShowPassword(false);
-      setError(signInError);
+      router.push({
+        pathname: '/(auth)/join-child',
+        params: {
+          code: familyCode,
+        },
+      });
+    } catch (error) {
+      Sentry.captureException(error, {
+        tags: { area: 'login', step: 'child-invite-submit' },
+      });
+      setCodeError('Erro ao verificar código. Tente novamente.');
+    } finally {
+      setCodeLoading(false);
     }
-
-    // Navigation is handled by the root layout auth state handler.
-    // Keep the button in loading state until the redirect happens.
   };
+
+  const isCodeDisabled = loading || codeLoading;
+
+  let codeInputBorderColor = palette.borderSoft;
+  if (codeError) codeInputBorderColor = colors.semantic.error;
+  else if (codeFocused) codeInputBorderColor = palette.borderFocus;
 
   return (
     <AuthHeroScreen>
       <View style={styles.header}>
-        <BrandLogo size="md" />
+        <BrandLogo size="md" withText />
         <Text style={styles.title} allowFontScaling={false}>
-          Bem-vindo{'\n'}de volta.
-        </Text>
-        <Text style={styles.subtitle}>
-          Entre para acompanhar suas conquistas e gerenciar tarefas.
+          Bem-vindo de volta.
         </Text>
       </View>
 
-      <View style={styles.form}>
-        <GoogleSignInButton
-          onPress={handleGoogleSignIn}
-          loading={googleLoading}
-          disabled={anyLoading}
-        />
+      <View style={styles.sections}>
+        {error ? <InlineMessage message={error} variant="error" /> : null}
 
-        <View style={styles.separator}>
-          <View style={styles.separatorLine} />
-          <Text style={styles.separatorText}>ou</Text>
-          <View style={styles.separatorLine} />
+        {/* Section 1 — Responsável */}
+        <View style={styles.section}>
+          <Text style={styles.eyebrow}>Responsável</Text>
+          <GoogleSignInButton
+            onPress={handleGoogleSignIn}
+            loading={loading}
+            variant="hero"
+            subtitle="Criar ou acessar sua família"
+          />
         </View>
 
-        <AuthDarkField
-          label="E-mail"
-          focused={focusedField === 'email'}
-          placeholder="seu@email.com"
-          value={email}
-          onChangeText={(value) => {
-            setEmail(value);
-            setError('');
-          }}
-          onFocus={() => setFocusedField('email')}
-          onBlur={() => setFocusedField(null)}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          autoComplete="email"
-          textContentType="emailAddress"
-          maxLength={MAX_EMAIL_LENGTH}
-          editable={!anyLoading}
-          accessibilityLabel="Campo de e-mail"
-          leftIcon={Mail}
-        />
+        {/* Separator */}
+        <AuthSeparator />
 
-        <AuthDarkField
-          label="Senha"
-          focused={focusedField === 'password'}
-          placeholder="••••••••"
-          value={password}
-          onChangeText={(value) => {
-            setPassword(value);
-            setError('');
-          }}
-          onFocus={() => setFocusedField('password')}
-          onBlur={() => setFocusedField(null)}
-          secureTextEntry={!showPassword}
-          autoComplete="current-password"
-          textContentType="password"
-          maxLength={128}
-          editable={!anyLoading}
-          accessibilityLabel="Campo de senha"
-          leftIcon={Lock}
-          rightAction={
-            <DarkPasswordToggle
-              visible={showPassword}
-              onToggle={() => setShowPassword(!showPassword)}
+        {/* Section 2 — Filho ou membro */}
+        <View style={styles.section}>
+          <Text style={styles.eyebrow}>Filho ou membro</Text>
+          <Text style={[styles.sectionDesc, { color: palette.textOnNavyMuted }]}>
+            Recebeu um código? Digite abaixo para entrar.
+          </Text>
+          <View
+            style={[
+              styles.codeInputRow,
+              {
+                backgroundColor: codeFocused ? palette.surfaceFieldFocus : palette.surfaceField,
+                borderColor: codeInputBorderColor,
+              },
+            ]}
+          >
+            <Hash size={18} color={palette.textOnNavySubtle} strokeWidth={1.75} />
+            <TextInput
+              style={[styles.codeInput, { color: palette.textOnNavy }]}
+              placeholder="ABC123"
+              placeholderTextColor={palette.textOnNavyFaint}
+              value={familyCode}
+              onChangeText={handleFamilyCodeChange}
+              onFocus={() => setCodeFocused(true)}
+              onBlur={() => setCodeFocused(false)}
+              onSubmitEditing={handleFamilyCodeSubmit}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              maxLength={6}
+              editable={!isCodeDisabled}
+              selectionColor={palette.borderFocus}
+              accessibilityLabel="Campo de código de família"
+              returnKeyType="go"
             />
-          }
-        />
-
-        {resetSuccess === '1' ? (
-          <View style={styles.successMessage}>
-            <InlineMessage
-              message="Senha redefinida com sucesso. Faça login com sua nova senha."
-              variant="success"
+            <CodeSubmitButton
+              onPress={handleFamilyCodeSubmit}
+              disabled={isCodeDisabled}
+              busy={codeLoading}
+              accessibilityLabel="Entrar com código"
             />
           </View>
-        ) : null}
+          {codeError ? (
+            <View style={styles.codeErrorRow}>
+              <AlertCircle size={14} color={colors.semantic.errorText} strokeWidth={2.25} />
+              <Text style={[styles.codeError, { color: colors.semantic.errorText }]}>{codeError}</Text>
+            </View>
+          ) : null}
+        </View>
 
-        <FormFooter message={shouldShowError ? error : null} includeSafeBottom={false}>
-          <Button
-            label="Entrar"
-            loadingLabel="Entrando…"
-            loading={loading}
-            onPress={handleSignIn}
-            size="lg"
-            trailingIcon={ArrowRight}
-            disabled={googleLoading}
-            accessibilityLabel={loading ? 'Entrando' : 'Entrar'}
-            accessibilityState={{ busy: loading }}
-          />
-        </FormFooter>
+        <View style={styles.termsLink}>
+          <Text style={[styles.termsText, { color: palette.textOnNavySubtle }]}>
+            Ao continuar, você concorda com nossos termos e política de privacidade.
+          </Text>
+        </View>
       </View>
     </AuthHeroScreen>
   );
@@ -204,47 +194,73 @@ export default function LoginScreen() {
 function makeStyles(palette: ReturnType<typeof useHeroPalette>['palette']) {
   return StyleSheet.create({
     header: {
-      marginTop: spacing['3'],
+      marginTop: spacing['6'],
     },
     title: {
       marginTop: spacing['5'],
       fontFamily: typography.family.black,
-      fontSize: typography.size['4xl'],
-      lineHeight: typography.lineHeight['4xl'],
+      fontSize: typography.size.display,
+      lineHeight: typography.lineHeight.display,
       color: palette.textOnNavy,
-      letterSpacing: -0.6,
+      letterSpacing: 0,
     },
-    subtitle: {
-      marginTop: spacing['3'],
-      fontFamily: typography.family.medium,
-      fontSize: typography.size.md,
-      lineHeight: typography.lineHeight.md,
-      color: palette.textOnNavyMuted,
-      maxWidth: 280,
+    sections: {
+      marginTop: spacing['8'],
+      gap: spacing['5'],
     },
-    form: {
-      marginTop: spacing['6'],
-      flex: 1,
+    section: {
+      gap: spacing['3'],
     },
-    separator: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginVertical: spacing['5'],
+    eyebrow: {
+      fontFamily: typography.family.extrabold,
+      fontSize: typography.size.xxs,
+      lineHeight: typography.lineHeight.xxs,
+      color: palette.labelGold,
+      textTransform: 'uppercase',
+      letterSpacing: 0,
     },
-    separatorLine: {
-      flex: 1,
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: palette.borderSoft,
-    },
-    separatorText: {
+    sectionDesc: {
       fontFamily: typography.family.medium,
       fontSize: typography.size.sm,
-      color: palette.textOnNavyMuted,
-      marginHorizontal: spacing['4'],
+      lineHeight: typography.lineHeight.sm,
     },
-    successMessage: {
-      marginTop: spacing['2'],
-      marginBottom: spacing['2'],
+    codeInputRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderRadius: radii.inner,
+      paddingLeft: spacing['4'],
+      paddingRight: spacing['2'],
+      paddingVertical: spacing['2'],
+      minHeight: 52,
+      gap: spacing['3'],
+    },
+    codeInput: {
+      flex: 1,
+      fontSize: typography.size.md,
+      fontFamily: typography.family.bold,
+      letterSpacing: 0,
+      paddingVertical: spacing['2'],
+    },
+    codeErrorRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['1.5'],
+    },
+    codeError: {
+      fontFamily: typography.family.medium,
+      fontSize: typography.size.xs,
+      lineHeight: typography.lineHeight.xs,
+    },
+    termsLink: {
+      paddingTop: spacing['2'],
+      alignItems: 'center',
+    },
+    termsText: {
+      fontFamily: typography.family.medium,
+      fontSize: typography.size.xs,
+      lineHeight: typography.lineHeight.xs,
+      textAlign: 'center',
     },
   });
 }

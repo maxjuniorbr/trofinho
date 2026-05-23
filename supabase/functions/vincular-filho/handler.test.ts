@@ -11,6 +11,7 @@ import {
 const VALID_INVITE = {
   id: 'invite-1',
   familia_id: 'familia-1',
+  filho_id: 'filho-1',
   nome_filho: 'Lia',
   aceito_por: null,
   expira_em: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
@@ -41,7 +42,11 @@ function createMockSupabase(overrides?: {
   };
   fromBehavior?: Record<
     string,
-    (ctx: { method: string; args: unknown[] }) => { data: unknown; error: unknown }
+    (ctx: {
+      method: string;
+      args: unknown[];
+      calls: { method: string; args: unknown[] }[];
+    }) => { data: unknown; error: unknown }
   >;
 }): SupabaseClientLike {
   return {
@@ -65,11 +70,13 @@ function createMockSupabase(overrides?: {
       const chain: Record<string, unknown> = {};
       let terminalMethod = '';
       const terminalArgs: unknown[] = [];
+      const calls: { method: string; args: unknown[] }[] = [];
 
       const resolve = () => {
         const behavior = overrides?.fromBehavior?.[table];
         if (behavior) {
-          return Promise.resolve(behavior({ method: terminalMethod, args: terminalArgs }));
+          const method = terminalMethod || calls.at(-1)?.method || '';
+          return Promise.resolve(behavior({ method, args: terminalArgs, calls }));
         }
         // Default: return success with empty data
         return Promise.resolve({ data: null, error: null });
@@ -87,13 +94,22 @@ function createMockSupabase(overrides?: {
         chain[m] = vi.fn().mockImplementation((...args: unknown[]) => {
           terminalMethod = m;
           terminalArgs.push(...args);
+          calls.push({ method: m, args });
           return resolve();
         });
       }
 
       for (const m of chainable) {
-        chain[m] = vi.fn().mockReturnValue(chain);
+        chain[m] = vi.fn().mockImplementation((...args: unknown[]) => {
+          calls.push({ method: m, args });
+          return chain;
+        });
       }
+
+      chain.is = vi.fn().mockImplementation((...args: unknown[]) => {
+        calls.push({ method: 'is', args });
+        return chain;
+      });
 
       // Make the chain awaitable so that calls without an explicit terminal
       // (e.g. `await client.from('x').update(...).eq('id', ...)`) resolve via
@@ -111,7 +127,11 @@ function createMockSupabase(overrides?: {
 
 function defaultFromBehavior(): Record<
   string,
-  (ctx: { method: string; args: unknown[] }) => { data: unknown; error: unknown }
+  (ctx: {
+    method: string;
+    args: unknown[];
+    calls: { method: string; args: unknown[] }[];
+  }) => { data: unknown; error: unknown }
 > {
   return {
     convites_filho: () => ({ data: VALID_INVITE, error: null }),
@@ -201,6 +221,18 @@ describe('vincular-filho handler', () => {
       [
         { invite_code: 'ABC123', date_of_birth: '2010-13-01' },
         'date_of_birth must be a valid ISO 8601 date (YYYY-MM-DD)',
+      ],
+      [
+        { invite_code: 'ABC123', date_of_birth: '2010-02-30' },
+        'date_of_birth must be a valid ISO 8601 date (YYYY-MM-DD)',
+      ],
+      [
+        { invite_code: 'ABC123', date_of_birth: '2025-01-01' },
+        'date_of_birth must be at least 8 years ago',
+      ],
+      [
+        { invite_code: 'ABC123', date_of_birth: '1899-12-31' },
+        'date_of_birth must be at least 8 years ago',
       ],
     ])('rejects invalid body %j with "%s"', (body, expectedError) => {
       const result = validateRequest(body);
@@ -363,6 +395,93 @@ describe('vincular-filho handler', () => {
       expect(json.error).toBe('ALREADY_LINKED');
     });
 
+    it('does not block linking when the family already has 5 children', async () => {
+      const behavior = defaultFromBehavior();
+      // Linking claims an existing child row; the 5-child limit is enforced by
+      // the child-creation RPC, not by this Edge Function.
+      const originalFilhosBehavior = behavior['filhos'];
+      let filhosCallCount = 0;
+      behavior['filhos'] = (ctx) => {
+        filhosCallCount++;
+        // First call is findUnlinkedFilho, second call is the conditional claim.
+        if (filhosCallCount === 1) {
+          return originalFilhosBehavior!(ctx);
+        }
+        return { data: { id: 'filho-1' }, error: null };
+      };
+
+      const mock = createMockSupabase({ fromBehavior: behavior });
+      const res = await handleRequest(
+        makeRequest({ invite_code: 'ABC123', date_of_birth: '2010-05-15' }),
+        createDeps(mock),
+      );
+      expect(res.status).toBe(200);
+    });
+
+    it('returns ALREADY_LINKED when the authenticated user already has a profile', async () => {
+      const behavior = defaultFromBehavior();
+      behavior['usuarios'] = (ctx) => {
+        if (ctx.calls.some((call) => call.method === 'insert')) {
+          return { data: null, error: null };
+        }
+        return { data: { id: 'child-user-1' }, error: null };
+      };
+
+      const mock = createMockSupabase({ fromBehavior: behavior });
+      const res = await handleRequest(
+        makeRequest({ invite_code: 'ABC123', date_of_birth: '2010-05-15' }),
+        createDeps(mock),
+      );
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as { success: boolean; error: string };
+      expect(json.success).toBe(false);
+      expect(json.error).toBe('ALREADY_LINKED');
+    });
+
+    it('returns ALREADY_LINKED when another request claims the child row first', async () => {
+      const behavior = defaultFromBehavior();
+      let filhosCallCount = 0;
+      behavior['filhos'] = (ctx) => {
+        filhosCallCount++;
+        if (filhosCallCount === 1) {
+          return { data: { id: 'filho-1', usuario_id: null }, error: null };
+        }
+        return { data: null, error: null };
+      };
+
+      const mock = createMockSupabase({ fromBehavior: behavior });
+      const res = await handleRequest(
+        makeRequest({ invite_code: 'ABC123', date_of_birth: '2010-05-15' }),
+        createDeps(mock),
+      );
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as { success: boolean; error: string };
+      expect(json.success).toBe(false);
+      expect(json.error).toBe('ALREADY_LINKED');
+    });
+
+    it('rolls back when another request accepts the invite first', async () => {
+      const behavior = defaultFromBehavior();
+      let inviteCallCount = 0;
+      behavior['convites_filho'] = () => {
+        inviteCallCount++;
+        if (inviteCallCount === 1) {
+          return { data: VALID_INVITE, error: null };
+        }
+        return { data: null, error: null };
+      };
+
+      const mock = createMockSupabase({ fromBehavior: behavior });
+      const res = await handleRequest(
+        makeRequest({ invite_code: 'ABC123', date_of_birth: '2010-05-15' }),
+        createDeps(mock),
+      );
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as { success: boolean; error: string };
+      expect(json.success).toBe(false);
+      expect(json.error).toBe('ALREADY_LINKED');
+    });
+
     it('links child successfully (200 + familia_nome + papel)', async () => {
       const mock = createMockSupabase({ fromBehavior: defaultFromBehavior() });
       const deps = createDeps(mock);
@@ -380,9 +499,14 @@ describe('vincular-filho handler', () => {
       expect(json.familia_nome).toBe('Família Silva');
       expect(json.papel).toBe('filho');
 
-      // Verify updateUserById was called with date_of_birth metadata
+      // Verify updateUserById was called with date_of_birth + LGPD metadata
       expect(mock.auth.admin.updateUserById).toHaveBeenCalledWith('child-user-1', {
-        user_metadata: { date_of_birth: '2010-05-15' },
+        user_metadata: {
+          date_of_birth: '2010-05-15',
+          lgpd_consent_at: expect.any(String),
+          lgpd_consent_version: '1.0',
+          pending_child_invite: null,
+        },
       });
 
       // Admin client uses service-role key
@@ -422,6 +546,30 @@ describe('vincular-filho handler', () => {
       expect(res.status).toBe(500);
     });
 
+    it('returns JSON 500 when an unexpected dependency error is thrown', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      try {
+        const deps: HandlerDeps = {
+          getServiceRoleKey: () => 'service-role-key',
+          getSupabaseUrl: () => {
+            throw new Error('missing supabase url');
+          },
+          createSupabaseClient: vi.fn(),
+        };
+
+        const res = await handleRequest(
+          makeRequest({ invite_code: 'ABC123', date_of_birth: '2010-05-15' }),
+          deps,
+        );
+
+        expect(res.status).toBe(500);
+        await expect(res.json()).resolves.toEqual({ error: 'Internal error' });
+        expect(consoleSpy).toHaveBeenCalled();
+      } finally {
+        consoleSpy.mockRestore();
+      }
+    });
+
     it('returns 500 when updateUserById fails', async () => {
       const mock = createMockSupabase({
         updateUserByIdResult: {
@@ -440,10 +588,13 @@ describe('vincular-filho handler', () => {
     it('rolls back filhos.usuario_id when usuarios insert fails', async () => {
       const behavior = defaultFromBehavior();
       // usuarios.insert fails → handler must revert filhos.usuario_id to null.
-      behavior['usuarios'] = () => ({
-        data: null,
-        error: { message: 'unique violation' },
-      });
+      behavior['usuarios'] = (ctx) =>
+        ctx.calls.some((call) => call.method === 'insert')
+          ? {
+              data: null,
+              error: { message: 'unique violation' },
+            }
+          : { data: null, error: null };
 
       const mock = createMockSupabase({ fromBehavior: behavior });
 

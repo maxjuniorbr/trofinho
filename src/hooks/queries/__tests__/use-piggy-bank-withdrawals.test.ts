@@ -47,12 +47,12 @@ describe('use-piggy-bank-withdrawals query hooks', () => {
       expect(piggyBankLib.listPendingPiggyBankWithdrawals).toHaveBeenCalled();
     });
 
-    it('useChildPendingWithdrawal calls getChildPendingWithdrawal', async () => {
+    it('useChildPendingWithdrawal calls getChildPendingWithdrawal with scoped child id', async () => {
       const { useChildPendingWithdrawal } = await loadHooks();
-      useChildPendingWithdrawal();
+      useChildPendingWithdrawal('child-1');
       const qf = lastQueryOpts().queryFn as () => Promise<unknown>;
       await qf();
-      expect(piggyBankLib.getChildPendingWithdrawal).toHaveBeenCalled();
+      expect(piggyBankLib.getChildPendingWithdrawal).toHaveBeenCalledWith('child-1');
     });
   });
 
@@ -71,10 +71,12 @@ describe('use-piggy-bank-withdrawals query hooks', () => {
       expect(lastQueryOpts().staleTime).toBe(STALE_TIMES.piggyBankWithdrawals);
     });
 
-    it('useChildPendingWithdrawal uses childPending key', async () => {
+    it('useChildPendingWithdrawal uses scoped childPending key', async () => {
       const { useChildPendingWithdrawal } = await loadHooks();
-      useChildPendingWithdrawal();
-      expect(lastQueryOpts().queryKey).toEqual(queryKeys.piggyBankWithdrawals.childPending());
+      useChildPendingWithdrawal('child-1');
+      expect(lastQueryOpts().queryKey).toEqual(
+        queryKeys.piggyBankWithdrawals.childPending('child-1'),
+      );
       expect(lastQueryOpts().staleTime).toBe(STALE_TIMES.piggyBankWithdrawals);
     });
   });

@@ -52,6 +52,10 @@
       var accessToken = params.get('access_token');
       var type = params.get('type');
 
+      if (globalThis.history && globalThis.history.replaceState) {
+        globalThis.history.replaceState(null, document.title, globalThis.location.pathname);
+      }
+
       if (!accessToken || type !== 'signup') {
         content.innerHTML = '<p class="error">Link inválido ou expirado.</p>';
         return;

@@ -5,6 +5,7 @@ import {
   usePendingValidationCount,
   usePendingRedemptionCount,
 } from '@/hooks/queries';
+import { useImpersonation } from '@/context/impersonation-context';
 import { getAssignmentRetryState } from '@lib/tasks';
 import type { FooterItem } from '@/components/ui/home-footer-bar';
 
@@ -25,12 +26,15 @@ const ADMIN_FOOTER_ITEMS: readonly FooterItem[] = [
 ];
 
 export function useChildFooterItems(): readonly FooterItem[] {
-  const assignmentsQuery = useChildAssignments();
+  const { impersonating } = useImpersonation();
+  const assignmentsQuery = useChildAssignments(impersonating?.childId);
 
   const pendingCount = useMemo(() => {
     const all = assignmentsQuery.data?.pages.flatMap((p) => p.data) ?? [];
     return all.filter(
-      (a) => a.status === 'pendente' || (a.status === 'rejeitada' && getAssignmentRetryState(a).canRetry),
+      (a) =>
+        a.status === 'pendente' ||
+        (a.status === 'rejeitada' && getAssignmentRetryState(a).canRetry),
     ).length;
   }, [assignmentsQuery.data]);
 

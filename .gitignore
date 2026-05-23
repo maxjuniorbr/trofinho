@@ -19,10 +19,10 @@ npm-debug.*
 
 # Environment variables
 .env.*
+!.env.example
 
 # Firebase / Google credentials
 google-services.json
-GoogleService-Info.plist
 *-firebase-adminsdk-*.json
 
 # Certificates
@@ -41,11 +41,13 @@ Thumbs.db
 .scannerwork/
 
 # AI assistants (local config)
-.agents/
 .github/copilot-instructions.md
 .github/instructions/
 .github/prompts/
+.github/agents/
+.github/skills/
 .kiro/
+.codex
 
 # Expo MCP (local dev)
 .local-expo-mcp/
@@ -56,9 +58,6 @@ supabase/.temp/
 # Google Cloud SDK
 google-cloud-sdk/
 google-cloud-cli-*.tar.gz
-
-# Skills lock
-skills-lock.json
 
 # Vercel
 public/.vercel/

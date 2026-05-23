@@ -1,6 +1,7 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-compat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { __APP_ALERT_MOCK__ } from '../setup';
 
 import ChildPrizesScreen from '../../app/(child)/prizes/index';
 
@@ -125,8 +126,8 @@ vi.mock('@shopify/flash-list', () => ({
       ListHeaderComponent,
       data && data.length > 0
         ? data.map((item) =>
-          React.createElement(React.Fragment, { key: item.id as string }, renderItem({ item })),
-        )
+            React.createElement(React.Fragment, { key: item.id as string }, renderItem({ item })),
+          )
         : null,
     ),
 }));
@@ -211,7 +212,11 @@ vi.mock('@/context/theme-context', () => ({
 }));
 
 vi.mock('@/context/impersonation-context', () => ({
-  useImpersonation: () => ({ impersonating: null, startImpersonation: vi.fn(), stopImpersonation: vi.fn() }),
+  useImpersonation: () => ({
+    impersonating: null,
+    startImpersonation: vi.fn(),
+    stopImpersonation: vi.fn(),
+  }),
 }));
 
 vi.mock('@/components/ui/skeleton', () => ({
@@ -353,10 +358,12 @@ describe('ChildPrizesScreen', () => {
     act(() => {
       redeemBtn!.props.onPress();
     });
-    expect(alertMock.alert).toHaveBeenCalledWith(
-      'Confirmar resgate',
-      expect.any(String),
-      expect.any(Array),
+    expect(__APP_ALERT_MOCK__.showAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Confirmar resgate',
+        message: expect.any(String),
+        actions: expect.any(Array),
+      }),
     );
   });
 

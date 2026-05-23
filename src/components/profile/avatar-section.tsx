@@ -68,7 +68,10 @@ export const AvatarSection = ({
           <Avatar
             name={name}
             size={56}
-            solidColor="rgba(255, 255, 255, 0.15)"
+            // AUDIT: 0.15 white-on-hero. heroPalette exposes surfaceChip (.10)
+            // and borderSoft (.15); semantically a borderSoft-tinted surface.
+            // Consider adding heroPalette.surfaceAvatar or unifying with chip.
+            solidColor={heroPalette.borderSoft}
             imageUri={avatarUri}
           />
           <View style={[styles.cameraBtn, { backgroundColor: accentColor }]}>

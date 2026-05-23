@@ -4,11 +4,6 @@ import type { GoogleAuthResult } from './google-auth';
 // Types
 // ---------------------------------------------------------------------------
 
-/** Minimal shape matching Supabase's UserIdentity. */
-export type Identity = {
-  provider: string;
-};
-
 /** Matches the `convites_filho` table columns used for validation. */
 export type InviteRecord = {
   aceito_por: string | null;
@@ -30,11 +25,44 @@ export type SupabaseAuthError = {
 // Date of birth validation
 // ---------------------------------------------------------------------------
 
+const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Parses a strict ISO calendar date (`YYYY-MM-DD`) and rejects values that
+ * JavaScript would otherwise normalize, such as `2010-02-30`.
+ */
+export function parseIsoDate(date: string): Date | null {
+  if (!ISO_DATE_REGEX.test(date)) {
+    return null;
+  }
+
+  const [year, month, day] = date.split('-').map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return parsed;
+}
+
+/** Formats a local calendar date as `YYYY-MM-DD` without UTC conversion. */
+export function formatLocalIsoDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 /**
  * Returns `true` when `date` falls between 1 Jan 1900 (inclusive) and
- * today minus 13 years (inclusive). Uses UTC to avoid timezone issues.
+ * today minus `minAge` years (inclusive). Uses UTC to avoid timezone issues.
  */
-export function isValidDateOfBirth(date: Date): boolean {
+export function isValidDateOfBirth(date: Date, minAge = 8): boolean {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
     return false;
   }
@@ -43,7 +71,7 @@ export function isValidDateOfBirth(date: Date): boolean {
 
   const now = new Date();
   const maxDate = new Date(
-    Date.UTC(now.getUTCFullYear() - 13, now.getUTCMonth(), now.getUTCDate()),
+    Date.UTC(now.getUTCFullYear() - minAge, now.getUTCMonth(), now.getUTCDate()),
   );
 
   const utcDate = new Date(
@@ -118,26 +146,6 @@ export function localizeOAuthError(
   }
 
   return 'Erro na autenticação. Tente novamente.';
-}
-
-// ---------------------------------------------------------------------------
-// Identity helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Returns `true` when the user does NOT have a Google identity linked,
- * meaning the migration banner should be displayed.
- */
-export function shouldShowGoogleMigrationBanner(identities: Identity[]): boolean {
-  return !identities.some((id) => id.provider === 'google');
-}
-
-/**
- * Returns `true` when the user has an email/password identity,
- * meaning the "Change password" section should be visible.
- */
-export function shouldShowChangePassword(identities: Identity[]): boolean {
-  return identities.some((id) => id.provider === 'email');
 }
 
 // ---------------------------------------------------------------------------

@@ -5,11 +5,15 @@
     "allowJs": true,
     "esModuleInterop": true,
     "jsx": "react-native",
-    "lib": ["ESNext"],
+    "lib": [
+      "ESNext"
+    ],
     "module": "preserve",
     "moduleDetection": "force",
     "moduleResolution": "bundler",
-    "customConditions": ["react-native"],
+    "customConditions": [
+      "react-native"
+    ],
     "noEmit": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
@@ -20,7 +24,6 @@
     "${configDir}/babel.config.js",
     "${configDir}/metro.config.js",
     "${configDir}/jest.config.js",
-    "${configDir}/android",
-    "${configDir}/ios"
+    "${configDir}/android"
   ]
 }

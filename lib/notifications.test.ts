@@ -28,7 +28,7 @@ vi.mock('react-native', () => ({
     addListener: vi.fn(() => ({ remove: vi.fn() })),
     dismiss: vi.fn(),
   },
-  Platform: { OS: 'ios' },
+  Platform: { OS: 'android' },
 }));
 
 vi.mock('expo-constants', () => ({
@@ -37,8 +37,7 @@ vi.mock('expo-constants', () => ({
 }));
 
 vi.mock('expo-application', () => ({
-  getAndroidId: () => null,
-  getIosIdForVendorAsync: vi.fn().mockResolvedValue('ios-vendor-id-mock'),
+  getAndroidId: vi.fn(() => 'test-android-id'),
 }));
 
 vi.mock('expo-crypto', () => ({ randomUUID: () => '00000000-0000-0000-0000-000000000000' }));
@@ -57,7 +56,6 @@ vi.mock('expo-notifications', () => ({
   clearLastNotificationResponse: vi.fn(),
   addNotificationReceivedListener: vi.fn().mockReturnValue({ remove: vi.fn() }),
   addNotificationResponseReceivedListener: vi.fn().mockReturnValue({ remove: vi.fn() }),
-  IosAuthorizationStatus: { AUTHORIZED: 2, PROVISIONAL: 3, EPHEMERAL: 4, DENIED: 0 },
   DEFAULT_ACTION_IDENTIFIER: 'default',
 }));
 
@@ -284,21 +282,23 @@ describe('savePushToken', () => {
     rpcMock.mockReset();
   });
 
-  it('uses native iOS vendor ID as device_id', async () => {
+  it('uses native Android ID as device_id', async () => {
     rpcMock.mockResolvedValue({ error: null });
 
     await savePushToken('ExponentPushToken[abc123]');
 
     expect(rpcMock).toHaveBeenCalledWith('upsert_push_token', {
       p_token: 'ExponentPushToken[abc123]',
-      p_device_id: 'ios-vendor-id-mock',
+      p_device_id: 'test-android-id',
     });
     expect(deviceStorageGetMock).not.toHaveBeenCalled();
   });
 
   it('falls back to stored device_id when native API fails', async () => {
     const appModule = await import('expo-application');
-    vi.mocked(appModule.getIosIdForVendorAsync).mockRejectedValueOnce(new Error('unavailable'));
+    vi.mocked(appModule.getAndroidId).mockImplementationOnce(() => {
+      throw new Error('unavailable');
+    });
     deviceStorageGetMock.mockResolvedValue('existing-device-id');
     rpcMock.mockResolvedValue({ error: null });
 
@@ -313,7 +313,7 @@ describe('savePushToken', () => {
 
   it('generates and persists a new device_id when native and storage both empty', async () => {
     const appModule = await import('expo-application');
-    vi.mocked(appModule.getIosIdForVendorAsync).mockResolvedValueOnce(null);
+    vi.mocked(appModule.getAndroidId).mockReturnValueOnce(null as any);
     deviceStorageGetMock.mockResolvedValue(null);
     deviceStorageSetMock.mockResolvedValue(undefined);
     rpcMock.mockResolvedValue({ error: null });
@@ -335,7 +335,7 @@ describe('savePushToken', () => {
 
     expect(rpcMock).toHaveBeenCalledWith('upsert_push_token', {
       p_token: 'ExponentPushToken[padded]',
-      p_device_id: 'ios-vendor-id-mock',
+      p_device_id: 'test-android-id',
     });
   });
 
@@ -508,14 +508,12 @@ describe('registerForPushNotifications', () => {
       granted: false,
       canAskAgain: false,
       expires: 'never',
-      ios: { status: 0 }, // DENIED
     } as any);
     vi.mocked(N.requestPermissionsAsync).mockResolvedValue({
       status: 'denied',
       granted: false,
       canAskAgain: false,
       expires: 'never',
-      ios: { status: 0 },
     } as any);
 
     const result = await registerForPushNotifications();
@@ -533,7 +531,6 @@ describe('registerForPushNotifications', () => {
       granted: false,
       canAskAgain: true,
       expires: 'never',
-      ios: { status: 1 }, // NOT_DETERMINED
     } as any);
     // After request: granted
     vi.mocked(N.requestPermissionsAsync).mockResolvedValue({
@@ -541,7 +538,6 @@ describe('registerForPushNotifications', () => {
       granted: true,
       canAskAgain: true,
       expires: 'never',
-      ios: { status: 2 }, // AUTHORIZED
     } as any);
     vi.mocked(N.getExpoPushTokenAsync).mockResolvedValue({
       data: 'ExponentPushToken[test-token]',
@@ -610,7 +606,7 @@ describe('isNotificationPermissionDenied', () => {
     (constants.default as any).executionEnvironment = original;
   });
 
-  it('returns true when iOS permission is denied', async () => {
+  it('returns true when permission is denied', async () => {
     const constants = await import('expo-constants');
     (constants.default as any).executionEnvironment = 'standalone';
 
@@ -620,7 +616,6 @@ describe('isNotificationPermissionDenied', () => {
       granted: false,
       canAskAgain: false,
       expires: 'never',
-      ios: { status: 0 }, // DENIED
     } as any);
 
     const { isNotificationPermissionDenied } = await import('./notifications');
@@ -628,7 +623,7 @@ describe('isNotificationPermissionDenied', () => {
     expect(result).toBe(true);
   });
 
-  it('returns false when iOS permission is authorized', async () => {
+  it('returns false when permission is authorized', async () => {
     const constants = await import('expo-constants');
     (constants.default as any).executionEnvironment = 'standalone';
 
@@ -638,7 +633,6 @@ describe('isNotificationPermissionDenied', () => {
       granted: true,
       canAskAgain: true,
       expires: 'never',
-      ios: { status: 2 }, // AUTHORIZED
     } as any);
 
     const { isNotificationPermissionDenied } = await import('./notifications');
@@ -776,6 +770,246 @@ describe('registerNotificationCategories', () => {
     expect(setNotificationCategoryAsyncMock).toHaveBeenCalledWith(
       'REDEMPTION_REVIEW',
       expect.arrayContaining([expect.objectContaining({ identifier: 'CONFIRM_REDEMPTION' })]),
+    );
+  });
+});
+
+// ─── Property 1: Permission status interpretation uses only generic fields ───
+// Feature: remove-ios-specifics, Property 1: Interpretação de status de permissão usa apenas campos genéricos
+
+/**
+ * **Validates: Requirements 3.1, 3.4**
+ *
+ * For any permission status object with arbitrary `granted` (boolean) and
+ * `status` (string), the permission interpretation functions must:
+ * - Consider permission granted only when `granted === true` OR `status === 'granted'`
+ * - Consider permission denied only when `status === 'denied'`
+ * - Be consistent: if `granted` is `true`, denied must be `false`
+ *
+ * These properties are tested indirectly through the exported functions
+ * `registerForPushNotifications` (which uses `hasGrantedNotificationPermission`)
+ * and `isNotificationPermissionDenied`.
+ */
+describe('Property 1: Permission status interpretation uses only generic fields', () => {
+  const statusArb = fc.record({
+    granted: fc.boolean(),
+    status: fc.oneof(
+      fc.constant('granted'),
+      fc.constant('denied'),
+      fc.constant('undetermined'),
+      fc.string(),
+    ),
+    canAskAgain: fc.boolean(),
+    expires: fc.constant('never' as const),
+  });
+
+  it('isNotificationPermissionDenied returns true only when status === "denied"', async () => {
+    const constants = await import('expo-constants');
+    (constants.default as any).executionEnvironment = 'standalone';
+
+    const N = await import('expo-notifications');
+    const { isNotificationPermissionDenied } = await import('./notifications');
+
+    await fc.assert(
+      fc.asyncProperty(statusArb, async (permStatus) => {
+        vi.mocked(N.getPermissionsAsync).mockResolvedValue(permStatus as any);
+
+        const result = await isNotificationPermissionDenied();
+        const expected = permStatus.status === 'denied';
+
+        expect(result).toBe(expected);
+      }),
+      { numRuns: 100 },
+    );
+  });
+
+  it('hasGrantedNotificationPermission (via registerForPushNotifications) returns granted only when granted === true or status === "granted"', async () => {
+    const constants = await import('expo-constants');
+    (constants.default as any).executionEnvironment = 'standalone';
+    (constants.default as any).expoConfig = { extra: { eas: { projectId: 'test-project-id' } } };
+
+    const N = await import('expo-notifications');
+    vi.mocked(N.getExpoPushTokenAsync).mockResolvedValue({
+      data: 'ExponentPushToken[prop-test]',
+      type: 'expo',
+    } as any);
+
+    const { registerForPushNotifications } = await import('./notifications');
+
+    await fc.assert(
+      fc.asyncProperty(statusArb, async (permStatus) => {
+        // Both getPermissionsAsync and requestPermissionsAsync return the same
+        // status so the function sees a consistent permission state.
+        vi.mocked(N.getPermissionsAsync).mockResolvedValue(permStatus as any);
+        vi.mocked(N.requestPermissionsAsync).mockResolvedValue(permStatus as any);
+
+        const result = await registerForPushNotifications();
+        const shouldBeGranted =
+          permStatus.granted === true || permStatus.status === 'granted';
+
+        if (shouldBeGranted) {
+          // When permission is granted, registerForPushNotifications returns a token
+          expect(result).toBe('ExponentPushToken[prop-test]');
+        } else {
+          // When permission is NOT granted, registerForPushNotifications returns null
+          expect(result).toBeNull();
+        }
+      }),
+      { numRuns: 100 },
+    );
+
+    (constants.default as any).expoConfig = null;
+  });
+
+  it('consistency: if granted is true, denied must be false', async () => {
+    const constants = await import('expo-constants');
+    (constants.default as any).executionEnvironment = 'standalone';
+
+    const N = await import('expo-notifications');
+    const { isNotificationPermissionDenied } = await import('./notifications');
+
+    await fc.assert(
+      fc.asyncProperty(statusArb, async (permStatus) => {
+        vi.mocked(N.getPermissionsAsync).mockResolvedValue(permStatus as any);
+
+        if (permStatus.granted === true) {
+          const denied = await isNotificationPermissionDenied();
+          // If granted is true, the permission cannot simultaneously be denied
+          // (denied checks status === 'denied', and a granted permission
+          // should not have status 'denied' in practice, but even if the
+          // object is inconsistent, our functions must not both return true)
+          //
+          // Note: This tests the consistency of our interpretation logic.
+          // When granted is true AND status is 'denied' (an inconsistent input),
+          // hasGrantedNotificationPermission returns true (because granted === true)
+          // and isNotificationPermissionDenied returns true (because status === 'denied').
+          // This is acceptable because the functions check independent fields.
+          // The real consistency property is: for well-formed inputs where
+          // granted === true implies status !== 'denied'.
+          if (permStatus.status !== 'denied') {
+            expect(denied).toBe(false);
+          }
+        }
+      }),
+      { numRuns: 100 },
+    );
+  });
+});
+
+// ─── Property 2: Device ID resolution ───────────────────────────────────────
+// Feature: remove-ios-specifics, Property 2: Resolução de device ID sempre retorna um identificador não-vazio
+
+/**
+ * **Validates: Requirements 3.3**
+ *
+ * For any device state (combination of `getAndroidId()` returning a string or
+ * null/error, and storage containing or not a previous ID), `getOrCreateDeviceId()`
+ * must always return a non-empty string, following the priority:
+ * Android ID > stored ID > generated UUID.
+ *
+ * Tested indirectly through `savePushToken` by inspecting the `p_device_id`
+ * argument passed to the `rpc` mock.
+ */
+describe('Property 2: Resolução de device ID sempre retorna um identificador não-vazio', () => {
+  const GENERATED_UUID = '00000000-0000-0000-0000-000000000000';
+
+  // Arbitrary androidId: either a non-empty string or null (simulating unavailable)
+  const androidIdArb = fc.oneof(
+    fc.string({ minLength: 1 }).filter((s) => s.trim().length > 0),
+    fc.constant(null),
+  );
+
+  // Arbitrary storedId: either a non-empty string or null (nothing stored)
+  const storedIdArb = fc.oneof(
+    fc.string({ minLength: 1 }).filter((s) => s.trim().length > 0),
+    fc.constant(null),
+  );
+
+  beforeEach(() => {
+    deviceStorageGetMock.mockReset();
+    deviceStorageSetMock.mockReset();
+    rpcMock.mockReset();
+  });
+
+  it('always returns a non-empty device ID regardless of state', async () => {
+    const appModule = await import('expo-application');
+
+    await fc.assert(
+      fc.asyncProperty(androidIdArb, storedIdArb, async (androidId, storedId) => {
+        // Reset mocks for each iteration
+        deviceStorageGetMock.mockReset();
+        deviceStorageSetMock.mockReset();
+        rpcMock.mockReset();
+        rpcMock.mockResolvedValue({ error: null });
+
+        // Configure getAndroidId based on the arbitrary state
+        if (androidId === null) {
+          vi.mocked(appModule.getAndroidId).mockReturnValue(null as any);
+        } else {
+          vi.mocked(appModule.getAndroidId).mockReturnValue(androidId);
+        }
+
+        // Configure stored device ID
+        deviceStorageGetMock.mockResolvedValue(storedId);
+        deviceStorageSetMock.mockResolvedValue(undefined);
+
+        await savePushToken('ExponentPushToken[test]');
+
+        const rpcCall = rpcMock.mock.calls[0];
+        const deviceId = rpcCall[1].p_device_id as string;
+
+        // Result must always be a non-empty string
+        expect(typeof deviceId).toBe('string');
+        expect(deviceId.length).toBeGreaterThan(0);
+      }),
+      { numRuns: 100 },
+    );
+  });
+
+  it('follows priority: androidId > storedId > generated UUID', async () => {
+    const appModule = await import('expo-application');
+
+    await fc.assert(
+      fc.asyncProperty(androidIdArb, storedIdArb, async (androidId, storedId) => {
+        // Reset mocks for each iteration
+        deviceStorageGetMock.mockReset();
+        deviceStorageSetMock.mockReset();
+        rpcMock.mockReset();
+        rpcMock.mockResolvedValue({ error: null });
+
+        // Configure getAndroidId based on the arbitrary state
+        if (androidId === null) {
+          vi.mocked(appModule.getAndroidId).mockReturnValue(null as any);
+        } else {
+          vi.mocked(appModule.getAndroidId).mockReturnValue(androidId);
+        }
+
+        // Configure stored device ID
+        deviceStorageGetMock.mockResolvedValue(storedId);
+        deviceStorageSetMock.mockResolvedValue(undefined);
+
+        await savePushToken('ExponentPushToken[test]');
+
+        const rpcCall = rpcMock.mock.calls[0];
+        const deviceId = rpcCall[1].p_device_id as string;
+
+        if (androidId !== null && androidId !== '') {
+          // Priority 1: androidId is returned when non-null and non-empty
+          expect(deviceId).toBe(androidId);
+          // Storage should not be read
+          expect(deviceStorageGetMock).not.toHaveBeenCalled();
+        } else if (storedId !== null && storedId !== '') {
+          // Priority 2: storedId is returned when androidId is unavailable
+          expect(deviceId).toBe(storedId);
+          // No new ID should be persisted
+          expect(deviceStorageSetMock).not.toHaveBeenCalled();
+        } else {
+          // Priority 3: a new UUID is generated and persisted
+          expect(deviceId).toBe(GENERATED_UUID);
+          expect(deviceStorageSetMock).toHaveBeenCalledWith('device_id', GENERATED_UUID);
+        }
+      }),
+      { numRuns: 100 },
     );
   });
 });

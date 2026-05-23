@@ -1,9 +1,7 @@
 import * as Sentry from '@sentry/react-native';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,7 +11,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ChevronRight, Info, Lock, User } from 'lucide-react-native';
+import { ChevronRight, Info, LogOut, User } from 'lucide-react-native';
 import { getAppVersion } from '@lib/app-version';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { HomeFooterBar } from '@/components/ui/home-footer-bar';
@@ -22,12 +20,13 @@ import { LogoutButton } from '@/components/ui/logout-button';
 import { SafeScreenFrame } from '@/components/ui/safe-screen-frame';
 import { AvatarSection } from '@/components/profile/avatar-section';
 import { PersonalDataSheet } from '@/components/profile/personal-data-sheet';
-import { ChangePasswordSheet } from '@/components/profile/change-password-sheet';
+import { ConfirmSheet } from '@/components/ui/confirm-sheet';
 import { ThemeCard } from '@/components/profile/theme-card';
 import { NotificationCard } from '@/components/profile/notification-card';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/context/theme-context';
 import { useImpersonation } from '@/context/impersonation-context';
+import { useAppAlert } from '@/context/app-alert-context';
 import { opacityDisabled, radii, spacing, typography } from '@/constants/theme';
 import type { ThemeColors } from '@/constants/theme';
 import { signOut } from '@lib/auth';
@@ -44,6 +43,7 @@ export default function ChildProfileScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { impersonating } = useImpersonation();
+  const { showAlert } = useAppAlert();
   const isReadOnly = impersonating !== null;
   const sectionStyles = useMemo(() => makeSectionStyles(), []);
   const footerItems = useChildFooterItems();
@@ -77,19 +77,22 @@ export default function ChildProfileScreen() {
   );
   const [savingNotificationPreferences, setSavingNotificationPreferences] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [showSignOutSheet, setShowSignOutSheet] = useState(false);
   const [showPersonalData, setShowPersonalData] = useState(false);
-  const [showChangePassword, setShowChangePassword] = useState(false);
   const deleteAccountMutation = useDeleteAccount();
 
   const effectivePrefs = notificationPreferences ?? notificationPrefsQuery.data ?? null;
   const effectiveAvatarUri = localAvatarUri ?? avatarUri;
-  const effectiveName = impersonating ? impersonating.childName : (localName ?? profile?.nome ?? 'Campeão');
+  const effectiveName = impersonating
+    ? impersonating.childName
+    : (localName ?? profile?.nome ?? 'Campeão');
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      'Excluir conta',
-      'Todos os seus dados serão apagados permanentemente. Essa ação não pode ser desfeita.',
-      [
+    showAlert({
+      title: 'Excluir conta',
+      message:
+        'Todos os seus dados serão apagados permanentemente. Essa ação não pode ser desfeita.',
+      actions: [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Excluir conta',
@@ -97,7 +100,7 @@ export default function ChildProfileScreen() {
           onPress: () => deleteAccountMutation.mutate(),
         },
       ],
-    );
+    });
   };
 
   const handleSignOut = async () => {
@@ -108,6 +111,11 @@ export default function ChildProfileScreen() {
       Sentry.captureException(e);
       setLoggingOut(false);
     }
+  };
+
+  const handleSignOutConfirm = async () => {
+    setShowSignOutSheet(false);
+    await handleSignOut();
   };
 
   const handleNotificationPreferencesChange = async (next: NotificationPrefs) => {
@@ -140,13 +148,14 @@ export default function ChildProfileScreen() {
 
   return (
     <>
-      <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: colors.bg.canvas }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg.canvas }}>
         <SafeScreenFrame bottomInset={false}>
           <StatusBar style={colors.statusBar} />
-          <ScreenHeader title="Meu Perfil" onBack={isReadOnly ? undefined : () => router.back()} role="filho" />
+          <ScreenHeader
+            title="Meu Perfil"
+            onBack={isReadOnly ? undefined : () => router.back()}
+            role="filho"
+          />
 
           {isLoading ? (
             <View style={styles.loadingContent}>
@@ -192,17 +201,6 @@ export default function ChildProfileScreen() {
                 />
               </SectionCard>
 
-              <SectionCard title="Segurança" colors={colors} styles={sectionStyles}>
-                <MenuRow
-                  icon={Lock}
-                  label="Alterar senha"
-                  onPress={() => setShowChangePassword(true)}
-                  colors={colors}
-                  styles={sectionStyles}
-                  disabled={isReadOnly}
-                />
-              </SectionCard>
-
               <SectionCard title="Sobre" colors={colors} styles={sectionStyles}>
                 <View style={sectionStyles.menuRow}>
                   <View style={sectionStyles.menuRowLeft}>
@@ -217,7 +215,11 @@ export default function ChildProfileScreen() {
                 </View>
               </SectionCard>
 
-              <LogoutButton onPress={handleSignOut} loading={loggingOut} disabled={isReadOnly} />
+              <LogoutButton
+                onPress={() => setShowSignOutSheet(true)}
+                loading={loggingOut}
+                disabled={isReadOnly}
+              />
 
               <Button
                 variant="danger"
@@ -246,9 +248,19 @@ export default function ChildProfileScreen() {
         onNameUpdated={(name) => setLocalName(name)}
       />
 
-      <ChangePasswordSheet
-        visible={showChangePassword}
-        onClose={() => setShowChangePassword(false)}
+      <ConfirmSheet
+        visible={showSignOutSheet}
+        onClose={() => setShowSignOutSheet(false)}
+        icon={LogOut}
+        iconVariant="warning"
+        title="Sair da conta?"
+        description="Você precisará entrar novamente com o código da família."
+        confirmLabel="Sair"
+        loadingLabel="Saindo…"
+        confirmVariant="danger"
+        cancelLabel="Cancelar"
+        onConfirm={handleSignOutConfirm}
+        loading={loggingOut}
       />
     </>
   );
@@ -276,7 +288,7 @@ const SectionCard = ({ title, colors, styles, children }: SectionCardProps) => (
 );
 
 type MenuRowProps = Readonly<{
-  icon: typeof Lock;
+  icon: typeof User;
   label: string;
   onPress: () => void;
   colors: ThemeColors;
@@ -286,7 +298,11 @@ type MenuRowProps = Readonly<{
 
 const MenuRow = ({ icon: Icon, label, onPress, colors, styles, disabled }: MenuRowProps) => (
   <Pressable
-    style={({ pressed }) => [styles.menuRow, !disabled && pressed && { backgroundColor: colors.bg.muted }, disabled && { opacity: opacityDisabled.heavy }]}
+    style={({ pressed }) => [
+      styles.menuRow,
+      !disabled && pressed && { backgroundColor: colors.bg.muted },
+      disabled && { opacity: opacityDisabled.heavy },
+    ]}
     onPress={onPress}
     disabled={disabled}
     accessibilityRole="button"

@@ -8,10 +8,13 @@ export const queryKeys = {
     detail: (id: string) => [...queryKeys.tasks.details(), id] as const,
     pendingCount: () => [...queryKeys.tasks.all, 'pending-count'] as const,
     pendingValidations: () => [...queryKeys.tasks.all, 'pending-validations'] as const,
-    childAssignments: () => [...queryKeys.tasks.all, 'child-assignments'] as const,
-    childAssignment: (id: string) => [...queryKeys.tasks.all, 'child-assignment', id] as const,
+    childAssignments: (childId?: string) =>
+      [...queryKeys.tasks.all, 'child-assignments', childId ?? 'self'] as const,
+    childAssignment: (id: string, childId?: string) =>
+      [...queryKeys.tasks.all, 'child-assignment', id, childId ?? 'self'] as const,
     assignments: (taskId: string) => [...queryKeys.tasks.all, 'assignments', taskId] as const,
-    renewRecurring: (childId?: string) => [...queryKeys.tasks.all, 'renew-recurring', childId ?? 'self'] as const,
+    renewRecurring: (childId?: string) =>
+      [...queryKeys.tasks.all, 'renew-recurring', childId ?? 'self'] as const,
   },
   balances: {
     all: ['balances'] as const,
@@ -27,7 +30,7 @@ export const queryKeys = {
     all: ['children'] as const,
     lists: () => [...queryKeys.children.all, 'list'] as const,
     detail: (id: string) => [...queryKeys.children.all, 'detail', id] as const,
-    myId: () => [...queryKeys.children.all, 'my-id'] as const,
+    myId: (userId?: string) => [...queryKeys.children.all, 'my-id', userId ?? 'unknown'] as const,
   },
   prizes: {
     all: ['prizes'] as const,
@@ -38,7 +41,8 @@ export const queryKeys = {
   redemptions: {
     all: ['redemptions'] as const,
     admin: () => [...queryKeys.redemptions.all, 'admin'] as const,
-    child: () => [...queryKeys.redemptions.all, 'child'] as const,
+    child: (childId?: string) =>
+      [...queryKeys.redemptions.all, 'child', childId ?? 'self'] as const,
     pendingCount: () => [...queryKeys.redemptions.all, 'pending-count'] as const,
   },
   profile: {
@@ -55,7 +59,8 @@ export const queryKeys = {
     all: ['piggy-bank-withdrawals'] as const,
     pending: () => [...queryKeys.piggyBankWithdrawals.all, 'pending'] as const,
     pendingCount: () => [...queryKeys.piggyBankWithdrawals.all, 'pending-count'] as const,
-    childPending: () => [...queryKeys.piggyBankWithdrawals.all, 'child-pending'] as const,
+    childPending: (childId?: string) =>
+      [...queryKeys.piggyBankWithdrawals.all, 'child-pending', childId ?? 'self'] as const,
   },
   adminInvite: {
     all: ['admin-invite'] as const,

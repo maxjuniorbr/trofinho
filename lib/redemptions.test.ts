@@ -153,6 +153,19 @@ describe('cancelRedemption', () => {
     expect(dispatchPushNotificationMock).not.toHaveBeenCalled();
   });
 
+  it('skips push notification when userId is null', async () => {
+    supabaseMock.rpc.mockResolvedValueOnce({ error: null });
+
+    const result = await cancelRedemption('r-1', {
+      familiaId: 'fam-1',
+      userId: null,
+      prizeName: 'Bicicleta',
+    });
+
+    expect(result.error).toBeNull();
+    expect(dispatchPushNotificationMock).not.toHaveBeenCalled();
+  });
+
   it('returns error on rpc failure', async () => {
     supabaseMock.rpc.mockResolvedValueOnce({ error: { message: 'Resgate não encontrado' } });
 
@@ -178,6 +191,15 @@ describe('listChildRedemptions', () => {
     expect(result.data).toHaveLength(2);
     expect(result.hasMore).toBe(false);
     expect(result.error).toBeNull();
+  });
+
+  it('filters by child id when provided', async () => {
+    const chain = mockSelectChain([]);
+    supabaseMock.from.mockReturnValue(chain);
+
+    await listChildRedemptions(0, 20, 'child-1');
+
+    expect(chain.eq).toHaveBeenCalledWith('filho_id', 'child-1');
   });
 });
 

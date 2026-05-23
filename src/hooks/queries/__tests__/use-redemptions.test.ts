@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { queryKeys, STALE_TIMES } from '../query-keys';
+import { PAGE_SIZES, queryKeys, STALE_TIMES } from '../query-keys';
 
 import * as redemptionsLib from '../../../../lib/redemptions';
 import * as rq from '@tanstack/react-query';
@@ -39,12 +39,17 @@ describe('use-redemptions query hooks', () => {
       expect(redemptionsLib.listRedemptions).toHaveBeenCalled();
     });
 
-    it('useChildRedemptions queryFn calls listChildRedemptions', async () => {
+    it('useChildRedemptions queryFn calls listChildRedemptions with scoped child id', async () => {
       const { useChildRedemptions } = await loadHooks();
-      useChildRedemptions();
+      useChildRedemptions('child-1');
       const qf = lastQueryOpts().queryFn as (ctx: { pageParam: number }) => Promise<unknown>;
       await qf({ pageParam: 0 });
-      expect(redemptionsLib.listChildRedemptions).toHaveBeenCalled();
+      expect(redemptionsLib.listChildRedemptions).toHaveBeenCalledWith(
+        0,
+        PAGE_SIZES.redemptions,
+        'child-1',
+      );
+      expect(lastQueryOpts().queryKey).toEqual(queryKeys.redemptions.child('child-1'));
     });
 
     it('useAdminRedemptions uses correct query key and staleTime', async () => {

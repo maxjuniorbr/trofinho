@@ -4,6 +4,7 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from '../../../test/helpers/test-renderer-compat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
+import { __APP_ALERT_MOCK__ } from '../../../test/setup';
 
 import { PenaltyModal } from './penalty-modal';
 
@@ -33,7 +34,7 @@ vi.mock('react-native', () => {
     },
     KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
     Modal: createHostComponent('Modal'),
-    Platform: { OS: 'ios', select: (obj: Record<string, unknown>) => obj.ios },
+    Platform: { OS: 'android', select: (obj: Record<string, unknown>) => obj.android },
     Pressable: createHostComponent('Pressable'),
     StyleSheet: {
       create: <T,>(styles: T) => styles,
@@ -79,14 +80,14 @@ describe('PenaltyModal — confirmation dialog property tests', () => {
   const onCloseMock = vi.fn();
   const onApplyMock = vi.fn();
 
-  type AlertButton = { text: string; style: string; onPress?: () => void | Promise<void> };
-  type AlertCall = [title: string, message: string, buttons: AlertButton[]];
+  type AlertButton = { text: string; style?: string; onPress?: () => void | Promise<void> };
+  type AlertOptions = { message?: string; actions?: AlertButton[] };
   type SubmittedAlert = {
-    alertCall: AlertCall;
+    alertOptions: AlertOptions;
     unmount: () => void;
   };
 
-  /** Renders the modal, fills inputs, presses Penalizar, and asserts the alert fired. */
+  /** Renders the modal, fills inputs, presses Penalizar, and asserts the app alert fired. */
   function fillAndSubmit(childName: string, amount: number): SubmittedAlert {
     const renderer = render(
       <PenaltyModal
@@ -106,9 +107,9 @@ describe('PenaltyModal — confirmation dialog property tests', () => {
     act(() => {
       findPenalizeButton(renderer).props.onPress();
     });
-    expect(alertMock.alert).toHaveBeenCalledTimes(1);
+    expect(__APP_ALERT_MOCK__.showAlert).toHaveBeenCalledTimes(1);
     return {
-      alertCall: alertMock.alert.mock.calls[0] as AlertCall,
+      alertOptions: __APP_ALERT_MOCK__.showAlert.mock.calls[0][0] as AlertOptions,
       unmount: () => {
         act(() => {
           renderer.unmount();
@@ -119,6 +120,7 @@ describe('PenaltyModal — confirmation dialog property tests', () => {
 
   beforeEach(() => {
     alertMock.alert.mockReset();
+    __APP_ALERT_MOCK__.showAlert.mockReset();
     onCloseMock.mockReset();
     onApplyMock.mockReset();
     onApplyMock.mockResolvedValue({ error: null });
@@ -131,10 +133,10 @@ describe('PenaltyModal — confirmation dialog property tests', () => {
         fc.integer({ min: 1, max: 99999 }),
         fc.string({ minLength: 1, maxLength: 50 }).filter((s) => s.trim().length > 0),
         (amount, childName) => {
-          alertMock.alert.mockReset();
+          __APP_ALERT_MOCK__.showAlert.mockReset();
           const submission = fillAndSubmit(childName, amount);
           try {
-            const [, message] = submission.alertCall;
+            const message = submission.alertOptions.message ?? '';
             expect(message).toContain(String(amount));
             expect(message).toContain(childName);
           } finally {
@@ -154,12 +156,12 @@ describe('PenaltyModal — confirmation dialog property tests', () => {
         fc.string({ minLength: 1, maxLength: 50 }).filter((s) => s.trim().length > 0),
         fc.boolean(),
         async (amount, childName, userConfirms) => {
-          alertMock.alert.mockReset();
+          __APP_ALERT_MOCK__.showAlert.mockReset();
           onApplyMock.mockReset();
           onApplyMock.mockResolvedValue({ error: null });
           const submission = fillAndSubmit(childName, amount);
           try {
-            const [, , buttons] = submission.alertCall;
+            const buttons = submission.alertOptions.actions ?? [];
             if (userConfirms) {
               const confirmBtn = buttons.find((b) => b.style === 'destructive');
               await act(async () => {

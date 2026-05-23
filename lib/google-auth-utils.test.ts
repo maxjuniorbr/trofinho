@@ -1,15 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  formatLocalIsoDate,
   isValidDateOfBirth,
   localizeOAuthError,
-  shouldShowChangePassword,
-  shouldShowGoogleMigrationBanner,
+  parseIsoDate,
   validateChildInviteCode,
 } from './google-auth-utils';
 
 import type {
-  Identity,
   InviteRecord,
   SupabaseAuthError,
 } from './google-auth-utils';
@@ -36,24 +35,64 @@ describe('isValidDateOfBirth', () => {
     expect(isValidDateOfBirth(date)).toBe(false);
   });
 
-  it('rejects a date less than 13 years ago', () => {
+  it('rejects a date less than 8 years ago', () => {
     const now = new Date();
     const tooYoung = new Date(
-      Date.UTC(now.getUTCFullYear() - 12, now.getUTCMonth(), now.getUTCDate()),
+      Date.UTC(now.getUTCFullYear() - 7, now.getUTCMonth(), now.getUTCDate()),
     );
     expect(isValidDateOfBirth(tooYoung)).toBe(false);
   });
 
-  it('accepts exactly 13 years ago today', () => {
+  it('accepts exactly 8 years ago today', () => {
     const now = new Date();
-    const exactly13 = new Date(
-      Date.UTC(now.getUTCFullYear() - 13, now.getUTCMonth(), now.getUTCDate()),
+    const exactly8 = new Date(
+      Date.UTC(now.getUTCFullYear() - 8, now.getUTCMonth(), now.getUTCDate()),
     );
-    expect(isValidDateOfBirth(exactly13)).toBe(true);
+    expect(isValidDateOfBirth(exactly8)).toBe(true);
+  });
+
+  it('rejects a date exactly 1 day before turning 8 (7 years + 364 days old)', () => {
+    const now = new Date();
+    // Born 1 day after the 8-year cutoff → still 7 years old
+    const oneDayShort = new Date(
+      Date.UTC(now.getUTCFullYear() - 8, now.getUTCMonth(), now.getUTCDate() + 1),
+    );
+    expect(isValidDateOfBirth(oneDayShort)).toBe(false);
   });
 
   it('rejects an invalid Date object', () => {
     expect(isValidDateOfBirth(new Date('invalid'))).toBe(false);
+  });
+
+  it('honors a stricter minimum age when provided', () => {
+    const now = new Date();
+    const seventeen = new Date(
+      Date.UTC(now.getUTCFullYear() - 17, now.getUTCMonth(), now.getUTCDate()),
+    );
+
+    expect(isValidDateOfBirth(seventeen)).toBe(true);
+    expect(isValidDateOfBirth(seventeen, 18)).toBe(false);
+  });
+});
+
+describe('parseIsoDate', () => {
+  it('parses strict YYYY-MM-DD calendar dates in UTC', () => {
+    const parsed = parseIsoDate('1990-05-15');
+
+    expect(parsed?.toISOString()).toBe('1990-05-15T00:00:00.000Z');
+  });
+
+  it('rejects non-ISO and impossible calendar dates', () => {
+    expect(parseIsoDate('15/05/1990')).toBeNull();
+    expect(parseIsoDate('1990-02-30')).toBeNull();
+    expect(parseIsoDate('1990-13-01')).toBeNull();
+    expect(parseIsoDate('1990-00-10')).toBeNull();
+  });
+});
+
+describe('formatLocalIsoDate', () => {
+  it('formats local calendar dates without converting to UTC', () => {
+    expect(formatLocalIsoDate(new Date(1990, 0, 5))).toBe('1990-01-05');
   });
 });
 
@@ -123,6 +162,13 @@ describe('localizeOAuthError', () => {
     );
   });
 
+  it('maps timeout error to network message', () => {
+    const err: SupabaseAuthError = { message: 'Request timeout' };
+    expect(localizeOAuthError(err)).toBe(
+      'Não foi possível conectar ao Google. Verifique sua conexão e tente novamente.',
+    );
+  });
+
   it('maps server error', () => {
     const err: SupabaseAuthError = { message: 'Internal server error 500' };
     expect(localizeOAuthError(err)).toBe(
@@ -135,56 +181,6 @@ describe('localizeOAuthError', () => {
     expect(localizeOAuthError(err)).toBe(
       'Erro na autenticação. Tente novamente.',
     );
-  });
-});
-
-// ---------------------------------------------------------------------------
-// shouldShowGoogleMigrationBanner
-// ---------------------------------------------------------------------------
-
-describe('shouldShowGoogleMigrationBanner', () => {
-  it('returns true when no identities exist', () => {
-    expect(shouldShowGoogleMigrationBanner([])).toBe(true);
-  });
-
-  it('returns true when only email identity exists', () => {
-    const ids: Identity[] = [{ provider: 'email' }];
-    expect(shouldShowGoogleMigrationBanner(ids)).toBe(true);
-  });
-
-  it('returns false when google identity exists', () => {
-    const ids: Identity[] = [{ provider: 'google' }];
-    expect(shouldShowGoogleMigrationBanner(ids)).toBe(false);
-  });
-
-  it('returns false when both email and google identities exist', () => {
-    const ids: Identity[] = [{ provider: 'email' }, { provider: 'google' }];
-    expect(shouldShowGoogleMigrationBanner(ids)).toBe(false);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// shouldShowChangePassword
-// ---------------------------------------------------------------------------
-
-describe('shouldShowChangePassword', () => {
-  it('returns false when no identities exist', () => {
-    expect(shouldShowChangePassword([])).toBe(false);
-  });
-
-  it('returns true when email identity exists', () => {
-    const ids: Identity[] = [{ provider: 'email' }];
-    expect(shouldShowChangePassword(ids)).toBe(true);
-  });
-
-  it('returns false when only google identity exists', () => {
-    const ids: Identity[] = [{ provider: 'google' }];
-    expect(shouldShowChangePassword(ids)).toBe(false);
-  });
-
-  it('returns true when both email and google identities exist', () => {
-    const ids: Identity[] = [{ provider: 'email' }, { provider: 'google' }];
-    expect(shouldShowChangePassword(ids)).toBe(true);
   });
 });
 

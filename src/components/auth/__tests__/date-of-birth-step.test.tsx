@@ -100,7 +100,14 @@ describe('DateOfBirthStep', () => {
             />,
         );
 
-        // On iOS (mocked Platform.OS), the picker is shown inline with the value
+        // On Android the picker starts hidden — tap the date field to open it
+        const dateField = renderer.root.findAllByType(Pressable).find(
+            (p) => p.props.accessibilityLabel === 'Selecionar data de nascimento',
+        );
+        act(() => {
+            dateField!.props.onPress();
+        });
+
         const picker = renderer.root.findByType('DateTimePicker' as never);
         expect(picker.props.value).toBe(selectedDate);
 

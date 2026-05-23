@@ -3,7 +3,6 @@ import {
   getProfile,
   getCurrentAuthUser,
   updateUserName,
-  updateUserPassword,
   updateUserAvatar,
   deleteAccount,
 } from '../../../lib/auth';
@@ -56,17 +55,6 @@ export const useUpdateUserName = () => {
     },
   });
 };
-
-export const useUpdateUserPassword = () =>
-  useMutation({
-    mutationFn: ({
-      currentPassword,
-      newPassword,
-    }: {
-      currentPassword: string;
-      newPassword: string;
-    }) => mutationFnAdapter(() => updateUserPassword(currentPassword, newPassword))(),
-  });
 
 export const useUpdateUserAvatar = () => {
   const queryClient = useQueryClient();

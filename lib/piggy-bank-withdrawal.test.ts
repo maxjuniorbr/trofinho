@@ -132,6 +132,23 @@ describe('requestPiggyBankWithdrawal', () => {
     expect(dispatchPushNotificationMock).not.toHaveBeenCalled();
   });
 
+  it('handles null data from rpc gracefully', async () => {
+    supabaseMock.rpc.mockResolvedValueOnce({ data: null, error: null });
+
+    const result = await requestPiggyBankWithdrawal(50, {
+      familiaId: 'fam-1',
+      childName: 'Lia',
+    });
+
+    expect(result.data).toBeNull();
+    expect(result.error).toBeNull();
+    expect(dispatchPushNotificationMock).toHaveBeenCalledWith(
+      'resgate_cofrinho_solicitado',
+      'fam-1',
+      { childName: 'Lia' },
+    );
+  });
+
   it('returns error on rpc failure', async () => {
     supabaseMock.rpc.mockResolvedValueOnce({
       error: { message: 'Saldo do cofrinho insuficiente' },
@@ -266,6 +283,16 @@ describe('listPendingPiggyBankWithdrawals', () => {
     expect(result.data).toEqual([]);
     expect(result.error).toBeTruthy();
   });
+
+  it('returns empty array when data is null on success', async () => {
+    const chain = mockSelectChain(null);
+    supabaseMock.from.mockReturnValue(chain);
+
+    const result = await listPendingPiggyBankWithdrawals();
+
+    expect(result.data).toEqual([]);
+    expect(result.error).toBeNull();
+  });
 });
 
 describe('getChildPendingWithdrawal', () => {
@@ -278,6 +305,15 @@ describe('getChildPendingWithdrawal', () => {
 
     expect(result.data).toEqual({ id: 'w1', status: 'pendente' });
     expect(result.error).toBeNull();
+  });
+
+  it('filters by child id when provided', async () => {
+    const chain = mockSelectChain([]);
+    supabaseMock.from.mockReturnValue(chain);
+
+    await getChildPendingWithdrawal('child-1');
+
+    expect(chain.eq).toHaveBeenCalledWith('filho_id', 'child-1');
   });
 
   it('returns null when no pending withdrawal', async () => {
@@ -342,5 +378,15 @@ describe('countPendingPiggyBankWithdrawals', () => {
 
     expect(result.data).toBe(0);
     expect(result.error).toBeTruthy();
+  });
+
+  it('returns 0 when count is null on success', async () => {
+    const chain = mockCountChain(null);
+    supabaseMock.from.mockReturnValue(chain);
+
+    const result = await countPendingPiggyBankWithdrawals();
+
+    expect(result.data).toBe(0);
+    expect(result.error).toBeNull();
   });
 });

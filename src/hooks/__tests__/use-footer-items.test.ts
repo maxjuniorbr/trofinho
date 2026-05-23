@@ -3,6 +3,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 const useChildAssignmentsMock = vi.fn();
 const usePendingValidationCountMock = vi.fn();
 const usePendingRedemptionCountMock = vi.fn();
+const useImpersonationMock = vi.fn();
 
 vi.mock('react', async () => {
   const actual = await vi.importActual<typeof import('react')>('react');
@@ -10,9 +11,13 @@ vi.mock('react', async () => {
 });
 
 vi.mock('@/hooks/queries', () => ({
-  useChildAssignments: () => useChildAssignmentsMock(),
+  useChildAssignments: (childId?: string) => useChildAssignmentsMock(childId),
   usePendingValidationCount: () => usePendingValidationCountMock(),
   usePendingRedemptionCount: () => usePendingRedemptionCountMock(),
+}));
+
+vi.mock('@/context/impersonation-context', () => ({
+  useImpersonation: () => useImpersonationMock(),
 }));
 
 vi.mock('@lib/tasks', () => ({
@@ -28,6 +33,7 @@ describe('useChildFooterItems', () => {
     useChildAssignmentsMock.mockReset();
     usePendingValidationCountMock.mockReset();
     usePendingRedemptionCountMock.mockReset();
+    useImpersonationMock.mockReset().mockReturnValue({ impersonating: null });
   });
 
   it('returns 5 footer items with correct labels and routes', async () => {
@@ -36,7 +42,13 @@ describe('useChildFooterItems', () => {
     const items = useChildFooterItems();
 
     expect(items).toHaveLength(5);
-    expect(items.map((i) => i.label)).toEqual(['Início', 'Tarefas', 'Prêmios', 'Resgates', 'Perfil']);
+    expect(items.map((i) => i.label)).toEqual([
+      'Início',
+      'Tarefas',
+      'Prêmios',
+      'Resgates',
+      'Perfil',
+    ]);
     expect(items.map((i) => i.rota)).toEqual([
       'index',
       '/(child)/tasks',
@@ -102,6 +114,18 @@ describe('useChildFooterItems', () => {
     expect(tasksItem?.badge).toBe(0);
   });
 
+  it('scopes child task badge query while impersonating', async () => {
+    useImpersonationMock.mockReturnValue({
+      impersonating: { childId: 'child-1', childName: 'Lia' },
+    });
+    useChildAssignmentsMock.mockReturnValue({ data: undefined });
+
+    const { useChildFooterItems } = await loadHooks();
+    useChildFooterItems();
+
+    expect(useChildAssignmentsMock).toHaveBeenCalledWith('child-1');
+  });
+
   it('does not set badge on non-tasks routes', async () => {
     useChildAssignmentsMock.mockReturnValue({
       data: { pages: [{ data: [{ status: 'pendente', tentativas: 0 }] }] },
@@ -132,7 +156,13 @@ describe('useAdminFooterItems', () => {
     const items = useAdminFooterItems();
 
     expect(items).toHaveLength(5);
-    expect(items.map((i) => i.label)).toEqual(['Início', 'Tarefas', 'Prêmios', 'Resgates', 'Perfil']);
+    expect(items.map((i) => i.label)).toEqual([
+      'Início',
+      'Tarefas',
+      'Prêmios',
+      'Resgates',
+      'Perfil',
+    ]);
     expect(items.map((i) => i.rota)).toEqual([
       'index',
       '/(admin)/tasks',

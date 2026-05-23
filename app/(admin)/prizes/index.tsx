@@ -3,7 +3,7 @@ import { FlashList } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Pencil, Plus, Star } from 'lucide-react-native';
+import { Gift, Pencil, Plus, Star } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/constants/theme';
 import { opacityDisabled, opacityPressed, radii, shadows, spacing, typography } from '@/constants/theme';
@@ -138,7 +138,13 @@ export default function AdminPrizesScreen() {
             accessibilityRole="button"
             accessibilityLabel={`${item.nome}, ${item.custo_pontos} pontos${item.ativo ? '' : ', arquivado'}`}
           >
-            <Text style={styles.emoji}>{item.emoji || '🎁'}</Text>
+            {item.emoji ? (
+              <Text style={styles.emoji}>{item.emoji}</Text>
+            ) : (
+              <View style={styles.emojiFallback}>
+                <Gift size={32} color={colors.accent.admin} strokeWidth={2} />
+              </View>
+            )}
             <Text
               style={[styles.cardNome, { color: colors.text.primary }]}
               numberOfLines={2}
@@ -256,6 +262,7 @@ function makeStyles(colors: ThemeColors) {
     },
     cardArquivado: { opacity: opacityDisabled.medium },
     emoji: { fontSize: typography.size['4xl'], marginBottom: spacing['2'] },
+    emojiFallback: { marginBottom: spacing['2'], height: typography.size['4xl'], justifyContent: 'center' },
     cardNome: {
       fontSize: typography.size.sm,
       fontFamily: typography.family.bold,

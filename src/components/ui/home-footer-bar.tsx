@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   dot: {
     width: 4,
     height: 4,
-    borderRadius: 2,
+    borderRadius: radii.xxs,
     marginTop: spacing['0.5'],
   },
 });

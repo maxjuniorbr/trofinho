@@ -106,6 +106,7 @@ export async function cancelRedemption(
 export async function listChildRedemptions(
   page = 0,
   pageSize = 20,
+  childId?: string,
 ): Promise<{
   data: RedemptionWithPrize[];
   hasMore: boolean;
@@ -115,9 +116,13 @@ export async function listChildRedemptions(
   const to = from + pageSize;
 
   // .returns needed: joined shape (premios) differs from generated row type
-  const { data, error } = await supabase
-    .from('resgates')
-    .select('*, premios(nome, custo_pontos, emoji)')
+  let query = supabase.from('resgates').select('*, premios(nome, custo_pontos, emoji)');
+
+  if (childId) {
+    query = query.eq('filho_id', childId);
+  }
+
+  const { data, error } = await query
     .order('created_at', { ascending: false })
     .range(from, to)
     .overrideTypes<RedemptionWithPrize[], { merge: false }>();

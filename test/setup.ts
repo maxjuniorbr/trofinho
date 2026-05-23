@@ -70,6 +70,7 @@ vi.mock('lucide-react-native', () => ({
   Clock: createIcon('Clock'),
   Eye: createIcon('Eye'),
   CheckCircle2: createIcon('CheckCircle2'),
+  CircleCheck: createIcon('CircleCheck'),
   XCircle: createIcon('XCircle'),
   AlertTriangle: createIcon('AlertTriangle'),
   TriangleAlert: createIcon('TriangleAlert'),
@@ -93,6 +94,7 @@ vi.mock('lucide-react-native', () => ({
   Star: createIcon('Star'),
   Archive: createIcon('Archive'),
   ArchiveRestore: createIcon('ArchiveRestore'),
+  Package: createIcon('Package'),
   Inbox: createIcon('Inbox'),
   TrendingUp: createIcon('TrendingUp'),
   ArrowDownCircle: createIcon('ArrowDownCircle'),
@@ -118,6 +120,10 @@ vi.mock('lucide-react-native', () => ({
   Check: createIcon('Check'),
   UserPlus: createIcon('UserPlus'),
   Trash2: createIcon('Trash2'),
+  KeyRound: createIcon('KeyRound'),
+  Hash: createIcon('Hash'),
+  FileText: createIcon('FileText'),
+  Zap: createIcon('Zap'),
 }));
 
 vi.mock('expo-linear-gradient', () => ({
@@ -169,6 +175,10 @@ vi.mock('react-native', () => ({
     spring: vi.fn(() => ({ start: vi.fn() })),
     timing: vi.fn(() => ({ start: vi.fn() })),
   },
+  BackHandler: {
+    addEventListener: vi.fn(() => ({ remove: vi.fn() })),
+    removeEventListener: vi.fn(),
+  },
   Image: createHostComponent('Image'),
   Keyboard: {
     addListener: vi.fn(() => ({ remove: vi.fn() })),
@@ -176,7 +186,7 @@ vi.mock('react-native', () => ({
   },
   KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
   Modal: createHostComponent('Modal'),
-  Platform: { OS: 'ios', select: (obj: Record<string, unknown>) => obj.ios },
+  Platform: { OS: 'android', select: (obj: Record<string, unknown>) => obj.android },
   Pressable: createHostComponent('Pressable'),
   ScrollView: createHostComponent('ScrollView'),
   StyleSheet: {
@@ -287,7 +297,6 @@ vi.mock('expo-constants', () => ({
 vi.mock('expo-application', () => ({
   nativeApplicationVersion: '1.0.0',
   getAndroidId: vi.fn(() => 'test-android-id'),
-  getIosIdForVendorAsync: vi.fn().mockResolvedValue('test-ios-id'),
 }));
 
 vi.mock('@sentry/react-native', () => ({
@@ -338,6 +347,16 @@ vi.mock('@/context/theme-context', () => ({
   useTheme: () => __TEST_THEME_OVERRIDE__,
 }));
 
+export const __APP_ALERT_MOCK__ = {
+  showAlert: vi.fn(),
+  hideAlert: vi.fn(),
+};
+
+vi.mock('@/context/app-alert-context', () => ({
+  AppAlertProvider: ({ children }: Props) => children,
+  useAppAlert: () => __APP_ALERT_MOCK__,
+}));
+
 vi.mock('@react-native-community/netinfo', () => ({
   default: {
     addEventListener: vi.fn(() => vi.fn()),
@@ -357,12 +376,21 @@ vi.mock('@react-native-google-signin/google-signin', () => ({
     IN_PROGRESS: 'IN_PROGRESS',
     PLAY_SERVICES_NOT_AVAILABLE: 'PLAY_SERVICES_NOT_AVAILABLE',
   },
-  isErrorWithCode: vi.fn((error: unknown) => error != null && typeof error === 'object' && 'code' in error),
-  isSuccessResponse: vi.fn((response: unknown) => response != null && typeof response === 'object' && 'data' in (response as Record<string, unknown>)),
+  isErrorWithCode: vi.fn(
+    (error: unknown) => error != null && typeof error === 'object' && 'code' in error,
+  ),
+  isSuccessResponse: vi.fn(
+    (response: unknown) =>
+      response != null &&
+      typeof response === 'object' &&
+      'data' in (response as Record<string, unknown>),
+  ),
 }));
 
 afterEach(() => {
   vi.restoreAllMocks();
+  __APP_ALERT_MOCK__.showAlert.mockReset();
+  __APP_ALERT_MOCK__.hideAlert.mockReset();
   __TEST_THEME_OVERRIDE__.colors = lightColors;
   __TEST_THEME_OVERRIDE__.isDark = false;
   __TEST_THEME_OVERRIDE__.scheme = 'light';

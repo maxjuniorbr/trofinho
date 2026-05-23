@@ -1,16 +1,9 @@
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useState } from 'react';
 import { AlertTriangle } from 'lucide-react-native';
 import { BottomSheetModal } from '@/components/ui/bottom-sheet';
 import { useTheme } from '@/context/theme-context';
+import { useAppAlert } from '@/context/app-alert-context';
 import { opacityDisabled, radii, spacing, typography } from '@/constants/theme';
 import { FormFooter } from '@/components/ui/form-footer';
 
@@ -26,6 +19,7 @@ type PenaltyModalProps = Readonly<{
 
 export function PenaltyModal({ visible, childName, onClose, onApply }: PenaltyModalProps) {
   const { colors } = useTheme();
+  const { showAlert } = useAppAlert();
 
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -54,10 +48,10 @@ export function PenaltyModal({ visible, childName, onClose, onApply }: PenaltyMo
       return;
     }
 
-    Alert.alert(
-      'Aplicar penalidade?',
-      `Descontar ${v} ponto${v === 1 ? '' : 's'} de ${childName}?`,
-      [
+    showAlert({
+      title: 'Aplicar penalidade?',
+      message: `Descontar ${v} ponto${v === 1 ? '' : 's'} de ${childName}?`,
+      actions: [
         { text: 'Voltar', style: 'cancel' },
         {
           text: 'Aplicar',
@@ -79,7 +73,7 @@ export function PenaltyModal({ visible, childName, onClose, onApply }: PenaltyMo
           },
         },
       ],
-    );
+    });
   };
 
   return (

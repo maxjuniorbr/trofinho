@@ -21,7 +21,9 @@ export default function ChildLayout() {
   const { impersonating, stopImpersonation } = useImpersonation();
 
   const { data: profile } = useProfile();
-  const { data: ownChildId } = useMyChildId(profile?.id);
+  const { data: ownChildId } = useMyChildId(
+    !impersonating && profile?.papel === 'filho' ? profile.id : undefined,
+  );
 
   // When impersonating, use the childId from the impersonation context;
   // otherwise fall back to the authenticated user's own child ID.

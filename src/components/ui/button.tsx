@@ -22,6 +22,7 @@ interface ButtonProps extends Omit<PressableProps, 'style'> {
   loading?: boolean;
   label: string;
   loadingLabel?: string;
+  leadingIcon?: LucideIcon;
   trailingIcon?: LucideIcon;
 }
 
@@ -70,6 +71,7 @@ export const Button = ({
   loading = false,
   label,
   loadingLabel,
+  leadingIcon: LeadingIcon,
   trailingIcon: TrailingIcon,
   disabled,
   onPress,
@@ -92,7 +94,7 @@ export const Button = ({
       case 'ghost':
         return 'transparent';
       case 'danger':
-        return colors.semantic.errorBg;
+        return colors.semantic.error;
       case 'outline':
         return 'transparent';
     }
@@ -107,7 +109,7 @@ export const Button = ({
       case 'ghost':
         return colors.text.secondary;
       case 'danger':
-        return colors.semantic.error;
+        return colors.text.inverse;
       case 'outline':
         return colors.brand.vivid;
     }
@@ -146,13 +148,14 @@ export const Button = ({
     );
   } else if (loading) {
     buttonContent = <ActivityIndicator color={fgColor} size="small" />;
-  } else if (TrailingIcon) {
+  } else if (LeadingIcon || TrailingIcon) {
     buttonContent = (
-      <View style={styles.loadingRow}>
-        <Text style={[styles.label, { color: fgColor, fontSize, lineHeight, fontFamily }]}>
+      <View style={styles.iconRow}>
+        {LeadingIcon ? <LeadingIcon size={20} color={fgColor} strokeWidth={2.25} /> : null}
+        <Text style={[styles.label, { color: fgColor, fontSize, lineHeight, fontFamily, flex: 1 }]}>
           {label}
         </Text>
-        <TrailingIcon size={fontSize} color={fgColor} strokeWidth={2.25} />
+        {TrailingIcon ? <TrailingIcon size={fontSize} color={fgColor} strokeWidth={2.25} /> : null}
       </View>
     );
   } else {
@@ -240,5 +243,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing['2'],
+  },
+  iconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['3'],
+    width: '100%',
   },
 });

@@ -13,6 +13,7 @@ import {
 import { useProfile } from '@/hooks/queries/use-profile';
 import { useMyChildId } from '@/hooks/queries/use-children';
 import { useTransactionsByPeriod } from '@/hooks/queries/use-balances';
+import { useImpersonation } from '@/context/impersonation-context';
 
 /** Look-back window for surfacing penalty/appreciation transactions in the inbox. */
 const INBOX_TX_LOOKBACK_DAYS = 30;
@@ -66,10 +67,14 @@ export function useChildNotifInbox(): {
   isLoading: boolean;
   isError: boolean;
 } {
-  const assignmentsQuery = useChildAssignments();
-  const redemptionsQuery = useChildRedemptions();
+  const { impersonating } = useImpersonation();
   const { data: profile } = useProfile();
-  const { data: childId } = useMyChildId(profile?.id);
+  const { data: ownChildId } = useMyChildId(
+    !impersonating && profile?.papel === 'filho' ? profile.id : undefined,
+  );
+  const childId = impersonating?.childId ?? ownChildId;
+  const assignmentsQuery = useChildAssignments(impersonating?.childId);
+  const redemptionsQuery = useChildRedemptions(impersonating?.childId);
   const { from, to } = useMemo(inboxTxRange, []);
   const transactionsQuery = useTransactionsByPeriod(childId ?? '', from, to);
 
@@ -98,10 +103,14 @@ export function useChildNotifInbox(): {
 }
 
 export function useChildUnreadNotifCount(): number {
-  const assignmentsQuery = useChildAssignments();
-  const redemptionsQuery = useChildRedemptions();
+  const { impersonating } = useImpersonation();
   const { data: profile } = useProfile();
-  const { data: childId } = useMyChildId(profile?.id);
+  const { data: ownChildId } = useMyChildId(
+    !impersonating && profile?.papel === 'filho' ? profile.id : undefined,
+  );
+  const childId = impersonating?.childId ?? ownChildId;
+  const assignmentsQuery = useChildAssignments(impersonating?.childId);
+  const redemptionsQuery = useChildRedemptions(impersonating?.childId);
   const { from, to } = useMemo(inboxTxRange, []);
   const transactionsQuery = useTransactionsByPeriod(childId ?? '', from, to);
 

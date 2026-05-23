@@ -92,7 +92,7 @@ vi.mock('react-native', () => ({
   },
   KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
   Modal: createHostComponent('Modal'),
-  Platform: { OS: 'ios', select: (obj: Record<string, unknown>) => obj.ios },
+  Platform: { OS: 'android', select: (obj: Record<string, unknown>) => obj.android },
   Pressable: createHostComponent('Pressable'),
   RefreshControl: createHostComponent('RefreshControl'),
   StyleSheet: { create: <T,>(styles: T) => styles, hairlineWidth: 0.5 },
@@ -238,6 +238,12 @@ vi.mock('@/components/balance/transaction-icon', () => ({
 vi.mock('@/constants/colors', () => ({
   darkColors: {
     bg: { surface: '#1D212B', elevated: '#2A303C' },
+  },
+  staticTextColors: {
+    inverseStrong: '#fff',
+    inverse: '#fff',
+    inverseFaint: 'rgba(255,255,255,0.5)',
+    onBrand: '#fff',
   },
 }));
 

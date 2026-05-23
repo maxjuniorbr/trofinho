@@ -12,7 +12,7 @@ vi.mock('expo-haptics', () => ({
   notificationAsync: hapticsMock.notificationAsync,
 }));
 
-const platformMock = vi.hoisted(() => ({ OS: 'ios' as string }));
+const platformMock = vi.hoisted(() => ({ OS: 'android' as string }));
 
 vi.mock('react-native', () => ({
   Keyboard: {
@@ -26,7 +26,7 @@ describe('haptics', () => {
   beforeEach(() => {
     hapticsMock.impactAsync.mockClear();
     hapticsMock.notificationAsync.mockClear();
-    platformMock.OS = 'ios';
+    platformMock.OS = 'android';
   });
 
   it('hapticSuccess calls notificationAsync on native', async () => {

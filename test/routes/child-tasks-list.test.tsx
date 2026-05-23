@@ -163,6 +163,10 @@ vi.mock('@/components/ui/list-footer', () => ({
   ListFooter: (props: Record<string, unknown>) => React.createElement('ListFooter', props),
 }));
 
+vi.mock('@/components/ui/inline-message', () => ({
+  InlineMessage: (props: Record<string, unknown>) => React.createElement('InlineMessage', props),
+}));
+
 vi.mock('@/components/ui/home-footer-bar', () => ({
   FOOTER_BAR_HEIGHT: 56,
   HomeFooterBar: () => React.createElement('HomeFooterBar'),
@@ -177,10 +181,17 @@ vi.mock('lucide-react-native', () => ({
   Star: createHostComponent('Star'),
   PauseCircle: createHostComponent('PauseCircle'),
   RefreshCw: createHostComponent('RefreshCw'),
+  Info: createHostComponent('Info'),
 }));
 
 vi.mock('@/constants/colors', () => ({
   withAlpha: (hex: string, _opacity: number) => hex,
+  staticTextColors: {
+    inverseStrong: '#fff',
+    inverse: '#fff',
+    inverseFaint: 'rgba(255,255,255,0.5)',
+    onBrand: '#fff',
+  },
 }));
 
 vi.mock('@/hooks/use-footer-items', () => ({
@@ -262,7 +273,7 @@ describe('ChildTasksScreen', () => {
     expect(pressables[0].props.accessibilityLabel).toBe('Ver detalhes da tarefa Arrumar a cama');
   });
 
-  it('shows Alert when pressing an inactive task', () => {
+  it('shows InlineMessage when pressing an inactive task', () => {
     childAssignmentsMock.data = {
       pages: [
         {
@@ -284,7 +295,11 @@ describe('ChildTasksScreen', () => {
       pressables[0].props.onPress();
     });
 
-    expect(alertMock.alert).toHaveBeenCalledWith('Tarefa desativada', expect.any(String));
+    expect(alertMock.alert).not.toHaveBeenCalled();
+    const messages = renderer.root.findAll((node) => (node.type as string) === 'InlineMessage');
+    expect(messages.length).toBeGreaterThan(0);
+    expect(messages[0].props.variant).toBe('info');
+    expect(messages[0].props.message).toContain('desativada');
   });
 
   it('passes badge counts to SegmentedBar', () => {

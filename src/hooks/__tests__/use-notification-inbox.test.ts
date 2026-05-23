@@ -12,6 +12,7 @@ const mockUseChildRedemptions = vi.hoisted(() => vi.fn());
 const mockUseProfile = vi.hoisted(() => vi.fn());
 const mockUseMyChildId = vi.hoisted(() => vi.fn());
 const mockUseTransactionsByPeriod = vi.hoisted(() => vi.fn());
+const mockUseImpersonation = vi.hoisted(() => vi.fn());
 
 vi.mock('react', async () => {
   const actual = await vi.importActual<typeof import('react')>('react');
@@ -50,6 +51,10 @@ vi.mock('@/hooks/queries/use-balances', () => ({
   useTransactionsByPeriod: mockUseTransactionsByPeriod,
 }));
 
+vi.mock('@/context/impersonation-context', () => ({
+  useImpersonation: mockUseImpersonation,
+}));
+
 function makeInfiniteQueryResult(
   data: unknown[] | undefined,
   opts?: { isLoading?: boolean; isError?: boolean },
@@ -78,9 +83,10 @@ beforeEach(() => {
   mockUseAdminRedemptions.mockReset().mockReturnValue(makeInfiniteQueryResult([]));
   mockUsePendingRedemptionCount.mockReset().mockReturnValue(makeQueryResult(0));
   mockUseChildRedemptions.mockReset().mockReturnValue(makeInfiniteQueryResult([]));
-  mockUseProfile.mockReset().mockReturnValue(makeQueryResult({ id: 'user-1' }));
+  mockUseProfile.mockReset().mockReturnValue(makeQueryResult({ id: 'user-1', papel: 'filho' }));
   mockUseMyChildId.mockReset().mockReturnValue(makeQueryResult('child-1'));
   mockUseTransactionsByPeriod.mockReset().mockReturnValue(makeQueryResult([]));
+  mockUseImpersonation.mockReset().mockReturnValue({ impersonating: null });
 });
 
 const loadHooks = () => import('../use-notification-inbox');
@@ -229,6 +235,24 @@ describe('useChildNotifInbox', () => {
       redemptions: [],
       transactions: [],
     });
+  });
+
+  it('scopes child queries by impersonated child id', async () => {
+    mockUseImpersonation.mockReturnValue({
+      impersonating: { childId: 'child-impersonated', childName: 'Lia' },
+    });
+
+    const { useChildNotifInbox } = await loadHooks();
+    useChildNotifInbox();
+
+    expect(mockUseMyChildId).toHaveBeenCalledWith(undefined);
+    expect(mockUseChildAssignments).toHaveBeenCalledWith('child-impersonated');
+    expect(mockUseChildRedemptions).toHaveBeenCalledWith('child-impersonated');
+    expect(mockUseTransactionsByPeriod).toHaveBeenCalledWith(
+      'child-impersonated',
+      expect.any(String),
+      expect.any(String),
+    );
   });
 });
 

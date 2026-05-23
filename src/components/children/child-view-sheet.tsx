@@ -1,14 +1,21 @@
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useCallback, useState } from 'react';
+import { Mail, User } from 'lucide-react-native';
 import { BottomSheetModal } from '@/components/ui/bottom-sheet';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { InlineMessage } from '@/components/ui/inline-message';
-import { useChildDetail, useDeactivateChild, useReactivateChild, useAdminBalances } from '@/hooks/queries';
+import {
+  useChildDetail,
+  useDeactivateChild,
+  useReactivateChild,
+  useAdminBalances,
+} from '@/hooks/queries';
 import { localizeRpcError } from '@lib/api-error';
 import { buildChildDeactivateMessage } from '@lib/children';
 import { useTransientMessage } from '@/hooks/use-transient-message';
 import { useTheme } from '@/context/theme-context';
+import { useAppAlert } from '@/context/app-alert-context';
 import { spacing, typography } from '@/constants/theme';
 
 type ChildViewSheetProps = Readonly<{
@@ -18,6 +25,7 @@ type ChildViewSheetProps = Readonly<{
 
 export function ChildViewSheet({ childId, onClose }: ChildViewSheetProps) {
   const { colors } = useTheme();
+  const { showAlert } = useAppAlert();
   const { data: child, isLoading } = useChildDetail(childId ?? undefined);
   const deactivateMutation = useDeactivateChild();
   const reactivateMutation = useReactivateChild();
@@ -65,30 +73,34 @@ export function ChildViewSheet({ childId, onClose }: ChildViewSheetProps) {
       awaitingCount: 0,
       totalBalance,
     });
-    Alert.alert(`Desativar ${child.nome}?`, message, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Desativar',
-        style: 'destructive',
-        onPress: () => executeDeactivate(child.id, child.nome),
-      },
-    ]);
-  }, [child, balances, executeDeactivate]);
+    showAlert({
+      title: `Desativar ${child.nome}?`,
+      message,
+      actions: [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Desativar',
+          style: 'destructive',
+          onPress: () => executeDeactivate(child.id, child.nome),
+        },
+      ],
+    });
+  }, [child, balances, showAlert, executeDeactivate]);
 
   const handleReactivate = useCallback(() => {
     if (!child) return;
-    Alert.alert(
-      `Reativar ${child.nome}?`,
-      `${child.nome} poderá fazer login novamente e retomar as atividades.`,
-      [
+    showAlert({
+      title: `Reativar ${child.nome}?`,
+      message: `${child.nome} poderá fazer login novamente e retomar as atividades.`,
+      actions: [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Reativar',
           onPress: () => executeReactivate(child.id, child.nome),
         },
       ],
-    );
-  }, [child, executeReactivate]);
+    });
+  }, [child, showAlert, executeReactivate]);
 
   return (
     <BottomSheetModal
@@ -135,6 +147,7 @@ export function ChildViewSheet({ childId, onClose }: ChildViewSheetProps) {
             label="Nome"
             value={child.nome}
             editable={false}
+            leadingIcon={User}
             accessibilityLabel="Nome do filho"
           />
 
@@ -142,6 +155,7 @@ export function ChildViewSheet({ childId, onClose }: ChildViewSheetProps) {
             label="E-mail"
             value={child.email ?? 'Sem conta vinculada'}
             editable={false}
+            leadingIcon={Mail}
             accessibilityLabel="E-mail do filho"
           />
 

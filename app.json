@@ -21,13 +21,6 @@
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.maxjuniorbr.trofinho",
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
-    },
     "android": {
       "package": "com.maxjuniorbr.trofinho",
       "googleServicesFile": "./google-services.json",

@@ -62,7 +62,7 @@ vi.mock('react-native', () => ({
     dismiss: vi.fn(),
   },
   KeyboardAvoidingView: createHostComponent('KeyboardAvoidingView'),
-  Platform: { OS: 'ios', select: <T,>(spec: { ios?: T; android?: T; default?: T }) => spec.ios ?? spec.default },
+  Platform: { OS: 'android', select: <T,>(spec: { ios?: T; android?: T; default?: T }) => spec.android ?? spec.default },
   Pressable: createHostComponent('Pressable'),
   ScrollView: createHostComponent('ScrollView'),
   StyleSheet: { create: <T,>(styles: T) => styles },
@@ -98,7 +98,7 @@ vi.mock('lucide-react-native', () => ({
   Gift: createHostComponent('Gift'),
   House: createHostComponent('House'),
   Info: createHostComponent('Info'),
-  Lock: createHostComponent('Lock'),
+  LogOut: createHostComponent('LogOut'),
   ShoppingBag: createHostComponent('ShoppingBag'),
   User: createHostComponent('User'),
 }));
@@ -136,9 +136,8 @@ vi.mock('@/components/profile/personal-data-sheet', () => ({
     React.createElement('PersonalDataSheet', props),
 }));
 
-vi.mock('@/components/profile/change-password-sheet', () => ({
-  ChangePasswordSheet: (props: Record<string, unknown>) =>
-    React.createElement('ChangePasswordSheet', props),
+vi.mock('@/components/ui/confirm-sheet', () => ({
+  ConfirmSheet: (props: Record<string, unknown>) => React.createElement('ConfirmSheet', props),
 }));
 
 vi.mock('@/components/profile/theme-card', () => ({
@@ -266,36 +265,31 @@ describe('ChildProfileScreen', () => {
   it('calls signOut when logout button is pressed', async () => {
     const renderer = render(<ChildProfileScreen />);
     const logoutBtn = renderer.root.findByType('LogoutButton' as never);
+    act(() => {
+      logoutBtn.props.onPress();
+    });
+    const confirmSheet = renderer.root.findByType('ConfirmSheet' as never);
+    expect(confirmSheet.props.visible).toBe(true);
     await act(async () => {
-      await logoutBtn.props.onPress();
+      await confirmSheet.props.onConfirm();
     });
     expect(signOutMock).toHaveBeenCalled();
   });
 
-  it('keeps profile sheets closed initially and opens them from menu rows', () => {
+  it('opens personal data sheet from menu row', () => {
     const renderer = render(<ChildProfileScreen />);
     const personalDataSheet = renderer.root.findByType('PersonalDataSheet' as never);
-    const passwordSheet = renderer.root.findByType('ChangePasswordSheet' as never);
 
     expect(personalDataSheet.props.visible).toBe(false);
-    expect(passwordSheet.props.visible).toBe(false);
 
     const personalDataRow = renderer.root
       .findAllByType('Pressable' as never)
       .find((node) => node.props.accessibilityLabel === 'Alterar dados pessoais')!;
-    const passwordRow = renderer.root
-      .findAllByType('Pressable' as never)
-      .find((node) => node.props.accessibilityLabel === 'Alterar senha')!;
 
     act(() => {
       personalDataRow.props.onPress();
     });
     expect(renderer.root.findByType('PersonalDataSheet' as never).props.visible).toBe(true);
-
-    act(() => {
-      passwordRow.props.onPress();
-    });
-    expect(renderer.root.findByType('ChangePasswordSheet' as never).props.visible).toBe(true);
   });
 
   it('renders profile blocks in the requested child order', () => {
@@ -305,7 +299,6 @@ describe('ChildProfileScreen', () => {
       'aparencia',
       'notificacoes',
       'dados',
-      'seguranca',
       'sobre',
     ]);
   });

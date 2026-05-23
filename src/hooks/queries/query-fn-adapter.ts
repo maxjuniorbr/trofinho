@@ -63,7 +63,7 @@ export function mutationFnAdapter(
   fn: () => Promise<{ error: string | null }>,
 ): () => Promise<void> {
   return async () => {
-    const result = await fn();
+    const result = await withTimeout(fn());
     if (result.error) throw new Error(result.error);
   };
 }

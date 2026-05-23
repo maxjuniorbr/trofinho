@@ -9,6 +9,11 @@ const sharedTextColors = {
   inverse: '#FFFFFF',
   inverseMuted: 'rgba(255, 255, 255, 0.85)',
   inverseSubtle: 'rgba(255, 255, 255, 0.8)',
+  // Mid-strength inverse text for labels/icons sitting on dark/brand surfaces
+  // (e.g. balance card label, hero summary unit). Tier ladder: muted (.85) >
+  // subtle (.8) > strong (.7) > faint (.6).
+  inverseStrong: 'rgba(255, 255, 255, 0.7)',
+  inverseFaint: 'rgba(255, 255, 255, 0.6)',
   onBrand: '#030711',
   onBrandMuted: 'rgba(42, 36, 16, 0.75)',
 } as const;
@@ -26,6 +31,20 @@ export const staticTextColors = sharedTextColors;
  */
 export const externalBrandColors = {
   whatsapp: '#25D366',
+  // Google identity colors (Material spec) used by the Google sign-in button
+  // and `G` logo. Do not theme these — they must match Google's branding
+  // guidelines on every surface.
+  google: {
+    yellow: '#FFC107',
+    red: '#FF3D00',
+    green: '#4CAF50',
+    blue: '#1976D2',
+    // Slate palette used for text inside the white Google button surface.
+    buttonSurface: '#FFFFFF',
+    buttonText: '#0F172A',
+    buttonSubtext: '#64748B',
+    buttonArrow: '#94A3B8',
+  },
 } as const;
 
 const sharedOverlayColors = {

@@ -426,7 +426,7 @@ function makeStyles() {
       flex: 1,
       borderRadius: radii.lg,
       borderCurve: 'continuous',
-      backgroundColor: 'rgba(255, 255, 255, 0.10)',
+      backgroundColor: heroPalette.surfaceChip,
       paddingVertical: spacing['3'],
       paddingHorizontal: spacing['4'],
       alignItems: 'center',
