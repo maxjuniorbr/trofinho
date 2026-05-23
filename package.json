@@ -83,7 +83,7 @@
     "fast-check": "^4.7.0",
     "prettier": "^3.8.3",
     "supabase": "^2.95.6",
-    "test-renderer": "^0.15.0",
+    "test-renderer": "^1.2.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.5"
   },
