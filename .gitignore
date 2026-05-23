@@ -41,10 +41,11 @@ Thumbs.db
 .scannerwork/
 
 # AI assistants (local config)
-.agents/
 .github/copilot-instructions.md
 .github/instructions/
 .github/prompts/
+.github/agents/
+.github/skills/
 .kiro/
 .codex
 
@@ -57,9 +58,6 @@ supabase/.temp/
 # Google Cloud SDK
 google-cloud-sdk/
 google-cloud-cli-*.tar.gz
-
-# Skills lock
-skills-lock.json
 
 # Vercel
 public/.vercel/
