@@ -122,6 +122,7 @@ vi.mock('lucide-react-native', () => ({
   Trash2: createIcon('Trash2'),
   KeyRound: createIcon('KeyRound'),
   Hash: createIcon('Hash'),
+  Calendar: createIcon('Calendar'),
   FileText: createIcon('FileText'),
   Zap: createIcon('Zap'),
 }));

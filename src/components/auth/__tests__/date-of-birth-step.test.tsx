@@ -20,20 +20,6 @@ vi.mock('@react-native-community/datetimepicker', () => {
     };
 });
 
-// Add Calendar and Link2 icons not in global setup
-vi.mock('lucide-react-native', async () => {
-    const actual = await vi.importActual<Record<string, unknown>>('lucide-react-native');
-    return {
-        ...actual,
-        Calendar: React.forwardRef(function Calendar(
-            props: Record<string, unknown>,
-            ref: React.ForwardedRef<unknown>,
-        ) {
-            return React.createElement('Calendar', { ...props, ref });
-        }),
-    };
-});
-
 function render(element: React.ReactElement): ReactTestRenderer {
     let renderer!: ReactTestRenderer;
     act(() => {

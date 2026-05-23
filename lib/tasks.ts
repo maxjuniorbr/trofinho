@@ -909,7 +909,7 @@ async function batchSignEvidenceUrls<T extends { evidencia_url: string | null }>
   const signedMap = new Map<number, string>();
   for (let i = 0; i < validEntries.length; i++) {
     const signed = data[i];
-    if (signed && !signed.error) {
+    if (signed && !signed.error && typeof signed.signedUrl === 'string') {
       signedMap.set(validEntries[i].index, signed.signedUrl);
     }
   }

@@ -3,26 +3,6 @@ import { act, create, type ReactTestRenderer } from '../helpers/test-renderer-co
 import { Pressable, Text, TextInput } from 'react-native';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Add missing icon to lucide mock before importing the component
-vi.mock('lucide-react-native', async (importOriginal) => {
-    const actual = await importOriginal<Record<string, unknown>>();
-    function createIcon(name: string) {
-        const Icon = React.forwardRef(function Icon(
-            props: Record<string, unknown>,
-            ref: React.ForwardedRef<unknown>,
-        ) {
-            return React.createElement(name, { ...props, ref });
-        });
-        Icon.displayName = `Icon(${name})`;
-        return Icon;
-    }
-    return {
-        ...actual,
-        Hash: actual.Hash ?? createIcon('Hash'),
-    };
-});
-
-// eslint-disable-next-line import/first
 import JoinFamilyScreen from '../../app/(auth)/join-family';
 
 const routerMock = vi.hoisted(() => ({
