@@ -49,6 +49,9 @@ Sentry.init({
     const value = event.exception?.values?.[0]?.value ?? '';
     // Filter out network fetch aborts — they're noise from component unmounts / connectivity.
     if (value === 'abort' || value === 'Aborted' || value === 'AbortError') return null;
+    // Filter out the localized offline message (TROFINHO-19): expected UX state,
+    // already surfaced inline via OfflineBanner / localizeSupabaseError.
+    if (value.startsWith('Sem conexão com a internet')) return null;
     return event;
   },
 });
