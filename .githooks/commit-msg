@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# Valida o formato da mensagem de commit conforme convenções do projeto.
+# Formato: <type>: <descrição>  (máx 72 chars, sem escopo, sem corpo, sem ponto final)
+# Tipos permitidos: feat | fix | refactor | style | chore | docs | test
+
+COMMIT_MSG_FILE="$1"
+
+# Lê a primeira linha não-comentário
+COMMIT_MSG=$(grep -v '^#' "$COMMIT_MSG_FILE" | head -n 1)
+
+# Ignora merge commits, revert commits e fixup/squash gerados pelo git
+if echo "$COMMIT_MSG" | grep -qE "^(Merge|Revert|fixup!|squash!)"; then
+  exit 0
+fi
+
+ALLOWED_TYPES="feat|fix|refactor|style|chore|docs|test"
+VALID_PATTERN="^($ALLOWED_TYPES): .+"
+SCOPE_PATTERN="^($ALLOWED_TYPES)\(.+\):"
+
+# Formato básico
+if ! echo "$COMMIT_MSG" | grep -qE "$VALID_PATTERN"; then
+  echo ""
+  echo "✗ Commit rejeitado — formato inválido."
+  echo ""
+  echo "  Formato esperado:  <type>: <descrição>"
+  echo "  Tipos permitidos:  $ALLOWED_TYPES"
+  echo "  Sem escopo:        use 'feat:', não 'feat(ui):'"
+  echo "  Idioma:            descrição em inglês"
+  echo "  Exemplo válido:    feat: add reward redemption screen"
+  echo ""
+  echo "  Mensagem recebida: \"$COMMIT_MSG\""
+  echo ""
+  exit 1
+fi
+
+# Escopo proibido
+if echo "$COMMIT_MSG" | grep -qE "$SCOPE_PATTERN"; then
+  echo ""
+  echo "✗ Commit rejeitado — escopos não são permitidos."
+  echo "  Use 'feat:' em vez de 'feat(ui):'"
+  echo ""
+  exit 1
+fi
+
+# Comprimento máximo
+MSG_LENGTH=${#COMMIT_MSG}
+if [ "$MSG_LENGTH" -gt 72 ]; then
+  echo ""
+  echo "✗ Commit rejeitado — mensagem muito longa ($MSG_LENGTH chars; máximo 72)."
+  echo ""
+  exit 1
+fi
+
+# Sem ponto final
+if echo "$COMMIT_MSG" | grep -qE "\.$"; then
+  echo ""
+  echo "✗ Commit rejeitado — não termine a descrição com ponto."
+  echo ""
+  exit 1
+fi
+
+exit 0

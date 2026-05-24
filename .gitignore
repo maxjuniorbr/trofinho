@@ -41,23 +41,24 @@ Thumbs.db
 .scannerwork/
 
 # AI assistants (local config)
+AGENTS.md
 .github/copilot-instructions.md
 .github/instructions/
 .github/prompts/
 .github/agents/
 .github/skills/
 .kiro/
-.codex
+
+# graphify (generated graph artifacts + local hooks)
+graphify-out/
+.githooks/post-commit
+.githooks/post-checkout
 
 # Expo MCP (local dev)
 .local-expo-mcp/
 
 # Supabase local artifacts
 supabase/.temp/
-
-# Google Cloud SDK
-google-cloud-sdk/
-google-cloud-cli-*.tar.gz
 
 # Vercel
 public/.vercel/

@@ -4,7 +4,9 @@
     "slug": "trofinho",
     "version": "1.0.1",
     "scheme": "trofinho",
-    "platforms": ["android"],
+    "platforms": [
+      "android"
+    ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",

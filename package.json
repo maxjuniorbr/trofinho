@@ -26,7 +26,8 @@
     "db:seed": "supabase db query --linked -f temp/seed-test-data.sql",
     "build": "EAS_BUILD_NO_EXPO_GO_WARNING=true npx eas-cli@latest build --profile preview --platform android",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "prepare": "git config core.hooksPath .githooks"
   },
   "dependencies": {
     "@expo-google-fonts/nunito": "^0.4.2",
