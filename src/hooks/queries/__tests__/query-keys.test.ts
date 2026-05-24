@@ -25,7 +25,6 @@ describe('Property 1: Query key hierarchy enables prefix invalidation', () => {
         { label: 'lists', fn: () => queryKeys.balances.lists() },
         { label: 'self', fn: () => queryKeys.balances.self() },
         { label: 'byChild', fn: (id: string) => queryKeys.balances.byChild(id) },
-        { label: 'transactions', fn: (id: string) => queryKeys.balances.transactions(id) },
       ],
     },
     {

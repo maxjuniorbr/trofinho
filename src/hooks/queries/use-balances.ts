@@ -1,7 +1,6 @@
 import * as Sentry from '@sentry/react-native';
 import {
   useQuery,
-  useInfiniteQuery,
   useMutation,
   useQueryClient,
   keepPreviousData,
@@ -9,10 +8,8 @@ import {
 import {
   getBalance,
   listAdminBalances,
-  listTransactions,
   listTransactionsByPeriod,
   applyPenalty,
-  configureAppreciation,
   configurePiggyBank,
   transferToPiggyBank,
   syncAutomaticAppreciation,
@@ -21,10 +18,8 @@ import {
   queryFnAdapter,
   nullableQueryFnAdapter,
   mutationFnAdapter,
-  paginatedQueryFnAdapter,
-  type PaginatedPage,
 } from './query-fn-adapter';
-import { queryKeys, STALE_TIMES, PAGE_SIZES } from './query-keys';
+import { queryKeys, STALE_TIMES } from './query-keys';
 
 export const useBalance = (childId?: string) =>
   useQuery({
@@ -38,23 +33,6 @@ export const useAdminBalances = () =>
     queryKey: queryKeys.balances.lists(),
     queryFn: queryFnAdapter(() => listAdminBalances()),
     staleTime: STALE_TIMES.balances,
-  });
-
-export const useTransactions = (childId: string) =>
-  useInfiniteQuery({
-    queryKey: queryKeys.balances.transactions(childId),
-    queryFn: paginatedQueryFnAdapter(
-      (page, pageSize) => listTransactions(childId, page, pageSize),
-      PAGE_SIZES.transactions,
-    ),
-    initialPageParam: 0,
-    getNextPageParam: (
-      lastPage: PaginatedPage<unknown>,
-      _allPages: unknown[],
-      lastPageParam: number,
-    ) => (lastPage.hasMore ? lastPageParam + 1 : undefined),
-    staleTime: STALE_TIMES.balances,
-    enabled: !!childId,
   });
 
 export const useTransactionsByPeriod = (childId: string, from: string, to: string) =>
@@ -81,18 +59,6 @@ export const useApplyPenalty = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });
-    },
-  });
-};
-
-export const useConfigureAppreciation = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (args: { childId: string; rate: number }) =>
-      mutationFnAdapter(() => configureAppreciation(args.childId, args.rate))(),
-    onSuccess: async () => {
-      syncAutomaticAppreciation().catch((e) => Sentry.captureException(e));
-      await queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });
     },
   });
 };

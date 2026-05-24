@@ -7,7 +7,7 @@ import { getQueryHelpers } from '../../../../test/helpers/query-test-utils';
 
 vi.mock('@tanstack/react-query', async () => {
   const { createReactQueryMock } = await import('../../../../test/helpers/query-test-utils');
-  return createReactQueryMock({ withInfiniteQuery: true });
+  return createReactQueryMock();
 });
 
 const mockSyncAppreciation = vi.fn().mockResolvedValue(undefined);
@@ -17,10 +17,8 @@ vi.mock('../../../../lib/balances', () => ({
     .fn()
     .mockResolvedValue({ data: { filho_id: 'x', saldo_livre: 0, cofrinho: 0 }, error: null }),
   listAdminBalances: vi.fn().mockResolvedValue({ data: [], error: null }),
-  listTransactions: vi.fn().mockResolvedValue({ data: [], error: null }),
   listTransactionsByPeriod: vi.fn().mockResolvedValue({ data: [], error: null }),
   applyPenalty: vi.fn().mockResolvedValue({ data: { deducted: 10 }, error: null }),
-  configureAppreciation: vi.fn().mockResolvedValue({ error: null }),
   configurePiggyBank: vi.fn().mockResolvedValue({ error: null }),
   transferToPiggyBank: vi.fn().mockResolvedValue({ error: null }),
   syncAutomaticAppreciation: (...args: unknown[]) => mockSyncAppreciation(...args),
@@ -82,14 +80,6 @@ describe('use-balances query hooks', () => {
       await qf();
       expect(mockSyncAppreciation).not.toHaveBeenCalled();
     });
-
-    it('useTransactions queryFn does not call syncAutomaticAppreciation', async () => {
-      const { useTransactions } = await loadHooks();
-      useTransactions('child-1');
-      const qf = lastQueryOpts().queryFn as (ctx: { pageParam: number }) => Promise<unknown>;
-      await qf({ pageParam: 0 });
-      expect(mockSyncAppreciation).not.toHaveBeenCalled();
-    });
   });
 });
 
@@ -104,14 +94,6 @@ describe('use-balances mutation hooks', () => {
       expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.balances.all });
     });
 
-    it('useConfigureAppreciation invalidates balances.all', async () => {
-      const { useConfigureAppreciation } = await loadHooks();
-      useConfigureAppreciation();
-      const onSuccess = lastMutationOpts().onSuccess as () => Promise<void>;
-      await onSuccess();
-      expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.balances.all });
-    });
-
     it('useTransferToPiggyBank invalidates balances.all', async () => {
       const { useTransferToPiggyBank } = await loadHooks();
       useTransferToPiggyBank();
@@ -121,8 +103,8 @@ describe('use-balances mutation hooks', () => {
     });
   });
 
-  // Feature: S27 — syncAutomaticAppreciation moved to pg_cron; only useConfigureAppreciation still syncs client-side
-  describe('Property 6: Only config mutation calls syncAutomaticAppreciation before invalidating', () => {
+  // Feature: S27 — syncAutomaticAppreciation moved to pg_cron; only useConfigurePiggyBank still syncs client-side
+  describe('Property 6: Only piggy bank config mutation calls syncAutomaticAppreciation before invalidating', () => {
     it('useApplyPenalty invalidates without syncing', async () => {
       const { useApplyPenalty } = await loadHooks();
 
@@ -134,8 +116,8 @@ describe('use-balances mutation hooks', () => {
       expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.balances.all });
     });
 
-    it('useConfigureAppreciation calls syncAutomaticAppreciation before invalidating', async () => {
-      const { useConfigureAppreciation } = await loadHooks();
+    it('useConfigurePiggyBank calls syncAutomaticAppreciation before invalidating', async () => {
+      const { useConfigurePiggyBank } = await loadHooks();
       const callOrder: string[] = [];
       mockSyncAppreciation.mockImplementation(() => {
         callOrder.push('sync');
@@ -145,7 +127,7 @@ describe('use-balances mutation hooks', () => {
         callOrder.push('invalidate');
       });
 
-      useConfigureAppreciation();
+      useConfigurePiggyBank();
       const onSuccess = lastMutationOpts().onSuccess as () => Promise<void>;
       await onSuccess();
 
@@ -209,17 +191,6 @@ describe('use-balances mutationFn execution', () => {
     }) => Promise<unknown>;
     await mutationFn({ childId: 'c1', amount: 50 });
     expect(balancesLib.transferToPiggyBank).toHaveBeenCalledWith('c1', 50);
-  });
-
-  it('useConfigureAppreciation mutationFn calls configureAppreciation with correct args', async () => {
-    const { useConfigureAppreciation } = await loadHooks();
-    useConfigureAppreciation();
-    const mutationFn = lastMutationOpts().mutationFn as (args: {
-      childId: string;
-      rate: number;
-    }) => Promise<unknown>;
-    await mutationFn({ childId: 'c1', rate: 5 });
-    expect(balancesLib.configureAppreciation).toHaveBeenCalledWith('c1', 5);
   });
 
   it('useConfigurePiggyBank mutationFn calls configurePiggyBank with correct args', async () => {

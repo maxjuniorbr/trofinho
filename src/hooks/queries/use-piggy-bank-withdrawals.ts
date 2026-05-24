@@ -5,18 +5,9 @@ import {
   cancelPiggyBankWithdrawal,
   listPendingPiggyBankWithdrawals,
   getChildPendingWithdrawal,
-  configureWithdrawalRate,
-  countPendingPiggyBankWithdrawals,
 } from '../../../lib/piggy-bank-withdrawal';
 import { queryFnAdapter, mutationFnAdapter, nullableQueryFnAdapter } from './query-fn-adapter';
 import { queryKeys, STALE_TIMES } from './query-keys';
-
-export const usePendingPiggyBankWithdrawalCount = () =>
-  useQuery({
-    queryKey: queryKeys.piggyBankWithdrawals.pendingCount(),
-    queryFn: queryFnAdapter(() => countPendingPiggyBankWithdrawals()),
-    staleTime: STALE_TIMES.piggyBankWithdrawals,
-  });
 
 export const usePendingPiggyBankWithdrawals = () =>
   useQuery({
@@ -79,17 +70,6 @@ export const useCancelPiggyBankWithdrawal = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.piggyBankWithdrawals.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });
-    },
-  });
-};
-
-export const useConfigureWithdrawalRate = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ childId, rate }: { childId: string; rate: number }) =>
-      mutationFnAdapter(() => configureWithdrawalRate(childId, rate))(),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.balances.all });
     },
   });
 };

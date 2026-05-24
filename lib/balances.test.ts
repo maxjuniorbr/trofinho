@@ -4,7 +4,6 @@ import * as fc from 'fast-check';
 import {
   applyPenalty,
   calculateProjection,
-  configureAppreciation,
   configurePiggyBank,
   formatTransactionDates,
   getAppreciationPeriodLabel,
@@ -13,7 +12,6 @@ import {
   getTransactionTypeLabel,
   isCredit,
   listAdminBalances,
-  listTransactions,
   listTransactionsByPeriod,
   syncAutomaticAppreciation,
   transferToPiggyBank,
@@ -119,29 +117,10 @@ describe('balances', () => {
     });
   });
 
-  it('lists transactions with pagination and ordering', async () => {
-    const query = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnThis(),
-      range: vi.fn().mockReturnThis(),
-      returns: vi.fn().mockReturnThis(),
-      overrideTypes: vi.fn().mockResolvedValue({ data: [{ id: 'tx-1' }], error: null }),
-    };
-    supabaseMock.from.mockReturnValue(query);
-
-    const result = await listTransactions('child-1');
-
-    expect(query.eq).toHaveBeenCalledWith('filho_id', 'child-1');
-    expect(query.range).toHaveBeenCalledWith(0, 20);
-    expect(result).toEqual({ data: [{ id: 'tx-1' }], hasMore: false, error: null });
-  });
-
   it('delegates balance mutations to RPC calls', async () => {
     supabaseMock.rpc
       .mockResolvedValueOnce({ error: null })
       .mockResolvedValueOnce({ error: { message: 'penalty failed' } })
-      .mockResolvedValueOnce({ error: null })
       .mockResolvedValueOnce({ error: { message: 'transfer failed' } });
 
     await expect(transferToPiggyBank('child-1', 10)).resolves.toEqual({ error: null });
@@ -149,7 +128,6 @@ describe('balances', () => {
       data: null,
       error: 'Algo deu errado. Tente novamente.',
     });
-    await expect(configureAppreciation('child-1', 12)).resolves.toEqual({ error: null });
     await expect(transferToPiggyBank('child-1', 4)).resolves.toEqual({
       error: 'Algo deu errado. Tente novamente.',
     });
@@ -157,10 +135,6 @@ describe('balances', () => {
     expect(supabaseMock.rpc).toHaveBeenNthCalledWith(1, 'transferir_para_cofrinho', {
       p_filho_id: 'child-1',
       p_valor: 10,
-    });
-    expect(supabaseMock.rpc).toHaveBeenNthCalledWith(3, 'configurar_valorizacao', {
-      p_filho_id: 'child-1',
-      p_indice: 12,
     });
   });
 
@@ -172,24 +146,11 @@ describe('balances', () => {
       overrideTypes: vi.fn().mockResolvedValue({ data: null, error: null }),
       select: vi.fn().mockReturnThis(),
     };
-    const listErrorQuery = {
-      eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnThis(),
-      range: vi.fn().mockReturnThis(),
-      returns: vi.fn().mockReturnThis(),
-      overrideTypes: vi.fn().mockResolvedValue({ data: null, error: { message: 'list failed' } }),
-      select: vi.fn().mockReturnThis(),
-    };
 
-    supabaseMock.from.mockReturnValueOnce(emptyBalancesQuery).mockReturnValueOnce(listErrorQuery);
+    supabaseMock.from.mockReturnValueOnce(emptyBalancesQuery);
     supabaseMock.rpc.mockResolvedValueOnce({ error: null });
 
     await expect(listAdminBalances()).resolves.toEqual({ data: [], error: null });
-    await expect(listTransactions('child-1')).resolves.toEqual({
-      data: [],
-      hasMore: false,
-      error: 'Algo deu errado. Tente novamente.',
-    });
     await expect(applyPenalty('child-1', 2, 'Atraso')).resolves.toEqual({
       data: { deducted: 2 },
       error: null,

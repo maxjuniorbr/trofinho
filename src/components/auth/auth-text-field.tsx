@@ -1,8 +1,8 @@
 import { useMemo, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { useTheme } from '@/context/theme-context';
 import { radii, spacing, typography } from '@/constants/theme';
-import { Eye, EyeOff, type LucideIcon } from 'lucide-react-native';
+import { type LucideIcon } from 'lucide-react-native';
 
 type AuthTextFieldProps = TextInputProps &
   Readonly<{
@@ -51,25 +51,6 @@ export const AuthTextField = ({
         {rightAction ?? null}
       </View>
     </>
-  );
-};
-
-export const PasswordToggle = ({
-  visible,
-  onToggle,
-}: Readonly<{ visible: boolean; onToggle: () => void }>) => {
-  const { colors } = useTheme();
-  const Icon = visible ? EyeOff : Eye;
-
-  return (
-    <Pressable
-      onPress={onToggle}
-      hitSlop={8}
-      accessibilityRole="button"
-      accessibilityLabel={visible ? 'Ocultar senha' : 'Mostrar senha'}
-    >
-      <Icon size={20} color={colors.text.muted} strokeWidth={1.5} />
-    </Pressable>
   );
 };
 

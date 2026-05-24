@@ -7,8 +7,6 @@ import {
   cancelPiggyBankWithdrawal,
   listPendingPiggyBankWithdrawals,
   getChildPendingWithdrawal,
-  configureWithdrawalRate,
-  countPendingPiggyBankWithdrawals,
   getMinimumWithdrawalAmount,
   calculateNetAmount,
 } from './piggy-bank-withdrawal';
@@ -37,13 +35,6 @@ const mockSelectChain = (data: unknown, error: unknown = null) => {
   chain.limit = vi.fn().mockReturnValue(chain);
   chain.returns = vi.fn().mockReturnValue(chain);
   chain.overrideTypes = vi.fn().mockResolvedValue({ data, error });
-  return chain;
-};
-
-const mockCountChain = (count: number | null, error: unknown = null) => {
-  const chain: Record<string, ReturnType<typeof vi.fn>> = {};
-  chain.select = vi.fn().mockReturnValue(chain);
-  chain.eq = vi.fn().mockResolvedValue({ count, error });
   return chain;
 };
 
@@ -334,59 +325,5 @@ describe('getChildPendingWithdrawal', () => {
 
     expect(result.data).toBeNull();
     expect(result.error).toBeTruthy();
-  });
-});
-
-describe('configureWithdrawalRate', () => {
-  it('calls rpc with correct params', async () => {
-    supabaseMock.rpc.mockResolvedValueOnce({ error: null });
-
-    const result = await configureWithdrawalRate('child-1', 25);
-
-    expect(result.error).toBeNull();
-    expect(supabaseMock.rpc).toHaveBeenCalledWith('configurar_taxa_resgate_cofrinho', {
-      p_filho_id: 'child-1',
-      p_taxa: 25,
-    });
-  });
-
-  it('returns error on rpc failure', async () => {
-    supabaseMock.rpc.mockResolvedValueOnce({ error: { message: 'Taxa deve estar entre 0 e 50' } });
-
-    const result = await configureWithdrawalRate('child-1', 75);
-
-    expect(result.error).toBeTruthy();
-  });
-});
-
-describe('countPendingPiggyBankWithdrawals', () => {
-  it('returns count on success', async () => {
-    const chain = mockCountChain(3);
-    supabaseMock.from.mockReturnValue(chain);
-
-    const result = await countPendingPiggyBankWithdrawals();
-
-    expect(result.data).toBe(3);
-    expect(result.error).toBeNull();
-  });
-
-  it('returns 0 on error', async () => {
-    const chain = mockCountChain(null, { message: 'DB error' });
-    supabaseMock.from.mockReturnValue(chain);
-
-    const result = await countPendingPiggyBankWithdrawals();
-
-    expect(result.data).toBe(0);
-    expect(result.error).toBeTruthy();
-  });
-
-  it('returns 0 when count is null on success', async () => {
-    const chain = mockCountChain(null);
-    supabaseMock.from.mockReturnValue(chain);
-
-    const result = await countPendingPiggyBankWithdrawals();
-
-    expect(result.data).toBe(0);
-    expect(result.error).toBeNull();
   });
 });

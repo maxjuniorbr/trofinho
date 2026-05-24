@@ -7,7 +7,7 @@ import { prepareImageUpload } from './storage';
 import { supabase } from './supabase';
 
 export const WEEKDAY_LABELS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'] as const;
-export const WEEKDAY_FULL_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'] as const;
+const WEEKDAY_FULL_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'] as const;
 export const ALL_DAYS = 0b1111111; // 127
 export const MAX_TENTATIVAS = 1;
 

@@ -120,5 +120,3 @@ export const heroPaletteLight: Record<keyof typeof heroPalette, string> = {
   glowGold: 'rgba(250, 193, 20, 0.20)',
   glowGoldSoft: 'rgba(250, 193, 20, 0.10)',
 };
-
-export const easingPop = [0.34, 1.56, 0.64, 1] as const;

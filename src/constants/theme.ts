@@ -8,5 +8,5 @@ export {
 export { spacing } from '@/constants/spacing';
 export { typography } from '@/constants/typography';
 export { radii } from '@/constants/radius';
-export { shadows, gradients, heroPalette, heroPaletteLight, easingPop } from '@/constants/shadows';
+export { shadows, gradients, heroPalette, heroPaletteLight } from '@/constants/shadows';
 export { opacityPressed, opacityDisabled, type PressedOpacityToken, type DisabledOpacityToken } from '@/constants/interactions';

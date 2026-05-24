@@ -193,28 +193,6 @@ export async function listAdminBalances(): Promise<{
   return { data: data ?? [], error: null };
 }
 
-export async function listTransactions(
-  childId: string,
-  page = 0,
-  pageSize = 20,
-): Promise<{ data: Transaction[]; hasMore: boolean; error: string | null }> {
-  const from = page * pageSize;
-  const to = from + pageSize;
-
-  const { data, error } = await supabase
-    .from('movimentacoes')
-    .select('*')
-    .eq('filho_id', childId)
-    .order('created_at', { ascending: false })
-    .range(from, to)
-    .overrideTypes<Transaction[], { merge: false }>();
-
-  if (error) return { data: [], hasMore: false, error: localizeRpcError(error.message) };
-  const items = data ?? [];
-  const hasMore = items.length > pageSize;
-  return { data: hasMore ? items.slice(0, pageSize) : items, hasMore, error: null };
-}
-
 export async function listTransactionsByPeriod(
   childId: string,
   from: string,
@@ -283,18 +261,6 @@ export const calculateProjection = (cofrinho: number, rate: number): number => {
   if (rate <= 0 || cofrinho <= 0) return 0;
   return Math.max(Math.floor((cofrinho * rate) / 100), 1);
 };
-
-export async function configureAppreciation(
-  childId: string,
-  rate: number,
-): Promise<{ error: string | null }> {
-  const { error } = await supabase.rpc('configurar_valorizacao', {
-    p_filho_id: childId,
-    p_indice: rate,
-  });
-  if (error) return { error: localizeRpcError(error.message) };
-  return { error: null };
-}
 
 export async function configurePiggyBank(
   childId: string,

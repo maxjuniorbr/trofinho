@@ -142,29 +142,3 @@ export async function getChildPendingWithdrawal(childId?: string): Promise<{
   if (error) return { data: null, error: localizeRpcError(error.message) };
   return { data: data?.[0] ?? null, error: null };
 }
-
-export async function configureWithdrawalRate(
-  childId: string,
-  rate: number,
-): Promise<{ error: string | null }> {
-  const { error } = await supabase.rpc('configurar_taxa_resgate_cofrinho', {
-    p_filho_id: childId,
-    p_taxa: rate,
-  });
-
-  if (error) return { error: localizeRpcError(error.message) };
-  return { error: null };
-}
-
-export async function countPendingPiggyBankWithdrawals(): Promise<{
-  data: number;
-  error: string | null;
-}> {
-  const { count, error } = await supabase
-    .from('resgates_cofrinho')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'pendente');
-
-  if (error) return { data: 0, error: localizeRpcError(error.message) };
-  return { data: count ?? 0, error: null };
-}

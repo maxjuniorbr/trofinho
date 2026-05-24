@@ -11,13 +11,11 @@ vi.mock('@tanstack/react-query', async () => {
 });
 
 vi.mock('../../../../lib/piggy-bank-withdrawal', () => ({
-  countPendingPiggyBankWithdrawals: vi.fn().mockResolvedValue({ data: 0, error: null }),
   listPendingPiggyBankWithdrawals: vi.fn().mockResolvedValue({ data: [], error: null }),
   getChildPendingWithdrawal: vi.fn().mockResolvedValue({ data: null, error: null }),
   requestPiggyBankWithdrawal: vi.fn().mockResolvedValue({ data: 'withdrawal-id-1', error: null }),
   confirmPiggyBankWithdrawal: vi.fn().mockResolvedValue({ error: null }),
   cancelPiggyBankWithdrawal: vi.fn().mockResolvedValue({ error: null }),
-  configureWithdrawalRate: vi.fn().mockResolvedValue({ error: null }),
 }));
 
 const qh = getQueryHelpers(rq as unknown as Record<string, unknown>);
@@ -31,14 +29,6 @@ const loadHooks = () => import('../use-piggy-bank-withdrawals');
 
 describe('use-piggy-bank-withdrawals query hooks', () => {
   describe('queryFn delegates to the correct lib function', () => {
-    it('usePendingPiggyBankWithdrawalCount calls countPendingPiggyBankWithdrawals', async () => {
-      const { usePendingPiggyBankWithdrawalCount } = await loadHooks();
-      usePendingPiggyBankWithdrawalCount();
-      const qf = lastQueryOpts().queryFn as () => Promise<unknown>;
-      await qf();
-      expect(piggyBankLib.countPendingPiggyBankWithdrawals).toHaveBeenCalled();
-    });
-
     it('usePendingPiggyBankWithdrawals calls listPendingPiggyBankWithdrawals', async () => {
       const { usePendingPiggyBankWithdrawals } = await loadHooks();
       usePendingPiggyBankWithdrawals();
@@ -57,13 +47,6 @@ describe('use-piggy-bank-withdrawals query hooks', () => {
   });
 
   describe('query keys and staleTime', () => {
-    it('usePendingPiggyBankWithdrawalCount uses pendingCount key', async () => {
-      const { usePendingPiggyBankWithdrawalCount } = await loadHooks();
-      usePendingPiggyBankWithdrawalCount();
-      expect(lastQueryOpts().queryKey).toEqual(queryKeys.piggyBankWithdrawals.pendingCount());
-      expect(lastQueryOpts().staleTime).toBe(STALE_TIMES.piggyBankWithdrawals);
-    });
-
     it('usePendingPiggyBankWithdrawals uses pending key', async () => {
       const { usePendingPiggyBankWithdrawals } = await loadHooks();
       usePendingPiggyBankWithdrawals();
@@ -116,15 +99,6 @@ describe('use-piggy-bank-withdrawals mutation hooks', () => {
       });
       expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.balances.all });
     });
-
-    it('useConfigureWithdrawalRate invalidates only balances.all', async () => {
-      const { useConfigureWithdrawalRate } = await loadHooks();
-      useConfigureWithdrawalRate();
-      const onSuccess = lastMutationOpts().onSuccess as () => Promise<void>;
-      await onSuccess();
-      expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.balances.all });
-      expect(mockInvalidateQueries).toHaveBeenCalledTimes(1);
-    });
   });
 
   describe('mutation functions delegate to the correct lib function', () => {
@@ -136,17 +110,6 @@ describe('use-piggy-bank-withdrawals mutation hooks', () => {
       }) => Promise<unknown>;
       await mutationFn({ amount: 50 });
       expect(piggyBankLib.requestPiggyBankWithdrawal).toHaveBeenCalledWith(50, undefined);
-    });
-
-    it('useConfigureWithdrawalRate mutationFn calls configureWithdrawalRate', async () => {
-      const { useConfigureWithdrawalRate } = await loadHooks();
-      useConfigureWithdrawalRate();
-      const mutationFn = lastMutationOpts().mutationFn as (args: {
-        childId: string;
-        rate: number;
-      }) => Promise<unknown>;
-      await mutationFn({ childId: 'child-1', rate: 0.1 });
-      expect(piggyBankLib.configureWithdrawalRate).toHaveBeenCalledWith('child-1', 0.1);
     });
   });
 });

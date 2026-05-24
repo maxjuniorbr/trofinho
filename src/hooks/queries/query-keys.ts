@@ -21,8 +21,6 @@ export const queryKeys = {
     lists: () => [...queryKeys.balances.all, 'list'] as const,
     self: () => [...queryKeys.balances.all, 'self'] as const,
     byChild: (childId: string) => [...queryKeys.balances.all, 'by-child', childId] as const,
-    transactions: (childId: string) =>
-      [...queryKeys.balances.all, 'transactions', childId] as const,
     transactionsByPeriod: (childId: string, from: string, to: string) =>
       [...queryKeys.balances.all, 'transactions-period', childId, from, to] as const,
   },
@@ -58,7 +56,6 @@ export const queryKeys = {
   piggyBankWithdrawals: {
     all: ['piggy-bank-withdrawals'] as const,
     pending: () => [...queryKeys.piggyBankWithdrawals.all, 'pending'] as const,
-    pendingCount: () => [...queryKeys.piggyBankWithdrawals.all, 'pending-count'] as const,
     childPending: (childId?: string) =>
       [...queryKeys.piggyBankWithdrawals.all, 'child-pending', childId ?? 'self'] as const,
   },
@@ -87,5 +84,4 @@ export const PAGE_SIZES = {
   assignments: 10,
   prizes: 20,
   redemptions: 10,
-  transactions: 10,
 } as const;
