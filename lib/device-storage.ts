@@ -8,12 +8,12 @@ async function secureGet(key: string): Promise<string | null> {
   const countRaw = await SecureStore.getItemAsync(`${key}_chunks`);
   if (countRaw !== null) {
     const count = Number.parseInt(countRaw, 10);
-    const parts: string[] = [];
-    for (let i = 0; i < count; i++) {
-      const chunk = await SecureStore.getItemAsync(`${key}_chunk_${i}`);
-      if (chunk === null) return null;
-      parts.push(chunk);
-    }
+    // Read chunks in parallel — order is preserved by index, and chunks have no
+    // causal dependency on each other (mirrors the Promise.all in secureSet).
+    const parts = await Promise.all(
+      Array.from({ length: count }, (_, i) => SecureStore.getItemAsync(`${key}_chunk_${i}`)),
+    );
+    if (parts.some((p) => p === null)) return null;
     return parts.join('');
   }
 

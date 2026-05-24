@@ -71,8 +71,15 @@ export default function AdminPrizesScreen() {
     return allPrizes;
   }, [allPrizes, tab]);
 
-  const activeCount = useMemo(() => allPrizes.filter((p) => p.ativo).length, [allPrizes]);
-  const archivedCount = useMemo(() => allPrizes.filter((p) => !p.ativo).length, [allPrizes]);
+  const { activeCount, archivedCount } = useMemo(() => {
+    let active = 0;
+    let archived = 0;
+    for (const p of allPrizes) {
+      if (p.ativo) active++;
+      else archived++;
+    }
+    return { activeCount: active, archivedCount: archived };
+  }, [allPrizes]);
 
   const hasError = Boolean(error);
   const shouldShowEmptyState = hasError || visible.length === 0;

@@ -51,10 +51,21 @@ export default function AdminHomeScreen() {
   const children = childrenQuery.data ?? [];
 
   const balancesQuery = useAdminBalances();
+  const balancesData = balancesQuery.data;
   const balancesMap = useMemo(
-    () => new Map((balancesQuery.data ?? []).map((s) => [s.filho_id, s])),
-    [balancesQuery.data],
+    () => new Map((balancesData ?? []).map((s) => [s.filho_id, s])),
+    [balancesData],
   );
+  const { totalLivre, totalCofrinho } = useMemo(() => {
+    let livre = 0;
+    let cofrinho = 0;
+    for (const s of balancesData ?? []) {
+      livre += s.saldo_livre;
+      cofrinho += s.cofrinho;
+    }
+    return { totalLivre: livre, totalCofrinho: cofrinho };
+  }, [balancesData]);
+  const totalPoints = totalLivre + totalCofrinho;
 
   const pendingValidationQuery = usePendingValidationCount();
   const pendingRedemptionQuery = usePendingRedemptionCount();
@@ -123,10 +134,6 @@ export default function AdminHomeScreen() {
     Sentry.captureException(error);
   }
 
-  const balances = Array.from(balancesMap.values());
-  const totalLivre = balances.reduce((acc, s) => acc + s.saldo_livre, 0);
-  const totalCofrinho = balances.reduce((acc, s) => acc + s.cofrinho, 0);
-  const totalPoints = totalLivre + totalCofrinho;
   const visibleChildren = children.slice(0, 3);
 
   return (
