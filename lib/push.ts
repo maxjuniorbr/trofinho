@@ -53,10 +53,102 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function isTransientError(error: { name?: string; context?: { status?: number } }): boolean {
+type PushError = { name?: string; message?: string; context?: { status?: number } };
+
+function isTransientError(error: PushError): boolean {
   if (error.name === 'FunctionsFetchError' || error.name === 'FunctionsRelayError') return true;
   const status = error.context?.status;
   return status !== undefined && (status === 429 || status >= 500);
+}
+
+type AttemptOutcome =
+  | { kind: 'success' }
+  | { kind: 'skipped' }
+  | { kind: 'transient'; error: PushError }
+  | { kind: 'fatal'; error: PushError }
+  | { kind: 'thrown'; error: unknown };
+
+function reportPushSuccess(
+  event: PushEvent,
+  familiaId: string,
+  data: unknown,
+): void {
+  if (__DEV__) {
+    Sentry.addBreadcrumb({
+      category: 'push',
+      message: `Evento '${event}' processado`,
+      level: 'info',
+      data: data as Record<string, unknown> | undefined,
+    });
+  }
+
+  // Surface partial-failure: the edge function returns
+  // { sent: number, failed: number } when it fans out to multiple tokens.
+  const result = data as { failed?: number; sent?: number } | null;
+  if (result && typeof result.failed === 'number' && result.failed > 0) {
+    Sentry.captureMessage('push: partial delivery failure', {
+      level: 'warning',
+      tags: { subsystem: 'push', event },
+      extra: { failed: result.failed, sent: result.sent ?? 0, familiaId },
+    });
+  }
+}
+
+function captureFatalPushError(
+  error: PushError,
+  event: PushEvent,
+  attempt: number,
+): void {
+  let statusCode: number | undefined;
+  if (error.name === 'FunctionsHttpError') {
+    statusCode = error.context?.status;
+  }
+
+  Sentry.captureException(error, {
+    tags: { subsystem: 'push', event, errorCategory: error.name || 'Unknown' },
+    extra: { statusCode, attempt, message: error.message ?? String(error) },
+  });
+}
+
+async function attemptPushDispatch(
+  event: PushEvent,
+  familiaId: string,
+  payload: Record<string, string | string[]>,
+  attempt: number,
+): Promise<AttemptOutcome> {
+  try {
+    const accessToken = await getFreshAccessToken();
+
+    if (!accessToken) {
+      Sentry.addBreadcrumb({
+        category: 'push',
+        message: `Skipped '${event}': no valid session`,
+        level: 'info',
+      });
+      return { kind: 'skipped' };
+    }
+
+    if (attempt > 0) {
+      await sleep(RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1));
+    }
+
+    const { data, error } = await supabase.functions.invoke('send-push-notification', {
+      body: { event, familiaId, payload },
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (error) {
+      const e = error as PushError;
+      return isTransientError(e)
+        ? { kind: 'transient', error: e }
+        : { kind: 'fatal', error: e };
+    }
+
+    reportPushSuccess(event, familiaId, data);
+    return { kind: 'success' };
+  } catch (error) {
+    return { kind: 'thrown', error };
+  }
 }
 
 export async function dispatchPushNotification(
@@ -67,89 +159,37 @@ export async function dispatchPushNotification(
   let lastError: unknown = null;
 
   for (let attempt = 0; attempt <= MAX_PUSH_RETRIES; attempt++) {
-    try {
-      const accessToken = await getFreshAccessToken();
+    const outcome = await attemptPushDispatch(event, familiaId, payload, attempt);
 
-      if (!accessToken) {
-        Sentry.addBreadcrumb({
-          category: 'push',
-          message: `Skipped '${event}': no valid session`,
-          level: 'info',
-        });
-        return;
-      }
+    if (outcome.kind === 'success' || outcome.kind === 'skipped') return;
 
-      if (attempt > 0) {
-        await sleep(RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1));
-      }
-
-      const { data, error } = await supabase.functions.invoke('send-push-notification', {
-        body: { event, familiaId, payload },
-        headers: { Authorization: `Bearer ${accessToken}` },
+    if (outcome.kind === 'transient' && attempt < MAX_PUSH_RETRIES) {
+      lastError = outcome.error;
+      Sentry.addBreadcrumb({
+        category: 'push',
+        message: `Retry ${attempt + 1}/${MAX_PUSH_RETRIES} for '${event}'`,
+        level: 'warning',
+        data: { errorName: outcome.error.name, message: outcome.error.message },
       });
+      continue;
+    }
 
-      if (error) {
-        lastError = error;
+    if (outcome.kind === 'transient' || outcome.kind === 'fatal') {
+      captureFatalPushError(outcome.error, event, attempt);
+      return;
+    }
 
-        if (
-          attempt < MAX_PUSH_RETRIES &&
-          isTransientError(error as { name?: string; context?: { status?: number } })
-        ) {
-          Sentry.addBreadcrumb({
-            category: 'push',
-            message: `Retry ${attempt + 1}/${MAX_PUSH_RETRIES} for '${event}'`,
-            level: 'warning',
-            data: { errorName: error.name, message: error.message },
-          });
-          continue;
-        }
-
-        // Non-transient or final attempt — capture to Sentry
-        let statusCode: number | undefined;
-        if (error.name === 'FunctionsHttpError') {
-          statusCode = (error as { context?: { status?: number } }).context?.status;
-        }
-
-        Sentry.captureException(error, {
-          tags: { subsystem: 'push', event, errorCategory: error.name || 'Unknown' },
-          extra: { statusCode, attempt, message: error.message ?? String(error) },
-        });
-        return;
-      }
-
-      if (__DEV__) {
-        Sentry.addBreadcrumb({
-          category: 'push',
-          message: `Evento '${event}' processado`,
-          level: 'info',
-          data: data as Record<string, unknown> | undefined,
-        });
-      }
-
-      // Surface partial-failure: the edge function returns
-      // { sent: number, failed: number } when it fans out to multiple tokens.
-      const result = data as { failed?: number; sent?: number } | null;
-      if (result && typeof result.failed === 'number' && result.failed > 0) {
-        Sentry.captureMessage('push: partial delivery failure', {
-          level: 'warning',
-          tags: { subsystem: 'push', event },
-          extra: { failed: result.failed, sent: result.sent ?? 0, familiaId },
-        });
-      }
-
-      return; // Success — exit retry loop
-    } catch (err) {
-      lastError = err;
-      if (attempt >= MAX_PUSH_RETRIES) {
-        Sentry.captureException(err, {
-          tags: { subsystem: 'push', event, errorCategory: 'Exception' },
-          extra: { attempt },
-        });
-      }
+    // outcome.kind === 'thrown'
+    lastError = outcome.error;
+    if (attempt >= MAX_PUSH_RETRIES) {
+      Sentry.captureException(outcome.error, {
+        tags: { subsystem: 'push', event, errorCategory: 'Exception' },
+        extra: { attempt },
+      });
     }
   }
 
-  // All retries exhausted
+  // All retries exhausted (only reachable via thrown errors that fell through)
   if (lastError) {
     Sentry.captureMessage('push: all retries exhausted', {
       level: 'error',

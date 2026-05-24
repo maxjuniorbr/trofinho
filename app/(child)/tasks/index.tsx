@@ -99,6 +99,16 @@ function getStatusIcon(item: ChildAssignment, colors: ThemeColors) {
   return { Icon: Clock, color: colors.semantic.warning, bg: colors.semantic.warningBg };
 }
 
+function getCardBorderColor(
+  isAwaiting: boolean,
+  isRejected: boolean,
+  colors: ThemeColors,
+): string {
+  if (isAwaiting) return withAlpha(colors.semantic.info, 0.4);
+  if (isRejected) return withAlpha(colors.semantic.error, 0.4);
+  return colors.border.subtle;
+}
+
 function getStatusBadge(item: ChildAssignment, filter: Filter, colors: ThemeColors) {
   if (filter === 'pendente') {
     if (item.status === 'rejeitada') {
@@ -163,11 +173,7 @@ function TaskCard({
         shadows.card,
         {
           backgroundColor: colors.bg.surface,
-          borderColor: isAwaiting
-            ? withAlpha(colors.semantic.info, 0.4)
-            : isRejected
-              ? withAlpha(colors.semantic.error, 0.4)
-              : colors.border.subtle,
+          borderColor: getCardBorderColor(isAwaiting, isRejected, colors),
           opacity: pressed ? 0.92 : opacity,
         },
       ]}

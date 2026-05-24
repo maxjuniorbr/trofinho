@@ -17,6 +17,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const isUuid = (value: unknown): value is string =>
   typeof value === 'string' && UUID_RE.test(value);
 
+const asString = (value: unknown): string => (typeof value === 'string' ? value : '');
+const asUuidOrNull = (value: unknown): string | null => (isUuid(value) ? value : null);
+
 /**
  * Ensures the session is valid before executing a background action.
  * Push notification actions run without UI, so a stale/expired token
@@ -34,6 +37,40 @@ async function ensureValidSession(): Promise<boolean> {
   return !error;
 }
 
+function logIgnored(actionId: string, reason: string): void {
+  Sentry.addBreadcrumb({
+    category: 'notification-action',
+    level: 'warning',
+    message: `${actionId} ignored: ${reason}`,
+  });
+}
+
+async function runApproveTask(data: Record<string, unknown>): Promise<void> {
+  const { assignmentId, familiaId } = data;
+  if (!isUuid(assignmentId) || !isUuid(familiaId)) {
+    logIgnored(ACTION_IDS.APPROVE_TASK, 'invalid UUID payload');
+    return;
+  }
+  await approveAssignment(assignmentId, {
+    familiaId,
+    userId: asUuidOrNull(data.childUserId),
+    taskTitle: asString(data.taskTitle),
+  });
+}
+
+async function runConfirmRedemption(data: Record<string, unknown>): Promise<void> {
+  const { redemptionId, familiaId } = data;
+  if (!isUuid(redemptionId) || !isUuid(familiaId)) {
+    logIgnored(ACTION_IDS.CONFIRM_REDEMPTION, 'invalid UUID payload');
+    return;
+  }
+  await confirmRedemption(redemptionId, {
+    familiaId,
+    userId: asUuidOrNull(data.childUserId),
+    prizeName: asString(data.prizeName),
+  });
+}
+
 export async function handleNotificationAction(
   actionId: string,
   data: Record<string, unknown>,
@@ -41,46 +78,14 @@ export async function handleNotificationAction(
   try {
     const hasSession = await ensureValidSession();
     if (!hasSession) {
-      Sentry.addBreadcrumb({
-        category: 'notification-action',
-        level: 'warning',
-        message: `${actionId} ignored: no valid session`,
-      });
+      logIgnored(actionId, 'no valid session');
       return;
     }
 
     if (actionId === ACTION_IDS.APPROVE_TASK) {
-      const assignmentId = data.assignmentId;
-      const familiaId = data.familiaId;
-      if (!isUuid(assignmentId) || !isUuid(familiaId)) {
-        Sentry.addBreadcrumb({
-          category: 'notification-action',
-          level: 'warning',
-          message: 'APPROVE_TASK ignored: invalid UUID payload',
-        });
-        return;
-      }
-      await approveAssignment(assignmentId, {
-        familiaId,
-        userId: isUuid(data.childUserId) ? data.childUserId : null,
-        taskTitle: typeof data.taskTitle === 'string' ? data.taskTitle : '',
-      });
+      await runApproveTask(data);
     } else if (actionId === ACTION_IDS.CONFIRM_REDEMPTION) {
-      const redemptionId = data.redemptionId;
-      const familiaId = data.familiaId;
-      if (!isUuid(redemptionId) || !isUuid(familiaId)) {
-        Sentry.addBreadcrumb({
-          category: 'notification-action',
-          level: 'warning',
-          message: 'CONFIRM_REDEMPTION ignored: invalid UUID payload',
-        });
-        return;
-      }
-      await confirmRedemption(redemptionId, {
-        familiaId,
-        userId: isUuid(data.childUserId) ? data.childUserId : null,
-        prizeName: typeof data.prizeName === 'string' ? data.prizeName : '',
-      });
+      await runConfirmRedemption(data);
     }
   } catch (error) {
     Sentry.captureException(error, {
