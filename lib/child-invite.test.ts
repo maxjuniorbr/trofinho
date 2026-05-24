@@ -7,6 +7,7 @@ import {
   formatChildInviteCode,
   generateChildInvite,
   generateInviteCode,
+  resolveInitialChildInvite,
   validateChildInvite,
 } from './child-invite';
 
@@ -17,6 +18,9 @@ const getRandomBytesMock = vi.hoisted(() =>
 const supabaseMock = vi.hoisted(() => ({
   rpc: vi.fn(),
   from: vi.fn(),
+  auth: {
+    getUser: vi.fn(),
+  },
 }));
 
 const localizeRpcErrorMock = vi.hoisted(() => vi.fn((msg: string) => `localized: ${msg}`));
@@ -46,6 +50,7 @@ describe('child invite helpers', () => {
   beforeEach(() => {
     supabaseMock.rpc.mockReset();
     supabaseMock.from.mockReset();
+    supabaseMock.auth.getUser.mockReset();
     getRandomBytesMock
       .mockReset()
       .mockReturnValue(Uint8Array.from([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]));
@@ -227,5 +232,105 @@ describe('child invite helpers', () => {
     });
 
     expect(result).toEqual({ data: null, error: 'localized: permission denied' });
+  });
+});
+
+describe('resolveInitialChildInvite', () => {
+  beforeEach(() => {
+    supabaseMock.rpc.mockReset();
+    supabaseMock.from.mockReset();
+    supabaseMock.auth.getUser.mockReset();
+    vi.mocked(Sentry.captureException).mockClear();
+    vi.mocked(Sentry.captureMessage).mockClear();
+  });
+
+  it('uses the explicit invite code without consulting auth metadata', async () => {
+    supabaseMock.rpc.mockResolvedValueOnce({
+      data: {
+        valid: true,
+        id: 'invite-1',
+        familia_id: 'family-1',
+        nome_filho: 'Ana',
+      },
+      error: null,
+    });
+
+    const result = await resolveInitialChildInvite('ABC123');
+
+    expect(result.code).toBe('ABC123');
+    expect(result.preview?.id).toBe('invite-1');
+    expect(result.error).toBeNull();
+    expect(result.autoAdvance).toBe(false);
+    expect(supabaseMock.auth.getUser).not.toHaveBeenCalled();
+  });
+
+  it('falls back to pending_child_invite metadata and sets autoAdvance when valid', async () => {
+    supabaseMock.auth.getUser.mockResolvedValueOnce({
+      data: { user: { user_metadata: { pending_child_invite: 'xyz789' } } },
+      error: null,
+    });
+    supabaseMock.rpc.mockResolvedValueOnce({
+      data: {
+        valid: true,
+        id: 'invite-2',
+        familia_id: 'family-2',
+        nome_filho: 'Bia',
+      },
+      error: null,
+    });
+
+    const result = await resolveInitialChildInvite('');
+
+    expect(result.code).toBe('XYZ789');
+    expect(result.preview?.id).toBe('invite-2');
+    expect(result.autoAdvance).toBe(true);
+  });
+
+  it('returns a missing-code error when neither param nor metadata provide a code', async () => {
+    supabaseMock.auth.getUser.mockResolvedValueOnce({
+      data: { user: { user_metadata: {} } },
+      error: null,
+    });
+
+    const result = await resolveInitialChildInvite('');
+
+    expect(result).toEqual({
+      code: '',
+      preview: null,
+      error: 'Código de convite ausente. Volte e informe o código novamente.',
+      autoAdvance: false,
+    });
+    expect(supabaseMock.rpc).not.toHaveBeenCalled();
+  });
+
+  it('does not auto-advance when metadata code fails validation', async () => {
+    supabaseMock.auth.getUser.mockResolvedValueOnce({
+      data: { user: { user_metadata: { pending_child_invite: 'xyz789' } } },
+      error: null,
+    });
+    supabaseMock.rpc.mockResolvedValueOnce({
+      data: { valid: false, error: 'EXPIRED_CODE' },
+      error: null,
+    });
+
+    const result = await resolveInitialChildInvite('');
+
+    expect(result.code).toBe('XYZ789');
+    expect(result.preview).toBeNull();
+    expect(result.autoAdvance).toBe(false);
+    expect(result.error).toBe('Código inválido ou expirado. Peça um novo ao responsável.');
+  });
+
+  it('treats non-string pending_child_invite metadata as missing', async () => {
+    supabaseMock.auth.getUser.mockResolvedValueOnce({
+      data: { user: { user_metadata: { pending_child_invite: 123 } } },
+      error: null,
+    });
+
+    const result = await resolveInitialChildInvite('');
+
+    expect(result.code).toBe('');
+    expect(result.error).toBe('Código de convite ausente. Volte e informe o código novamente.');
+    expect(supabaseMock.rpc).not.toHaveBeenCalled();
   });
 });

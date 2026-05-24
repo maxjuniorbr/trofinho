@@ -175,3 +175,63 @@ export async function validateChildInvite(code: string): Promise<{
     return { preview: null, error: 'Erro ao verificar código. Tente novamente.' };
   }
 }
+
+export type ResolvedChildInvite = {
+  /** Final invite code resolved (from param or session metadata). */
+  code: string;
+  /** Preview of the invite if validation succeeded; null otherwise. */
+  preview: ChildInvitePreview | null;
+  /** Localized error message; null when no error. */
+  error: string | null;
+  /**
+   * True when the user is already authenticated and had a `pending_child_invite`
+   * marker in their metadata, meaning the screen should auto-advance past the
+   * Google sign-in step straight to date-of-birth collection.
+   */
+  autoAdvance: boolean;
+};
+
+/**
+ * Resolves the initial invite code for the join-child screen.
+ *
+ * Order of resolution:
+ * 1. Use the code provided via deep-link/route param if present.
+ * 2. Otherwise, fall back to `pending_child_invite` in the authenticated
+ *    user's metadata (set when an unfinished onboarding was interrupted).
+ *
+ * Returns the resolved code, the validation preview (if any), a localized
+ * error string when validation fails, and an `autoAdvance` flag set to true
+ * when the user already has an authenticated session with a pending invite.
+ */
+export async function resolveInitialChildInvite(
+  initialCode: string,
+): Promise<ResolvedChildInvite> {
+  let inviteCode = initialCode;
+  let hasPendingAuthenticatedInvite = false;
+
+  if (!inviteCode) {
+    const { data } = await supabase.auth.getUser();
+    const pendingInvite = data.user?.user_metadata?.pending_child_invite;
+    if (typeof pendingInvite === 'string') {
+      inviteCode = formatChildInviteCode(pendingInvite);
+      hasPendingAuthenticatedInvite = inviteCode.length === CHILD_INVITE_CODE_LENGTH;
+    }
+  }
+
+  if (!inviteCode) {
+    return {
+      code: '',
+      preview: null,
+      error: 'Código de convite ausente. Volte e informe o código novamente.',
+      autoAdvance: false,
+    };
+  }
+
+  const result = await validateChildInvite(inviteCode);
+  return {
+    code: inviteCode,
+    preview: result.preview,
+    error: result.error,
+    autoAdvance: hasPendingAuthenticatedInvite && Boolean(result.preview),
+  };
+}

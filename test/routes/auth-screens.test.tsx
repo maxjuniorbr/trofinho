@@ -29,6 +29,7 @@ const localSearchParamsState = vi.hoisted(() => ({
 
 const childInviteMocks = vi.hoisted(() => ({
   validateChildInvite: vi.fn(),
+  resolveInitialChildInvite: vi.fn(),
 }));
 
 const dateOfBirthFieldState = vi.hoisted(() => ({
@@ -52,6 +53,7 @@ vi.mock('@lib/child-invite', () => ({
   formatChildInviteCode: (value: string) =>
     value.toUpperCase().replaceAll(/[^A-Z0-9]/g, '').slice(0, 6),
   validateChildInvite: childInviteMocks.validateChildInvite,
+  resolveInitialChildInvite: childInviteMocks.resolveInitialChildInvite,
 }));
 
 vi.mock('@lib/supabase', () => ({
@@ -182,6 +184,19 @@ describe('auth screens', () => {
       },
       error: null,
     });
+    childInviteMocks.resolveInitialChildInvite.mockReset().mockResolvedValue({
+      code: 'ABC123',
+      preview: {
+        id: 'invite-1',
+        familia_id: 'family-1',
+        filho_id: 'child-1',
+        nome_filho: 'Ana',
+        familyName: 'Família Silva',
+        adminName: 'João',
+      },
+      error: null,
+      autoAdvance: false,
+    });
 
     alertSpy.mockReset();
 
@@ -288,9 +303,11 @@ describe('auth screens', () => {
       previewFamilyName: 'Família da URL',
       previewAdminName: 'Admin da URL',
     };
-    childInviteMocks.validateChildInvite.mockResolvedValueOnce({
+    childInviteMocks.resolveInitialChildInvite.mockResolvedValueOnce({
+      code: 'ABC123',
       preview: null,
       error: 'Código inválido ou expirado. Peça um novo ao responsável.',
+      autoAdvance: false,
     });
 
     const renderer = render(<JoinChildScreen />);
@@ -299,7 +316,7 @@ describe('auth screens', () => {
       await Promise.resolve();
     });
 
-    expect(childInviteMocks.validateChildInvite).toHaveBeenCalledWith('ABC123');
+    expect(childInviteMocks.resolveInitialChildInvite).toHaveBeenCalledWith('ABC123');
     expect(screenText(renderer)).toContain('Código inválido ou expirado');
     expect(renderer.root.findByType('GoogleSignInButton').props.disabled).toBe(true);
   });

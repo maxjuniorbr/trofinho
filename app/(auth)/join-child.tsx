@@ -9,7 +9,7 @@ import {
     CHILD_INVITE_CODE_LENGTH,
     type ChildInvitePreview,
     formatChildInviteCode,
-    validateChildInvite,
+    resolveInitialChildInvite,
 } from '@lib/child-invite';
 import { formatLocalIsoDate } from '@lib/google-auth-utils';
 import { supabase } from '@lib/supabase';
@@ -68,35 +68,15 @@ export default function JoinChildScreen() {
                 setCode(initialCode);
                 setPreview(null);
 
-                let inviteCode = initialCode;
-                let hasPendingAuthenticatedInvite = false;
-
-                if (!inviteCode) {
-                    const { data } = await supabase.auth.getUser();
-                    const pendingInvite = data.user?.user_metadata?.pending_child_invite;
-                    if (typeof pendingInvite === 'string') {
-                        inviteCode = formatChildInviteCode(pendingInvite);
-                        hasPendingAuthenticatedInvite = inviteCode.length === CHILD_INVITE_CODE_LENGTH;
-                    }
-                }
-
-                if (!inviteCode) {
-                    if (!mounted) return;
-                    setPreview(null);
-                    setInviteError('Código de convite ausente. Volte e informe o código novamente.');
-                    setInviteLoading(false);
-                    return;
-                }
-
-                const result = await validateChildInvite(inviteCode);
+                const resolved = await resolveInitialChildInvite(initialCode);
                 if (!mounted) return;
 
-                setCode(inviteCode);
-                setPreview(result.preview);
-                setInviteError(result.error ?? '');
+                setCode(resolved.code);
+                setPreview(resolved.preview);
+                setInviteError(resolved.error ?? '');
                 setInviteLoading(false);
 
-                if (hasPendingAuthenticatedInvite && result.preview) {
+                if (resolved.autoAdvance) {
                     setStep('dob');
                 }
             } catch (error) {

@@ -74,6 +74,35 @@ export default function JoinFamilyScreen() {
         acceptInvite.reset();
     };
 
+    const handleSubmitValidateCode = useCallback(async () => {
+        setError('');
+        if (submittedCode === code) {
+            await refetchInvite();
+        } else {
+            setSubmittedCode(code);
+        }
+    }, [code, refetchInvite, submittedCode]);
+
+    const handleSubmitAcceptInvite = useCallback(async () => {
+        if (!name.trim()) {
+            setError('Informe seu nome.');
+            return;
+        }
+        setError('');
+        try {
+            await acceptInvite.mutateAsync({ code, name: name.trim() });
+            const { error: refreshError } = await refreshAuthSession();
+            if (refreshError) {
+                setError(refreshError);
+            }
+            // Navigation is handled by the root layout auth state handler after
+            // session refresh detects the new familia_id.
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Erro ao ingressar na família.';
+            setError(message);
+        }
+    }, [acceptInvite, code, name]);
+
     const handleSubmit = async () => {
         if (!isCodeComplete) {
             setError('Informe um código de 6 caracteres.');
@@ -82,35 +111,13 @@ export default function JoinFamilyScreen() {
 
         // Step 1: code not yet validated — trigger validation.
         if (!hasPreview && !isValidating) {
-            setError('');
-            if (submittedCode === code) {
-                await refetchInvite();
-            } else {
-                setSubmittedCode(code);
-            }
+            await handleSubmitValidateCode();
             return;
         }
 
         // Step 2: code validated, accept invite.
         if (hasPreview) {
-            if (!name.trim()) {
-                setError('Informe seu nome.');
-                return;
-            }
-            setError('');
-            try {
-                await acceptInvite.mutateAsync({ code, name: name.trim() });
-                const { error: refreshError } = await refreshAuthSession();
-                if (refreshError) {
-                    setError(refreshError);
-                    return;
-                }
-                // Navigation is handled by the root layout auth state handler after
-                // session refresh detects the new familia_id.
-            } catch (err) {
-                const message = err instanceof Error ? err.message : 'Erro ao ingressar na família.';
-                setError(message);
-            }
+            await handleSubmitAcceptInvite();
         }
     };
 
