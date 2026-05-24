@@ -64,11 +64,10 @@ export async function getPrize(id: string): Promise<{
     .from('premios')
     .select('*')
     .eq('id', id)
-    .returns<Prize>()
-    .single();
+    .single<Prize>();
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
-  return { data: data as Prize | null, error: null };
+  return { data, error: null };
 }
 
 export async function createPrize(input: PrizeInput, familiaId: string): Promise<{
@@ -112,7 +111,7 @@ export async function updatePrize(
 
   return {
     error: null,
-    pointsMessage: (data as string | null) ?? null,
+    pointsMessage: data ?? null,
   };
 }
 

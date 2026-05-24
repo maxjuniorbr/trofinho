@@ -106,7 +106,7 @@ function captureFatalPushError(
 
   Sentry.captureException(error, {
     tags: { subsystem: 'push', event, errorCategory: error.name || 'Unknown' },
-    extra: { statusCode, attempt, message: error.message ?? String(error) },
+    extra: { statusCode, attempt, message: error.message ?? 'Unknown push error' },
   });
 }
 

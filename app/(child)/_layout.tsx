@@ -42,7 +42,7 @@ export default function ChildLayout() {
 
   const handleExit = useCallback(() => {
     stopImpersonation();
-    router.replace('/(admin)/' as never);
+    router.replace('/(admin)/');
   }, [stopImpersonation, router]);
 
   return (

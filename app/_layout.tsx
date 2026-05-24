@@ -214,7 +214,7 @@ function RootNavigator({
   }, [profile?.id, profile?.familia_id, pushToken]);
 
   useEffect(() => {
-    const target = resolveNavDecision(ready, profile, segments as string[], impersonating !== null);
+    const target = resolveNavDecision(ready, profile, segments, impersonating !== null);
     if (target) {
       Sentry.addBreadcrumb({
         category: 'navigation',
@@ -222,7 +222,7 @@ function RootNavigator({
         level: 'info',
         data: { target, from: segments[0], role: profile?.papel },
       });
-      router.replace(target as never);
+      router.replace(target);
     }
   }, [ready, profile, router, segments, impersonating]);
 
@@ -234,7 +234,7 @@ function RootNavigator({
       const cleanup = await subscribeToNotificationNavigation(
         (target) => {
           if (target.entityId) {
-            router.push(`${target.route}/${target.entityId}` as never);
+            router.push(`${target.route}/${target.entityId}`);
           } else {
             router.push(target.route);
           }

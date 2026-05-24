@@ -475,7 +475,7 @@ export default function ChildBalanceScreen() {
         }}
         ListFooterComponent={
           <Pressable
-            onPress={() => router.push('/(child)/historico' as never)}
+            onPress={() => router.push('/(child)/historico')}
             accessibilityRole="link"
             accessibilityLabel="Ver extrato completo"
             style={[styles.viewAllBtn, { borderColor: colors.border.subtle }]}

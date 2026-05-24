@@ -107,37 +107,34 @@ function TaskCard({
   const Wrapper = onPress ? Pressable : View;
   const wrapperProps = onPress
     ? {
-        style: ({ pressed }: { pressed: boolean }) => [
-          styles.card,
-          shadows.card,
-          {
-            backgroundColor: colors.bg.surface,
-            borderColor: borderColor ?? colors.border.subtle,
-            opacity: pressed ? 0.92 : opacity,
-          },
-        ],
-        onPress,
-        accessibilityRole: 'button' as const,
-        accessibilityLabel,
-      }
+      style: ({ pressed }: { pressed: boolean }) => [
+        styles.card,
+        shadows.card,
+        {
+          backgroundColor: colors.bg.surface,
+          borderColor: borderColor ?? colors.border.subtle,
+          opacity: pressed ? 0.92 : opacity,
+        },
+      ],
+      onPress,
+      accessibilityRole: 'button' as const,
+      accessibilityLabel,
+    }
     : {
-        style: [
-          styles.card,
-          shadows.card,
-          {
-            backgroundColor: colors.bg.surface,
-            borderColor: borderColor ?? colors.border.subtle,
-            opacity,
-          },
-        ],
-        accessibilityLabel,
-      };
+      style: [
+        styles.card,
+        shadows.card,
+        {
+          backgroundColor: colors.bg.surface,
+          borderColor: borderColor ?? colors.border.subtle,
+          opacity,
+        },
+      ],
+      accessibilityLabel,
+    };
 
-  // Pressable and View accept different style prop shapes; the union type
-  // is not directly spreadable. A targeted cast keeps the component generic
-  // without duplicating the entire JSX tree for each wrapper variant.
   return (
-    <Wrapper {...(wrapperProps as React.ComponentProps<typeof Wrapper>)}>
+    <Wrapper {...wrapperProps}>
       <View style={styles.cardTopRow}>
         <View style={[styles.cardIcon, { backgroundColor: icon.bg }]}>
           <icon.Icon size={16} color={icon.color} strokeWidth={2} />
@@ -225,21 +222,21 @@ const AdminTaskCard = ({
   const statusIcon =
     aguardando > 0
       ? {
-          Icon: Eye,
-          color: colors.semantic.info,
-          bg: colors.semantic.infoBg,
-          label: 'Aguardando você',
-        }
+        Icon: Eye,
+        color: colors.semantic.info,
+        bg: colors.semantic.infoBg,
+        label: 'Aguardando você',
+      }
       : isPaused
         ? { Icon: PauseCircle, color: colors.text.muted, bg: colors.bg.muted, label: 'Pausada' }
         : isArchived
           ? { Icon: Archive, color: colors.text.muted, bg: colors.bg.muted, label: 'Arquivada' }
           : {
-              Icon: Clock,
-              color: colors.semantic.warning,
-              bg: colors.semantic.warningBg,
-              label: 'Ativa',
-            };
+            Icon: Clock,
+            color: colors.semantic.warning,
+            bg: colors.semantic.warningBg,
+            label: 'Ativa',
+          };
 
   const opacity = isInactive || isArchived ? opacityDisabled.light : 1;
 
@@ -375,7 +372,7 @@ export default function AdminTasksScreen() {
     (rota: string) => {
       if (rota === '/(admin)/tasks') return;
       if (rota === 'index') router.dismissTo('/(admin)');
-      else router.replace(rota as never);
+      else router.replace(rota);
     },
     [router],
   );
@@ -553,7 +550,7 @@ export default function AdminTasksScreen() {
             colors={colors}
             styles={styles}
             variant="active"
-            onPress={() => router.push(`/(admin)/tasks/${item.id}` as never)}
+            onPress={() => router.push(`/(admin)/tasks/${item.id}`)}
             onMenuPress={() => setActionTask(item)}
           />
         )}
@@ -597,7 +594,7 @@ export default function AdminTasksScreen() {
             colors={colors}
             styles={styles}
             variant="archived"
-            onPress={() => router.push(`/(admin)/tasks/${item.id}` as never)}
+            onPress={() => router.push(`/(admin)/tasks/${item.id}`)}
             onMenuPress={() => setActionTask(item)}
           />
         )}
@@ -668,7 +665,7 @@ export default function AdminTasksScreen() {
             item={item}
             colors={colors}
             styles={styles}
-            onPress={() => router.push(`/(admin)/tasks/${item.tarefa_id}?readonly=1` as never)}
+            onPress={() => router.push(`/(admin)/tasks/${item.tarefa_id}?readonly=1`)}
             showDate={showOlderApproved}
           />
         )}
@@ -688,27 +685,27 @@ export default function AdminTasksScreen() {
     actionTask ??
     (menuTaskDetail
       ? ({
-          id: menuTaskDetail.id,
-          titulo: menuTaskDetail.titulo,
-          descricao: menuTaskDetail.descricao,
-          pontos: menuTaskDetail.pontos,
-          dias_semana: menuTaskDetail.dias_semana,
-          exige_evidencia: menuTaskDetail.exige_evidencia,
-          created_at: menuTaskDetail.created_at,
-          ativo: menuTaskDetail.ativo,
-          arquivada_em: menuTaskDetail.arquivada_em,
-          excluida_em: menuTaskDetail.excluida_em,
-          atribuicoes: menuTaskDetail.atribuicoes.map((a) => ({ status: a.status })),
-        } satisfies TaskListItem)
+        id: menuTaskDetail.id,
+        titulo: menuTaskDetail.titulo,
+        descricao: menuTaskDetail.descricao,
+        pontos: menuTaskDetail.pontos,
+        dias_semana: menuTaskDetail.dias_semana,
+        exige_evidencia: menuTaskDetail.exige_evidencia,
+        created_at: menuTaskDetail.created_at,
+        ativo: menuTaskDetail.ativo,
+        arquivada_em: menuTaskDetail.arquivada_em,
+        excluida_em: menuTaskDetail.excluida_em,
+        atribuicoes: menuTaskDetail.atribuicoes.map((a) => ({ status: a.status })),
+      } satisfies TaskListItem)
       : null);
 
   const actionState: TaskActionState | null = actionSource
     ? {
-        isArchived: actionSource.arquivada_em !== null,
-        isInactive: actionSource.ativo === false,
-        canEdit: actionSource.arquivada_em === null && actionSource.ativo !== false,
-        isDeleted: false,
-      }
+      isArchived: actionSource.arquivada_em !== null,
+      isInactive: actionSource.ativo === false,
+      canEdit: actionSource.arquivada_em === null && actionSource.ativo !== false,
+      isDeleted: false,
+    }
     : null;
 
   const actionTitle = actionSource?.titulo ?? '';

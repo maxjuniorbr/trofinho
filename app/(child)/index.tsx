@@ -162,7 +162,7 @@ export default function FilhoHomeScreen() {
 
   const handleNavigate = useCallback(
     (rota: string) => {
-      if (rota !== 'index') router.replace(rota as never);
+      if (rota !== 'index') router.replace(rota);
     },
     [router],
   );
@@ -321,7 +321,7 @@ export default function FilhoHomeScreen() {
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Minhas tarefas</Text>
           <Pressable
-            onPress={() => router.push('/(child)/tasks' as never)}
+            onPress={() => router.push('/(child)/tasks')}
             accessibilityRole="button"
             accessibilityLabel="Ver todas as tarefas"
             hitSlop={8}
@@ -343,7 +343,7 @@ export default function FilhoHomeScreen() {
                 isReadOnly={isReadOnly}
                 colors={colors}
                 styles={styles}
-                onPress={() => router.push(`/(child)/tasks/${task.id}` as never)}
+                onPress={() => router.push(`/(child)/tasks/${task.id}`)}
               />
             ))}
           </View>

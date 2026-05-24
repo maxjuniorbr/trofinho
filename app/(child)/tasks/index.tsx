@@ -163,7 +163,7 @@ function TaskCard({
       onUnavailablePress();
       return;
     }
-    router.push(`/(child)/tasks/${item.id}` as never);
+    router.push(`/(child)/tasks/${item.id}`);
   };
 
   return (
@@ -298,7 +298,7 @@ export default function ChildTasksScreen() {
     (rota: string) => {
       if (rota === '/(child)/tasks') return;
       if (rota === 'index') router.dismissTo('/(child)');
-      else router.replace(rota as never);
+      else router.replace(rota);
     },
     [router],
   );

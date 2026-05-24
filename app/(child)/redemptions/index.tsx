@@ -82,7 +82,7 @@ export default function ChildRedemptionsScreen() {
     (rota: string) => {
       if (rota === '/(child)/redemptions') return;
       if (rota === 'index') router.dismissTo('/(child)');
-      else router.replace(rota as never);
+      else router.replace(rota);
     },
     [router],
   );

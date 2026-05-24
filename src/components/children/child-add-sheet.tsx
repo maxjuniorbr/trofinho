@@ -74,7 +74,7 @@ export function ChildAddSheet({ visible, familiaId, onClose, onChildAdded }: Chi
 
         setLoading(false);
         resetForm();
-        onChildAdded(child as Child);
+        onChildAdded(child);
     }, [name, familiaId, resetForm, onChildAdded]);
 
     return (

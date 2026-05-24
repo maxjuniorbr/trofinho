@@ -85,7 +85,7 @@ export default function AdminPrizesScreen() {
     (rota: string) => {
       if (rota === '/(admin)/prizes') return;
       if (rota === 'index') router.dismissTo('/(admin)');
-      else router.replace(rota as never);
+      else router.replace(rota);
     },
     [router],
   );

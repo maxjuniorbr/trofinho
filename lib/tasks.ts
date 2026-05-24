@@ -362,11 +362,10 @@ export async function getTaskWithAssignments(
     .from('tarefas')
     .select('*, atribuicoes(*, filhos(nome, usuario_id))')
     .eq('id', taskId)
-    .returns<TaskDetail>()
-    .single();
+    .single<TaskDetail>();
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
-  const detail = data as TaskDetail;
+  const detail = data;
   detail.atribuicoes = sortAssignments(detail.atribuicoes);
   const task = await signTaskEvidence(detail);
   return { data: task, error: null };
@@ -530,7 +529,7 @@ export async function getChildAssignment(
     query = query.eq('filho_id', childId);
   }
 
-  const { data, error } = await query.returns<ChildAssignment>().single();
+  const { data, error } = await query.single<ChildAssignment>();
 
   if (error) return { data: null, error: localizeRpcError(error.message) };
   const assignment = await signEvidence(data);

@@ -168,7 +168,7 @@ export async function getBalance(
     query = query.eq('filho_id', childId);
   }
 
-  const { data, error } = await query.returns<Balance>().single();
+  const { data, error } = await query.single<Balance>();
 
   if (error) {
     if (error.code === 'PGRST116') return { data: null, error: null };

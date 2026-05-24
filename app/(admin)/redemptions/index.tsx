@@ -98,7 +98,7 @@ export default function AdminRedemptionsScreen() {
     (rota: string) => {
       if (rota === '/(admin)/redemptions') return;
       if (rota === 'index') router.dismissTo('/(admin)');
-      else router.replace(rota as never);
+      else router.replace(rota);
     },
     [router],
   );
@@ -165,10 +165,10 @@ export default function AdminRedemptionsScreen() {
                   redemptionId: item.id,
                   opts: item.filhos.usuario_id
                     ? {
-                        familiaId: profile.familia_id,
-                        userId: item.filhos.usuario_id,
-                        prizeName: item.premios.nome,
-                      }
+                      familiaId: profile.familia_id,
+                      userId: item.filhos.usuario_id,
+                      prizeName: item.premios.nome,
+                    }
                     : undefined,
                 },
                 {

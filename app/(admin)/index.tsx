@@ -106,7 +106,7 @@ export default function AdminHomeScreen() {
 
   const handleNavigate = useCallback(
     (rota: string) => {
-      if (rota !== 'index') router.push(rota as never);
+      if (rota !== 'index') router.push(rota);
     },
     [router],
   );

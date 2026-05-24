@@ -51,7 +51,7 @@ export default function ProfileScreen() {
     (rota: string) => {
       if (rota === '/(admin)/perfil') return;
       if (rota === 'index') router.dismissTo('/(admin)');
-      else router.replace(rota as never);
+      else router.replace(rota);
     },
     [router],
   );
@@ -308,7 +308,7 @@ export default function ProfileScreen() {
         onSelectChild={(child) => {
           setShowChildSelection(false);
           startImpersonation({ childId: child.id, childName: child.nome });
-          router.replace('/(child)' as never);
+          router.replace('/(child)');
         }}
       />
 

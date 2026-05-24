@@ -9,7 +9,7 @@ export default function ChildNotificationsScreen() {
 
   const handleBack = useCallback(() => router.back(), [router]);
 
-  const handleNavigate = useCallback((route: string) => router.push(route as never), [router]);
+  const handleNavigate = useCallback((route: string) => router.push(route), [router]);
 
   return (
     <NotificationsScreen

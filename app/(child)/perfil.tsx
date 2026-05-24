@@ -52,7 +52,7 @@ export default function ChildProfileScreen() {
     (rota: string) => {
       if (rota === '/(child)/perfil') return;
       if (rota === 'index') router.dismissTo('/(child)');
-      else router.replace(rota as never);
+      else router.replace(rota);
     },
     [router],
   );

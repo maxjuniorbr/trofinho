@@ -67,7 +67,7 @@ export default function ChildPrizesScreen() {
     (rota: string) => {
       if (rota === '/(child)/prizes') return;
       if (rota === 'index') router.dismissTo('/(child)');
-      else router.replace(rota as never);
+      else router.replace(rota);
     },
     [router],
   );
@@ -106,11 +106,11 @@ export default function ChildPrizesScreen() {
         prizeId: prize.id,
         opts: profile?.familia_id
           ? {
-              familiaId: profile.familia_id,
-              childName: profile.nome ?? '',
-              prizeName: prize.nome,
-              childUserId: profile.id,
-            }
+            familiaId: profile.familia_id,
+            childName: profile.nome ?? '',
+            prizeName: prize.nome,
+            childUserId: profile.id,
+          }
           : undefined,
       });
       hapticSuccess();
