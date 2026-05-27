@@ -12,7 +12,7 @@ type NotificationOption = Readonly<{
 }>;
 
 const OPTIONS: readonly NotificationOption[] = [
-  { key: 'tarefasPendentes', label: 'Tarefas pendentes', roles: ['admin'] },
+  { key: 'tarefasPendentes', label: 'Nova tarefa', roles: ['filho'] },
   { key: 'tarefaAprovada', label: 'Tarefa aprovada', roles: ['filho'] },
   { key: 'tarefaRejeitada', label: 'Tarefa rejeitada', roles: ['filho'] },
   { key: 'tarefaConcluida', label: 'Tarefa concluída pelo filho', roles: ['admin'] },

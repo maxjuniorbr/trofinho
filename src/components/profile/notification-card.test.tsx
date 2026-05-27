@@ -44,25 +44,32 @@ describe('NotificationCard', () => {
         const renderer = render({ role: 'admin' });
         const texts = getTextContents(renderer);
 
-        expect(texts).toContain('Tarefas pendentes');
         expect(texts).toContain('Tarefa concluída pelo filho');
         expect(texts).toContain('Resgate solicitado');
+        expect(texts).toContain('Resgate do cofrinho solicitado');
         // Should NOT contain child-specific options
+        expect(texts).not.toContain('Nova tarefa');
         expect(texts).not.toContain('Tarefa aprovada');
         expect(texts).not.toContain('Tarefa rejeitada');
+        expect(texts).not.toContain('Penalidade aplicada');
     });
 
     it('renders child-specific options when role="filho"', () => {
         const renderer = render({ role: 'filho' });
         const texts = getTextContents(renderer);
 
+        expect(texts).toContain('Nova tarefa');
         expect(texts).toContain('Tarefa aprovada');
         expect(texts).toContain('Tarefa rejeitada');
         expect(texts).toContain('Resgate confirmado');
         expect(texts).toContain('Resgate cancelado');
+        expect(texts).toContain('Resgate do cofrinho confirmado');
+        expect(texts).toContain('Resgate do cofrinho cancelado');
+        expect(texts).toContain('Penalidade aplicada');
         // Should NOT contain admin-specific options
-        expect(texts).not.toContain('Tarefas pendentes');
         expect(texts).not.toContain('Tarefa concluída pelo filho');
+        expect(texts).not.toContain('Resgate solicitado');
+        expect(texts).not.toContain('Resgate do cofrinho solicitado');
     });
 
     it('calls onPreferencesChange with updated prefs when a switch toggles', () => {
@@ -77,7 +84,7 @@ describe('NotificationCard', () => {
         });
 
         expect(onPreferencesChange).toHaveBeenCalledWith(
-            expect.objectContaining({ tarefasPendentes: true }),
+            expect.objectContaining({ tarefaConcluida: true }),
         );
     });
 
