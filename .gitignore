@@ -47,7 +47,12 @@ AGENTS.md
 .github/prompts/
 .github/agents/
 .github/skills/
-.kiro/
+.kiro/settings/
+.kiro/skills/
+.kiro/steering/
+.kiro/specs/*
+!.kiro/specs/expo-sdk-upgrade/
+!.kiro/specs/expo-sdk-upgrade/**
 
 # graphify (generated graph artifacts + local hooks)
 graphify-out/
