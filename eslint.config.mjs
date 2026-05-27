@@ -25,4 +25,17 @@ export default defineConfig([
       'import/no-named-as-default-member': 'off',
     },
   },
+  {
+    // React Compiler rules added in eslint-config-expo@56. Existing code predates
+    // these checks; downgrade to warnings so the SDK 56 migration can land. Address
+    // findings incrementally in dedicated follow-up commits.
+    rules: {
+      'react-hooks/refs': 'warn',
+      'react-hooks/immutability': 'warn',
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/use-memo': 'warn',
+      'react-hooks/static-components': 'warn',
+      'react-hooks/preserve-manual-memoization': 'warn',
+    },
+  },
 ]);
