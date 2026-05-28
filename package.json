@@ -39,7 +39,7 @@
     "@shopify/flash-list": "2.0.2",
     "@supabase/supabase-js": "^2.106.2",
     "@tanstack/react-query": "^5.100.14",
-    "expo": "^56.0.0",
+    "expo": "~56.0.6",
     "expo-application": "~56.0.3",
     "expo-clipboard": "~56.0.3",
     "expo-constants": "~56.0.16",
