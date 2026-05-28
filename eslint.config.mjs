@@ -9,6 +9,7 @@ export default defineConfig([
     ignores: [
       'node_modules/**',
       '.expo/**',
+      '.tmp/**',
       'android/**',
       'ios/**',
       'src/types/database.types.ts',
