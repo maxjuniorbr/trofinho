@@ -497,3 +497,14 @@ export async function subscribeToNotificationNavigation(
     responseSubscription.remove();
   };
 }
+
+/**
+ * Dismiss all delivered notifications from the system tray.
+ * Called when the app returns to the foreground so stale notifications
+ * (e.g. "Luna concluiu X" after the admin already approved) don't linger.
+ */
+export async function dismissAllNotifications(): Promise<void> {
+  const Notifications = await getNotificationsModule();
+  if (!Notifications) return;
+  await Notifications.dismissAllNotificationsAsync();
+}

@@ -2,7 +2,7 @@ import { Stack, useNavigationContainerRef, useRouter, useSegments } from 'expo-r
 import { isRunningInExpoGo } from 'expo';
 import * as Sentry from '@sentry/react-native';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, AppState, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import {
   useFonts,
@@ -21,6 +21,7 @@ import {
   savePushToken,
   subscribeToNotificationNavigation,
   registerNotificationCategories,
+  dismissAllNotifications,
 } from '@lib/notifications';
 import { handleNotificationAction } from '@lib/notification-actions';
 import { configureGoogleSignIn } from '@lib/google-auth';
@@ -258,6 +259,19 @@ function RootNavigator({
       unsubscribe();
     };
   }, [router]);
+
+  // Dismiss all delivered notifications when the app returns to the
+  // foreground. Stale notifications (e.g. "Luna concluiu X" after the
+  // admin already approved inside the app) would otherwise linger in the
+  // system tray and lead to a confusing tap-to-empty-screen experience.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (status) => {
+      if (status === 'active') {
+        dismissAllNotifications();
+      }
+    });
+    return () => subscription.remove();
+  }, []);
 
   if (!ready || !fontsLoaded) {
     return (
