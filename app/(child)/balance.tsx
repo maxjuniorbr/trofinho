@@ -116,7 +116,7 @@ export default function ChildBalanceScreen() {
   const balanceQuery = useBalance(impersonating?.childId);
   const balance = balanceQuery.data ?? null;
 
-  const { from: todayFrom, to: todayTo } = useMemo(todayRange, []);
+  const { from: todayFrom, to: todayTo } = useMemo(() => todayRange(), []);
   const transactionsQuery = useTransactionsByPeriod(childId ?? '', todayFrom, todayTo);
   const todayTransactions = transactionsQuery.data ?? [];
 

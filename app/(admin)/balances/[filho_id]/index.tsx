@@ -59,7 +59,7 @@ export default function ChildBalanceAdminScreen() {
   const { showAlert } = useAppAlert();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const { from: todayFrom, to: todayTo } = useMemo(todayRange, []);
+  const { from: todayFrom, to: todayTo } = useMemo(() => todayRange(), []);
 
   const balanceQuery = useBalance(filho_id);
   const transactionsQuery = useTransactionsByPeriod(filho_id, todayFrom, todayTo);

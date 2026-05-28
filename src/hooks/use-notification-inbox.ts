@@ -27,6 +27,11 @@ function inboxTxRange(): { from: string; to: string } {
   return { from: fmt(start), to: fmt(tomorrow) };
 }
 
+/** Flattens a React Query infinite-query `data` object into a single array of items. */
+function flattenPages<T>(data: { pages: { data: T[] }[] } | undefined): T[] {
+  return data?.pages.flatMap((p) => p.data) ?? [];
+}
+
 export function useAdminNotifInbox(): {
   items: Notif[];
   isLoading: boolean;
@@ -35,13 +40,10 @@ export function useAdminNotifInbox(): {
   const tasksQuery = useAdminTasks();
   const redemptionsQuery = useAdminRedemptions();
 
-  const tasks = useMemo(
-    () => tasksQuery.data?.pages.flatMap((p) => p.data) ?? [],
-    [tasksQuery.data],
-  );
+  const tasks = useMemo(() => flattenPages(tasksQuery.data), [tasksQuery.data]);
 
   const redemptions = useMemo(
-    () => redemptionsQuery.data?.pages.flatMap((p) => p.data) ?? [],
+    () => flattenPages(redemptionsQuery.data),
     [redemptionsQuery.data],
   );
 
@@ -75,16 +77,16 @@ export function useChildNotifInbox(): {
   const childId = impersonating?.childId ?? ownChildId;
   const assignmentsQuery = useChildAssignments(impersonating?.childId);
   const redemptionsQuery = useChildRedemptions(impersonating?.childId);
-  const { from, to } = useMemo(inboxTxRange, []);
+  const { from, to } = useMemo(() => inboxTxRange(), []);
   const transactionsQuery = useTransactionsByPeriod(childId ?? '', from, to);
 
   const assignments = useMemo(
-    () => assignmentsQuery.data?.pages.flatMap((p) => p.data) ?? [],
+    () => flattenPages(assignmentsQuery.data),
     [assignmentsQuery.data],
   );
 
   const redemptions = useMemo(
-    () => redemptionsQuery.data?.pages.flatMap((p) => p.data) ?? [],
+    () => flattenPages(redemptionsQuery.data),
     [redemptionsQuery.data],
   );
 
@@ -111,13 +113,13 @@ export function useChildUnreadNotifCount(): number {
   const childId = impersonating?.childId ?? ownChildId;
   const assignmentsQuery = useChildAssignments(impersonating?.childId);
   const redemptionsQuery = useChildRedemptions(impersonating?.childId);
-  const { from, to } = useMemo(inboxTxRange, []);
+  const { from, to } = useMemo(() => inboxTxRange(), []);
   const transactionsQuery = useTransactionsByPeriod(childId ?? '', from, to);
 
   return useMemo(() => {
     if (assignmentsQuery.isLoading || redemptionsQuery.isLoading) return 0;
-    const assignments = assignmentsQuery.data?.pages.flatMap((p) => p.data) ?? [];
-    const redemptions = redemptionsQuery.data?.pages.flatMap((p) => p.data) ?? [];
+    const assignments = flattenPages(assignmentsQuery.data);
+    const redemptions = flattenPages(redemptionsQuery.data);
     const transactions = transactionsQuery.data ?? [];
     const items = deriveChildNotifs({ assignments, redemptions, transactions });
     return items.filter((n) => n.group === 'Hoje').length;
