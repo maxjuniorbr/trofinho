@@ -396,9 +396,24 @@ type PendingTaskCardProps = Readonly<{
   onPress: () => void;
 }>;
 
+function getTaskActionContent(
+  isRejected: boolean,
+  requiresEvidence: boolean,
+  colors: ReturnType<typeof useTheme>['colors'],
+) {
+  if (isRejected) {
+    return { Icon: RotateCcw, label: 'Refazer e reenviar', color: colors.text.inverse };
+  }
+  if (requiresEvidence) {
+    return { Icon: Camera, label: 'Enviar com foto', color: colors.text.onBrand };
+  }
+  return { Icon: Send, label: 'Marcar como feita', color: colors.text.onBrand };
+}
+
 function PendingTaskCard({ task, isReadOnly, colors, styles, onPress }: PendingTaskCardProps) {
   const isRejected = task.status === 'rejeitada';
   const requiresEvidence = task.exige_evidencia_snapshot;
+  const action = getTaskActionContent(isRejected, requiresEvidence, colors);
 
   return (
     <View
@@ -466,28 +481,8 @@ function PendingTaskCard({ task, isReadOnly, colors, styles, onPress }: PendingT
         }
         accessibilityState={{ disabled: isReadOnly }}
       >
-        {isRejected ? (
-          <>
-            <RotateCcw size={14} color={colors.text.inverse} strokeWidth={2.5} />
-            <Text style={[styles.taskActionText, { color: colors.text.inverse }]}>
-              Refazer e reenviar
-            </Text>
-          </>
-        ) : requiresEvidence ? (
-          <>
-            <Camera size={14} color={colors.text.onBrand} strokeWidth={2.5} />
-            <Text style={[styles.taskActionText, { color: colors.text.onBrand }]}>
-              Enviar com foto
-            </Text>
-          </>
-        ) : (
-          <>
-            <Send size={14} color={colors.text.onBrand} strokeWidth={2.5} />
-            <Text style={[styles.taskActionText, { color: colors.text.onBrand }]}>
-              Marcar como feita
-            </Text>
-          </>
-        )}
+        <action.Icon size={14} color={action.color} strokeWidth={2.5} />
+        <Text style={[styles.taskActionText, { color: action.color }]}>{action.label}</Text>
       </Pressable>
     </View>
   );
