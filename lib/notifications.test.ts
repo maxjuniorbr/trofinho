@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 import {
   DEFAULT_NOTIFICATION_PREFS,
+  dismissAllNotifications,
   getNotificationPrefs,
   getNotificationRoute,
   savePushToken,
@@ -56,6 +57,7 @@ vi.mock('expo-notifications', () => ({
   clearLastNotificationResponse: vi.fn(),
   addNotificationReceivedListener: vi.fn().mockReturnValue({ remove: vi.fn() }),
   addNotificationResponseReceivedListener: vi.fn().mockReturnValue({ remove: vi.fn() }),
+  dismissAllNotificationsAsync: vi.fn().mockResolvedValue(undefined),
   DEFAULT_ACTION_IDENTIFIER: 'default',
 }));
 
@@ -1016,5 +1018,13 @@ describe('Property 2: Resolução de device ID sempre retorna um identificador n
       }),
       { numRuns: 100 },
     );
+  });
+});
+
+describe('dismissAllNotifications', () => {
+  it('calls dismissAllNotificationsAsync when module is available', async () => {
+    const Notifications = await import('expo-notifications');
+    await dismissAllNotifications();
+    expect(Notifications.dismissAllNotificationsAsync).toHaveBeenCalledOnce();
   });
 });

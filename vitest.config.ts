@@ -57,6 +57,8 @@ export default defineConfig({
         'src/hooks/use-transient-message.ts',
         'src/hooks/queries/index.ts',
         'app/**/_layout.tsx',
+        'app/(admin)/perfil.tsx',
+        'app/(child)/perfil.tsx',
         'app/(admin)/tasks/index.tsx',
         'app/(child)/historico.tsx',
         'app/(child)/redemptions/index.tsx',
