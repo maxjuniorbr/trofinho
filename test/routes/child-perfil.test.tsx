@@ -233,7 +233,6 @@ describe('ChildProfileScreen', () => {
     const avatar = renderer.root.findByType('AvatarSection' as never);
     expect(avatar.props.name).toBe('João');
     expect(avatar.props.email).toBe('joao@example.com');
-    expect(avatar.props.role).toBe('filho');
   });
 
   it('renders theme card', () => {

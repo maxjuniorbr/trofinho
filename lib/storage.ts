@@ -125,6 +125,9 @@ export async function resolveStorageUrl(
   if (!storedValue) return null;
   if (isEmojiAvatar(storedValue)) return storedValue;
 
+  // External URLs (e.g. Google profile photos) are returned as-is.
+  if (storedValue.startsWith('http')) return storedValue;
+
   const path = extractStoragePath(bucket, storedValue);
   const { data, error } = await supabase.storage
     .from(bucket)
@@ -150,6 +153,8 @@ export async function resolveStorageUrls(
   storedValues.forEach((v, i) => {
     if (!v) return;
     if (isEmojiAvatar(v)) {
+      results[i] = v;
+    } else if (v.startsWith('http')) {
       results[i] = v;
     } else {
       pathIndices.push(i);

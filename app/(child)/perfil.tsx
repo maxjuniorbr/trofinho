@@ -67,7 +67,6 @@ export default function ChildProfileScreen() {
   const email = authUser?.email ?? '';
   const avatarUri = authUser?.avatarUrl ?? null;
 
-  const [localAvatarUri, setLocalAvatarUri] = useState<string | null>(null);
   const [localName, setLocalName] = useState<string | null>(null);
   const [notificationPreferences, setNotificationPreferences] = useState<NotificationPrefs | null>(
     null,
@@ -82,7 +81,7 @@ export default function ChildProfileScreen() {
   const deleteAccountMutation = useDeleteAccount();
 
   const effectivePrefs = notificationPreferences ?? notificationPrefsQuery.data ?? null;
-  const effectiveAvatarUri = localAvatarUri ?? avatarUri;
+  const effectiveAvatarUri = impersonating ? impersonating.childAvatarUrl : avatarUri;
   const effectiveName = impersonating
     ? impersonating.childName
     : (localName ?? profile?.nome ?? 'Campeão');
@@ -173,8 +172,6 @@ export default function ChildProfileScreen() {
                 name={effectiveName}
                 email={isReadOnly ? '' : email}
                 avatarUri={effectiveAvatarUri}
-                role="filho"
-                onAvatarChange={isReadOnly ? undefined : setLocalAvatarUri}
               />
 
               <ThemeCard role="filho" disabled={isReadOnly} />

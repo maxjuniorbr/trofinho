@@ -17,7 +17,6 @@ vi.mock('../../../../lib/auth', () => ({
     .mockResolvedValue({ id: 'u1', familia_id: 'f1', papel: 'admin', nome: 'Test' }),
   getCurrentAuthUser: vi.fn().mockResolvedValue({ email: 'test@test.com', avatarUrl: null }),
   updateUserName: vi.fn().mockResolvedValue({ error: null }),
-  updateUserAvatar: vi.fn().mockResolvedValue({ url: 'https://img.test/avatar.png', error: null }),
   deleteAccount: vi.fn().mockResolvedValue({ error: null }),
 }));
 
@@ -118,14 +117,6 @@ describe('use-profile mutation hooks', () => {
       expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.profile.all });
     });
 
-    it('useUpdateUserAvatar invalidates profile.all', async () => {
-      const { useUpdateUserAvatar } = await loadHooks();
-      useUpdateUserAvatar();
-      const onSuccess = lastMutationOpts().onSuccess as () => void;
-      onSuccess();
-      expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.profile.all });
-    });
-
     it('useDeleteAccount does not invalidate any queries', async () => {
       const { useDeleteAccount } = await loadHooks();
       useDeleteAccount();
@@ -142,24 +133,6 @@ describe('use-profile mutationFn execution', () => {
     const mutationFn = lastMutationOpts().mutationFn as (name: string) => Promise<unknown>;
     await mutationFn('New Name');
     expect(authLib.updateUserName).toHaveBeenCalledWith('New Name');
-  });
-
-  it('useUpdateUserAvatar mutationFn calls updateUserAvatar and returns url', async () => {
-    vi.mocked(authLib.updateUserAvatar).mockResolvedValueOnce({ url: 'https://img.test/new.png', error: null });
-    const { useUpdateUserAvatar } = await loadHooks();
-    useUpdateUserAvatar();
-    const mutationFn = lastMutationOpts().mutationFn as (uri: string) => Promise<unknown>;
-    const result = await mutationFn('file://photo.jpg');
-    expect(authLib.updateUserAvatar).toHaveBeenCalledWith('file://photo.jpg');
-    expect(result).toBe('https://img.test/new.png');
-  });
-
-  it('useUpdateUserAvatar mutationFn throws when lib returns error', async () => {
-    vi.mocked(authLib.updateUserAvatar).mockResolvedValueOnce({ url: null, error: 'Upload falhou' });
-    const { useUpdateUserAvatar } = await loadHooks();
-    useUpdateUserAvatar();
-    const mutationFn = lastMutationOpts().mutationFn as (uri: string) => Promise<unknown>;
-    await expect(mutationFn('file://photo.jpg')).rejects.toThrow('Upload falhou');
   });
 
   it('useDeleteAccount mutationFn calls deleteAccount', async () => {

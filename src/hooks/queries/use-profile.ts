@@ -3,7 +3,6 @@ import {
   getProfile,
   getCurrentAuthUser,
   updateUserName,
-  updateUserAvatar,
   deleteAccount,
 } from '../../../lib/auth';
 import { getNotificationPrefs, DEFAULT_NOTIFICATION_PREFS } from '../../../lib/notifications';
@@ -50,20 +49,6 @@ export const useUpdateUserName = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (name: string) => mutationFnAdapter(() => updateUserName(name))(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.profile.all });
-    },
-  });
-};
-
-export const useUpdateUserAvatar = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (imageUri: string) => {
-      const result = await updateUserAvatar(imageUri);
-      if (result.error) throw new Error(result.error);
-      return result.url;
-    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.profile.all });
     },

@@ -12,7 +12,7 @@ import type { BalanceWithChild } from '@lib/balances';
 type ChildSelectionSheetProps = Readonly<{
     visible: boolean;
     onClose: () => void;
-    onSelectChild: (child: { id: string; nome: string }) => void;
+    onSelectChild: (child: { id: string; nome: string; avatar_url: string | null }) => void;
 }>;
 
 export function ChildSelectionSheet({
@@ -78,7 +78,7 @@ export function ChildSelectionSheet({
                                     styles.childRow,
                                     { backgroundColor: pressed ? colors.border.subtle : colors.bg.muted },
                                 ]}
-                                onPress={() => onSelectChild({ id: child.id, nome: child.nome })}
+                                onPress={() => onSelectChild({ id: child.id, nome: child.nome, avatar_url: child.avatar_url ?? null })}
                                 accessibilityRole="button"
                                 accessibilityLabel={`Selecionar ${child.nome}, ${totalPts} pontos`}
                             >

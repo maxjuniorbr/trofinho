@@ -66,7 +66,6 @@ export {
   useCurrentAuthUser,
   useNotificationPrefs,
   useUpdateUserName,
-  useUpdateUserAvatar,
   useDeleteAccount,
 } from './use-profile';
 export { useFamily } from './use-family';

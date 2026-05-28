@@ -4,10 +4,8 @@ import { extractErrorMessage, localizeRpcError, localizeSupabaseError } from './
 import { deviceStorage } from './device-storage';
 import { getGoogleIdToken, revokeGoogleAccess } from './google-auth';
 import { isValidDateOfBirth, localizeOAuthError, parseIsoDate } from './google-auth-utils';
-import { resolveStorageUrl, uploadImageToBucket } from './storage';
+import { resolveStorageUrl } from './storage';
 import { supabase } from './supabase';
-
-const AVATAR_BUCKET = 'avatars';
 
 export type UserProfile = {
   id: string;
@@ -100,6 +98,23 @@ export async function signInWithGoogle(): Promise<{
   const profile = profileResult.profile;
   const isNewUser = profile === null;
 
+  // Best-effort: backfill child avatar from Google picture so admin views show it.
+  // Only syncs when the child has no custom avatar yet.
+  if (profile?.papel === 'filho' && !profile.avatarUrl) {
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const googlePicture =
+        (authData?.user?.user_metadata?.picture as string | undefined) ??
+        (authData?.user?.user_metadata?.avatar_url as string | undefined) ??
+        null;
+      if (googlePicture) {
+        await supabase.rpc('sincronizar_avatar_filho', { p_avatar_url: googlePicture });
+      }
+    } catch (err) {
+      Sentry.captureException(err, { tags: { area: 'auth', step: 'sync-google-avatar' } });
+    }
+  }
+
   Sentry.addBreadcrumb({
     category: 'auth',
     message: isNewUser ? 'google_sign_in_new_user' : 'google_sign_in_existing_user',
@@ -123,7 +138,10 @@ export async function getCurrentAuthUser(): Promise<{
 } | null> {
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) return null;
-  const rawAvatarUrl = (data.user.user_metadata?.avatar_url as string | undefined) ?? null;
+  const rawAvatarUrl =
+    (data.user.user_metadata?.avatar_url as string | undefined) ??
+    (data.user.user_metadata?.picture as string | undefined) ??
+    null;
   const rawDateOfBirth = (data.user.user_metadata?.date_of_birth as string | undefined) ?? null;
   const rawFullName = (data.user.user_metadata?.full_name as string | undefined) ?? null;
   return {
@@ -301,56 +319,6 @@ export async function deleteAccount(): Promise<{ error: string | null }> {
 
   await supabase.auth.signOut({ scope: 'local' });
   return { error: null };
-}
-
-export async function updateUserAvatar(
-  imageUri: string,
-): Promise<{ url: string | null; error: string | null }> {
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-
-  if (authError || !authData.user) {
-    return { url: null, error: 'Sessão expirada. Faça login novamente.' };
-  }
-
-  const uploadResult = await uploadImageToBucket({
-    bucket: AVATAR_BUCKET,
-    imageUri,
-    pathWithoutExtension: `${authData.user.id}/avatar`,
-  });
-
-  if (uploadResult.error || !uploadResult.path) {
-    return {
-      url: null,
-      error: uploadResult.error ?? 'Erro ao fazer upload do avatar',
-    };
-  }
-
-  const { error: metaError } = await supabase.auth.updateUser({
-    data: { avatar_url: uploadResult.path },
-  });
-
-  if (metaError) {
-    if (uploadResult.path) {
-      supabase.storage
-        .from(AVATAR_BUCKET)
-        .remove([uploadResult.path])
-        .catch(() => {});
-    }
-    return {
-      url: null,
-      error: localizeSupabaseError(metaError.message),
-    };
-  }
-
-  // Best-effort sync to filhos table so admin views show the avatar
-  await supabase.rpc('sincronizar_avatar_filho', {
-    p_avatar_url: uploadResult.path,
-  });
-
-  // Resolve to a signed URL for immediate display by the caller.
-  const signedUrl = await resolveStorageUrl(AVATAR_BUCKET, uploadResult.path);
-
-  return { url: signedUrl, error: null };
 }
 
 export async function updateDateOfBirth(

@@ -36,6 +36,7 @@ describe('Feature: view-app-as-child — Property 5: Roteamento de dados via chi
                     const impersonating: ImpersonationState = {
                         childId: impersonatingChildId,
                         childName,
+                        childAvatarUrl: null,
                     };
 
                     const result = resolveChildId(impersonating, ownChildId);

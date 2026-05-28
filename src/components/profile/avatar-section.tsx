@@ -1,54 +1,16 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Camera, Mail } from 'lucide-react-native';
-import { useState } from 'react';
+import { Mail } from 'lucide-react-native';
 import { Avatar } from '@/components/ui/avatar';
-import { InlineMessage } from '@/components/ui/inline-message';
-import { useUpdateUserAvatar } from '@/hooks/queries';
-import { useTheme } from '@/context/theme-context';
 import { gradients, heroPalette, radii, spacing, typography } from '@/constants/theme';
 
 type AvatarSectionProps = Readonly<{
   name: string;
   email?: string;
   avatarUri: string | null;
-  role?: 'admin' | 'filho';
-  onAvatarChange?: (url: string | null) => void;
 }>;
 
-export const AvatarSection = ({
-  name,
-  email,
-  avatarUri,
-  role = 'admin',
-  onAvatarChange,
-}: AvatarSectionProps) => {
-  const { colors } = useTheme();
-  const accentColor = role === 'filho' ? colors.accent.filhoDim : colors.accent.adminDim;
-  const [error, setError] = useState<string | null>(null);
-  const updateAvatarMutation = useUpdateUserAvatar();
-
-  const handlePick = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (result.canceled || !result.assets[0]) return;
-
-    setError(null);
-    try {
-      const url = await updateAvatarMutation.mutateAsync(result.assets[0].uri);
-      onAvatarChange?.(url ?? null);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Não foi possível atualizar a foto.';
-      setError(message);
-    }
-  };
-
+export const AvatarSection = ({ name, email, avatarUri }: AvatarSectionProps) => {
   return (
     <LinearGradient
       colors={gradients.heroNavy.colors}
@@ -58,30 +20,14 @@ export const AvatarSection = ({
       style={styles.card}
     >
       <View style={styles.userRow}>
-        <Pressable
-          onPress={handlePick}
-          disabled={updateAvatarMutation.isPending}
-          style={styles.avatarButton}
-          accessibilityRole="button"
-          accessibilityLabel="Alterar foto de perfil"
-        >
+        <View style={styles.avatarWrap}>
           <Avatar
             name={name}
             size={56}
-            // AUDIT: 0.15 white-on-hero. heroPalette exposes surfaceChip (.10)
-            // and borderSoft (.15); semantically a borderSoft-tinted surface.
-            // Consider adding heroPalette.surfaceAvatar or unifying with chip.
             solidColor={heroPalette.borderSoft}
             imageUri={avatarUri}
           />
-          <View style={[styles.cameraBtn, { backgroundColor: accentColor }]}>
-            {updateAvatarMutation.isPending ? (
-              <ActivityIndicator size="small" color={heroPalette.textOnNavy} />
-            ) : (
-              <Camera size={12} color={heroPalette.textOnNavy} strokeWidth={2.5} />
-            )}
-          </View>
-        </Pressable>
+        </View>
 
         <View style={styles.userInfo}>
           <Text style={styles.name} numberOfLines={1}>
@@ -97,12 +43,6 @@ export const AvatarSection = ({
           ) : null}
         </View>
       </View>
-
-      {error ? (
-        <View style={styles.errorWrap}>
-          <InlineMessage message={error} variant="error" />
-        </View>
-      ) : null}
     </LinearGradient>
   );
 };
@@ -120,17 +60,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing['3'],
   },
-  avatarButton: { position: 'relative', flexShrink: 0 },
-  cameraBtn: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 26,
-    height: 26,
-    borderRadius: radii.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  avatarWrap: { flexShrink: 0 },
   userInfo: { flex: 1, minWidth: 0 },
   name: {
     fontFamily: typography.family.extrabold,
@@ -149,5 +79,4 @@ const styles = StyleSheet.create({
     fontSize: typography.size.xs,
     color: heroPalette.textOnNavyMuted,
   },
-  errorWrap: { width: '100%' },
 });

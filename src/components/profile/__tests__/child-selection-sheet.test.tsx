@@ -142,12 +142,12 @@ describe('ChildSelectionSheet', () => {
         act(() => {
             pressables[0].props.onPress();
         });
-        expect(onSelectChild).toHaveBeenCalledWith({ id: 'c1', nome: 'Ana' });
+        expect(onSelectChild).toHaveBeenCalledWith({ id: 'c1', nome: 'Ana', avatar_url: null });
 
         act(() => {
             pressables[1].props.onPress();
         });
-        expect(onSelectChild).toHaveBeenCalledWith({ id: 'c2', nome: 'Pedro' });
+        expect(onSelectChild).toHaveBeenCalledWith({ id: 'c2', nome: 'Pedro', avatar_url: null });
     });
 
     // Requisito 2.5 — estado vazio quando não há filhos ativos

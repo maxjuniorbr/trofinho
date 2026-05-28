@@ -638,8 +638,17 @@ export function getAssignmentCompletionState(
 }
 
 export function getTaskEditState(
-  task: Pick<TaskDetail, 'atribuicoes' | 'dias_semana' | 'ativo' | 'arquivada_em'>,
+  task: Pick<TaskDetail, 'atribuicoes' | 'dias_semana' | 'ativo' | 'arquivada_em' | 'excluida_em'>,
 ): TaskEditState {
+  if (task.excluida_em !== null) {
+    return {
+      canEdit: false,
+      canEditPoints: false,
+      errorMessage: 'Esta tarefa foi excluída e não pode ser editada.',
+      infoMessage: null,
+    };
+  }
+
   if (task.arquivada_em !== null) {
     return {
       canEdit: false,

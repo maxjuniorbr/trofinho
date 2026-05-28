@@ -398,6 +398,7 @@ describe('tasks', () => {
         dias_semana: 127,
         ativo: true,
         arquivada_em: null,
+        excluida_em: null,
         atribuicoes: [
           createAssignmentWithChild({
             status: 'aprovada',
@@ -418,6 +419,7 @@ describe('tasks', () => {
         dias_semana: 127,
         ativo: false,
         arquivada_em: null,
+        excluida_em: null,
         atribuicoes: [],
       }),
     ).toEqual({
@@ -432,12 +434,28 @@ describe('tasks', () => {
         dias_semana: 127,
         ativo: true,
         arquivada_em: '2026-03-21T12:00:00Z',
+        excluida_em: null,
         atribuicoes: [],
       }),
     ).toEqual({
       canEdit: false,
       canEditPoints: false,
       errorMessage: 'Esta tarefa está arquivada. Desarquive para editar.',
+      infoMessage: null,
+    });
+
+    expect(
+      getTaskEditState({
+        dias_semana: 127,
+        ativo: false,
+        arquivada_em: null,
+        excluida_em: '2026-03-21T12:00:00Z',
+        atribuicoes: [],
+      }),
+    ).toEqual({
+      canEdit: false,
+      canEditPoints: false,
+      errorMessage: 'Esta tarefa foi excluída e não pode ser editada.',
       infoMessage: null,
     });
 
@@ -1418,6 +1436,7 @@ describe('tasks', () => {
           dias_semana: 127,
           ativo: false,
           arquivada_em: null,
+          excluida_em: null,
           atribuicoes: [createAssignmentWithChild({ status: 'pendente' })],
         }),
       ).toEqual({
@@ -1426,6 +1445,35 @@ describe('tasks', () => {
         errorMessage: 'Esta tarefa está pausada e não pode ser editada.',
         infoMessage: null,
       });
+    });
+
+    it('returns canEdit: false with explicit excluida message when excluida_em is set', () => {
+      expect(
+        getTaskEditState({
+          dias_semana: 127,
+          ativo: false,
+          arquivada_em: null,
+          excluida_em: '2026-03-21T12:00:00Z',
+          atribuicoes: [],
+        }),
+      ).toEqual({
+        canEdit: false,
+        canEditPoints: false,
+        errorMessage: 'Esta tarefa foi excluída e não pode ser editada.',
+        infoMessage: null,
+      });
+    });
+
+    it('prioritizes excluida over arquivada when both are set', () => {
+      expect(
+        getTaskEditState({
+          dias_semana: 127,
+          ativo: false,
+          arquivada_em: '2026-03-15T12:00:00Z',
+          excluida_em: '2026-03-21T12:00:00Z',
+          atribuicoes: [],
+        }).errorMessage,
+      ).toBe('Esta tarefa foi excluída e não pode ser editada.');
     });
   });
 
@@ -1565,6 +1613,7 @@ describe('tasks', () => {
             const result = getTaskEditState({
               ...(task as Pick<TaskDetail, 'atribuicoes' | 'dias_semana' | 'ativo'>),
               arquivada_em: null,
+              excluida_em: null,
             });
             expect(result.canEdit).toBe(false);
           },

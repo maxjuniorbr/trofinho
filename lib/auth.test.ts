@@ -7,7 +7,6 @@ import {
   getProfile,
   refreshAuthSession,
   signOut,
-  updateUserAvatar,
   updateUserName,
 } from './auth';
 
@@ -152,7 +151,7 @@ describe('auth', () => {
       const result = await getCurrentAuthUser();
       expect(result).toEqual({
         email: 'max@test.com',
-        avatarUrl: 'https://signed-url',
+        avatarUrl: 'https://avatar',
         emailConfirmedAt: '2024-01-15T10:30:00Z',
         dateOfBirth: null,
         fullName: null,
@@ -282,7 +281,7 @@ describe('auth', () => {
       familia_id: 'family-1',
       papel: 'filho',
       nome: 'Lia',
-      avatarUrl: 'https://signed-url',
+      avatarUrl: 'https://cdn.example.com/child-avatar.jpg',
     });
   });
 
@@ -371,91 +370,6 @@ describe('auth', () => {
 
     await expect(updateUserName('Novo Nome')).resolves.toEqual({ error: null });
     expect(updateSuccessQuery.update).toHaveBeenCalledWith({ nome: 'Novo Nome' });
-  });
-
-  it('uploads an avatar from the local file system and updates the user metadata', async () => {
-    fileArrayBufferMock.mockResolvedValue(new ArrayBuffer(4));
-    supabaseMock.auth.getUser.mockResolvedValue({
-      data: { user: { id: 'user-1' } },
-      error: null,
-    });
-    storageBucketMock.upload.mockResolvedValue({ error: null });
-    supabaseMock.auth.updateUser.mockResolvedValue({ error: null });
-
-    const result = await updateUserAvatar('/test/avatar.png?cache=1');
-
-    expect(fileConstructorMock).toHaveBeenCalledWith('/test/avatar.png');
-    expect(storageBucketMock.upload).toHaveBeenCalledWith(
-      'user-1/avatar.png',
-      expect.any(ArrayBuffer),
-      { contentType: 'image/png', upsert: true },
-    );
-    expect(supabaseMock.auth.updateUser).toHaveBeenCalledWith({
-      data: { avatar_url: 'user-1/avatar.png' },
-    });
-    expect(result).toEqual({
-      url: 'https://signed-url',
-      error: null,
-    });
-  });
-
-  it('falls back to fetch for remote avatars and cleans up uploaded file when metadata update fails', async () => {
-    const arrayBuffer = new ArrayBuffer(8);
-    fetchMock.mockResolvedValue({
-      ok: true,
-      arrayBuffer: vi.fn().mockResolvedValue(arrayBuffer),
-    });
-    supabaseMock.auth.getUser.mockResolvedValue({
-      data: { user: { id: 'user-2' } },
-      error: null,
-    });
-    storageBucketMock.upload.mockResolvedValue({ error: null });
-    supabaseMock.auth.updateUser.mockResolvedValue({
-      error: { message: 'metadata failed' },
-    });
-
-    const result = await updateUserAvatar('https://images.example.com/photo.webp');
-
-    expect(storageBucketMock.upload).toHaveBeenCalledWith('user-2/avatar.webp', arrayBuffer, {
-      contentType: 'image/webp',
-      upsert: true,
-    });
-    expect(storageBucketMock.remove).toHaveBeenCalledWith(['user-2/avatar.webp']);
-    expect(result).toEqual({
-      url: null,
-      error: 'Algo deu errado. Tente novamente.',
-    });
-  });
-
-  it('returns descriptive errors when the avatar upload cannot continue', async () => {
-    supabaseMock.auth.getUser
-      .mockResolvedValueOnce({ data: { user: null }, error: null })
-      .mockResolvedValueOnce({ data: { user: { id: 'user-3' } }, error: null })
-      .mockResolvedValueOnce({ data: { user: { id: 'user-4' } }, error: null });
-
-    await expect(updateUserAvatar('/test/avatar.jpg')).resolves.toEqual({
-      url: null,
-      error: 'Sessão expirada. Faça login novamente.',
-    });
-
-    fileArrayBufferMock.mockResolvedValue(new ArrayBuffer(4));
-    storageBucketMock.upload.mockResolvedValue({ error: { message: 'upload failed' } });
-
-    await expect(updateUserAvatar('/test/avatar.jpg')).resolves.toEqual({
-      url: null,
-      error: 'upload failed',
-    });
-
-    fileArrayBufferMock.mockRejectedValue(new Error('read failed'));
-    fetchMock.mockResolvedValue({
-      ok: false,
-      arrayBuffer: vi.fn(),
-    });
-
-    await expect(updateUserAvatar('/test/avatar.unknown')).resolves.toEqual({
-      url: null,
-      error: 'Não foi possível ler a imagem selecionada',
-    });
   });
 
   describe('deleteAccount', () => {

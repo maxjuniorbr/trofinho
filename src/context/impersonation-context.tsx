@@ -3,6 +3,7 @@ import React, { createContext, useCallback, useContext, useMemo, useState } from
 export interface ImpersonationState {
     childId: string;
     childName: string;
+    childAvatarUrl: string | null;
 }
 
 interface ImpersonationContextValue {

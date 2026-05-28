@@ -54,11 +54,11 @@ describe('Feature: view-app-as-child — Property 1: Round-trip de impersonaçã
 
                 // Start impersonation
                 act(() => {
-                    captured!.startImpersonation({ childId, childName });
+                    captured!.startImpersonation({ childId, childName, childAvatarUrl: null });
                 });
 
                 // After start, impersonating should match the input
-                expect(captured!.impersonating).toEqual({ childId, childName });
+                expect(captured!.impersonating).toEqual({ childId, childName, childAvatarUrl: null });
 
                 // Stop impersonation
                 act(() => {

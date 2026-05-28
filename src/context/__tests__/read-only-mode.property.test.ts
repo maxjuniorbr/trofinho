@@ -22,6 +22,7 @@ const deriveReadOnly = (impersonating: ImpersonationState | null): boolean =>
 const impersonationStateArb: fc.Arbitrary<ImpersonationState> = fc.record({
     childId: fc.uuid(),
     childName: fc.string({ minLength: 1, maxLength: 100 }),
+    childAvatarUrl: fc.oneof(fc.constant(null), fc.webUrl()),
 });
 
 // Arbitrary for ImpersonationState | null (random mix)

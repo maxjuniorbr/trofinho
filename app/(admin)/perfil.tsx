@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ChevronRight, Eye, Info, User, Users } from 'lucide-react-native';
+import { ChevronRight, Eye, Home, Info, User, Users } from 'lucide-react-native';
 import { getAppVersion } from '@lib/app-version';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { HomeFooterBar } from '@/components/ui/home-footer-bar';
@@ -83,7 +83,6 @@ export default function ProfileScreen() {
   const admins = familyAdminsQuery.data ?? [];
   const pendingInvite = adminInviteQuery.data ?? null;
 
-  const [localAvatarUri, setLocalAvatarUri] = useState<string | null>(null);
   const [localName, setLocalName] = useState<string | null>(null);
   const [notificationPreferences, setNotificationPreferences] = useState<NotificationPrefs | null>(
     null,
@@ -106,9 +105,9 @@ export default function ProfileScreen() {
   const { startImpersonation } = useImpersonation();
 
   const effectivePrefs = notificationPreferences ?? notificationPrefsQuery.data ?? null;
-  const effectiveAvatarUri = localAvatarUri ?? avatarUri;
+  const effectiveAvatarUri = avatarUri;
   const effectiveName = localName ?? profile?.nome ?? 'A';
-  const familyDisplayName = family ? `Família ${family.nome}` : effectiveName;
+  const familyName = family?.nome ?? null;
 
   const handleSignOut = async () => {
     setLoggingOut(true);
@@ -209,10 +208,9 @@ export default function ProfileScreen() {
             showsVerticalScrollIndicator={false}
           >
             <AvatarSection
-              name={familyDisplayName}
+              name={effectiveName}
               email={email}
               avatarUri={effectiveAvatarUri}
-              onAvatarChange={setLocalAvatarUri}
             />
 
             {/* Aparência */}
@@ -230,6 +228,15 @@ export default function ProfileScreen() {
 
             {/* Família */}
             <SectionCard title="Família" colors={colors} styles={styles}>
+              <View style={[styles.menuRow, styles.menuRowBorder]}>
+                <View style={styles.menuRowLeft}>
+                  <Home size={16} color={colors.text.secondary} strokeWidth={2} />
+                  <Text style={[styles.menuRowLabel, { color: colors.text.primary }]}>Nome</Text>
+                </View>
+                <Text style={[styles.versionText, { color: colors.text.muted }]} numberOfLines={1}>
+                  {familyName ?? '—'}
+                </Text>
+              </View>
               <MenuRow
                 icon={Users}
                 label="Administradores"
@@ -261,7 +268,7 @@ export default function ProfileScreen() {
 
             {/* Sobre */}
             <SectionCard title="Sobre" colors={colors} styles={styles}>
-              <View style={[styles.menuRow, styles.menuRowBorder]}>
+              <View style={styles.menuRow}>
                 <View style={styles.menuRowLeft}>
                   <Info size={16} color={colors.text.secondary} strokeWidth={2} />
                   <Text style={[styles.menuRowLabel, { color: colors.text.primary }]}>Versão</Text>
@@ -307,7 +314,7 @@ export default function ProfileScreen() {
         onClose={() => setShowChildSelection(false)}
         onSelectChild={(child) => {
           setShowChildSelection(false);
-          startImpersonation({ childId: child.id, childName: child.nome });
+          startImpersonation({ childId: child.id, childName: child.nome, childAvatarUrl: child.avatar_url });
           router.replace('/(child)');
         }}
       />

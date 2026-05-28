@@ -2,6 +2,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useCallback, useState } from 'react';
 import { Mail, User } from 'lucide-react-native';
 import { BottomSheetModal } from '@/components/ui/bottom-sheet';
+import { Avatar } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { InlineMessage } from '@/components/ui/inline-message';
@@ -110,6 +111,7 @@ export function ChildViewSheet({ childId, onClose }: ChildViewSheetProps) {
       closeLabel="Fechar dados do filho"
     >
       <View style={styles.header}>
+        <Avatar name={child?.nome ?? '?'} size={44} imageUri={child?.avatar_url ?? null} />
         <Text style={[styles.title, { color: colors.text.primary }]}>
           {child?.nome ?? 'Dados do Filho'}
         </Text>
@@ -182,7 +184,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: spacing['3'],
     marginBottom: spacing['4'],
   },
   title: {

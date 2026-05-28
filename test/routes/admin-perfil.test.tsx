@@ -156,6 +156,7 @@ vi.mock('@/components/ui/button', () => ({
 vi.mock('lucide-react-native', () => ({
   ChevronRight: createHostComponent('ChevronRight'),
   Eye: createHostComponent('Eye'),
+  Home: createHostComponent('Home'),
   Info: createHostComponent('Info'),
   User: createHostComponent('User'),
   Users: createHostComponent('Users'),
@@ -254,11 +255,39 @@ describe('ProfileScreen (admin)', () => {
   it('renders profile components when data is available', () => {
     const renderer = render(<ProfileScreen />);
     const avatar = renderer.root.findByType('AvatarSection' as never);
-    expect(avatar.props.name).toBe('Família Silva');
+    expect(avatar.props.name).toBe('Max');
     expect(avatar.props.email).toBe('max@example.com');
+    expect(avatar.props.avatarUri).toBeNull();
     expect(renderer.root.findAllByType('PersonalDataSheet' as never).length).toBe(1);
     expect(renderer.root.findAllByType('ThemeCard' as never).length).toBe(1);
     expect(renderer.root.findAllByType('NotificationCard' as never).length).toBe(1);
+  });
+
+  it('passes the Google avatar URL to AvatarSection when available', () => {
+    authUserMock.data = {
+      email: 'max@example.com',
+      avatarUrl: 'https://lh3.googleusercontent.com/a/avatar.png',
+    };
+    const renderer = render(<ProfileScreen />);
+    const avatar = renderer.root.findByType('AvatarSection' as never);
+    expect(avatar.props.avatarUri).toBe('https://lh3.googleusercontent.com/a/avatar.png');
+  });
+
+  it('shows the family name inside the Família section', () => {
+    const renderer = render(<ProfileScreen />);
+    const familyNameNode = renderer.root.findAll(
+      (node) => node.type === 'Text' && node.props.children === 'Silva',
+    );
+    expect(familyNameNode.length).toBe(1);
+  });
+
+  it('falls back to a placeholder when the family is unavailable', () => {
+    familyMock.data = undefined;
+    const renderer = render(<ProfileScreen />);
+    const fallbackNode = renderer.root.findAll(
+      (node) => node.type === 'Text' && node.props.children === '—',
+    );
+    expect(fallbackNode.length).toBe(1);
   });
 
   it('renders profile blocks in the requested admin order', () => {

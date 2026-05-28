@@ -49,13 +49,13 @@ describe('ImpersonationProvider', () => {
             );
         });
 
-        const child: ImpersonationState = { childId: 'child-123', childName: 'Maria' };
+        const child: ImpersonationState = { childId: 'child-123', childName: 'Maria', childAvatarUrl: null };
 
         act(() => {
             captured!.startImpersonation(child);
         });
 
-        expect(captured!.impersonating).toEqual({ childId: 'child-123', childName: 'Maria' });
+        expect(captured!.impersonating).toEqual({ childId: 'child-123', childName: 'Maria', childAvatarUrl: null });
     });
 
     it('clears impersonating state to null when stopImpersonation is called', () => {
@@ -71,7 +71,7 @@ describe('ImpersonationProvider', () => {
 
         // Start impersonation first
         act(() => {
-            captured!.startImpersonation({ childId: 'child-456', childName: 'João' });
+            captured!.startImpersonation({ childId: 'child-456', childName: 'João', childAvatarUrl: null });
         });
 
         expect(captured!.impersonating).not.toBeNull();
