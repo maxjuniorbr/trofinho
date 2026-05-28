@@ -7,6 +7,7 @@ export type PushEvent =
   | 'tarefa_aprovada'
   | 'tarefa_rejeitada'
   | 'tarefa_criada'
+  | 'tarefa_lembrete'
   | 'resgate_confirmado'
   | 'resgate_solicitado'
   | 'resgate_cancelado'
@@ -18,6 +19,7 @@ export type PushEvent =
 
 export type EventPayload =
   | { userId: string; taskTitle: string; entityId?: string }
+  | { userId: string; taskTitle: string; pendingCount: number }
   | { userId: string; prizeName: string }
   | { childName: string; prizeName: string; redemptionId?: string; childUserId?: string }
   | {
@@ -156,6 +158,7 @@ export const FILHO_ONLY_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>([
   'tarefa_concluida',
   'resgate_solicitado',
   'resgate_cofrinho_solicitado',
+  'tarefa_lembrete',
 ]);
 
 // resgate_cancelado is allowed for both roles (admin and filho can cancel pending redemptions)
@@ -172,6 +175,7 @@ export const VALID_EVENTS: ReadonlySet<string> = new Set<PushEvent>([
   'tarefa_aprovada',
   'tarefa_rejeitada',
   'tarefa_criada',
+  'tarefa_lembrete',
   'resgate_confirmado',
   'resgate_solicitado',
   'resgate_cancelado',
@@ -260,8 +264,14 @@ export const MESSAGE_TEMPLATES: Record<PushEvent, MessageTemplateConfig> = {
   tarefa_criada: {
     variants: [
       { title: 'Nova tarefa 📝', bodyTemplate: 'Você tem uma nova tarefa: "{taskTitle}".' },
-      { title: 'Missão nova! 🚀', bodyTemplate: 'Nova tarefa chegou: "{taskTitle}". Bora!' },
-      { title: 'Tarefa fresquinha 🆕', bodyTemplate: '"{taskTitle}" te espera. Partiu!' },
+      { title: 'Missão nova! 🚀', bodyTemplate: 'Nova tarefa chegou: "{taskTitle}".' },
+      { title: 'Tarefa fresquinha 🆕', bodyTemplate: '"{taskTitle}" te espera.' },
+    ],
+    route: '/(child)/tasks',
+  },
+  tarefa_lembrete: {
+    variants: [
+      { title: 'Bora fechar o dia 🌙', bodyTemplate: 'Falta pouco pra fechar o dia.' },
     ],
     route: '/(child)/tasks',
   },
@@ -272,16 +282,16 @@ export const MESSAGE_TEMPLATES: Record<PushEvent, MessageTemplateConfig> = {
         bodyTemplate: 'Seu resgate de "{prizeName}" foi confirmado!',
       },
       { title: 'Prêmio garantido! 🎁', bodyTemplate: '"{prizeName}" é seu! Aproveite!' },
-      { title: 'Oba! 🥳', bodyTemplate: 'Resgate de "{prizeName}" confirmado! Parabéns!' },
+      { title: 'Tudo certo! 🎉', bodyTemplate: 'Resgate de "{prizeName}" confirmado. Aproveite!' },
     ],
     route: '/(child)/redemptions',
   },
   resgate_cancelado: {
     variants: [
-      { title: 'Resgate cancelado ❌', bodyTemplate: 'O resgate de "{prizeName}" foi cancelado.' },
+      { title: 'Resgate cancelado', bodyTemplate: 'O resgate de "{prizeName}" foi cancelado.' },
       {
-        title: 'Resgate não aprovado 😕',
-        bodyTemplate: '"{prizeName}" foi cancelado. Que tal tentar outro?',
+        title: 'Resgate não aprovado',
+        bodyTemplate: '"{prizeName}" foi cancelado. Você pode tentar quando quiser.',
       },
     ],
     route: '/(child)/redemptions',
@@ -339,12 +349,12 @@ export const MESSAGE_TEMPLATES: Record<PushEvent, MessageTemplateConfig> = {
   resgate_cofrinho_cancelado: {
     variants: [
       {
-        title: 'Resgate do cofrinho cancelado ❌',
+        title: 'Resgate do cofrinho cancelado',
         bodyTemplate: 'Seu resgate do cofrinho foi cancelado.',
       },
       {
         title: 'Cofrinho mantido 🐷',
-        bodyTemplate: 'O resgate do cofrinho não foi aprovado.',
+        bodyTemplate: 'Seus pontos continuam guardados no cofrinho.',
       },
     ],
     route: '/(child)/balance',
@@ -352,12 +362,12 @@ export const MESSAGE_TEMPLATES: Record<PushEvent, MessageTemplateConfig> = {
   penalidade_aplicada: {
     variants: [
       {
-        title: 'Penalidade aplicada ⚠️',
-        bodyTemplate: 'Você perdeu {amount} moedas. Motivo: {reason}',
+        title: 'Saldo ajustado ⚠️',
+        bodyTemplate: 'Foram descontados {amount} pontos. Motivo: {reason}.',
       },
       {
-        title: 'Atenção ⚠️',
-        bodyTemplate: 'Foram debitadas {amount} moedas do seu saldo.',
+        title: 'Saldo atualizado ⚠️',
+        bodyTemplate: 'Foram descontados {amount} pontos do seu saldo.',
       },
     ],
     route: '/(child)/balance',
@@ -419,7 +429,7 @@ async function fetchRedemptionSuffix(
     .eq('filho_id', filhoId);
   if (!saldos?.[0]) return '';
   const saldo = saldos[0].saldo_livre as number;
-  return ` Saldo: ${saldo} moedas 💰`;
+  return ` Saldo: ${saldo} pontos 💰`;
 }
 
 export async function fetchProgressSuffix(
@@ -507,6 +517,7 @@ export function buildMessage(
 const CHILD_TARGETED_EVENTS: ReadonlySet<PushEvent> = new Set<PushEvent>([
   'tarefa_aprovada',
   'tarefa_rejeitada',
+  'tarefa_lembrete',
   'resgate_confirmado',
   'resgate_cancelado',
   'resgate_cofrinho_confirmado',
@@ -527,6 +538,7 @@ export const PREFERENCE_KEY_MAP: Record<PushEvent, keyof NotificationPrefs> = {
   tarefa_aprovada: 'tarefaAprovada',
   tarefa_rejeitada: 'tarefaRejeitada',
   tarefa_criada: 'tarefasPendentes',
+  tarefa_lembrete: 'tarefasPendentes',
   tarefa_concluida: 'tarefaConcluida',
   resgate_solicitado: 'resgatesSolicitado',
   resgate_confirmado: 'resgateConfirmado',

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 
-import { dispatchPushNotification } from './push';
+import { dispatchPushNotification, type PushEvent } from './push';
 
 const invokeMock = vi.hoisted(() => vi.fn());
 const captureExceptionMock = vi.hoisted(() => vi.fn());
@@ -304,6 +304,72 @@ describe('dispatchPushNotification', () => {
 
       expect(refreshSessionMock).not.toHaveBeenCalled();
       expect(invokeMock).toHaveBeenCalledOnce();
+    });
+  });
+
+  /**
+   * Type symmetry for 'tarefa_lembrete' event
+   * Validates: Requirements 5.1
+   *
+   * The 'tarefa_lembrete' identifier is added to the PushEvent union purely
+   * for type symmetry — the v1 dispatch is server-driven via pg_cron and the
+   * send-task-reminder edge function. These tests pin the invariant that the
+   * union extension is type-compatible and that the existing retry/backoff
+   * branches treat it identically to other events (no special-case behavior).
+   */
+  describe("'tarefa_lembrete' type symmetry", () => {
+    it('is assignable to the PushEvent union (compile-time check)', () => {
+      const event: PushEvent = 'tarefa_lembrete';
+      expect(event).toBe('tarefa_lembrete');
+    });
+
+    it('dispatches successfully and forwards event/familiaId/payload unchanged', async () => {
+      invokeMock.mockResolvedValueOnce({ data: { sent: 1, failed: 0 }, error: null });
+
+      await expect(
+        dispatchPushNotification('tarefa_lembrete', 'family-1', {
+          userId: 'u1',
+          pendingCount: '3',
+        }),
+      ).resolves.toBeUndefined();
+
+      expect(invokeMock).toHaveBeenCalledWith('send-push-notification', {
+        body: {
+          event: 'tarefa_lembrete',
+          familiaId: 'family-1',
+          payload: { userId: 'u1', pendingCount: '3' },
+        },
+        headers: { Authorization: 'Bearer test-access-token' },
+      });
+      expect(captureExceptionMock).not.toHaveBeenCalled();
+    });
+
+    it('flows through the same retry/backoff branch as tarefa_aprovada for transient errors', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const fnError = Object.assign(new Error('Network failure'), {
+        name: 'FunctionsFetchError',
+      });
+      // Transient error — retried MAX_PUSH_RETRIES times, then captured
+      invokeMock.mockResolvedValue({ data: null, error: fnError });
+
+      const promise = dispatchPushNotification('tarefa_lembrete', 'family-1', {
+        userId: 'u1',
+        pendingCount: '3',
+      });
+      await vi.advanceTimersByTimeAsync(10_000);
+      await promise;
+
+      // Identical retry shape to other events: 1 initial + 2 retries = 3 calls
+      expect(invokeMock).toHaveBeenCalledTimes(3);
+      expect(captureExceptionMock).toHaveBeenCalledWith(
+        fnError,
+        expect.objectContaining({
+          tags: expect.objectContaining({
+            subsystem: 'push',
+            event: 'tarefa_lembrete',
+          }),
+        }),
+      );
     });
   });
 });

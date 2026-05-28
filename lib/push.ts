@@ -5,6 +5,7 @@ export type PushEvent =
   | 'tarefa_aprovada'
   | 'tarefa_rejeitada'
   | 'tarefa_criada'
+  | 'tarefa_lembrete'
   | 'resgate_confirmado'
   | 'resgate_solicitado'
   | 'resgate_cancelado'

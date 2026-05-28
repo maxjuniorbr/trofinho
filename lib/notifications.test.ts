@@ -415,8 +415,13 @@ describe('Contract parity: push events & notification prefs', () => {
   });
 
   it('PREFERENCE_KEY_MAP values cover all client NotificationPrefs keys', () => {
-    const sorted = (arr: string[]) => [...arr].toSorted((a, b) => a.localeCompare(b));
-    expect(sorted(handlerPrefKeys)).toEqual(sorted(clientPrefKeys));
+    // Use set semantics: PREFERENCE_KEY_MAP intentionally maps multiple
+    // events to the same preference key (e.g. tarefa_criada and
+    // tarefa_lembrete both gate on `tarefasPendentes` per requirement 9.3
+    // of the child-task-reminder spec). Asserting on the unique value
+    // set keeps "every client pref is reachable from some handler event"
+    // while accommodating the many-to-one mapping.
+    expect(new Set(handlerPrefKeys)).toEqual(new Set(clientPrefKeys));
   });
 
   it('every MESSAGE_TEMPLATES route is handled by getNotificationRoute', () => {

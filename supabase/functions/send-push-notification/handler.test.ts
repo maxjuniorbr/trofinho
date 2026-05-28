@@ -448,6 +448,26 @@ describe('handleRequest — Expo Push API integration', () => {
     expect(res.status).toBe(403);
     expect(json.error).toBe('Forbidden');
   });
+
+  // Validates Requirements 5.2, 9.3: a forged admin-originated dispatch of
+  // `tarefa_lembrete` (the new daily child reminder) MUST be rejected by the
+  // role guard. The orchestrator authenticates server-side via the service
+  // role key — admin clients must not be able to trigger this event at all.
+  it('returns HTTP 403 when admin tries to trigger tarefa_lembrete', async () => {
+    const supabase = createMockSupabase({ callerPapel: 'admin' });
+
+    const req = makeReq({
+      event: 'tarefa_lembrete',
+      familiaId: 'fam-1',
+      payload: { userId: 'user-1', pendingCount: 3 } as unknown as EventPayload,
+    });
+
+    const res = await handleRequest(req, makeDeps(supabase));
+    const json = (await res.json()) as { error: string };
+
+    expect(res.status).toBe(403);
+    expect(json.error).toBe('Forbidden');
+  });
 });
 
 // ─── handleRequest — error paths ─────────────────────────────────────────────
@@ -954,6 +974,7 @@ describe('Property 2: Disabled preference prevents ticket generation', () => {
       tarefa_aprovada: 'tarefaAprovada',
       tarefa_rejeitada: 'tarefaRejeitada',
       tarefa_criada: 'tarefasPendentes',
+      tarefa_lembrete: 'tarefasPendentes',
       tarefa_concluida: 'tarefaConcluida',
       resgate_solicitado: 'resgatesSolicitado',
       resgate_confirmado: 'resgateConfirmado',
@@ -968,6 +989,7 @@ describe('Property 2: Disabled preference prevents ticket generation', () => {
       'tarefa_aprovada',
       'tarefa_rejeitada',
       'tarefa_criada',
+      'tarefa_lembrete',
       'tarefa_concluida',
       'resgate_solicitado',
       'resgate_confirmado',
@@ -1693,6 +1715,24 @@ describe('isEventAllowedForRole', () => {
   });
 });
 
+// ─── tarefa_lembrete event mapping (focused) ───────────────────────────────
+// Validates Requirements 5.2, 9.3: the daily reminder reuses the existing
+// `tarefasPendentes` preference key (no new key) and is dispatchable only by
+// the child role (the orchestrator is server-side; admin clients must not be
+// able to trigger this event).
+
+describe('tarefa_lembrete event mapping', () => {
+  it('maps tarefa_lembrete to tarefasPendentes preference key', () => {
+    expect(getPreferenceKey('tarefa_lembrete')).toBe('tarefasPendentes');
+  });
+
+  it('rejects admin-originated tarefa_lembrete dispatch and allows filho', () => {
+    expect(FILHO_ONLY_EVENTS.has('tarefa_lembrete')).toBe(true);
+    expect(isEventAllowedForRole('tarefa_lembrete', 'admin')).toBe(false);
+    expect(isEventAllowedForRole('tarefa_lembrete', 'filho')).toBe(true);
+  });
+});
+
 // ─── fetchProgressSuffix ────────────────────────────────────────────────────
 
 function createProgressMockSupabase(overrides: {
@@ -1795,7 +1835,7 @@ describe('fetchProgressSuffix', () => {
     });
 
     expect(result).toContain('45');
-    expect(result).toContain('moedas');
+    expect(result).toContain('pontos');
   });
 
   it('returns empty string when filho not found', async () => {

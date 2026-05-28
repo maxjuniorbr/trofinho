@@ -327,6 +327,54 @@ export type Database = {
           },
         ]
       }
+      lembretes_envios: {
+        Row: {
+          created_at: string
+          dia: string
+          dispatch_status: string
+          familia_id: string
+          filho_id: string
+          id: string
+          jitter_seconds: number
+          pending_count: number
+        }
+        Insert: {
+          created_at?: string
+          dia: string
+          dispatch_status?: string
+          familia_id: string
+          filho_id: string
+          id?: string
+          jitter_seconds: number
+          pending_count: number
+        }
+        Update: {
+          created_at?: string
+          dia?: string
+          dispatch_status?: string
+          familia_id?: string
+          filho_id?: string
+          id?: string
+          jitter_seconds?: number
+          pending_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lembretes_envios_familia_id_fkey"
+            columns: ["familia_id"]
+            isOneToOne: false
+            referencedRelation: "familias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lembretes_envios_filho_id_fkey"
+            columns: ["filho_id"]
+            isOneToOne: false
+            referencedRelation: "filhos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       movimentacoes: {
         Row: {
           created_at: string
@@ -835,6 +883,14 @@ export type Database = {
       }
       excluir_minha_conta: { Args: never; Returns: undefined }
       excluir_tarefa: { Args: { p_tarefa_id: string }; Returns: number }
+      executar_lembretes_pendentes: {
+        Args: never
+        Returns: {
+          familia_id: string
+          filho_id: string
+          status: string
+        }[]
+      }
       garantir_atribuicoes_recorrentes:
         | { Args: never; Returns: undefined }
         | { Args: { p_filho_id: string }; Returns: undefined }
@@ -913,6 +969,15 @@ export type Database = {
         Returns: undefined
       }
       remover_co_admin: { Args: { p_usuario_id: string }; Returns: undefined }
+      selecionar_lembretes_pendentes: {
+        Args: { p_dia: string }
+        Returns: {
+          familia_id: string
+          filho_id: string
+          pending_count: number
+          usuario_id: string
+        }[]
+      }
       sincronizar_avatar_filho: {
         Args: { p_avatar_url: string }
         Returns: undefined
