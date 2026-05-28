@@ -4,7 +4,7 @@ App mobile de tarefas e recompensas para famílias. React Native + Expo + Supaba
 
 ## Stack
 
-- React Native 0.83 / Expo SDK 55 / Expo Router
+- React Native 0.85 / Expo SDK 56 / Expo Router
 - TypeScript strict
 - Supabase (auth, Postgres, storage, edge functions, realtime)
 - Resend (e-mails transacionais via SMTP)
