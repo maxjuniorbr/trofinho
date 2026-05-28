@@ -142,7 +142,7 @@ function transactionToNotif(tx: Transaction): Notif | null {
       title: 'Penalidade aplicada',
       description: tx.descricao
         ? `${tx.descricao} (-${Math.abs(tx.valor)} pts)`
-        : `Foram debitadas ${Math.abs(tx.valor)} moedas do seu saldo`,
+        : `Foram descontados ${Math.abs(tx.valor)} pontos do seu saldo`,
       time: relativeTime(refDate),
       group: dateGroup(refDate),
       route: '/(child)/balance',
@@ -173,7 +173,7 @@ export function deriveChildNotifs(input: ChildNotifInput): Notif[] {
         audience: 'child',
         type: 'task',
         title: 'Tarefa aprovada! 🎉',
-        description: `'${a.tarefas.titulo}' foi aprovada (+${a.pontos_snapshot} pts)`,
+        description: `'${a.titulo_snapshot}' foi aprovada (+${a.pontos_snapshot} pts)`,
         time: relativeTime(refDate),
         group: dateGroup(refDate),
         route: '/(child)/tasks',
@@ -187,8 +187,8 @@ export function deriveChildNotifs(input: ChildNotifInput): Notif[] {
         type: 'task',
         title: 'Tarefa rejeitada',
         description: a.nota_rejeicao
-          ? `'${a.tarefas.titulo}': ${a.nota_rejeicao}`
-          : `'${a.tarefas.titulo}' foi rejeitada. Tente novamente!`,
+          ? `'${a.titulo_snapshot}': ${a.nota_rejeicao}`
+          : `'${a.titulo_snapshot}' foi rejeitada. Tente novamente!`,
         time: relativeTime(refDate),
         group: dateGroup(refDate),
         route: '/(child)/tasks',

@@ -548,7 +548,8 @@ describe('deriveChildNotifs – transaction notifications', () => {
     };
     const notifs = deriveChildNotifs(input);
     expect(notifs).toHaveLength(1);
-    expect(notifs[0].description).toContain('debitadas');
+    expect(notifs[0].description).toContain('descontados');
+    expect(notifs[0].description).toContain('pontos');
     expect(notifs[0].description).toContain('20');
   });
 
