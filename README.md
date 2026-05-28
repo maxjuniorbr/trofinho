@@ -36,12 +36,21 @@ npm run lint          # ESLint
 npm run typecheck     # TypeScript
 npm test              # Vitest (unit + route tests)
 npm run test:coverage # Vitest com relatório de cobertura
+npm run format        # Prettier (formata todos os arquivos)
 ```
 
 ## Build
 
 ```bash
 npm run build    # EAS Build (preview, Android)
+```
+
+## OTA Updates
+
+```bash
+eas update --channel development   # publica update OTA no canal development
+eas update --channel preview       # publica update OTA no canal preview
+eas update --channel production    # publica update OTA no canal production
 ```
 
 ## Banco de dados
@@ -83,6 +92,7 @@ src/context    → Providers (tema, impersonação, query client)
 src/types      → Tipos TypeScript (database.types.ts gerado, env.d.ts)
 supabase/      → Migrations, edge functions, seed
 test/          → Helpers e route tests
+tests/         → Testes de contrato (RLS, edge functions, integrações)
 ```
 
 ## Notas
