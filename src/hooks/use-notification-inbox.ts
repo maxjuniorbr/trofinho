@@ -42,10 +42,7 @@ export function useAdminNotifInbox(): {
 
   const tasks = useMemo(() => flattenPages(tasksQuery.data), [tasksQuery.data]);
 
-  const redemptions = useMemo(
-    () => flattenPages(redemptionsQuery.data),
-    [redemptionsQuery.data],
-  );
+  const redemptions = useMemo(() => flattenPages(redemptionsQuery.data), [redemptionsQuery.data]);
 
   const items = useMemo(() => deriveAdminNotifs({ tasks, redemptions }), [tasks, redemptions]);
 
@@ -80,15 +77,9 @@ export function useChildNotifInbox(): {
   const { from, to } = useMemo(() => inboxTxRange(), []);
   const transactionsQuery = useTransactionsByPeriod(childId ?? '', from, to);
 
-  const assignments = useMemo(
-    () => flattenPages(assignmentsQuery.data),
-    [assignmentsQuery.data],
-  );
+  const assignments = useMemo(() => flattenPages(assignmentsQuery.data), [assignmentsQuery.data]);
 
-  const redemptions = useMemo(
-    () => flattenPages(redemptionsQuery.data),
-    [redemptionsQuery.data],
-  );
+  const redemptions = useMemo(() => flattenPages(redemptionsQuery.data), [redemptionsQuery.data]);
 
   const transactions = useMemo(() => transactionsQuery.data ?? [], [transactionsQuery.data]);
 

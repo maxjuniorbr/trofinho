@@ -100,9 +100,9 @@ export default function ChildBalanceAdminScreen() {
           description,
           opts: profile?.familia_id
             ? {
-                familiaId: profile.familia_id,
-                childUserId: childDetail?.usuario_id ?? null,
-              }
+              familiaId: profile.familia_id,
+              childUserId: childDetail?.usuario_id ?? null,
+            }
             : undefined,
         });
         setModalType(null);
