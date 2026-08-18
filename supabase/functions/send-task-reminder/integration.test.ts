@@ -4,7 +4,6 @@
  *
  * Validates: Requirements 1.1, 1.4, 3.2, 3.6, 4.1, 4.2, 5.1
  *
- * Spec: .kiro/specs/child-task-reminder/{requirements.md,design.md,tasks.md}
  * Migration: supabase/migrations/20260603200000_lembretes_envios_and_cron.sql
  *
  * Why a TypeScript-level orchestrator simulation:

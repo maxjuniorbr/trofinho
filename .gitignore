@@ -40,19 +40,10 @@ Thumbs.db
 .sonarlint/
 .scannerwork/
 
-# AI assistants (local config)
-AGENTS.md
-.github/copilot-instructions.md
-.github/instructions/
-.github/prompts/
-.github/agents/
-.github/skills/
-.kiro/settings/
-.kiro/skills/
-.kiro/steering/
-.kiro/specs/*
-!.kiro/specs/expo-sdk-upgrade/
-!.kiro/specs/expo-sdk-upgrade/**
+# AI agent context (local config — this repo is public)
+CLAUDE.md
+.claude/
+.mcp.json
 
 # graphify (generated graph artifacts + local hooks)
 graphify-out/

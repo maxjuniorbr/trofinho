@@ -2,7 +2,6 @@
 // Property 3: Idempotency under retries and failures
 // Validates: Requirements 1.4, 1.5, 4.1, 4.2, 4.3, 4.5
 //
-// Spec: .kiro/specs/child-task-reminder/{requirements.md,design.md,tasks.md}
 // Migration: supabase/migrations/20260603200000_lembretes_envios_and_cron.sql
 //
 // Why a TypeScript-level simulation, not a live SQL test:
@@ -10,7 +9,7 @@
 //   The orchestrator `public.executar_lembretes_pendentes()` is plpgsql and
 //   only runs in cloud Postgres (the testing rules state explicitly that
 //   "RLS/SQL policy execution needs cloud Supabase until local Docker is
-//   available", `.kiro/steering/testing.md`). To exercise idempotency
+//   available", `.claude/skills/testing/SKILL.md`). To exercise idempotency
 //   under retries AND under forced HTTP 5xx failures across `n >= 1` runs
 //   per Reminder_Day with 200 fast-check iterations, we model the
 //   orchestrator's idempotency contract in TypeScript and shrink the

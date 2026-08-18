@@ -1,5 +1,4 @@
 -- Child_Task_Reminder — daily reminder fan-out infrastructure.
--- Spec: .kiro/specs/child-task-reminder/{requirements.md,design.md,tasks.md}
 --
 -- This migration is built incrementally across sub-tasks 1.1–1.4:
 --   1.1 — public.lembretes_envios table + indexes + RLS policies (this section)

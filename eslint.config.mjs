@@ -16,7 +16,7 @@ export default defineConfig([
       'supabase/migrations/**',
       'supabase/seed.sql',
       'supabase/functions/**',
-      '.agents/**',
+      '.claude/**',
       'google-cloud-sdk/**',
     ],
   },

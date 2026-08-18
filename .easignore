@@ -34,12 +34,10 @@ yarn-error.*
 .vscode/
 *.code-workspace
 
-# AI assistants — local config, not shared
-.agents/
-.kiro/
-.github/copilot-instructions.md
-.github/instructions/
-.github/prompts/
+# AI agent context — local config, not shared
+.claude/
+CLAUDE.md
+.mcp.json
 
 # Supabase
 supabase/.branches/

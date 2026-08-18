@@ -1,7 +1,5 @@
 // Contract test for the Child_Task_Reminder eligibility predicate.
 //
-// Spec: .kiro/specs/child-task-reminder/{requirements.md,design.md,tasks.md}
-//
 // Task 1.5 — Property test for `selecionar_lembretes_pendentes` eligibility set
 // Property 2: Eligibility predicate is exactly the spec
 // Validates: Requirements 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 5.3, 8.1, 8.2

@@ -1,8 +1,6 @@
 /**
  * Out-of-scope discipline guard for the Child_Task_Reminder feature.
  *
- * Spec: .kiro/specs/child-task-reminder/{requirements.md,design.md,tasks.md}
- *
  * Task 9.1 — Repository smoke test asserting v1 scope is preserved
  * Validates: Requirements 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7
  *
@@ -104,8 +102,8 @@ describe('Child_Task_Reminder scope — Requirement 9.1: no streak/sequencia sym
    * column, streak RPC, or streak push event (req 9.1). The guard scans
    * production source roots — `lib/`, `app/`, `src/`, `supabase/migrations/`,
    * and `supabase/functions/` — for the canonical streak vocabulary. Test
-   * files and `.kiro/specs/**` are excluded so legitimate documentation
-   * usage does not trip the guard.
+   * files are excluded so legitimate documentation usage does not trip the
+   * guard.
    *
    * `sequência` (with cedilla) and `sequencia` (without) are both flagged
    * because Trofinho's domain layer is pt-BR; either spelling would
