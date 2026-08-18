@@ -120,7 +120,7 @@ export default function ChildBalanceAdminScreen() {
         };
       }
     },
-    [filho_id, penaltyMutation, profile?.familia_id, childDetail?.usuario_id],
+    [filho_id, penaltyMutation, profile, childDetail],
   );
 
   const handleConfirmWithdrawal = useCallback(async () => {
