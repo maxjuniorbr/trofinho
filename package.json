@@ -95,7 +95,7 @@
   },
   "overrides": {
     "@babel/core": "^7.29.6",
-    "@xmldom/xmldom": "^0.8.13",
+    "@xmldom/xmldom": "^0.8.15",
     "brace-expansion@^1.0.0": "^1.1.16",
     "brace-expansion@^5.0.0": "^5.0.9",
     "js-yaml": "^4.3.1",
